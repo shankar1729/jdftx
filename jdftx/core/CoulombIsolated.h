@@ -39,6 +39,7 @@ protected:
 private:
 	WignerSeitz ws;
 	RealKernel Vc;
+	ManagedArray<symmetricMatrix3<>> Vc_RRT; //optional lattice derivative of kernel
 	friend struct ExchangeEval;
 };
 

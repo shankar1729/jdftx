@@ -39,24 +39,36 @@ DECLARE_coulombAnalytic(Spherical)
 
 template<typename Coulomb_calc>
 void coulombAnalyticStress_thread(size_t iStart, size_t iStop, vector3<int> S, const matrix3<>& GGT, const Coulomb_calc& calc,
-	const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
+	const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
 {
 	THREAD_halfGspaceLoop
 	(	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
-		grad_RTR[i] = (weight * real(X[i].conj() * Y[i])) * calc.latticeGradient(iG, GGT);
+		grad_RRT[i] = (weight * real(X[i].conj() * Y[i])) * calc.latticeGradient(iG, GGT);
 	)
 }
 #define DECLARE_coulombAnalyticStress(Type) \
 	void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const Coulomb##Type##_calc& calc, \
-		const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR) \
+		const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT) \
 	{	\
-		threadLaunch(coulombAnalyticStress_thread<Coulomb##Type##_calc>, S[0]*S[1]*(1+S[2]/2), S, GGT, calc, X, Y, grad_RTR); \
+		threadLaunch(coulombAnalyticStress_thread<Coulomb##Type##_calc>, S[0]*S[1]*(1+S[2]/2), S, GGT, calc, X, Y, grad_RRT); \
 	}
 DECLARE_coulombAnalyticStress(Periodic)
 DECLARE_coulombAnalyticStress(Slab)
 DECLARE_coulombAnalyticStress(Spherical)
 DECLARE_coulombAnalyticStress(IonKernel)
 #undef DECLARE_coulombAnalyticStress
+
+void coulombNumericalStress_thread(size_t iStart, size_t iStop, vector3<int> S, const matrix3<>& GGT, const symmetricMatrix3<>* Vc_RRT,
+	const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{
+	THREAD_halfGspaceLoop
+	(	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
+		grad_RRT[i] = (weight * real(X[i].conj() * Y[i])) * Vc_RRT[i];
+	)
+}
+void coulombNumericalStress(vector3<int> S, const matrix3<>& GGT, const symmetricMatrix3<>* Vc_RRT, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{	threadLaunch(coulombNumericalStress_thread, S[0]*S[1]*(1+S[2]/2), S, GGT, Vc_RRT, X, Y, grad_RRT);
+}
 
 
 template<typename Exchange_calc>

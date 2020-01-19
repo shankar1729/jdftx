@@ -278,8 +278,13 @@ CoulombWire::CoulombWire(const GridInfo& gInfoOrig, const CoulombParams& params)
 : Coulomb(gInfoOrig, params), ws(gInfo.R), Vc(gInfo)
 {	//Check orthogonality
 	string dirName = checkOrthogonality(gInfo, params.iDir);
-	//Create kernel:
-	CoulombKernel(gInfo.R, gInfo.S, params.isTruncated()).compute(Vc.data(), ws);
+	//Compute kernel (and optionally its lattice derivative):
+	symmetricMatrix3<>* Vc_RRTdata = 0;
+	if(params.computeStress)
+	{	Vc_RRT.init(gInfo.nG);
+		Vc_RRTdata = Vc_RRT.data();
+	}
+	CoulombKernel(gInfo.R, gInfo.S, params.isTruncated()).compute(Vc.data(), ws, Vc_RRTdata);
 	initExchangeEval();
 }
 
@@ -299,60 +304,49 @@ matrix3<> CoulombWire::getLatticeGradient(const ScalarFieldTilde& X, const Scala
 
 //----------------- class CoulombCylindrical ---------------------
 
-void setVcylindrical(size_t iStart, size_t iStop, vector3<int> S, const matrix3<> GGT, int iDir, double Rc, double* Vc)
+void setVcylindrical(size_t iStart, size_t iStop, vector3<int> S, const matrix3<> GGT, int iDir, double Rc, double* Vc, symmetricMatrix3<>* Vc_RRT)
 {	THREAD_halfGspaceLoop
 	(	double Gsq = GGT.metric_length_squared(iG);
 		double GaxisSq = GGT(iDir,iDir) * iG[iDir] * iG[iDir];
 		double GplaneSq = Gsq - GaxisSq;
 		double RGaxis = GaxisSq>0. ? Rc*sqrt(GaxisSq) : 0.; //safe sqrt to prevent NaN from roundoff errors
 		double RGplane = GplaneSq>0. ? Rc*sqrt(GplaneSq) : 0.; //safe sqrt to prevent NaN from roundoff errors
+		double minus_Vc_Gplane_by_Gplane = 0.; //for stress
+		double minus_Vc_Gaxis_by_Gaxis = 0.;
+		double Vc0 = 4*M_PI/Gsq;
+		double J0 = gsl_sf_bessel_J0(RGplane);
+		double J1 = gsl_sf_bessel_J1(RGplane);
+		
 		if(iG[iDir])
-			Vc[i] = (4*M_PI/Gsq) * (1.
-				+ RGplane * gsl_sf_bessel_J1(RGplane) * gsl_sf_bessel_K0(RGaxis)
-				- RGaxis * gsl_sf_bessel_J0(RGplane) * gsl_sf_bessel_K1(RGaxis) );
-		else
-		{	Vc[i] = GplaneSq
-				? (4*M_PI/GplaneSq) * (1. - gsl_sf_bessel_J0(RGplane))
-				: M_PI*Rc*Rc;
+		{	double K0 = gsl_sf_bessel_K0(RGaxis);
+			double K1 = gsl_sf_bessel_K1(RGaxis);
+			Vc[i] = Vc0 * (1. + (RGplane*J1)*K0 - J0*(K1*RGaxis));
+			if(Vc_RRT)
+			{	double J0prime = -J1;
+				double xJ1prime = J0*RGplane;
+				double K0prime = -K1;
+				double xK1prime = -K0*RGaxis;
+				if(GplaneSq)
+					minus_Vc_Gplane_by_Gplane = 2.*Vc[i]/Gsq - (RGplane/GplaneSq)*Vc0*(xJ1prime*K0 - J0prime*(K1*RGaxis));
+				minus_Vc_Gaxis_by_Gaxis = 2.*Vc[i]/Gsq - (RGaxis/GaxisSq)*Vc0*((RGplane*J1)*K0prime - J0*xK1prime);
+			}
+		}
+		else if(GplaneSq)
+		{	Vc[i] = Vc0*(1.-J0);
+			if(Vc_RRT)
+				minus_Vc_Gplane_by_Gplane = (Vc0/GplaneSq) * (2.*(1.-J0) - RGplane*J1);
+		}
+		else Vc[i] = M_PI*Rc*Rc;
+	 
+		//Set lattice derivative of kernel:
+		if(Vc_RRT)
+		{	vector3<> iGplane(iG); iGplane[iDir]=0;
+			Vc_RRT[i] = minus_Vc_Gplane_by_Gplane * outer(iGplane);
+			((double*)(Vc_RRT+i))[iDir] = minus_Vc_Gaxis_by_Gaxis * iG[iDir]*iG[iDir];
 		}
 	)
 }
 
-void getVcylindricalStress(size_t iStart, size_t iStop, vector3<int> S, const matrix3<> GGT, int iDir, double Rc,
-	const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
-{
-	THREAD_halfGspaceLoop
-	(	double Gsq = GGT.metric_length_squared(iG);
-		double GaxisSq = GGT(iDir,iDir) * iG[iDir] * iG[iDir];
-		double GplaneSq = Gsq - GaxisSq;
-		double RGaxis = GaxisSq>0. ? Rc*sqrt(GaxisSq) : 0.; //safe sqrt to prevent NaN from roundoff errors
-		double RGplane = GplaneSq>0. ? Rc*sqrt(GplaneSq) : 0.; //safe sqrt to prevent NaN from roundoff errors
-		double minus_Vc_Gplane_by_Gplane = 0.;
-		double minus_Vc_Gaxis_by_Gaxis = 0.;
-		double J0 = gsl_sf_bessel_J0(RGplane);
-		double J1 = gsl_sf_bessel_J1(RGplane);
-		if(iG[iDir])
-		{	double J0prime = -J1;
-			double xJ1prime = J0*RGplane;
-			double K0 = gsl_sf_bessel_K0(RGaxis);
-			double K1 = gsl_sf_bessel_K1(RGaxis);
-			double K0prime = -K1;
-			double xK1prime = -K0*RGaxis;
-			double Vc0 = 4*M_PI/Gsq;
-			double Vc = Vc0 * (1. + (RGplane*J1)*K0 - J0*(K1*RGaxis));
-			if(GplaneSq)
-				minus_Vc_Gplane_by_Gplane = 2.*Vc/Gsq - (RGplane/GplaneSq)*Vc0*(xJ1prime*K0 - J0prime*(K1*RGaxis));
-			minus_Vc_Gaxis_by_Gaxis = 2.*Vc/Gsq - (RGaxis/GaxisSq)*Vc0*((RGplane*J1)*K0prime - J0*xK1prime);
-		}
-		else if(GplaneSq)
-			minus_Vc_Gplane_by_Gplane = (4*M_PI)/(GplaneSq*GplaneSq) * (2.*(1.-J0) - RGplane*J1);
-		//Set stress cotribution:
-		double weightXY = (((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2) * real(X[i].conj() * Y[i]);
-		vector3<> iGplane(iG); iGplane[iDir]=0;
-		grad_RTR[i] = (weightXY * minus_Vc_Gplane_by_Gplane) * outer(iGplane);
-		((double*)(grad_RTR+i))[iDir] = (weightXY * minus_Vc_Gaxis_by_Gaxis) * iG[iDir]*iG[iDir];
-	)
-}
 
 CoulombCylindrical::CoulombCylindrical(const GridInfo& gInfoOrig, const CoulombParams& params)
 : Coulomb(gInfoOrig, params), ws(gInfo.R), Rc(params.Rc), Vc(gInfo)
@@ -363,8 +357,13 @@ CoulombCylindrical::CoulombCylindrical(const GridInfo& gInfoOrig, const CoulombP
 	if(Rc > RcMax)
 		die("Cylindrical truncation radius %lg exceeds 2D Wigner-Seitz cell in-radius of %lg bohrs.\n", Rc, RcMax);
 	if(!Rc) Rc = RcMax;
-	//Set the kernel:
-	threadLaunch(setVcylindrical, gInfo.nG, gInfo.S, gInfo.GGT, params.iDir, Rc, Vc.data());
+	//Compute kernel (and optionally its lattice derivative):
+	symmetricMatrix3<>* Vc_RRTdata = 0;
+	if(params.computeStress)
+	{	Vc_RRT.init(gInfo.nG);
+		Vc_RRTdata = Vc_RRT.data();
+	}
+	threadLaunch(setVcylindrical, gInfo.nG, gInfo.S, gInfo.GGT, params.iDir, Rc, Vc.data(), Vc_RRTdata);
 	logPrintf("Initialized cylindrical truncation of radius %lg bohrs with axis along lattice direction %s\n", Rc, dirName.c_str());
 	initExchangeEval();
 }
@@ -378,8 +377,9 @@ std::shared_ptr<Ewald> CoulombCylindrical::createEwald(matrix3<> R, size_t nAtom
 }
 
 matrix3<> CoulombCylindrical::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
-{	std::vector<symmetricMatrix3<>> result(gInfo.nG);
-	threadLaunch(getVcylindricalStress, gInfo.nG, gInfo.S, gInfo.GGT, params.iDir, Rc, X->data(), Y->data(), result.data());
-	matrix3<> resultSum = eblas_sum(gInfo.nG, result.data());
+{	ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nG, isGpuEnabled());
+	callPref(coulombNumericalStress)(gInfo.S, gInfo.GGT, Vc_RRT.dataPref(), X->dataPref(), Y->dataPref(), result.dataPref());
+	matrix3<> resultSum = callPref(eblas_sum)(gInfo.nG, result.dataPref());
 	return gInfo.detR * (gInfo.GT * resultSum * gInfo.G);
 }
+

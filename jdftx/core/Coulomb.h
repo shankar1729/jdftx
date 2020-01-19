@@ -65,6 +65,7 @@ struct CoulombParams
 	ExchangeRegularization exchangeRegularization; //!< exchange regularization method
 	std::set<double> omegaSet; //!< set of exchange erf-screening parameters
 	std::shared_ptr<struct Supercell> supercell; //!< Description of k-point supercell for exchange
+	bool computeStress; //!< Whether stress calculation will be required (Isolated and Wire need extra initialization)
 	
 	CoulombParams();
 	

@@ -81,8 +81,13 @@ struct EwaldIsolated : public Ewald
 
 CoulombIsolated::CoulombIsolated(const GridInfo& gInfoOrig, const CoulombParams& params)
 : Coulomb(gInfoOrig, params), ws(gInfo.R), Vc(gInfo)
-{	//Compute kernel:
-	CoulombKernel(gInfo.R, gInfo.S, params.isTruncated()).compute(Vc.data(), ws);
+{	//Compute kernel (and optionally its lattice derivative):
+	symmetricMatrix3<>* Vc_RRTdata = 0;
+	if(params.computeStress)
+	{	Vc_RRT.init(gInfo.nG);
+		Vc_RRTdata = Vc_RRT.data();
+	}
+	CoulombKernel(gInfo.R, gInfo.S, params.isTruncated()).compute(Vc.data(), ws, Vc_RRTdata);
 	initExchangeEval();
 }
 
@@ -95,7 +100,7 @@ std::shared_ptr<Ewald> CoulombIsolated::createEwald(matrix3<> R, size_t nAtoms) 
 }
 
 matrix3<> CoulombIsolated::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
-{	die("Lattice gradient of CoulombIsolated not yet implemented.\n\n");
+{	//HACK die("Lattice gradient of CoulombIsolated not yet implemented.\n\n");
 	return matrix3<>();
 }
 

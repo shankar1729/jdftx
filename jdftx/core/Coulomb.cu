@@ -41,25 +41,41 @@ DECLARE_coulombAnalytic_gpu(Spherical)
 
 template<typename Coulomb_calc> __global__
 void coulombAnalyticStress_kernel(int zBlock, vector3<int> S, const matrix3<> GGT, const Coulomb_calc calc,
-	const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
+	const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
 {
 	COMPUTE_halfGindices
 	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
-	grad_RTR[i] = (weight * real(X[i].conj() * Y[i])) * calc.latticeGradient(iG, GGT);
+	grad_RRT[i] = (weight * real(X[i].conj() * Y[i])) * calc.latticeGradient(iG, GGT);
 }
 #define DECLARE_coulombAnalyticStress_gpu(Type) \
 	void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const Coulomb##Type##_calc& calc, \
-		const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR) \
+		const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT) \
 	{	\
 		GpuLaunchConfigHalf3D glc(coulombAnalyticStress_kernel<Coulomb##Type##_calc>, S); \
 		for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++) \
-			coulombAnalyticStress_kernel<Coulomb##Type##_calc><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, calc, X, Y, grad_RTR); \
+			coulombAnalyticStress_kernel<Coulomb##Type##_calc><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, calc, X, Y, grad_RRT); \
 	}
 DECLARE_coulombAnalyticStress_gpu(Periodic)
 DECLARE_coulombAnalyticStress_gpu(Slab)
 DECLARE_coulombAnalyticStress_gpu(Spherical)
 DECLARE_coulombAnalyticStress_gpu(IonKernel)
 #undef DECLARE_coulombAnalytic_gpu
+
+
+__global__ void coulombNumericalStress_kernel(int zBlock, vector3<int> S, const matrix3<> GGT, const symmetricMatrix3<>* Vc_RRT,
+	const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{
+	COMPUTE_halfGindices
+	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
+	grad_RRT[i] = (weight * real(X[i].conj() * Y[i])) * Vc_RRT[i];
+}
+void coulombNumericalStress_gpu(vector3<int> S, const matrix3<>& GGT, const symmetricMatrix3<>* Vc_RRT,
+	const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{
+	GpuLaunchConfigHalf3D glc(coulombNumericalStress_kernel, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		coulombNumericalStress_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, Vc_RRT, X, Y, grad_RRT);
+}
 
 
 template<typename Exchange_calc> __global__

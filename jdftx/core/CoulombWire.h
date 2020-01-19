@@ -39,6 +39,7 @@ protected:
 private:
 	WignerSeitz ws;
 	RealKernel Vc;
+	ManagedArray<symmetricMatrix3<>> Vc_RRT; //optional lattice derivative of kernel
 };
 
 //! Coulomb interaction for a 1D periodic system, truncated on a cylinder
@@ -54,6 +55,7 @@ private:
 	WignerSeitz ws;
 	double Rc; //!< radius of truncation (set to Wigner-Seitz in-radius if params.Rc=0)
 	RealKernel Vc;
+	ManagedArray<symmetricMatrix3<>> Vc_RRT; //optional lattice derivative of kernel
 	friend struct ExchangeEval;
 };
 

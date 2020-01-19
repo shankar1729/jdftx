@@ -112,18 +112,20 @@ struct CoulombIonKernel_calc
 void coulombAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, complex* data);
 void coulombAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, complex* data);
 void coulombAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSpherical_calc& calc, complex* data);
-void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
-void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
-void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSpherical_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
-void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombIonKernel_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
+void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
+void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
+void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSpherical_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
+void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombIonKernel_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
+void coulombNumericalStress_gpu(vector3<int> S, const matrix3<>& GGT, const symmetricMatrix3<>* Vc_RRT, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
 #endif
 void coulombAnalytic(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, complex* data);
 void coulombAnalytic(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, complex* data);
 void coulombAnalytic(vector3<int> S, const matrix3<>& GGT, const CoulombSpherical_calc& calc, complex* data);
-void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
-void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
-void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombSpherical_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
-void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombIonKernel_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
+void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
+void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
+void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombSpherical_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
+void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombIonKernel_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
+void coulombNumericalStress(vector3<int> S, const matrix3<>& GGT, const symmetricMatrix3<>* Vc_RRT, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
 
 //! Compute erf(x)/x (with x~0 handled properly)
 __hostanddev__ double erf_by_x(double x)

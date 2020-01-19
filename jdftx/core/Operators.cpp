@@ -301,17 +301,17 @@ complexScalarFieldTilde Linv(complexScalarFieldTilde&& in)
 complexScalarFieldTilde Linv(const complexScalarFieldTilde& in) { return Linv(in->clone()); }
 
 
-void Lstress_thread(size_t iStart, size_t iStop, const vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
+void Lstress_thread(size_t iStart, size_t iStop, const vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
 {	THREAD_halfGspaceLoop
 	(	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
-		grad_RTR[i] = (weight * real(X[i].conj() * Y[i])) * outer(vector3<>(iG));
+		grad_RRT[i] = (weight * real(X[i].conj() * Y[i])) * outer(vector3<>(iG));
 	)
 }
-inline void Lstress(const vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
-{	threadLaunch(Lstress_thread, S[0]*S[1]*(S[2]/2+1), S, X, Y, grad_RTR);
+inline void Lstress(const vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{	threadLaunch(Lstress_thread, S[0]*S[1]*(S[2]/2+1), S, X, Y, grad_RRT);
 }
 #ifdef GPU_ENABLED //implemented in Operators.cu
-void Lstress_gpu(const vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
+void Lstress_gpu(const vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
 #endif
 matrix3<> Lstress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y)
 {	const GridInfo& gInfo = X->gInfo;

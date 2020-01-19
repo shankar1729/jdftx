@@ -33,14 +33,14 @@ CoulombKernel::CoulombKernel(const matrix3<> R, const vector3<int> S, const vect
 }
 
 
-void CoulombKernel::compute(double* data, const WignerSeitz& ws) const
+void CoulombKernel::compute(double* data, const WignerSeitz& ws, symmetricMatrix3<>* data_RRT) const
 {	//Count number of truncated directions:
 	int nTruncated = 0;
 	for(int k=0; k<3; k++) if(isTruncated[k]) nTruncated++;
 	//Call appropriate routine:
 	switch(nTruncated)
-	{	case 2: computeWire(data, ws); break;
-		case 3: computeIsolated(data, ws); break;
+	{	case 2: computeWire(data, ws, data_RRT); break;
+		case 3: computeIsolated(data, ws, data_RRT); break;
 		default: assert(!"Invalid truncated direction count");
 	}
 }
@@ -96,8 +96,10 @@ namespace CoulombKernelIsolated
 	}
 }
 
-void CoulombKernel::computeIsolated(double* data, const WignerSeitz& ws) const
+void CoulombKernel::computeIsolated(double* data, const WignerSeitz& ws, symmetricMatrix3<>* data_RRT) const
 {
+	if(data_RRT) die("Lattice derivative of CoulombKernel::computeIsolated not yet implemented.\n\n");
+	
 	for(int k=0; k<3; k++) assert(isTruncated[k]); //Make sure all directions are truncated
 	double sigma = ws.inRadius() / nSigmasPerWidth;
 	logPrintf("Gaussian width for range separation: %lg bohrs.\n", sigma);
@@ -231,8 +233,10 @@ struct CoulombKernelWire
 	}
 };
 
-void CoulombKernel::computeWire(double* data, const WignerSeitz& ws) const
+void CoulombKernel::computeWire(double* data, const WignerSeitz& ws, symmetricMatrix3<>* data_RRT) const
 {	
+	if(data_RRT) die("Lattice derivative of CoulombKernel::computeWire not yet implemented.\n\n");
+	
 	//Find axis and check geometry:
 	int iDir = -1;
 	for(int k=0; k<3; k++)

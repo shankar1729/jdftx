@@ -42,14 +42,15 @@ struct CoulombKernel
 	//! ws is the Wigner-Seitz cell corresponding to lattice vectors R.
 	//!      Supported modes include fully truncated (Isolated or Wigner-Seitz
 	//! truncated exchange kernel) and one direction periodic (Wire geometry).
-	void compute(double* data, const WignerSeitz& ws) const;
+	//!      Optionally initialize lattice derivative if data_RRT is non-null
+	void compute(double* data, const WignerSeitz& ws, symmetricMatrix3<>* data_RRT=0) const;
 	
 	static const double nSigmasPerWidth; //!< number of sigmas at which gaussian is negligible at working precision
 	
 private:
 	//Various indiviudally optimized cases of computeKernel:
-	void computeIsolated(double* data, const WignerSeitz& ws) const; //!< Fully truncated
-	void computeWire(double* data, const WignerSeitz& ws) const; //!< 1 periodic direction
+	void computeIsolated(double* data, const WignerSeitz& ws, symmetricMatrix3<>* data_RRT) const; //!< Fully truncated
+	void computeWire(double* data, const WignerSeitz& ws, symmetricMatrix3<>* data_RRT) const; //!< 1 periodic direction
 };
 
 //! @}

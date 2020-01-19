@@ -108,16 +108,16 @@ void fullLinv_gpu(const vector3<int> S, const matrix3<> GGT, complex* v)
 }
 
 __global__
-void Lstress_kernel(int zBlock, vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
+void Lstress_kernel(int zBlock, vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
 {	COMPUTE_halfGindices
 	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
-	grad_RTR[i] = (weight * real(X[i].conj() * Y[i])) * outer(vector3<>(iG));
+	grad_RRT[i] = (weight * real(X[i].conj() * Y[i])) * outer(vector3<>(iG));
 }
 
-void Lstress_gpu(vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
+void Lstress_gpu(vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
 {	GpuLaunchConfigHalf3D glc(Lstress_kernel, S);
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-		Lstress_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, X, Y, grad_RTR);
+		Lstress_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, X, Y, grad_RRT);
 }
 
 

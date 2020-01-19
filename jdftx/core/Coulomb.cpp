@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Operators.h>
 #include "LatticeUtils.h"
 
-CoulombParams::CoulombParams() : ionMargin(5.), embed(false), embedFluidMode(false)
+CoulombParams::CoulombParams() : ionMargin(5.), embed(false), embedFluidMode(false), computeStress(false)
 {
 }
 
