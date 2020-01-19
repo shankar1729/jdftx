@@ -145,7 +145,7 @@ public:
 							E12 += prefac * c * zTerm;
 							E12_r12 += (prefac * -s * zTerm * (2*M_PI)) * iG;
 							E12_r12[iDir] += prefac * c * zTermPrime * L;
-							//Accumulate stresses::
+							//Accumulate stresses:
 							if(E_RRTptr)
 							{	vector3<> Gcart = iG * G;
 								E_RRT += (prefac * c * minus_zTerm_G_by_G) * outer(Gcart,Gcart);

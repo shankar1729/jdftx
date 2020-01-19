@@ -150,8 +150,9 @@ private:
 };
 
 //! Look-up table for Cbar_k^sigma(rho) for specific values of k and sigma
+//! If prime=true, construct lookup table for -d(Cbar_k^sigma(rho))/dk instead
 struct Cbar_k_sigma
-{	Cbar_k_sigma(double k, double sigma, double rhoMax, double rho0=1.);
+{	Cbar_k_sigma(double k, double sigma, double rhoMax, double rho0=1., bool prime=false);
 	//! Get value:
 	inline double value(double rho) const
 	{	double f = QuinticSpline::value(coeff.data(), drhoInv * rho);

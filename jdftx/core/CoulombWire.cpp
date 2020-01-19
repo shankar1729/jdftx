@@ -96,16 +96,23 @@ double Cbar::integrandLargeRho(double t, void* params)
 
 //--------------- class Cbar_k_sigma ----------
 
-Cbar_k_sigma::Cbar_k_sigma(double k, double sigma, double rhoMax, double rho0)
+Cbar_k_sigma::Cbar_k_sigma(double k, double sigma, double rhoMax, double rho0, bool prime)
 {	assert(rhoMax > 0.);
 	//Pick grid and initialize sample values:
 	double drho = 0.03*sigma; //With 5th order splines, this guarantees rel error ~ 1e-14 typical, 1e-12 max
 	drhoInv = 1./drho;
 	isLog = (k != 0.); //When k!=0, samples are positive and interpolate on the logarithm
+	if(prime) assert(k != 0.);
 	std::vector<double> x(size_t(drhoInv*rhoMax)+10);
 	Cbar cbar;
 	for(size_t i=0; i<x.size(); i++)
-	{	double c = cbar(k, sigma, i*drho, rho0);
+	{	double c = 0.;
+		if(prime) //compute -dcbar/dk by finite difference
+		{	double dk = k*1e-5;
+			c = (0.5/dk) * (cbar(k-dk, sigma, i*drho, rho0) - cbar(k+dk, sigma, i*drho, rho0));
+		}
+		else c = cbar(k, sigma, i*drho, rho0);
+			
 		if(isLog) x[i] = (c>0 ? log(c) : (i ? x[i-1] : log(DBL_MIN)));
 		else x[i] = c;
 	}
@@ -127,6 +134,7 @@ class EwaldWire : public Ewald
 	vector3<int> Nrecip; //!< max unit cell indices for reciprocal-space sum
 	
 	std::vector<std::shared_ptr<Cbar_k_sigma>> cbar_k_sigma;
+	std::vector<std::shared_ptr<Cbar_k_sigma>> minus_cbar_k_sigma_k; //!< -d(cbar_k_sigma)/dk for stress calculation
 	
 public:
 	EwaldWire(const matrix3<>& R, int iDir, const WignerSeitz& ws, double ionMargin, double Rc=0., double rho0=1.)
@@ -153,23 +161,28 @@ public:
 		
 		//Initialize Cbar_k^sigma look-up tables:
 		cbar_k_sigma.resize(Nrecip[iDir]+1);
+		minus_cbar_k_sigma_k.resize(Nrecip[iDir]+1);
 		vector3<int> iG(0,0,0);
 		double rhoMax = ws.circumRadius(iDir);
 		for(iG[iDir]=0; iG[iDir]<=Nrecip[iDir]; iG[iDir]++)
 		{	double k = sqrt(GGT.metric_length_squared(iG));
 			cbar_k_sigma[iG[iDir]] = std::make_shared<Cbar_k_sigma>(k, sigma, rhoMax, rho0);
+			if(k) minus_cbar_k_sigma_k[iG[iDir]] = std::make_shared<Cbar_k_sigma>(k, sigma, rhoMax, rho0, true);
 		}
 	}
 	
-	double energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRT) const
-	{	if(E_RRT) die("EwaldWire stress not yet implemented.\n\n");
-		if(!atoms.size()) return 0.;
+	double energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRTptr) const
+	{	if(!atoms.size()) return 0.;
 		double eta = sqrt(0.5)/sigma, etaSq=eta*eta;
+		matrix3<> E_RRT; //stress * volume (computed if E_RRTptr non-null)
+		double E_RRTzz = 0.; //stress contribution along periodic direction
+		
 		//Position independent terms: (Self-energy correction)
 		double ZsqTot = 0.;
 		for(const Atom& a: atoms)
 			ZsqTot += a.Z * a.Z;
 		double E = -0.5 * ZsqTot * eta * (2./sqrt(M_PI));
+		
 		//Reduce positions to first unit cell:
 		//Shift all points in the truncated directions into the 2D Wigner-Seitz cell
 		//centered on one of the atoms; choice of this atom is irrelevant if every atom
@@ -177,6 +190,7 @@ public:
 		vector3<> pos0 = atoms[0].pos;
 		for(Atom& a: atoms)
 			a.pos = pos0 + ws.restrict(a.pos - pos0);
+		
 		//Real space sum:
 		vector3<int> iR(0,0,0); //integer cell number
 		for(const Atom& a2: atoms)
@@ -187,9 +201,14 @@ public:
 					if(!rSq) continue; //exclude self-interaction
 					double r = sqrt(rSq);
 					E += 0.5 * a1.Z * a2.Z * erfc(eta*r)/r;
-					a1.force += (RTR * x) *
-						(a1.Z * a2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq);
+					double minus_E_r_by_r = a1.Z * a2.Z * (erfc(eta*r)/r + (2./sqrt(M_PI))*eta*exp(-etaSq*rSq))/rSq;
+					a1.force += (RTR * x) * minus_E_r_by_r;
+					if(E_RRTptr)
+					{	vector3<> rVec = R * x;
+						E_RRT -= (0.5*minus_E_r_by_r) * outer(rVec,rVec);
+					}
 				}
+		
 		//Reciprocal space sum:
 		double volPrefac = 0.5 / sqrt(RTR(iDir,iDir));
 		for(unsigned i1=0; i1<atoms.size(); i1++)
@@ -209,23 +228,45 @@ public:
 						die("Separation between atoms %d and %d lies within the margin of %lg bohrs from the Wigner-Seitz boundary.\n" ionMarginMessage, i1+1, i2+1, ionMargin);
 				}
 				double E12 = 0.; vector3<> E12_r12(0.,0.,0.); //energy and gradient from this pair
-				vector3<int> iG(0,0,0); //integer reciprocal cell number (only iG[iDir] will be non-zero)
-				for(iG[iDir]=0; iG[iDir]<=Nrecip[iDir]; iG[iDir]++)
+				double E12_rho = 0.; //derivative w.r.t rho12 collected for stress calculation
+				vector3<int> iG(0,0,0); //integer reciprocal cell number
+				int& iGz = iG[iDir]; //only iG[iDir] will be non-zero below
+				for(iGz=0; iGz<=Nrecip[iDir]; iGz++)
 				{	//1D structure factor term and derivative
 					double c, s; sincos((2*M_PI)*dot(iG,r12), &s, &c);
-					if(iG[iDir]) { c *= 2.; s *= 2.; } //include contribution from -iG[iDir]
+					if(iGz) { c *= 2.; s *= 2.; } //include contribution from -iGz
 					//Contribution from truncated directions:
-					double rhoTerm = cbar_k_sigma[iG[iDir]]->value(rho12);
-					double rhoTermPrime = cbar_k_sigma[iG[iDir]]->deriv(rho12);
+					double rhoTerm = cbar_k_sigma[iGz]->value(rho12);
+					double rhoTermPrime = cbar_k_sigma[iGz]->deriv(rho12);
 					//Update energy and forces:
 					E12 += prefac * c * rhoTerm;
 					E12_r12 += (prefac * -s * rhoTerm * (2*M_PI)) * iG
 						+ (prefac * c * rhoTermPrime * (rho12 ? 1./rho12 : 0.)) * (RTR * rho12vec);
+					//Accumulate stresses:
+					if(E_RRTptr)
+					{	E12_rho += prefac * c * rhoTermPrime;
+						if(iGz) E_RRTzz += prefac * c * minus_cbar_k_sigma_k[iGz]->value(rho12) * (iGz*iGz);
+					}
 				}
 				E += E12;
 				a1.force -= E12_r12;
 				a2.force += E12_r12;
+				if(E_RRTptr)
+				{	if(rho12)
+					{	vector3<> rho12cart = R * rho12vec;
+						E_RRT += (E12_rho/rho12) * outer(rho12cart,rho12cart);
+					}
+					E_RRTzz -= E12; //propagated through volPrefac
+				}
 			}
+		}
+		
+		if(E_RRTptr)
+		{	//Add zz contribution collected separately above into E_RRT:
+			vector3<> zHat = R.column(iDir); zHat *= (1./zHat.length());
+			E_RRT += E_RRTzz * outer(zHat,zHat);
+			//Accumulate to total stress:
+			*E_RRTptr += E_RRT;
 		}
 		return E;
 	}
@@ -277,6 +318,42 @@ void setVcylindrical(size_t iStart, size_t iStop, vector3<int> S, const matrix3<
 	)
 }
 
+void getVcylindricalStress(size_t iStart, size_t iStop, vector3<int> S, const matrix3<> GGT, int iDir, double Rc,
+	const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR)
+{
+	THREAD_halfGspaceLoop
+	(	double Gsq = GGT.metric_length_squared(iG);
+		double GaxisSq = GGT(iDir,iDir) * iG[iDir] * iG[iDir];
+		double GplaneSq = Gsq - GaxisSq;
+		double RGaxis = GaxisSq>0. ? Rc*sqrt(GaxisSq) : 0.; //safe sqrt to prevent NaN from roundoff errors
+		double RGplane = GplaneSq>0. ? Rc*sqrt(GplaneSq) : 0.; //safe sqrt to prevent NaN from roundoff errors
+		double minus_Vc_Gplane_by_Gplane = 0.;
+		double minus_Vc_Gaxis_by_Gaxis = 0.;
+		double J0 = gsl_sf_bessel_J0(RGplane);
+		double J1 = gsl_sf_bessel_J1(RGplane);
+		if(iG[iDir])
+		{	double J0prime = -J1;
+			double xJ1prime = J0*RGplane;
+			double K0 = gsl_sf_bessel_K0(RGaxis);
+			double K1 = gsl_sf_bessel_K1(RGaxis);
+			double K0prime = -K1;
+			double xK1prime = -K0*RGaxis;
+			double Vc0 = 4*M_PI/Gsq;
+			double Vc = Vc0 * (1. + (RGplane*J1)*K0 - J0*(K1*RGaxis));
+			if(GplaneSq)
+				minus_Vc_Gplane_by_Gplane = 2.*Vc/Gsq - (RGplane/GplaneSq)*Vc0*(xJ1prime*K0 - J0prime*(K1*RGaxis));
+			minus_Vc_Gaxis_by_Gaxis = 2.*Vc/Gsq - (RGaxis/GaxisSq)*Vc0*((RGplane*J1)*K0prime - J0*xK1prime);
+		}
+		else if(GplaneSq)
+			minus_Vc_Gplane_by_Gplane = (4*M_PI)/(GplaneSq*GplaneSq) * (2.*(1.-J0) - RGplane*J1);
+		//Set stress cotribution:
+		double weightXY = (((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2) * real(X[i].conj() * Y[i]);
+		vector3<> iGplane(iG); iGplane[iDir]=0;
+		grad_RTR[i] = (weightXY * minus_Vc_Gplane_by_Gplane) * outer(iGplane);
+		((double*)(grad_RTR+i))[iDir] = (weightXY * minus_Vc_Gaxis_by_Gaxis) * iG[iDir]*iG[iDir];
+	)
+}
+
 CoulombCylindrical::CoulombCylindrical(const GridInfo& gInfoOrig, const CoulombParams& params)
 : Coulomb(gInfoOrig, params), ws(gInfo.R), Rc(params.Rc), Vc(gInfo)
 {	//Check orthogonality:
@@ -301,7 +378,8 @@ std::shared_ptr<Ewald> CoulombCylindrical::createEwald(matrix3<> R, size_t nAtom
 }
 
 matrix3<> CoulombCylindrical::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
-{	die("Lattice gradient of CoulombCylindrical not yet implemented.\n\n");
-	return matrix3<>();
+{	std::vector<symmetricMatrix3<>> result(gInfo.nG);
+	threadLaunch(getVcylindricalStress, gInfo.nG, gInfo.S, gInfo.GGT, params.iDir, Rc, X->data(), Y->data(), result.data());
+	matrix3<> resultSum = eblas_sum(gInfo.nG, result.data());
+	return gInfo.detR * (gInfo.GT * resultSum * gInfo.G);
 }
-
