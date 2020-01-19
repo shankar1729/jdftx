@@ -75,6 +75,7 @@ LatticeMinimizer::LatticeMinimizer(Everything& e)
 	const vector3<bool> isTruncated = e.coulombParams.isTruncated();
 	std::vector<vector3<>> vFixed; //unit vectors spanning fixed subspace
 	Pfree = matrix3<>(1,1,1); //initially identity (no projection)
+	double lattMoveScaleMean = 0.; //mean value of free directions
 	for(int k=0; k<3; k++)
 		if((e.cntrl.lattMoveScale[k]==0.) || isTruncated[k])
 		{	vector3<> vk = Rorig.column(k);
@@ -84,8 +85,13 @@ LatticeMinimizer::LatticeMinimizer(Everything& e)
 			vFixed.push_back(vk); //remember this direction to orthogonalize future ones
 			Pfree -= outer(vk, vk); //project out this direction
 		}
+		else lattMoveScaleMean += e.cntrl.lattMoveScale[k];
 	if(vFixed.size()==3)
 		die("No lattice directions free for lattice minimization due to truncation and/or latt-move-scale.\n\n");
+	lattMoveScaleMean /= (3.-vFixed.size());
+	
+	//Preconditioning factor:
+	latticeK = std::pow(lattMoveScaleMean / std::pow(fabs(det(Rorig)),1./3), 2); //match dimensions to ionic Hessian
 }
 
 void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
@@ -156,7 +162,7 @@ double LatticeMinimizer::compute(LatticeGradient* grad, LatticeGradient* Kgrad)
 		grad->lattice = e.iInfo.stress * e.gInfo.detR;
 		//Set Kgrad->lattice if necessary:
 		if(Kgrad)
-		{	Kgrad->lattice = grad->lattice * std::pow(fabs(det(Rorig)), -2./3); //match dimensions to ionic Hessian
+		{	Kgrad->lattice = grad->lattice * latticeK;
 			constrain(*Kgrad);
 		}
 	}

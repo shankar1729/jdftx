@@ -63,6 +63,7 @@ private:
 	matrix3<> strain; //!< minimizer state = strain relative to Rorig (i.e. R = Rorig * (1 + strain))
 	bool skipWfnsDrag; //!< whether to temporarily skip wavefunction drag due to large steps (for stability)
 	matrix3<> Pfree; //!< projection operator onto free directions (accounting for lattMoveScale and truncation)
+	double latticeK; //!< preconditioning factor for lattice degrees of freedom
 	
 	//! Updates lattice dependent quantities, but does not
 	//! reconverge ionic positions or wavefunctions
