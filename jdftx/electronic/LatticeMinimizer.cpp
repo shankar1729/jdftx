@@ -67,9 +67,9 @@ LatticeMinimizer::LatticeMinimizer(Everything& e)
 			for(int j=0; j<3; j++)
 				if(op.rot(i,j) && e.cntrl.lattMoveScale[i] != e.cntrl.lattMoveScale[j])
 					die("latt-move-scale is not commensurate with symmetries:\n"
-						"\t(Lattice vectors #%d and #%d are connected by symmetry,\n"
-						"\tbut have different move scale factors %lg != %lg).\n",
-						i, j, e.cntrl.lattMoveScale[i], e.cntrl.lattMoveScale[j]);
+						"\tLattice vectors #%d and #%d are connected by symmetry\n"
+						"\tbut have different move scale factors %lg != %lg.\n\n",
+						i+1, j+1, e.cntrl.lattMoveScale[i], e.cntrl.lattMoveScale[j]);
 	
 	//Check which lattice vectors can be altered:
 	const vector3<bool> isTruncated = e.coulombParams.isTruncated();
@@ -112,8 +112,10 @@ void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
 		}
 	
 	//Change lattice:
-	strain  += alpha * dir.lattice;
-	e.gInfo.R = Rorig + strain * Rorig;
+	const matrix3<> id(1,1,1); //identity
+	matrix3<> strainFactor = id + alpha*dir.lattice;
+	e.gInfo.R = strainFactor * e.gInfo.R;
+	strain = e.gInfo.R * inv(Rorig) - id;
 	bcast(e.gInfo.R); //ensure consistency to numerical precision
 	bcast(strain); //ensure consistency to numerical precision
 	updateLatticeDependent(e); // Updates lattice information
