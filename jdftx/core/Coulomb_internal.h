@@ -91,18 +91,31 @@ struct CoulombSpherical_calc
 	}
 };
 
+//! Lattice derivative calculation for ionKernel used in embedded mode
+struct CoulombIonKernel_calc
+{	double expFac;
+	CoulombIonKernel_calc(double ionWidth) : expFac(0.5*ionWidth*ionWidth) {}
+	__hostanddev__ symmetricMatrix3<> latticeGradient(const vector3<int>& iG, const matrix3<>& GGT) const
+	{	double Gsq = GGT.metric_length_squared(iG);
+		return (Gsq ? (8*M_PI)*(1.-exp(-expFac*Gsq)*(1.+expFac*Gsq))/(Gsq*Gsq) : 0.) * outer(vector3<>(iG));
+	}
+};
+
+
 #ifdef GPU_ENABLED
 void coulombAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, complex* data);
 void coulombAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, complex* data);
 void coulombAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSpherical_calc& calc, complex* data);
 void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
 void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
+void coulombAnalyticStress_gpu(vector3<int> S, const matrix3<>& GGT, const CoulombIonKernel_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
 #endif
 void coulombAnalytic(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, complex* data);
 void coulombAnalytic(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, complex* data);
 void coulombAnalytic(vector3<int> S, const matrix3<>& GGT, const CoulombSpherical_calc& calc, complex* data);
 void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombPeriodic_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
 void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombSlab_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
+void coulombAnalyticStress(vector3<int> S, const matrix3<>& GGT, const CoulombIonKernel_calc& calc, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RTR);
 
 //! Compute erf(x)/x (with x~0 handled properly)
 __hostanddev__ double erf_by_x(double x)

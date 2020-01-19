@@ -196,12 +196,17 @@ complexScalarFieldTilde Coulomb::operator()(const complexScalarFieldTilde& in, v
 
 matrix3<> Coulomb::latticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y, Coulomb::PointChargeMode pointChargeMode) const
 {	if(params.embed)
-	{	const ScalarFieldTilde& Xreg = pointChargeMode==Coulomb::PointChargeLeft ? gaussConvolve(X, ionWidth) : X;
-		const ScalarFieldTilde& Yreg = pointChargeMode==Coulomb::PointChargeRight ? gaussConvolve(Y, ionWidth) : Y;
-		matrix3<> result = getLatticeGradient(Xreg, Yreg);
-		if(pointChargeMode != PointChargeNone)
-		{	//TODO: handle contributions of LR part and from gauss kernel
-			die("Point charge modes not yet implemented in embedded truncated coulomb stress.\n\n");
+	{	if(pointChargeMode==PointChargeRight) return latticeGradient(Y, X, Coulomb::PointChargeLeft); //to simplify logic below
+		//Convole point charge side if needed:
+		const ScalarFieldTilde& Xsmooth = (pointChargeMode==PointChargeLeft ? gaussConvolve(X, ionWidth) : X);
+		//Expand X(smooth) and Y to double size grids (with convolution of point charge side if needed)
+		const ScalarFieldTilde& Xdbl = embedExpand(Xsmooth);
+		const ScalarFieldTilde& Ydbl = embedExpand(Y);
+		matrix3<> result = getLatticeGradient(Xdbl, Ydbl);
+		if(pointChargeMode == PointChargeLeft)
+		{	const ScalarFieldTilde KY = embedShrink(apply((ScalarFieldTilde&&)Ydbl)); //NOTE: Ydbl destroyed here by in-place evaluation
+			result += getIonKernelLatticeGradient(X, Y) //due to short-ranged contribution directly on original grid
+				+ 0.5*ionWidth*ionWidth * Lstress(Xsmooth, KY);//propagated through gaussConvolve (just a gauss convolution of Lstress)
 		}
 		return result;
 	}
@@ -339,6 +344,15 @@ void setEmbedBoundarySymm_sub(size_t iStart, size_t iStop, const vector3<int>& S
 
 inline void setIonKernel(int i, double Gsq, double expFac, double GzeroVal, double* kernel)
 {	kernel[i] = (4*M_PI) * (Gsq ? (1.-exp(-expFac*Gsq))/Gsq : GzeroVal);
+}
+
+matrix3<> Coulomb::getIonKernelLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
+{	assert(&(X->gInfo) == &gInfoOrig);
+	assert(&(Y->gInfo) == &gInfoOrig);
+	ManagedArray<symmetricMatrix3<>> result; result.init(gInfoOrig.nG, isGpuEnabled());
+	callPref(coulombAnalyticStress)(gInfoOrig.S, gInfoOrig.GGT, CoulombIonKernel_calc(ionWidth), X->dataPref(), Y->dataPref(), result.dataPref());
+	matrix3<> resultSum = callPref(eblas_sum)(gInfoOrig.nG, result.dataPref());
+	return gInfoOrig.detR * (gInfoOrig.GT * resultSum * gInfoOrig.G);
 }
 
 Coulomb::Coulomb(const GridInfo& gInfoOrig, const CoulombParams& params)
