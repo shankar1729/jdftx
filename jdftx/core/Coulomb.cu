@@ -57,6 +57,7 @@ void coulombAnalyticStress_kernel(int zBlock, vector3<int> S, const matrix3<> GG
 	}
 DECLARE_coulombAnalyticStress_gpu(Periodic)
 DECLARE_coulombAnalyticStress_gpu(Slab)
+DECLARE_coulombAnalyticStress_gpu(Spherical)
 DECLARE_coulombAnalyticStress_gpu(IonKernel)
 #undef DECLARE_coulombAnalytic_gpu
 

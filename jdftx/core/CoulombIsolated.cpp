@@ -62,13 +62,17 @@ struct EwaldIsolated : public Ewald
 						die("Separation between atoms %d and %d lies within the margin of %lg bohrs from the Wigner-Seitz boundary.\n" ionMarginMessage, i+1, j+1, ionMargin);
 				}
 				double dE = (a1.Z * a2.Z) / r;
-				vector3<> dF = (RTR * x) * (dE/rSq);
+				double minus_dE_r_by_r = dE / rSq;
+				vector3<> dF = (RTR * x) * minus_dE_r_by_r;
 				E += dE;
 				a1.force += dF;
 				a2.force -= dF;
+				if(E_RRT)
+				{	vector3<> rVec = R * x;
+					*E_RRT -= minus_dE_r_by_r * outer(rVec,rVec);
+				}
 			}
 		}
-		//Note: no need to calculate E_RRT for an isolated system
 		return E;
 	}
 };
@@ -88,6 +92,11 @@ ScalarFieldTilde CoulombIsolated::apply(ScalarFieldTilde&& in) const
 
 std::shared_ptr<Ewald> CoulombIsolated::createEwald(matrix3<> R, size_t nAtoms) const
 {	return std::make_shared<EwaldIsolated>(R, ws, params.ionMargin);
+}
+
+matrix3<> CoulombIsolated::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
+{	die("Lattice gradient of CoulombIsolated not yet implemented.\n\n");
+	return matrix3<>();
 }
 
 
@@ -112,3 +121,9 @@ std::shared_ptr<Ewald> CoulombSpherical::createEwald(matrix3<> R, size_t nAtoms)
 {	return std::make_shared<EwaldIsolated>(R, ws, params.ionMargin, Rc);
 }
 
+matrix3<> CoulombSpherical::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
+{	ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nG, isGpuEnabled());
+	callPref(coulombAnalyticStress)(gInfo.S, gInfo.GGT, CoulombSpherical_calc(Rc), X->dataPref(), Y->dataPref(), result.dataPref());
+	matrix3<> resultSum = callPref(eblas_sum)(gInfo.nG, result.dataPref());
+	return gInfo.detR * (gInfo.GT * resultSum * gInfo.G);
+}

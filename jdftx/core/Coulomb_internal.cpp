@@ -54,6 +54,7 @@ void coulombAnalyticStress_thread(size_t iStart, size_t iStop, vector3<int> S, c
 	}
 DECLARE_coulombAnalyticStress(Periodic)
 DECLARE_coulombAnalyticStress(Slab)
+DECLARE_coulombAnalyticStress(Spherical)
 DECLARE_coulombAnalyticStress(IonKernel)
 #undef DECLARE_coulombAnalyticStress
 
