@@ -308,7 +308,7 @@ double IonicMinimizer::compute(IonicGradient* grad, IonicGradient* Kgrad)
 bool IonicMinimizer::report(int iter)
 {	if(e.iInfo.computeStress)
 	{	logPrintf("\n# Stress tensor in Cartesian coordinates [Eh/a0^3]:\n");
-		e.iInfo.stress.print(globalLog, "%12lg ");
+		e.iInfo.stress.print(globalLog, "%12lg ", true, 1e-14);
 	}
 	logPrintf("\n"); 
 	e.iInfo.printPositions(globalLog);

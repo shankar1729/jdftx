@@ -135,10 +135,13 @@ public:
 		return ret;
 	}
 
-	void print(FILE* fp, const char *format, bool brackets=true) const //!< print to a file / stream
+	void print(FILE* fp, const char *format, bool brackets=true, double suppressThreshold=0.) const //!< print to a file / stream
 	{	for(int i=0; i<3; i++)
 		{	if(brackets) fprintf(fp, "[ ");
-			for(int j=0; j<3; j++) fprintf(fp, format, m[i][j]);
+			for(int j=0; j<3; j++)
+			{	const scalar& mij = m[i][j];
+				fprintf(fp, format, fabs(mij)<suppressThreshold ? scalar() : mij);
+			}
 			if(brackets) fprintf(fp, " ]\n"); else fprintf(fp, "\n");
 		}
 	}

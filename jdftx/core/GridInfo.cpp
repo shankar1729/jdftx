@@ -86,7 +86,7 @@ void GridInfo::updateSdependent()
 }
 
 void GridInfo::printLattice()
-{	logPrintf("R = \n"); R.print(globalLog, "%10lg ");
+{	logPrintf("R = \n"); R.print(globalLog, "%12lg ", true, 1e-14);
 	logPrintf("unit cell volume = %lg\n", detR);
 }
 

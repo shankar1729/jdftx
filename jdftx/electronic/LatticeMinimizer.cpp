@@ -173,8 +173,8 @@ double LatticeMinimizer::minimize(const MinimizeParams& params)
 }
 
 bool LatticeMinimizer::report(int iter)
-{	logPrintf("\n"); e.gInfo.printLattice();
-	logPrintf("\n# Strain tensor in Cartesian coordinates:\n"); strain.print(globalLog, "%12lg ");
+{	logPrintf("# Lattice vectors:\n"); e.gInfo.printLattice();
+	logPrintf("\n# Strain tensor in Cartesian coordinates:\n"); strain.print(globalLog, "%12lg ", true, 1e-14);
 	return imin.report(iter); //IonicMinimizer::report will print stress, atomic positions, forces etc.
 }
 
