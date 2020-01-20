@@ -145,3 +145,11 @@ void multTransformedKernel_thread(size_t iStart, size_t iStop,
 void multTransformedKernel(vector3<int> S, const double* kernel, complex* data, const vector3<int>& offset)
 {	threadLaunch(multTransformedKernel_thread, S[0]*S[1]*S[2], S, kernel, data, offset);
 }
+
+
+void realKernelStress_thread(size_t iStart, size_t iStop, vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT)
+{	THREAD_fullGspaceLoop( realKernelStress_calc(i, iG, S, kernel_RRT, X, grad_RRT); )
+}
+void realKernelStress(vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT)
+{	threadLaunch(realKernelStress_thread, S[0]*S[1]*S[2], S, kernel_RRT, X, grad_RRT);
+}

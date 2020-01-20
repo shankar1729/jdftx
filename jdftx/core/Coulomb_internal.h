@@ -337,5 +337,23 @@ void multTransformedKernel(vector3<int> S, const double* kernel, complex* data, 
 void multTransformedKernel_gpu(vector3<int> S, const double* kernel, complex* data, const vector3<int>& offset);
 #endif
 
+
+//! Compute stress corresponding to multRealKernel()
+__hostanddev__ void realKernelStress_calc(size_t i, const vector3<int>& iG,
+	const vector3<int>& S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT)
+{	//Compute index on the real kernel:
+	vector3<int> iGreal = iG;
+	if(iGreal[2]<0) iGreal = -iGreal; //inversion symmetry in G-space for real-kernels
+	if(iGreal[1]<0) iGreal[1] += S[1];
+	if(iGreal[0]<0) iGreal[0] += S[0];
+	size_t iReal = iGreal[2] + size_t(1+S[2]/2) * (iGreal[1] + S[1]*iGreal[0]);
+	//Multiply:
+	grad_RRT[i] = kernel_RRT[iReal] * X[i].norm();
+}
+void realKernelStress(vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT);
+#ifdef GPU_ENABLED
+void realKernelStress_gpu(vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT);
+#endif
+
 //! @}
 #endif // JDFTX_CORE_COULOMB_INTERNAL_H

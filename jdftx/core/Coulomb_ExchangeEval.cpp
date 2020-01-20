@@ -480,10 +480,18 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				die("Exact-exchange in Isolated geometry should be used only with a single k-point.\n");
 			if(omega) //Create an omega-screened version (but gamma-point only):
 			{	VcGamma = new RealKernel(gInfo);
-				CoulombKernel(gInfo.R, gInfo.S, params.isTruncated(), omega).compute(VcGamma->data(), ((CoulombIsolated&)coulomb).ws);
+				symmetricMatrix3<>* VcGamma_RRTdata = 0;
+				if(params.computeStress)
+				{	VcGamma_RRT = new ManagedArray<symmetricMatrix3<>>();
+					VcGamma_RRT->init(gInfo.nG);
+					VcGamma_RRTdata = VcGamma_RRT->data();
+				}
+				CoulombKernel(gInfo.R, gInfo.S, params.isTruncated(), omega).compute(VcGamma->data(), ((CoulombIsolated&)coulomb).ws, VcGamma_RRTdata);
 			}
 			else //use the same kernel as hartree/Vloc
 			{	VcGamma = &((CoulombIsolated&)coulomb).Vc; 
+				if(params.computeStress)
+					VcGamma_RRT = &((CoulombIsolated&)coulomb).Vc_RRT; 
 				logPrintf("Using previously initialized isolated coulomb kernel.\n");
 			}
 		}
@@ -541,8 +549,8 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 
 ExchangeEval::~ExchangeEval()
 {	
-	if(VcGamma && omega)
-		delete VcGamma;
+	if(VcGamma && omega) delete VcGamma;
+	if(VcGamma_RRT && omega) delete VcGamma_RRT;
 }
 
 
@@ -620,6 +628,13 @@ matrix3<> ExchangeEval::latticeGradient(const complexScalarFieldTilde& X, vector
 		}
 		//case SlabKernel:
 			//RETURN_exchangeAnalyticStress(slabCalc)
+		case WignerSeitzGammaKernel:
+		{	assert(kDiff.length_squared() < symmThresholdSq); //gamma-point only
+			ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nr, isGpuEnabled());
+			callPref(realKernelStress)(gInfo.S, VcGamma_RRT->dataPref(), X->dataPref(), result.dataPref());
+			matrix3<> resultSum = callPref(eblas_sum)(gInfo.nr, result.dataPref());
+			return gInfo.detR * resultSum;
+		}
 		default:
 			die_alone("Lattice gradient not yet implemented for this kernel mode.");
 			return matrix3<>();

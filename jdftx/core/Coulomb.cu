@@ -161,3 +161,15 @@ void multTransformedKernel_gpu(vector3<int> S, const double* kernel, complex* da
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
 		multTransformedKernel_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, kernel, data, offset);
 }
+
+
+__global__
+void realKernelStress_kernel(int zBlock, vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT)
+{	COMPUTE_fullGindices
+	realKernelStress_calc(i, iG, S, kernel_RRT, X, grad_RRT);
+}
+void realKernelStress_gpu(vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT)
+{	GpuLaunchConfig3D glc(realKernelStress_kernel, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		realKernelStress_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, kernel_RRT, X, grad_RRT);
+}
