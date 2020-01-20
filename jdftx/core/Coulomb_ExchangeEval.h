@@ -65,6 +65,7 @@ private:
 	//For precomputed numerical kernel mode:
 	std::vector< vector3<> > dkArr; //list of allowed k-point differences (modulo integer offsets)
 	ManagedArray<double> kernelData; //data for all the kernels
+	ManagedArray<symmetricMatrix3<>> kernelData_RRT; //lattice derivative data for all the kernels
 };
 
 //! @}

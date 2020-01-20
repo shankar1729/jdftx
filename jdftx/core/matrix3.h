@@ -295,6 +295,12 @@ template<typename scalar=double> struct symmetricMatrix3
 	{
 	}
 	
+	//! Initialize from regular matrix
+	__hostanddev__ symmetricMatrix3(const matrix3<>& m)
+	: xx(m(0,0)), yy(m(1,1)), zz(m(2,2)), yz(m(1,2)), zx(m(2,0)), xy(m(0,1))
+	{
+	}
+	
 	//! Convert to regular matrix (for most operations)
 	__hostanddev__ operator matrix3<scalar>() const
 	{	return matrix3<scalar>(
@@ -306,6 +312,12 @@ template<typename scalar=double> struct symmetricMatrix3
 	//! Scale
 	__hostanddev__ symmetricMatrix3<scalar> operator*(scalar s) const
 	{	return symmetricMatrix3(s*xx, s*yy, s*zz, s*yz, s*zx, s*xy);
+	}
+	
+	//! Accumulate
+	__hostanddev__ symmetricMatrix3<scalar>& operator+=(symmetricMatrix3<scalar> m)
+	{	xx += m.xx; yy += m.yy; zz += m.zz; yz += m.yz; zx += m.zx; xy += m.xy;
+		return *this;
 	}
 };
 template<typename scalar> __hostanddev__ symmetricMatrix3<scalar> operator*(scalar s, symmetricMatrix3<scalar> m) { return m * s; } //!< Scale

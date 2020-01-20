@@ -347,13 +347,29 @@ __hostanddev__ void realKernelStress_calc(size_t i, const vector3<int>& iG,
 	if(iGreal[1]<0) iGreal[1] += S[1];
 	if(iGreal[0]<0) iGreal[0] += S[0];
 	size_t iReal = iGreal[2] + size_t(1+S[2]/2) * (iGreal[1] + S[1]*iGreal[0]);
-	//Multiply:
+	//Set stress contribution:
 	grad_RRT[i] = kernel_RRT[iReal] * X[i].norm();
 }
 void realKernelStress(vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT);
 #ifdef GPU_ENABLED
 void realKernelStress_gpu(vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT);
 #endif
+
+
+//! Compute stress corresponding to multTransformedKernel()
+__hostanddev__ void transformedKernelStress_calc(size_t i, const vector3<int>& iG,
+	const vector3<int>& S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<int>& offset)
+{	vector3<int> iGkernel = (iG - offset); //Compute index on the real kernel
+	for(int k=0; k<3; k++) if(iGkernel[k]<0) iGkernel[k] += S[k]; //Reduce to [0,S-1) in each dimension
+	size_t iReal = iGkernel[2] + S[2]*size_t(iGkernel[1] + S[1]*iGkernel[0]); //net index into kernel
+	//Set stress contribution:
+	grad_RRT[i] = kernel_RRT[iReal] * X[i].norm();
+}
+void transformedKernelStress(vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<int>& offset);
+#ifdef GPU_ENABLED
+void transformedKernelStress_gpu(vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<int>& offset);
+#endif
+
 
 //! @}
 #endif // JDFTX_CORE_COULOMB_INTERNAL_H

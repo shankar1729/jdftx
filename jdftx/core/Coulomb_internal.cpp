@@ -137,6 +137,7 @@ void multRealKernel(vector3<int> S, const double* kernel, complex* data)
 {	threadLaunch(multRealKernel_thread, S[0]*S[1]*S[2], S, kernel, data);
 }
 
+
 //Multiply a complexScalarFieldTilde by a kernel sampled with offset and rotation by rot
 void multTransformedKernel_thread(size_t iStart, size_t iStop,
 	vector3<int> S, const double* kernel, complex* data, const vector3<int>& offset)
@@ -153,3 +154,13 @@ void realKernelStress_thread(size_t iStart, size_t iStop, vector3<int> S, const 
 void realKernelStress(vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT)
 {	threadLaunch(realKernelStress_thread, S[0]*S[1]*S[2], S, kernel_RRT, X, grad_RRT);
 }
+
+
+void transformedKernelStress_thread(size_t iStart, size_t iStop,
+	vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<int>& offset)
+{	THREAD_fullGspaceLoop( transformedKernelStress_calc(i, iG, S, kernel_RRT, X, grad_RRT, offset); )
+}
+void transformedKernelStress(vector3<int> S, const symmetricMatrix3<>* kernel_RRT, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<int>& offset)
+{	threadLaunch(transformedKernelStress_thread, S[0]*S[1]*S[2], S, kernel_RRT, X, grad_RRT, offset);
+}
+

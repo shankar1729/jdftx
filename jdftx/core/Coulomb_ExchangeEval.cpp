@@ -201,7 +201,7 @@ double truncatedErfcTilde(double G, double omega, double Rc)
 //from supercell kernel in dataSuper, and store it in data
 void extractExchangeKernel_thread(size_t iStart, size_t iStop, const vector3<>& dk,
 	const vector3<int>& S, const vector3<int>& Ssuper, const matrix3<int>& super,
-	const double* dataSuper, double* data)
+	const double* dataSuper, double* data, const symmetricMatrix3<>* dataSuper_RRT, symmetricMatrix3<>* data_RRT)
 {	//Get the integer vector corresponding to dk in the supercell:
 	double err;
 	vector3<int> dkSuper = round(dk * super, &err); //note: transformation is by transpose of super
@@ -215,6 +215,7 @@ void extractExchangeKernel_thread(size_t iStart, size_t iStop, const vector3<>& 
 		if(iGsuper[0]<0) iGsuper[0] += Ssuper[0];
 		size_t iSuper = iGsuper[2] + (1+Ssuper[2]/2) * size_t(iGsuper[1] + Ssuper[1]*iGsuper[0]);
 		data[i] = dataSuper[iSuper];
+		if(data_RRT) data_RRT[i] = dataSuper_RRT[iSuper];
 	)
 }
 
@@ -222,7 +223,7 @@ void extractExchangeKernel_thread(size_t iStart, size_t iStop, const vector3<>& 
 //-------------------- class ExchangeEval -----------------------
 
 ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, const Coulomb& coulomb, double omega)
-: gInfo(gInfo), omega(omega), VcGamma(0), kernelData(0)
+: gInfo(gInfo), omega(omega), VcGamma(0), VcGamma_RRT(0), kernelData(0)
 {
 	if(!omega) logPrintf("\n-------- Setting up exchange kernel --------\n");
 	else logPrintf("\n--- Setting up screened exchange kernel (omega = %lg) ---\n", omega);
@@ -522,9 +523,15 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			size_t nGsuper = Ssuper[0]*(Ssuper[1]*size_t(1+Ssuper[2]/2));
 			double* dataSuper = new double[nGsuper];
 			if(!dataSuper) die_alone("Out of memory. (need %.1lfGB for supercell exchange kernel)\n", nGsuper*1e-9*sizeof(double));
+			symmetricMatrix3<>* dataSuper_RRT = 0;
+			if(params.computeStress)
+			{	dataSuper_RRT = new symmetricMatrix3<>[nGsuper];
+				if(!dataSuper_RRT) die_alone("Out of memory. (need %.1lfGB for lattice derivatives of supercell exchange kernel)\n", 6*nGsuper*1e-9*sizeof(double));
+			}
 			WignerSeitz wsSuper(Rsuper);
-			CoulombKernel(Rsuper, Ssuper, isTruncated, omega).compute(dataSuper, wsSuper);
+			CoulombKernel(Rsuper, Ssuper, isTruncated, omega).compute(dataSuper, wsSuper, dataSuper_RRT);
 			dataSuper[0] += VzeroCorrection; //For slab/wire geometry kernels in AuxiliaryFunction/ProbeChargeEwald methods
+			if(params.computeStress) dataSuper_RRT[0] += VzeroCorrection_RRT;
 			
 			//Construct k-point difference mesh:
 			for(const vector3<>& kpoint: kmesh)
@@ -537,10 +544,15 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			logPrintf("Splitting supercell kernel to unit-cell with k-points ... "); logFlush();
 			size_t nKernelData = dkArr.size() * gInfo.nr;
 			kernelData.init(nKernelData);
+			if(params.computeStress)
+				kernelData_RRT.init(nKernelData);
 			for(size_t i=0; i<dkArr.size(); i++)
 				threadLaunch(extractExchangeKernel_thread, gInfo.nr, dkArr[i],
-					gInfo.S, Ssuper, super, dataSuper, kernelData.data() + i*gInfo.nr);
+					gInfo.S, Ssuper, super, dataSuper, kernelData.data() + i*gInfo.nr,
+					dataSuper_RRT, params.computeStress ? kernelData_RRT.data() + i*gInfo.nr : 0);
 			delete[] dataSuper;
+			if(params.computeStress)
+				delete[] dataSuper_RRT;
 			logPrintf("Done.\n");
 			break;
 		}
@@ -635,9 +647,26 @@ matrix3<> ExchangeEval::latticeGradient(const complexScalarFieldTilde& X, vector
 			matrix3<> resultSum = callPref(eblas_sum)(gInfo.nr, result.dataPref());
 			return gInfo.detR * resultSum;
 		}
+		case NumericalKernel:
+		{	//Find kernel with the appropriate kDiff:
+			for(unsigned ik=0; ik<dkArr.size(); ik++)
+				if(circDistanceSquared(dkArr[ik], kDiff) < symmThresholdSq)
+				{	//Find the integer offset, if any:
+					double err;
+					vector3<int> offset = round(dkArr[ik] - kDiff, &err);
+					assert(err < symmThreshold);
+					//Compute stress:
+					ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nr, isGpuEnabled());
+					callPref(transformedKernelStress)(gInfo.S, kernelData_RRT.dataPref() + gInfo.nr * ik, X->dataPref(), result.dataPref(), offset);
+					matrix3<> resultSum = callPref(eblas_sum)(gInfo.nr, result.dataPref());
+					return gInfo.detR * resultSum;
+				}
+			assert(!"Encountered invalid kDiff");
+			return matrix3<>();
+		}
 		default:
 			die_alone("Lattice gradient not yet implemented for this kernel mode.");
-			return matrix3<>();
 	}
 	#undef RETURN_exchangeAnalyticStress
+	return matrix3<>(); //to avoid compiler warnings
 }
