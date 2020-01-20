@@ -259,6 +259,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 	
 	//Perform G=0 handling if required
 	double VzeroCorrection = 0.;
+	matrix3<> VzeroCorrection_RRT; //optional lattice derivative
 	double detRsuper = fabs(det(Rsuper));
 	
 	if(params.exchangeRegularization==CoulombParams::AuxiliaryFunction)
@@ -285,6 +286,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 	
 	if(params.exchangeRegularization==CoulombParams::ProbeChargeEwald)
 	{	double Eperiodic = 0.; //Periodic interaction of a point charge in supercell geometry
+		matrix3<> Eperiodic_RRT;
 		if(omega) //Directly compute the periodic interaction in real space
 		{	matrix3<> invRsuper = inv(Rsuper);
 			vector3<bool> isTruncated = params.isTruncated();
@@ -296,6 +298,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			//Loop over neighbouring cells in real space:
 			matrix3<> RsuperTRsuper = (~Rsuper)*Rsuper;
 			vector3<int> iR; //integer cell number
+			double omegaSq = omega*omega;
 			for(iR[0]=-Nreal[0]; iR[0]<=Nreal[0]; iR[0]++)
 				for(iR[1]=-Nreal[1]; iR[1]<=Nreal[1]; iR[1]++)
 					for(iR[2]=-Nreal[2]; iR[2]<=Nreal[2]; iR[2]++)
@@ -303,21 +306,32 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 						if(!rSq) continue; //exclude self-interaction
 						double r = sqrt(rSq);
 						Eperiodic += 0.5*erfc(omega*r)/r;
+						if(params.computeStress)
+						{	vector3<> rVec = Rsuper * iR;
+							double minus_E_r_by_r = 0.5*(erfc(omega*r)/r + (2./sqrt(M_PI))*omega*exp(-omegaSq*rSq))/rSq;
+							Eperiodic_RRT -= minus_E_r_by_r * outer(rVec,rVec);
+						}
 					}
 		}
 		else //Use the appropriate Ewald method
 		{	std::vector<Atom> atoms(1, Atom(1., vector3<>())); //single unit point charge
 			logSuspend();
-			Eperiodic = coulomb.createEwald(Rsuper, 1)->energyAndGrad(atoms);
+			Eperiodic = coulomb.createEwald(Rsuper, 1)->energyAndGrad(atoms, params.computeStress ? &Eperiodic_RRT : 0);
 			logResume();
 			//Correction for G=0 difference between cylinder and wire truncation modes:
 			if(params.geometry == CoulombParams::Cylindrical)
 			{	double rho0 = ((CoulombCylindrical&)coulomb).Rc; //cylinder mode uses this as reference rho in logarithmic singularity
 				double L = Rsuper.column(params.iDir).length();
 				Eperiodic -= log(rho0) / L;
+				if(params.computeStress)
+				{	vector3<> zHat = (1./L) * Rsuper.column(params.iDir);
+					Eperiodic_RRT += (log(rho0) / L) * outer(zHat,zHat);
+				}
 			}
 		}
 		VzeroCorrection = (-2.*detRsuper) * Eperiodic;
+		if(params.computeStress)
+			VzeroCorrection_RRT = (-2.*detRsuper) * (Eperiodic_RRT + matrix3<>(1,1,1)*Eperiodic);
 	}
 	
 	if(VzeroCorrection) logPrintf("Vxx(G=0) correction = %le\n", VzeroCorrection/detRsuper);
@@ -326,6 +340,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 	switch(kernelMode)
 	{	case PeriodicKernel:
 		{	Vzero = VzeroCorrection + (omega ? M_PI/(omega*omega) : 0.);
+			Vzero_RRT = VzeroCorrection_RRT;
 			logPrintf("3D periodic kernel with %s G=0.\n", VzeroCorrection ? "modified" : "unmodified");
 			break;
 		}
