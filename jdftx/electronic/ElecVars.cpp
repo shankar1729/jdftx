@@ -497,12 +497,18 @@ matrix3<> ElecVars::latticeGrad() const
 	
 	//Add q-independent contributions:
 	//--- volume contribution in various terms
-	E_RRT += id * (e->ener.E["KE"] + e->ener.E["EH"] + e->ener.E["Exc"]);
+	E_RRT += id * (e->ener.E["KE"] + e->ener.E["EH"] + e->ener.E["Exc"] + e->ener.E["EXX"]);
 	//--- Hartree
 	ScalarFieldTilde nTilde = J(get_nTot());
 	E_RRT += 0.5 * e->coulomb->latticeGradient(nTilde, nTilde);
 	//--- Exchange-correlation
 	e->exCorr(get_nXC(), 0, false, &tau, 0, &E_RRT);
+	//--- Exact exchange
+	if(e->exCorr.exxFactor())
+	{	double aXX = e->exCorr.exxFactor();
+		double omega = e->exCorr.exxRange();
+		(*e->exx)(aXX, omega, F, C, 0, &E_RRT);
+	}
 	
 	return E_RRT;
 }

@@ -102,6 +102,33 @@ DECLARE_exchangeAnalytic(Slab)
 #undef DECLARE_exchangeAnalytic
 
 
+template<typename Exchange_calc>
+void exchangeAnalyticStress_thread(size_t iStart, size_t iStop, vector3<int> S, const matrix3<>& G, const Exchange_calc& calc,
+	const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq)
+{	THREAD_fullGspaceLoop
+	(	vector3<> iGkCart = (iG + kDiff) * G;
+		double kplusGsq = iGkCart.length_squared();
+		double XiNorm = X[i].norm();
+		double grad_lnDetR = 0.;
+		grad_RRT[i] = outer(iGkCart) * (kplusGsq<thresholdSq ? 0. : calc.latticeGradientPrefac(kplusGsq, grad_lnDetR)*XiNorm);
+		if(grad_lnDetR) *((vector3<>*)(grad_RRT+i)) += grad_lnDetR * XiNorm; //diagonal contribution due to detR gradient
+	)
+}
+#define DECLARE_exchangeAnalyticStress(Type) \
+	void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const Exchange##Type##_calc& calc, \
+		const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq) \
+	{	\
+		threadLaunch(exchangeAnalyticStress_thread<Exchange##Type##_calc>, \
+			S[0]*S[1]*S[2], S, G, calc, X, grad_RRT, kDiff, thresholdSq); \
+	}
+DECLARE_exchangeAnalyticStress(Periodic)
+DECLARE_exchangeAnalyticStress(PeriodicScreened)
+DECLARE_exchangeAnalyticStress(Spherical)
+DECLARE_exchangeAnalyticStress(SphericalScreened)
+//DECLARE_exchangeAnalyticStress(Slab)
+#undef DECLARE_exchangeAnalyticStress
+
+
 void multRealKernel_thread(size_t iStart, size_t iStop,
 	vector3<int> S, const double* kernel, complex* data)
 {	THREAD_fullGspaceLoop( multRealKernel_calc(i, iG, S, kernel, data); )

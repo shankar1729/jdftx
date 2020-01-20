@@ -147,6 +147,8 @@ struct complexScalarFieldTildeData : public FieldData<complex>
 {	typedef complex DataType; //!< Type of data in container (useful for templating)
 	complexScalarFieldTilde clone() const; //!< clone the data (NOTE: assigning complexScalarFieldTilde's makes a new reference to the same data)
 	static complexScalarFieldTilde alloc(const GridInfo& gInfo, bool onGpu=false); //!< Create reciprocal space data
+	complex getGzero() const; //!< get the G=0 component
+	void setGzero(complex Gzero); //!< set the G=0 component
 	complexScalarFieldTildeData(const GridInfo& gInfo, bool onGpu, PrivateTag); //!< called only by complexScalarFieldTildeData::alloc()
 };
 

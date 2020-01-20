@@ -117,6 +117,30 @@ complexScalarFieldTilde complexScalarFieldTildeData::clone() const
 }
 complexScalarFieldTilde complexScalarFieldTildeData::alloc(const GridInfo& gInfo, bool onGpu) { return std::make_shared<complexScalarFieldTildeData>(gInfo, onGpu, PrivateTag()); }
 
+complex complexScalarFieldTildeData::getGzero() const
+{	
+	#ifdef GPU_ENABLED
+	if(isOnGpu())
+	{	complex ret;
+		cudaMemcpy(&ret, dataGpu(false), sizeof(complex), cudaMemcpyDeviceToHost);
+		return ret * scale;
+	}
+	#endif
+	return data(false)[0] * scale;
+}
+void complexScalarFieldTildeData::setGzero(complex Gzero)
+{	if(!scale) absorbScale(); //otherwise division by zero below
+	complex scaledGzero = Gzero * (1./scale);
+	#ifdef GPU_ENABLED
+	if(isOnGpu())
+	{	cudaMemcpy(dataGpu(false), &scaledGzero, sizeof(complex), cudaMemcpyHostToDevice);
+		return;
+	}
+	#endif
+	data(false)[0] = scaledGzero;
+}
+
+
 
 //------------ class RealKernel ---------------
 

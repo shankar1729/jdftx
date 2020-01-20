@@ -357,8 +357,13 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				sphericalScreenedCalc.coeff = sphericalScreenedCoeff.dataPref();
 				sphericalScreenedCalc.dGinv = 1.0/dG;
 				sphericalScreenedCalc.nSamples = nSamples;
+				sphericalScreenedCalc.Rc = Rc;
+				sphericalScreenedCalc.erfcOmegaRc_4piBy3 = (4*M_PI/3) * erfc(omega*Rc);
 			}
 			else Vzero = (2*M_PI) * Rc*Rc;  //Note: this mode will always have VzeroCorrection = 0.
+			//Optionally contribute G=0 contribution to stress:
+			if(params.computeStress)
+				Vzero_RRT = matrix3<>(1.,1.,1.) * (4*M_PI/3) * Rc*Rc * erfc(Rc * omega); //since Rc ~ detR ^ (1./3)
 			break;
 		}
 		case SlabKernel:
@@ -548,8 +553,29 @@ complexScalarFieldTilde ExchangeEval::operator()(complexScalarFieldTilde&& in, v
 	return in;
 }
 
-matrix3<> ExchangeEval::latticeGradient(const complexScalarFieldTilde& X, vector3< double > kDiff) const
+matrix3<> ExchangeEval::latticeGradient(const complexScalarFieldTilde& X, vector3<> kDiff) const
 {
-	die("Lattice gradient of exchange integral not yet implemented.\n\n");
-	return matrix3<>();
+	#define RETURN_exchangeAnalyticStress(calc) \
+	{	ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nr, isGpuEnabled()); \
+		callPref(exchangeAnalyticStress)(gInfo.S, gInfo.G, calc, X->dataPref(), result.dataPref(), kDiff, symmThresholdSq); \
+		matrix3<> resultSum = callPref(eblas_sum)(gInfo.nr, result.dataPref()); \
+		if(kDiff.length_squared() < symmThresholdSq) resultSum += Vzero_RRT * X->getGzero().norm(); \
+		return gInfo.detR * resultSum; \
+	}
+	switch(kernelMode)
+	{	case PeriodicKernel:
+		{	if(omega) RETURN_exchangeAnalyticStress(ExchangePeriodicScreened_calc(omega))
+			else RETURN_exchangeAnalyticStress(ExchangePeriodic_calc())
+		}
+		case SphericalKernel:
+		{	if(omega) RETURN_exchangeAnalyticStress(sphericalScreenedCalc)
+			else RETURN_exchangeAnalyticStress(ExchangeSpherical_calc(Rc))
+		}
+		//case SlabKernel:
+			//RETURN_exchangeAnalyticStress(slabCalc)
+		default:
+			die_alone("Lattice gradient not yet implemented for this kernel mode.");
+			return matrix3<>();
+	}
+	#undef RETURN_exchangeAnalyticStress
 }

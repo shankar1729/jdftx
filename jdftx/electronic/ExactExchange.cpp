@@ -56,7 +56,7 @@ public:
 	//! Calculate for one pair of transformed ik and untransformed iq
 	double calc(int ikReduced, int iqReduced, double aXX, double omega,
 		const diagMatrix& Fk, const ColumnBundle& CkRed, ColumnBundle* HCkRed,
-		const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle* HCq) const;
+		const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle* HCq, matrix3<>* EXX_RRT=0) const;
 	
 private:
 	friend class ExactExchange;
@@ -85,10 +85,10 @@ ExactExchange::~ExactExchange()
 
 double ExactExchange::operator()(double aXX, double omega, 
 	const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-	std::vector<ColumnBundle>* HC) const
+	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr) const
 {	static StopWatch watch("ExactExchange"); watch.start();
 
-	//prepare outputs
+	//Prepare outputs:
 	if(HC)
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			if(!(*HC)[q])
@@ -98,6 +98,7 @@ double ExactExchange::operator()(double aXX, double omega,
 	
 	//Calculate:
 	double EXX = 0.;
+	matrix3<> EXX_RRT; //computed only if EXX_RRTptr is non-null
 	for(int iSpin=0; iSpin<eval->nSpins; iSpin++)
 		for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
 		{
@@ -120,12 +121,19 @@ double ExactExchange::operator()(double aXX, double omega,
 			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 				EXX += eval->calc(ikReduced, q-iSpin*eval->qCount, aXX, omega,
 					Fk, CkRed, HC ? &HCkRed : 0,
-					F[q], C[q], HC ? &(HC->at(q)) : 0);
+					F[q], C[q], HC ? &(HC->at(q)) : 0,
+					EXX_RRTptr ? &EXX_RRT : 0);
 			
 			//Move ik state gradient back to host process (if necessary):
 			if(HC) mpiWorld->reduceData(HCkRed, MPIUtil::ReduceSum, e.eInfo.whose(ikSrc));
 		}
 	mpiWorld->allReduce(EXX, MPIUtil::ReduceSum, true);
+	if(EXX_RRTptr)
+	{	mpiWorld->allReduce(EXX_RRT, MPIUtil::ReduceSum, true);
+		*EXX_RRTptr += EXX_RRT;
+		
+		logPrintf("\nEXX_RRT:\n"); EXX_RRT.print(globalLog, "%12lg ");
+	}
 	watch.stop();
 	return EXX;
 }
@@ -312,7 +320,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 
 double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double omega,
 	const diagMatrix& Fk, const ColumnBundle& CkRed, ColumnBundle* HCkRed,
-	const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle* HCq) const
+	const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle* HCq, matrix3<>* EXX_RRT) const
 {
 	const QuantumNumber& qnum_q = *(Cq.qnum);
 	if(CkRed.qnum->spin != qnum_q.spin) return 0.;
@@ -364,6 +372,7 @@ double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double 
 							if(HCq) grad_Ipsiq[bq-bqStart][s] += (prefac*wFk) * E_In * Ipsik[s];
 						}
 					}
+					if(EXX_RRT) *EXX_RRT += (prefac*wFk*wFq) * e.coulombWfns->latticeGradient(n, qnum_q.k-qnum_k.k, omega); //Stress contribution
 				}
 				//Convert k-state gradients back to reciprocal space (if needed):
 				if(HCk)

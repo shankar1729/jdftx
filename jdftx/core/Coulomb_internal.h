@@ -195,6 +195,9 @@ struct ExchangePeriodic_calc
 {	__hostanddev__ double operator()(double kSq) const
 	{	return (4*M_PI) / kSq;
 	}
+	__hostanddev__ double latticeGradientPrefac(double kSq, double& grad_lnDetR) const
+	{	return (8*M_PI) / (kSq*kSq);
+	}
 };
 
 //! Erfc-screened Periodic exchange
@@ -205,6 +208,9 @@ struct ExchangePeriodicScreened_calc
 	__hostanddev__ double operator()(double kSq) const
 	{	return (4*M_PI) * (1.-exp(-inv4omegaSq*kSq)) / kSq;
 	}
+	__hostanddev__ double latticeGradientPrefac(double kSq, double& grad_lnDetR) const
+	{	return (8*M_PI) * (1.-exp(-inv4omegaSq*kSq)*(1.+inv4omegaSq*kSq)) / (kSq*kSq);
+	}
 };
 
 //! Spherical-truncated exchange
@@ -214,6 +220,12 @@ struct ExchangeSpherical_calc
 	
 	__hostanddev__ double operator()(double kSq) const
 	{	return (4*M_PI) * (1. - cos(Rc * sqrt(kSq))) / kSq;
+	}
+	__hostanddev__ double latticeGradientPrefac(double kSq, double& grad_lnDetR) const
+	{	double kR = sqrt(kSq)*Rc, coskR, sinkR;
+		sincos(kR, &sinkR, &coskR);
+		grad_lnDetR = (4*M_PI) * (kR*sinkR) / (3*kSq);
+		return (4*M_PI) * (2*(1.-coskR) - kR*sinkR)/(kSq*kSq);
 	}
 };
 
@@ -228,6 +240,18 @@ struct ExchangeSphericalScreened_calc
 	{	double t = dGinv * sqrt(kSq);
 		if(t >= nSamples) return 0.;
 		else return QuinticSpline::value(coeff, t);
+	}
+
+	//Additional members set for stress calculation:
+	double Rc; //!< truncation radius
+	double erfcOmegaRc_4piBy3; //!< (4 pi/3) erfc(omega*Rc), where omega is the screening parameter
+	
+	__hostanddev__ double latticeGradientPrefac(double kSq, double& grad_lnDetR) const
+	{	double k = sqrt(kSq);
+		grad_lnDetR = erfcOmegaRc_4piBy3 * sin(k*Rc) * Rc/k;
+		double t = dGinv * k;
+		if(t >= nSamples) return 0.;
+		else return QuinticSpline::deriv(coeff, t) * (-t/kSq);
 	}
 };
 
@@ -268,6 +292,20 @@ void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangeSp
 void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangeSphericalScreened_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 void exchangeAnalytic_gpu(vector3<int> S, const matrix3<>& GGT, const ExchangeSlab_calc& calc, complex* data, const vector3<>& kDiff, double Vzero, double thresholdSq);
 #endif
+
+void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangePeriodic_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangePeriodicScreened_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangeSpherical_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangeSphericalScreened_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+//void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangeSlab_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+#ifdef GPU_ENABLED
+void exchangeAnalyticStress_gpu(vector3<int> S, const matrix3<>& G, const ExchangePeriodic_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+void exchangeAnalyticStress_gpu(vector3<int> S, const matrix3<>& G, const ExchangePeriodicScreened_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+void exchangeAnalyticStress_gpu(vector3<int> S, const matrix3<>& G, const ExchangeSpherical_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+void exchangeAnalyticStress_gpu(vector3<int> S, const matrix3<>& G, const ExchangeSphericalScreened_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+//void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangeSlab_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+#endif
+
 
 //! Multiply a complexScalarFieldTilde's data by a RealKernel (real-symmetry reduced)
 __hostanddev__ void multRealKernel_calc(size_t i, const vector3<int>& iG,

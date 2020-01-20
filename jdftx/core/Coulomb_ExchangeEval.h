@@ -51,6 +51,7 @@ private:
 	
 	//For all analytic modes (None, AuxiliaryFunction, SphericalTruncated):
 	double Vzero; //G=0 term (0, the auxiliary correction, and the G=0 limit respectively)
+	matrix3<> Vzero_RRT; //lattice derivative of Vzero
 	//For spherical mode
 	double Rc;
 	ExchangeSphericalScreened_calc sphericalScreenedCalc; //for screened exchange

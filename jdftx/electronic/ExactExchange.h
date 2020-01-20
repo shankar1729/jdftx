@@ -39,7 +39,7 @@ public:
 	//! (and optionally accumulate gradients) given fillings and wavefunctions
 	double operator()(double aXX, double omega,
 		const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-		std::vector<ColumnBundle>* HC = 0) const;
+		std::vector<ColumnBundle>* HC=0, matrix3<>* EXX_RRT=0) const;
 	
 	//! Set the occupied wavefunctions and occupation factors in preparation for applyHamiltonian
 	void setOccupied(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C);
