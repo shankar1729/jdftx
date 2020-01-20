@@ -348,9 +348,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 		}
 		else //Use the appropriate Ewald method
 		{	std::vector<Atom> atoms(1, Atom(1., vector3<>())); //single unit point charge
-			logSuspend();
 			Eperiodic = coulomb.createEwald(Rsuper, 1)->energyAndGrad(atoms, params.computeStress ? &Eperiodic_RRT : 0);
-			logResume();
 			//Correction for G=0 difference between cylinder and wire truncation modes:
 			if(params.geometry == CoulombParams::Cylindrical)
 			{	double rho0 = ((CoulombCylindrical&)coulomb).Rc; //cylinder mode uses this as reference rho in logarithmic singularity
