@@ -185,6 +185,7 @@ struct CoulombKernelWire
 	//Data arrays:
 	ManagedArray<complex> dense; //2D fft array on dense grid
 	double* Vc; //output kernel (3D fftw c2r layout)
+	symmetricMatrix3<>* Vc_RRT; //lattice derivative of Vc
 	fftw_plan fftPlanR2C; //2D fftw r2c plan
 	
 	//Geometry:
@@ -192,6 +193,7 @@ struct CoulombKernelWire
 	int iDir, jDir, kDir; //iDir is the untruncated direction
 	const WignerSeitz *ws; //Wigner-Seitz cell
 	double sigma, omega;
+	size_t arrayStride, arrayStrideReal;
 	
 	void computePlane(int iPlane)
 	{
@@ -199,6 +201,7 @@ struct CoulombKernelWire
 		double L = R.column(iDir).length(); //Periodicity in untruncated direction
 		double kCur = iPlane * (2.*M_PI)/L; //Wave vector of current plane along untruncated direction
 		double rhoMax = ws->circumRadius(iDir);
+		symmetricMatrix3<> axisHatOuter = outer(R.column(iDir)*(1./L)); //outer product of unit vector along periodic direction
 		
 		//Long range part in real space (on optionally denser grid):
 		int jPitchDense = 2*(1+Sdense[kDir]/2);
@@ -207,6 +210,11 @@ struct CoulombKernelWire
 		matrix3<> RTR = (~R)*R;
 		Cbar_k_sigma cbar_k_sigma(kCur, sigma, rhoMax), *cbar_k_screen=0; //Look-up table for convolved cylindrical potential
 		if(omega) cbar_k_screen = new Cbar_k_sigma(kCur, sqrt(0.5)/omega, rhoMax); //Look-up table for screened cylindrical potential
+		Cbar_k_sigma *minus_cbar_k_sigma_k=0, *minus_cbar_k_screen_k=0; //Look-up tables for lattice derivatives
+		if(Vc_RRT && iPlane)
+		{	minus_cbar_k_sigma_k = new Cbar_k_sigma(kCur, sigma, rhoMax, 1., true);
+			if(omega) minus_cbar_k_screen_k = new Cbar_k_sigma(kCur, sqrt(0.5)/omega, rhoMax, 1., true);
+		}
 		complex* denseArr = dense.data();
 		double* denseRealArr = (double*)denseArr; //in-place transform
 		for(int ij=0; ij<Sdense[jDir]; ij++)
@@ -215,12 +223,39 @@ struct CoulombKernelWire
 				x[iDir] = 0.;
 				x[jDir] = invSjDense * ij;
 				x[kDir] = invSkDense * ik;
-				double rho = sqrt(RTR.metric_length_squared(ws->restrict(x))); //minimum image distance in 2D
+				x = ws->restrict(x);
+				double rho = sqrt(RTR.metric_length_squared(x)); //minimum image distance in 2D
 				int iDense = ik + jPitchDense * ij; //index into dense array (in the fftw in-place r2c layout)
-				denseRealArr[iDense] = dA * (cbar_k_sigma.value(rho) - (omega ? cbar_k_screen->value(rho) : 0.));
+				double term = dA * (cbar_k_sigma.value(rho) - (omega ? cbar_k_screen->value(rho) : 0.));
+				denseRealArr[iDense] = term;
+				if(Vc_RRT)
+				{	double term_rho_by_rho=0., minus_term_k=0.;
+					if(rho) term_rho_by_rho = dA * (cbar_k_sigma.deriv(rho) - (omega ? cbar_k_screen->deriv(rho) : 0.)) / rho;
+					if(iPlane) minus_term_k = dA * (minus_cbar_k_sigma_k->value(rho) - (omega ? minus_cbar_k_screen_k->value(rho) : 0.));
+					double curV_RRTzz = minus_term_k * kCur - term; //second term subtracts L contribution in dV propagation added below
+					symmetricMatrix3<> curV_RRT = term_rho_by_rho * outer(R * x);
+					const double* curV_RRTcomponent = (const double*)&curV_RRT;
+					const double* axisHatOuterComponent = (const double*)&axisHatOuter;
+					for(int iComp=0; iComp<6; iComp++)
+						denseRealArr[iDense+(iComp+1)*arrayStrideReal]
+							= curV_RRTcomponent[iComp]
+							+ curV_RRTzz * axisHatOuterComponent[iComp]
+							+ (iComp<3 ? term : 0.); //contribution via dV (writing dA as dV/L for simplicity)
+				}
 			}
-		fftw_execute_dft_r2c(fftPlanR2C, denseRealArr, (fftw_complex*)denseArr);
 		if(omega) delete cbar_k_screen;
+		if(Vc_RRT && iPlane)
+		{	delete minus_cbar_k_sigma_k;
+			if(omega) delete minus_cbar_k_screen_k;
+		}
+		//Fourier transforms:
+		fftw_execute_dft_r2c(fftPlanR2C, denseRealArr, (fftw_complex*)denseArr);
+		if(Vc_RRT)
+		{	for(size_t iArray=1; iArray<7; iArray++)
+			{	double* arrayPtr = denseRealArr + iArray*arrayStrideReal;
+				fftw_execute_dft_r2c(fftPlanR2C, arrayPtr, (fftw_complex*)arrayPtr);
+			}
+		}
 		
 		//Add analytic short-ranged parts in fourier space (and down-sample to final resolution):
 		jPitchDense = 1+Sdense[kDir]/2;
@@ -240,6 +275,17 @@ struct CoulombKernelWire
 				//Add the analytical short-ranged part:
 				double Gsq = GGT.metric_length_squared(iG);
 				curV += (4*M_PI) * (Gsq ? (1.-exp(-hlfSigmaSq*Gsq))/Gsq : hlfSigmaSq);
+				//Compute corresponding lattice derivative if needed:
+				symmetricMatrix3<> curV_RRT;
+				if(Vc_RRT)
+				{	//Set the reciprocal-space contribution:
+					double minus_Vprime_by_G = Gsq ? (8*M_PI) * (1.-exp(-hlfSigmaSq*Gsq)*(1.+hlfSigmaSq*Gsq))/(Gsq*Gsq) : 0.;
+					curV_RRT = (minus_Vprime_by_G) * outer(iG * G);
+					//Add the part computed from real space:
+					double* curV_RRTcomponent = (double*)&curV_RRT;
+					for(int iComp=0; iComp<6; iComp++)
+						curV_RRTcomponent[iComp] += denseArr[iDense+(iComp+1)*arrayStride].real();
+				}
 				//Save to the appropriate locations in Vc (4 sign combinations):
 				for(int si=0; si<2; si++)
 				{	for(int sk=0; sk<2; sk++)
@@ -248,7 +294,10 @@ struct CoulombKernelWire
 						if(sk && iv[kDir]) { iv[kDir] = S[kDir] - iv[kDir]; iv[jDir] = -iv[jDir]; }
 						if(iv[jDir] < 0) iv[jDir] += S[jDir];
 						if(iv[2] <= S[2]/2)
-							Vc[dot(iv, pitch)] = curV;
+						{	size_t iOut = dot(iv, pitch);
+							Vc[iOut] = curV;
+							if(Vc_RRT) Vc_RRT[iOut] = curV_RRT;
+						}
 					}
 				}
 			}
@@ -272,8 +321,6 @@ struct CoulombKernelWire
 
 void CoulombKernel::computeWire(double* data, const WignerSeitz& ws, symmetricMatrix3<>* data_RRT) const
 {	
-	if(data_RRT) die("Lattice derivative of CoulombKernel::computeWire not yet implemented.\n\n");
-	
 	//Find axis and check geometry:
 	int iDir = -1;
 	for(int k=0; k<3; k++)
@@ -301,7 +348,8 @@ void CoulombKernel::computeWire(double* data, const WignerSeitz& ws, symmetricMa
 	string dirName(3,'0'); dirName[iDir]='1';
 	logPrintf("%d x %d perpendicular to %s direction.\n", Sdense[jDir], Sdense[kDir], dirName.c_str());
 	size_t nGdensePlanar = Sdense[jDir] * size_t(1+Sdense[kDir]/2); //Number of wave vectors per densely sampled plane
-	
+	size_t nArrays = data_RRT ? 7 : 1;
+
 	//Plan Fourier transforms:
 	logPrintf("Planning fourier transform ... "); logFlush();
 	fftw_plan fftPlanR2C;
@@ -314,13 +362,15 @@ void CoulombKernel::computeWire(double* data, const WignerSeitz& ws, symmetricMa
 	logPrintf("Computing truncated coulomb kernel ... "); logFlush();
 	std::vector<CoulombKernelWire> ckwArr(nProcsAvailable);
 	for(CoulombKernelWire& c: ckwArr)
-	{	c.dense.init(nGdensePlanar);
+	{	c.dense.init(nGdensePlanar*nArrays);
 		c.Vc = data;
+		c.Vc_RRT = data_RRT;
 		c.fftPlanR2C = fftPlanR2C;
 		//Copy geometry definitions:
 		c.R = R; c.S = S; c.Sdense = Sdense;
 		c.iDir = iDir; c.jDir = jDir; c.kDir = kDir;
 		c.ws = &ws; c.sigma = sigma; c.omega = omega;
+		c.arrayStride = nGdensePlanar; c.arrayStrideReal = 2*nGdensePlanar;
 	}
 	std::mutex mJobCount; int nPlanesDone = 0; //for job management
 	threadLaunch(CoulombKernelWire::thread, 0, ckwArr.data(), 1+S[iDir]/2, &nPlanesDone, &mJobCount);

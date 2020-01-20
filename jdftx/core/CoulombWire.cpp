@@ -210,7 +210,9 @@ public:
 				}
 		
 		//Reciprocal space sum:
-		double volPrefac = 0.5 / sqrt(RTR(iDir,iDir));
+		double Lz = sqrt(RTR(iDir,iDir));
+		double Gzz = (2*M_PI)/Lz;
+		double volPrefac = 0.5 / Lz;
 		for(unsigned i1=0; i1<atoms.size(); i1++)
 		{	Atom& a1 = atoms[i1];
 			for(unsigned i2=0; i2<=i1; i2++)
@@ -245,7 +247,7 @@ public:
 					//Accumulate stresses:
 					if(E_RRTptr)
 					{	E12_rho += prefac * c * rhoTermPrime;
-						if(iGz) E_RRTzz += prefac * c * minus_cbar_k_sigma_k[iGz]->value(rho12) * (iGz*iGz);
+						if(iGz) E_RRTzz += prefac * c * minus_cbar_k_sigma_k[iGz]->value(rho12) * (iGz*Gzz);
 					}
 				}
 				E += E12;
@@ -297,9 +299,12 @@ std::shared_ptr<Ewald> CoulombWire::createEwald(matrix3<> R, size_t nAtoms) cons
 }
 
 matrix3<> CoulombWire::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
-{	die("Lattice gradient of CoulombWire not yet implemented.\n\n");
-	return matrix3<>();
+{	ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nG, isGpuEnabled());
+	callPref(coulombNumericalStress)(gInfo.S, gInfo.GGT, Vc_RRT.dataPref(), X->dataPref(), Y->dataPref(), result.dataPref());
+	matrix3<> resultSum = callPref(eblas_sum)(gInfo.nG, result.dataPref());
+	return gInfo.detR * resultSum;
 }
+
 
 
 //----------------- class CoulombCylindrical ---------------------
