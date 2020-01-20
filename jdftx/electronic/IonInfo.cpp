@@ -83,6 +83,12 @@ void IonInfo::setup(const Everything &everything)
 	for(auto dumpPair: e->dump)
 		if(dumpPair.second == DumpStress)
 			computeStress = true; //needed for stress output
+	if(computeStress)
+	{	//Check for unsupported features:
+		if(e->coulombParams.Efield.length_squared())
+			die("\nStress calculation not supported with external electric fields.\n\n");
+		//Additional checks in ElecVars for electronic contributions
+	}
 }
 
 void IonInfo::printPositions(FILE* fp) const

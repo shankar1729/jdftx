@@ -80,6 +80,8 @@ void ElecVars::setup(const Everything &everything)
 		}
 		if(Vexternal.size()==1 && n.size()==2) //Replicate potential for second spin:
 			Vexternal.push_back(Vexternal[0]->clone());
+		if(e->iInfo.computeStress)
+			die("\nStress calculation not supported with external potentials.\n\n");
 	}
 
 	//Vexternal contributions from boxPot's.
@@ -106,6 +108,8 @@ void ElecVars::setup(const Everything &everything)
 		ScalarField temp(ScalarFieldData::alloc(gInfo));
 		loadRawBinary(temp, rhoExternalFilename.c_str());
 		rhoExternal = J(temp);
+		if(e->iInfo.computeStress)
+			die("\nStress calculation not supported with external charge densities.\n\n");
 	}
 	
 	
