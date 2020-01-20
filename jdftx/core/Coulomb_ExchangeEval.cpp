@@ -143,6 +143,33 @@ template<typename FSingular> double fSingularIntegralMinusSum(FSingular fSingula
 	return fSingularIntegral * kmesh.size() - fSingularSum;
 }
 
+//Return the Vzero correction for specified lattice vectors, kmesh, truncation mode etc.
+inline double getAuxiliaryFunctionVzero(matrix3<> R, vector3<bool> isTruncated, int iDir, const std::vector<vector3<>>& kmesh, double omegaSq)
+{	//Compute lattice vector-dependent quantities (recomputed here for lattice derivative):
+	double detR = fabs(det(R));
+	matrix3<> G = 2*M_PI*inv(R);
+	matrix3<> GGT = G*(~G);
+	//Switch based on dimension:
+	int nPeriodic=0;
+	for(int k=0; k<3; k++)
+		if(!isTruncated[k])
+			nPeriodic++;
+	switch(nPeriodic)
+	{	case 0:
+			assert(!"Auxiliary function method meaningless for isolated geometry.\n");
+			return 0.;
+		case 1:
+			return (detR/R.column(iDir).length()) //transverse area to untruncated axis
+				* fSingularIntegralMinusSum(fSingular1D, isTruncated, GGT, omegaSq, kmesh);
+		case 2:
+			return R.column(iDir).length() //truncated axis length
+				* fSingularIntegralMinusSum(fSingular2D, isTruncated, GGT, omegaSq, kmesh);
+		case 3:
+			return fSingularIntegralMinusSum(fSingular3D, isTruncated, GGT, omegaSq, kmesh);
+		default:
+			return 0.; //Should never reach here (just to avoid compiler warnings)
+	}
+}
 
 //---------------- Spherical truncation for screened exchange --------------
 double erfcIntegrand(double r, void* params)
@@ -265,22 +292,27 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 	if(params.exchangeRegularization==CoulombParams::AuxiliaryFunction)
 	{	double omegaSq = omega*omega;
 		vector3<bool> isTruncated = params.isTruncated();
-		int nPeriodic=0; for(int k=0; k<3; k++) if(!isTruncated[k]) nPeriodic++;
-		switch(nPeriodic)
-		{	case 0:
-				assert(!"Auxiliary function method meaningless for isolated geometry.\n");
-				break;
-			case 1:
-				VzeroCorrection = (gInfo.detR/gInfo.R.column(params.iDir).length()) //transverse area to untruncated axis
-					* fSingularIntegralMinusSum(fSingular1D, isTruncated, gInfo.GGT, omegaSq, kmesh);
-				break;
-			case 2:
-				VzeroCorrection = gInfo.R.column(params.iDir).length() //truncated axis length
-					* fSingularIntegralMinusSum(fSingular2D, isTruncated, gInfo.GGT, omegaSq, kmesh);
-				break;
-			case 3:
-				VzeroCorrection = fSingularIntegralMinusSum(fSingular3D, isTruncated, gInfo.GGT, omegaSq, kmesh);
-				break;
+		VzeroCorrection = getAuxiliaryFunctionVzero(gInfo.R, isTruncated, params.iDir, kmesh, omegaSq);
+		//Compute lattice derivative if requied:
+		if(params.computeStress)
+		{	const double h = 1e-5; //finite difference size
+			matrix3<> id(1,1,1); //identity
+			std::vector<matrix3<>> strainBasis(6);
+			for(int iDir=0; iDir<3; iDir++)
+			{	//Tensions:
+				strainBasis[iDir](iDir,iDir) = 1.;
+				int jDir = (iDir+1)%3;
+				int kDir = (iDir+2)%3;
+				//Shears:
+				strainBasis[iDir+3](jDir,kDir) = sqrt(0.5);
+				strainBasis[iDir+3](kDir,jDir) = sqrt(0.5);
+			}
+			for(matrix3<> strainDir: strainBasis)
+			{	double VzeroCorrection_dir = (0.5/h) * 
+					( getAuxiliaryFunctionVzero((id+h*strainDir)*gInfo.R, isTruncated, params.iDir, kmesh, omegaSq)
+					- getAuxiliaryFunctionVzero((id-h*strainDir)*gInfo.R, isTruncated, params.iDir, kmesh, omegaSq) );
+				VzeroCorrection_RRT += VzeroCorrection_dir * strainDir;
+			}
 		}
 	}
 	

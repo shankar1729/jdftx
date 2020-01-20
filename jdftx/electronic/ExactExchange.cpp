@@ -131,8 +131,6 @@ double ExactExchange::operator()(double aXX, double omega,
 	if(EXX_RRTptr)
 	{	mpiWorld->allReduce(EXX_RRT, MPIUtil::ReduceSum, true);
 		*EXX_RRTptr += EXX_RRT;
-		
-		logPrintf("\nEXX_RRT:\n"); EXX_RRT.print(globalLog, "%12lg ");
 	}
 	watch.stop();
 	return EXX;
