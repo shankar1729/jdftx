@@ -61,8 +61,9 @@ struct FluidSolver
 
 	//! Compute gradients with respect to electronic side variables (if non-null), and return fluid+coupling free energy
 	//! Any extra forces on explicit ions due to the fluid should be stored in extraForces (if non-null)
+	//! Lattice derivative of the fluid energy should be stored in Adiel_RRT (if non-null)
 	//! This base-class wrapper handles grid embedding (if necessary) and calls set_internal of the derived class
-	double get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0, IonicGradient* extraForces=0) const;
+	double get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0, IonicGradient* extraForces=0, matrix3<>* Adiel_RRT=0) const;
 
 	//! Structure to represent frequency-dependent fluid susceptibility response
 	//! [of the form prefactor[iOmega]*s[iSite] * 4*pi/(2*l+1) * Sum_m(Ylm(Ghat)*Ylm(Ghat')) * w(G)*w(G')]
@@ -106,7 +107,7 @@ protected:
 	virtual void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)=0;
 
 	//! Fluid-dependent implementation of get_Adiel_and_grad()
-	virtual double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const =0;
+	virtual double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const =0;
 	
 	//! Fluid-dependent implementation of getSusceptibility()
 	virtual void getSusceptibility_internal(const std::vector<complex>& omega, std::vector<SusceptibilityTerm>& susceptibility, ScalarFieldArray& sArr, bool elecOnly) const;

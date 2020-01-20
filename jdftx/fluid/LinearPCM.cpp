@@ -107,8 +107,10 @@ void LinearPCM::minimizeFluid()
 	logPrintf("\tCompleted after %d iterations at t[s]: %9.2lf\n", nIter, clock_sec());
 }
 
-double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const
+double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const
 {
+	if(Adiel_RRT) die("Stress not yet implemented in LinearPCM fluid.\n");
+	
 	EnergyComponents& Adiel = ((LinearPCM*)this)->Adiel;
 	const ScalarFieldTilde& phi = state; // that's what we solved for in minimize
 

@@ -513,6 +513,9 @@ matrix3<> ElecVars::latticeGrad() const
 		double omega = e->exCorr.exxRange();
 		(*e->exx)(aXX, omega, F, C, 0, &E_RRT);
 	}
+	//--- Fluid:
+	if(fluidSolver)
+		fluidSolver->get_Adiel_and_grad(0, 0, 0, &E_RRT);
 	
 	return E_RRT;
 }

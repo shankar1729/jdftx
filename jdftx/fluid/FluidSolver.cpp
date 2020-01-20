@@ -242,8 +242,10 @@ public:
 		)
 	}
 	
-	double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const
+	double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const
 	{
+		if(Adiel_RRT) die("Stress not yet implemented in ClassicalDFT fluid.\n")
+		
 		assert(this->Adiel_rhoExplicitTilde); //Ensure that set() was called before calling get_Adiel_and_grad()
 		Adiel_rhoExplicitTilde = clone(this->Adiel_rhoExplicitTilde);
 		Adiel_nCavityTilde = 0; //clear previous, accumulate below
@@ -333,10 +335,10 @@ void FluidSolver::set(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFiel
 	}
 }
 
-double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, IonicGradient* extraForces) const
+double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const
 {	if(e.coulombParams.embed)
 	{	ScalarFieldTilde Adiel_rho_big, Adiel_n_big;
-		double Adiel = get_Adiel_and_grad_internal(Adiel_rho_big, Adiel_n_big, extraForces);
+		double Adiel = get_Adiel_and_grad_internal(Adiel_rho_big, Adiel_n_big, extraForces, Adiel_RRT);
 		if(A_rhoNonES) ((FluidSolver*)this)->A_rhoNonES = e.coulomb->embedShrink(A_rhoNonES);
 		if(Adiel_rhoExplicitTilde) *Adiel_rhoExplicitTilde = e.coulomb->embedShrink(Adiel_rho_big);
 		if(Adiel_nCavityTilde) *Adiel_nCavityTilde = e.coulomb->embedShrink(Adiel_n_big);
@@ -347,7 +349,7 @@ double FluidSolver::get_Adiel_and_grad(ScalarFieldTilde* Adiel_rhoExplicitTilde,
 	{	ScalarFieldTilde Adiel_rho_temp, Adiel_n_temp;
 		return get_Adiel_and_grad_internal(
 			Adiel_rhoExplicitTilde ? (*Adiel_rhoExplicitTilde) : Adiel_rho_temp,
-			Adiel_nCavityTilde ? (*Adiel_nCavityTilde) : Adiel_n_temp, extraForces);
+			Adiel_nCavityTilde ? (*Adiel_nCavityTilde) : Adiel_n_temp, extraForces, Adiel_RRT);
 	}
 }
 

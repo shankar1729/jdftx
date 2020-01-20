@@ -285,8 +285,11 @@ void NonlinearPCM::saveState(const char* filename) const
 {	if(mpiWorld->isHead()) state.saveToFile(filename);
 }
 
-double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const
-{	ScalarFieldMuEps Adiel_state;
+double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const
+{
+	if(Adiel_RRT) die("Stress not yet implemented in NonlinearPCM fluid.\n")
+		
+	ScalarFieldMuEps Adiel_state;
 	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde, extraForces);
 	accumExtraForces(extraForces, Adiel_nCavityTilde);
 	return A;

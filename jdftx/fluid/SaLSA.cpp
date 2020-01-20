@@ -244,8 +244,10 @@ void SaLSA::minimizeFluid()
 }
 
 
-double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces) const
+double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const
 {
+	if(Adiel_RRT) die("Stress not yet implemented in NonlinearPCM fluid.\n")
+	
 	EnergyComponents& Adiel = ((SaLSA*)this)->Adiel;
 	const ScalarFieldTilde& phi = state; // that's what we solved for in minimize
 
