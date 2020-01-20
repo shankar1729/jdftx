@@ -72,6 +72,7 @@ namespace CoulombKernelIsolated
 		double dV = fabs(det(R)) * (invSdense[0]*invSdense[1]*invSdense[2]); //integration factor
 		matrix3<> RTR = (~R)*R; //metric
 		double a = sqrt(0.5)/sigma;
+		int nArr = computeStress ? 7 : 1;
 		vector3<int> S = Sdense; S[2] = 2*(Sdense[2]/2+1); //padding for in-place r2c transform
 		THREAD_rLoop
 		(	if(iv[2]<Sdense[2]) 
@@ -88,7 +89,7 @@ namespace CoulombKernelIsolated
 							+ (iComp<3 ? data[i] : 0.); //contribution due to det(R) in dV
 				}
 			}
-			else for(int iArr=0; iArr<7; iArr++) data[i+iArr*arrayStride] = 0.; //padded points
+			else for(int iArr=0; iArr<nArr; iArr++) data[i+iArr*arrayStride] = 0.; //padded points
 		)
 	}
 
