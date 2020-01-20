@@ -34,6 +34,33 @@ CoulombParams::CoulombParams() : ionMargin(5.), embed(false), embedFluidMode(fal
 }
 
 std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo, string purpose) const
+{	std::shared_ptr<Coulomb> coulomb;
+	recreateCoulomb(gInfo, coulomb, purpose);
+	return coulomb;
+}
+
+std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo,
+		const std::shared_ptr<GridInfo> gInfoWfns, std::shared_ptr<Coulomb>& coulombWfns) const
+{	std::shared_ptr<Coulomb> coulomb;
+	recreateCoulomb(gInfo, gInfoWfns, coulomb, coulombWfns);
+	return coulomb;
+}
+
+//Helper to initialize coulomb in-place if previously allocated
+template<typename CoulombType> void coulombInit(const GridInfo& gInfo, std::shared_ptr<Coulomb>& coulomb, const CoulombParams& params)
+{	if(coulomb)
+	{	//Create "in-place" to preserve underlying pointer
+		CoulombType* coulombPtr = (CoulombType*)coulomb.get();
+		coulombPtr->~CoulombType(); //deallocate existing object
+		new (coulombPtr) CoulombType(gInfo, params); //allocate in original location
+	}
+	else 
+	{	//Create new shared ptr as usual:
+		coulomb = std::make_shared<CoulombType>(gInfo, params);
+	}
+}
+
+void CoulombParams::recreateCoulomb(const GridInfo& gInfo, std::shared_ptr<Coulomb>& coulomb, string purpose) const
 {	if(geometry != Periodic)
 	{	logPrintf("\n---------- Setting up coulomb interaction%s ----------\n", purpose.c_str());
 		Citations::add("Truncated Coulomb potentials", wsTruncationPaper);
@@ -44,37 +71,37 @@ std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo, str
 		logPrintf("(Fluid response is responsible for (approximate) separation between periodic images.)\n");
 		if(!embed)
 			die("Fluids with coulomb truncation requires the use of command coulomb-truncation-embed.\n");
-		return std::make_shared<CoulombPeriodic>(gInfo, *this);
+		coulombInit<CoulombPeriodic>(gInfo, coulomb, *this);
+		return;
 	}
 	
 	switch(geometry)
-	{	case Periodic:    return std::make_shared<CoulombPeriodic>(gInfo, *this);
-		case Slab:        return std::make_shared<CoulombSlab>(gInfo, *this);
-		case Wire:        return std::make_shared<CoulombWire>(gInfo, *this);
-		case Cylindrical: return std::make_shared<CoulombCylindrical>(gInfo, *this);
-		case Isolated:    return std::make_shared<CoulombIsolated>(gInfo, *this);
-		case Spherical:   return std::make_shared<CoulombSpherical>(gInfo, *this);
-		default: return 0; //never encountered (to suppress warning)
+	{	case Periodic:    coulombInit<CoulombPeriodic>(gInfo, coulomb, *this); break;
+		case Slab:        coulombInit<CoulombSlab>(gInfo, coulomb, *this); break;
+		case Wire:        coulombInit<CoulombWire>(gInfo, coulomb, *this); break;
+		case Cylindrical: coulombInit<CoulombCylindrical>(gInfo, coulomb, *this); break;
+		case Isolated:    coulombInit<CoulombIsolated>(gInfo, coulomb, *this); break;
+		case Spherical:   coulombInit<CoulombSpherical>(gInfo, coulomb, *this); break;
 	}
 }
 
 
-std::shared_ptr<Coulomb> CoulombParams::createCoulomb(const GridInfo& gInfo,
-		const std::shared_ptr<GridInfo> gInfoWfns, std::shared_ptr<Coulomb>& coulombWfns) const
+void CoulombParams::recreateCoulomb(const GridInfo& gInfo, const std::shared_ptr<GridInfo> gInfoWfns,
+	std::shared_ptr<Coulomb>& coulomb, std::shared_ptr<Coulomb>& coulombWfns) const
 {
 	bool wfnsNeeded = gInfoWfns and this->omegaSet.size(); //only need wfns version if separate grid and omegaSet non-empty
 	
 	//Construct for gInfo, disabling exchangeEval initialization if needed:
 	std::set<double> omegaSet; //blank omegaSet swapped in to bypass exchangeEval init, if needed
 	if(wfnsNeeded) std::swap(omegaSet, ((CoulombParams*)this)->omegaSet); //disable omegaSet
-	std::shared_ptr<Coulomb> coulomb = createCoulomb(gInfo);
+	recreateCoulomb(gInfo, coulomb);
 	if(wfnsNeeded) std::swap(omegaSet, ((CoulombParams*)this)->omegaSet); //restore omegaSet
 	
 	//Construct separate one for gInfoWfns, or point to same, as appropriate:
-	coulombWfns = wfnsNeeded
-		? createCoulomb(*gInfoWfns, " for tighter wavefunction grid")
-		: coulomb;
-	return coulomb;
+	if(wfnsNeeded)
+		recreateCoulomb(*gInfoWfns, coulombWfns,  " for tighter wavefunction grid");
+	else
+		coulombWfns = coulomb;
 }
 
 

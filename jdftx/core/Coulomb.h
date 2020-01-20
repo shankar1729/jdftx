@@ -76,6 +76,13 @@ struct CoulombParams
 	std::shared_ptr<class Coulomb> createCoulomb(const GridInfo& gInfo,
 		const std::shared_ptr<GridInfo> gInfoWfns, std::shared_ptr<class Coulomb>& coulombWfns) const;
 	
+	//! Re-create a Coulomb object, keeping pointers intact (using placement new) if non-null
+	void recreateCoulomb(const GridInfo& gInfo, std::shared_ptr<class Coulomb>& coulomb, string purpose=string()) const;
+	
+	//! Re-create one or two Coulomb objects as needed, keeping pointers intact (using placement new) if non-null
+	void recreateCoulomb(const GridInfo& gInfo, const std::shared_ptr<GridInfo> gInfoWfns, 
+		std::shared_ptr<class Coulomb>& coulomb, std::shared_ptr<class Coulomb>& coulombWfns) const;
+	
 	//! Get a list of which directions are truncated:
 	vector3<bool> isTruncated() const;
 	

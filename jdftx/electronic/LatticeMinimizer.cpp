@@ -217,7 +217,7 @@ void LatticeMinimizer::updateLatticeDependent(Everything& e)
 		e.gInfoWfns->update();
 	}
 	e.updateSupercell();
-	e.coulomb = e.coulombParams.createCoulomb(e.gInfo, e.gInfoWfns, e.coulombWfns);
+	e.coulombParams.recreateCoulomb(e.gInfo, e.gInfoWfns, e.coulomb, e.coulombWfns);
 	e.iInfo.update(e.ener);
 	logResume();
 }
