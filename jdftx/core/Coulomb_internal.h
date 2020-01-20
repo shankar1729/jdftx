@@ -278,11 +278,9 @@ struct ExchangeSlab_calc
 		}
 		return Vc;
 	}
-	__hostanddev__ symmetricMatrix3<> latticeGradient(const vector3<int>& iG, const matrix3<>& G, const vector3<>& kDiff) const
-	{	symmetricMatrix3<> result;
-		double result_zz = 0.;
-		double Gsq = ((iG+kDiff)*G).length_squared();
-		if(Gsq)
+	__hostanddev__ symmetricMatrix3<> latticeGradient(const vector3<int>& iG, const matrix3<>& G, const vector3<>& kDiff, double thresholdSq) const
+	{	double Gsq = ((iG+kDiff)*G).length_squared();
+		if(Gsq > thresholdSq)
 		{	double GsqInv = 1./Gsq;
 			vector3<> iGplane = iG+kDiff; iGplane[iDir] = 0.; //iG along non-truncated directions
 			vector3<> iGplaneCart = iGplane * G;
@@ -294,15 +292,14 @@ struct ExchangeSlab_calc
 			//Planar part:
 			double Vc0 = 4*M_PI*GsqInv;
 			double prefac1 = 2.*(1.-expCosTerm)*GsqInv;
-			result = (Vc0*(prefac1 - expCosTerm*hlfL*GplaneInv)) * outer(iGplaneCart);
+			symmetricMatrix3<> result = (Vc0*(prefac1 - expCosTerm*hlfL*GplaneInv)) * outer(iGplaneCart);
 			//Normal part:
-			result_zz = Vc0*(prefac1*GaxisSq + expCosTerm*hlfL*Gplane);
+			double result_zz = Vc0*(prefac1*GaxisSq + expCosTerm*hlfL*Gplane);
+			//Combine and return:
+			result += result_zz * zHatOuter;
+			return result;
 		}
-		else
-		{	result_zz = (-4*M_PI)*hlfL*hlfL;
-		}
-		result += result_zz * zHatOuter;
-		return result;
+		else return symmetricMatrix3<>();
 	}
 };
 

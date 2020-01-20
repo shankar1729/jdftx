@@ -118,7 +118,7 @@ template<>
 void exchangeAnalyticStress_thread<ExchangeSlab_calc>(size_t iStart, size_t iStop, vector3<int> S, const matrix3<>& G, const ExchangeSlab_calc& calc,
 	const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq)
 {	THREAD_fullGspaceLoop
-	(	grad_RRT[i] = calc.latticeGradient(iG, G, kDiff) * X[i].norm();
+	(	grad_RRT[i] = calc.latticeGradient(iG, G, kDiff, thresholdSq) * X[i].norm();
 	)
 }
 #define DECLARE_exchangeAnalyticStress(Type) \

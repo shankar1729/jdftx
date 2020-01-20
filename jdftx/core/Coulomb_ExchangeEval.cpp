@@ -476,6 +476,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 				slabCalc.nCoeff = coeffSub.size();
 			}
 			else Vzero = (-2.*M_PI)*pow(slabCalc.hlfL,2) + VzeroCorrection; //Everything else handled analytically
+			Vzero_RRT = (-4.*M_PI)*pow(slabCalc.hlfL,2)*matrix3<>(slabCalc.zHatOuter) + VzeroCorrection_RRT;
 			break;
 		}
 		case WignerSeitzGammaKernel:

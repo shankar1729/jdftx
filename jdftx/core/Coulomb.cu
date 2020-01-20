@@ -128,7 +128,7 @@ void exchangeAnalyticStress_kernel<ExchangeSlab_calc>(int zBlock, vector3<int> S
 	const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<> kDiff, double thresholdSq)
 {
 	COMPUTE_fullGindices
-	grad_RRT[i] = calc.latticeGradient(iG, G, kDiff) * X[i].norm();
+	grad_RRT[i] = calc.latticeGradient(iG, G, kDiff, thresholdSq) * X[i].norm();
 }
 #define DECLARE_exchangeAnalyticStress_gpu(Type) \
 	void exchangeAnalyticStress_gpu(vector3<int> S, const matrix3<>& G, const Exchange##Type##_calc& calc, \
