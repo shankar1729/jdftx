@@ -123,6 +123,13 @@ void exchangeAnalyticStress_kernel(int zBlock, vector3<int> S, const matrix3<> G
 	grad_RRT[i] = outer(iGkCart) * (kplusGsq<thresholdSq ? 0. : calc.latticeGradientPrefac(kplusGsq, grad_lnDetR)*XiNorm);
 	if(grad_lnDetR) *((vector3<>*)(grad_RRT+i)) += grad_lnDetR * XiNorm; //diagonal contribution due to detR gradient
 }
+template<> __global__
+void exchangeAnalyticStress_kernel<ExchangeSlab_calc>(int zBlock, vector3<int> S, const matrix3<> G, const ExchangeSlab_calc calc,
+	const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<> kDiff, double thresholdSq)
+{
+	COMPUTE_fullGindices
+	grad_RRT[i] = calc.latticeGradient(iG, G, kDiff) * X[i].norm();
+}
 #define DECLARE_exchangeAnalyticStress_gpu(Type) \
 	void exchangeAnalyticStress_gpu(vector3<int> S, const matrix3<>& G, const Exchange##Type##_calc& calc, \
 		const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq) \
@@ -136,7 +143,7 @@ DECLARE_exchangeAnalyticStress_gpu(Periodic)
 DECLARE_exchangeAnalyticStress_gpu(PeriodicScreened)
 DECLARE_exchangeAnalyticStress_gpu(Spherical)
 DECLARE_exchangeAnalyticStress_gpu(SphericalScreened)
-//DECLARE_exchangeAnalyticStress_gpu(Slab)
+DECLARE_exchangeAnalyticStress_gpu(Slab)
 #undef DECLARE_exchangeAnalyticStress_gpu
 
 

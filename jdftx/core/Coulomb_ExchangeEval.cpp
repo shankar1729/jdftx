@@ -415,8 +415,10 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 			break;
 		}
 		case SlabKernel:
-		{	slabCalc.iDir = params.iDir;
-			slabCalc.hlfL = 0.5 * gInfo.R.column(params.iDir).length();
+		{	const vector3<>& Ri = gInfo.R.column(params.iDir);
+			slabCalc.iDir = params.iDir;
+			slabCalc.hlfL = 0.5 * Ri.length();
+			slabCalc.zHatOuter = outer(Ri * (1./Ri.length()));
 			logPrintf("Truncated on a slab of thickness %lg bohrs.\n", 2*slabCalc.hlfL);
 			if(omega)
 			{	//Initialize look-up tables (quintic splines) of the difference between the screened
@@ -638,8 +640,8 @@ matrix3<> ExchangeEval::latticeGradient(const complexScalarFieldTilde& X, vector
 		{	if(omega) RETURN_exchangeAnalyticStress(sphericalScreenedCalc)
 			else RETURN_exchangeAnalyticStress(ExchangeSpherical_calc(Rc))
 		}
-		//case SlabKernel:
-			//RETURN_exchangeAnalyticStress(slabCalc)
+		case SlabKernel:
+			RETURN_exchangeAnalyticStress(slabCalc)
 		case WignerSeitzGammaKernel:
 		{	assert(kDiff.length_squared() < symmThresholdSq); //gamma-point only
 			ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nr, isGpuEnabled());

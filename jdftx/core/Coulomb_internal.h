@@ -59,7 +59,6 @@ struct CoulombSlab_calc
 	}
 	__hostanddev__ symmetricMatrix3<> latticeGradient(const vector3<int>& iG, const matrix3<>& GGT) const
 	{	double Gsq = GGT.metric_length_squared(iG);
-		symmetricMatrix3<> result;
 		if(Gsq)
 		{	double GsqInv = 1./Gsq;
 			vector3<int> iGplane = iG; iGplane[iDir] = 0.; //iG along non-truncated directions
@@ -259,7 +258,9 @@ struct ExchangeSphericalScreened_calc
 struct ExchangeSlab_calc
 {	int iDir; double hlfL;
 	double* coeff; double dGinv; size_t nSamples, nCoeff; //quintic-spline coefficients for screened mode
+	symmetricMatrix3<> zHatOuter;
 	ExchangeSlab_calc() : coeff(0) {}
+	
 	__hostanddev__ double operator()(const vector3<int>& iG, const matrix3<>& GGT, const vector3<>& kDiff, double Vzero, double thresholdSq) const
 	{	vector3<> g = iG + kDiff; //net G-vector in reciprocal lattice coordinates including k-point
 		double Gsq = GGT.metric_length_squared(g);
@@ -276,6 +277,32 @@ struct ExchangeSlab_calc
 			if(t<nSamples) Vc += prefac * QuinticSpline::value(coeffPlane, t);
 		}
 		return Vc;
+	}
+	__hostanddev__ symmetricMatrix3<> latticeGradient(const vector3<int>& iG, const matrix3<>& G, const vector3<>& kDiff) const
+	{	symmetricMatrix3<> result;
+		double result_zz = 0.;
+		double Gsq = ((iG+kDiff)*G).length_squared();
+		if(Gsq)
+		{	double GsqInv = 1./Gsq;
+			vector3<> iGplane = iG+kDiff; iGplane[iDir] = 0.; //iG along non-truncated directions
+			vector3<> iGplaneCart = iGplane * G;
+			double GplaneSq = iGplaneCart.length_squared();
+			double GaxisSq = Gsq - GplaneSq;
+			double Gplane = sqrt(GplaneSq);
+			double GplaneInv = Gplane ? 1./Gplane : 0.;
+			double expCosTerm = exp(-Gplane*hlfL) * cos(M_PI*iG[iDir]);
+			//Planar part:
+			double Vc0 = 4*M_PI*GsqInv;
+			double prefac1 = 2.*(1.-expCosTerm)*GsqInv;
+			result = (Vc0*(prefac1 - expCosTerm*hlfL*GplaneInv)) * outer(iGplaneCart);
+			//Normal part:
+			result_zz = Vc0*(prefac1*GaxisSq + expCosTerm*hlfL*Gplane);
+		}
+		else
+		{	result_zz = (-4*M_PI)*hlfL*hlfL;
+		}
+		result += result_zz * zHatOuter;
+		return result;
 	}
 };
 
@@ -297,13 +324,13 @@ void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangePe
 void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangePeriodicScreened_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
 void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangeSpherical_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
 void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangeSphericalScreened_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
-//void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangeSlab_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangeSlab_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
 #ifdef GPU_ENABLED
 void exchangeAnalyticStress_gpu(vector3<int> S, const matrix3<>& G, const ExchangePeriodic_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
 void exchangeAnalyticStress_gpu(vector3<int> S, const matrix3<>& G, const ExchangePeriodicScreened_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
 void exchangeAnalyticStress_gpu(vector3<int> S, const matrix3<>& G, const ExchangeSpherical_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
 void exchangeAnalyticStress_gpu(vector3<int> S, const matrix3<>& G, const ExchangeSphericalScreened_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
-//void exchangeAnalyticStress(vector3<int> S, const matrix3<>& G, const ExchangeSlab_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
+void exchangeAnalyticStress_gpu(vector3<int> S, const matrix3<>& G, const ExchangeSlab_calc& calc, const complex* X, symmetricMatrix3<>* grad_RRT, const vector3<>& kDiff, double thresholdSq);
 #endif
 
 
