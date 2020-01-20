@@ -130,8 +130,15 @@ void coulombNumericalStress(vector3<int> S, const matrix3<>& GGT, const symmetri
 //! Compute erf(x)/x (with x~0 handled properly)
 __hostanddev__ double erf_by_x(double x)
 {	double xSq = x*x;
-	if(xSq<1e-6) return (1./sqrt(M_PI))*(2. - xSq*(2./3 + 0.2*xSq));
+	if(xSq<1e-6) return (1./sqrt(M_PI))*(2. + xSq*(-2./3 + 0.2*xSq));
 	else return erf(x)/x;
+}
+
+//! Compute (1/x) d(erf(x)/x)/dx (with x~0 handled properly)
+__hostanddev__ double erf_by_xPrime_by_x(double x)
+{	double xSq = x*x;
+	if(xSq<1e-6) return (2./sqrt(M_PI))*(-2./3 + 0.4*xSq);
+	else return ((2./sqrt(M_PI))*x*exp(-xSq) - erf(x))/(x*xSq);
 }
 
 

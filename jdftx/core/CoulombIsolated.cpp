@@ -100,9 +100,12 @@ std::shared_ptr<Ewald> CoulombIsolated::createEwald(matrix3<> R, size_t nAtoms) 
 }
 
 matrix3<> CoulombIsolated::getLatticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) const
-{	//HACK die("Lattice gradient of CoulombIsolated not yet implemented.\n\n");
-	return matrix3<>();
+{	ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nG, isGpuEnabled());
+	callPref(coulombNumericalStress)(gInfo.S, gInfo.GGT, Vc_RRT.dataPref(), X->dataPref(), Y->dataPref(), result.dataPref());
+	matrix3<> resultSum = callPref(eblas_sum)(gInfo.nG, result.dataPref());
+	return gInfo.detR * resultSum;
 }
+
 
 
 //----------------- class CoulombSpherical ---------------------

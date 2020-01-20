@@ -52,13 +52,21 @@ inline double screenedPotential(double r, double a, double omega)
 	return result;
 }
 
+//! Compute (1/r) d/dr of screenedPotential()
+inline double screenedPotentialPrime_by_r(double r, double a, double omega)
+{	double result = std::pow(a,3) * erf_by_xPrime_by_x(a * r);
+	if(omega) result -= std::pow(omega,3) * erf_by_xPrime_by_x(omega * r);
+	return result;
+}
+
 //--------- Fully truncated Coulomb Kernel ---------
 
 namespace CoulombKernelIsolated
 {
 	//Initialize the long range part of the kernel in real space with the minimum image convention:
 	inline void realSpace_thread(size_t iStart, size_t iStop, vector3<int> Sdense, matrix3<> R,
-		double* data, const WignerSeitz* ws, double sigma, double omega)
+		double* data, const WignerSeitz* ws, double sigma, double omega,
+		bool computeStress, size_t arrayStride)
 	{
 		vector3<> invSdense; for(int k=0; k<3; k++) invSdense[k] = 1./Sdense[k];
 		double dV = fabs(det(R)) * (invSdense[0]*invSdense[1]*invSdense[2]); //integration factor
@@ -68,16 +76,26 @@ namespace CoulombKernelIsolated
 		THREAD_rLoop
 		(	if(iv[2]<Sdense[2]) 
 			{	vector3<> x; for(int k=0; k<3; k++) x[k] = invSdense[k] * iv[k]; //lattice coordinates
-				double r = sqrt(RTR.metric_length_squared(ws->restrict(x))); //minimum image distance
+				x = ws->restrict(x); //minimum image convention
+				double r = sqrt(RTR.metric_length_squared(x)); //minimum image distance
 				data[i] = dV * screenedPotential(r, a, omega);
+				if(computeStress)
+				{	vector3<> rVec = R * x;
+					symmetricMatrix3<> V_RRT = (dV * screenedPotentialPrime_by_r(r, a, omega)) * outer(rVec);
+					const double* V_RRTcomponent = (const double*)&V_RRT;
+					for(int iComp=0; iComp<6; iComp++)
+						data[i+(iComp+1)*arrayStride] = V_RRTcomponent[iComp]
+							+ (iComp<3 ? data[i] : 0.); //contribution due to det(R) in dV
+				}
 			}
-			else data[i] = 0.; //padded points
+			else for(int iArr=0; iArr<7; iArr++) data[i+iArr*arrayStride] = 0.; //padded points
 		)
 	}
 
 	//Add short-ranged parts in reciprocal space (and optionally downsample)
 	inline void recipSpace_thread(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT,
-		const complex* in, const vector3<int>& Sdense, double* out, double sigma)
+		const complex* in, const vector3<int>& Sdense, double* out, double sigma,
+		const matrix3<>& G, symmetricMatrix3<>* out_RRT, size_t arrayStride)
 	{
 		vector3<int> pitchDense;
 		pitchDense[2] = 1;
@@ -92,14 +110,24 @@ namespace CoulombKernelIsolated
 			//Store in smaller cell, along with short-ranged part:
 			double Gsq = GGT.metric_length_squared(iG);
 			out[i] = in[iDense].real() + (4*M_PI) * (Gsq ? (1.-exp(-hlfSigmaSq*Gsq))/Gsq : hlfSigmaSq);
+			//Optional lattice derivative:
+			if(out_RRT)
+			{	symmetricMatrix3<>& V_RRT = out_RRT[i];
+				//Set the reciprocal-space contribution:
+				vector3<> Gcart = iG * G;
+				double minus_Vprime_by_G = Gsq ? (8*M_PI) * (1.-exp(-hlfSigmaSq*Gsq)*(1.+hlfSigmaSq*Gsq))/(Gsq*Gsq) : 0.;
+				V_RRT = (minus_Vprime_by_G) * outer(Gcart);
+				//Add the part computed from real space:
+				double* V_RRTcomponent = (double*)&V_RRT;
+				for(int iComp=0; iComp<6; iComp++)
+					V_RRTcomponent[iComp] += in[iDense+(iComp+1)*arrayStride].real();
+			}
 		)
 	}
 }
 
 void CoulombKernel::computeIsolated(double* data, const WignerSeitz& ws, symmetricMatrix3<>* data_RRT) const
 {
-	if(data_RRT) die("Lattice derivative of CoulombKernel::computeIsolated not yet implemented.\n\n");
-	
 	for(int k=0; k<3; k++) assert(isTruncated[k]); //Make sure all directions are truncated
 	double sigma = ws.inRadius() / nSigmasPerWidth;
 	logPrintf("Gaussian width for range separation: %lg bohrs.\n", sigma);
@@ -115,9 +143,12 @@ void CoulombKernel::computeIsolated(double* data, const WignerSeitz& ws, symmetr
 	logPrintf("[ %d %d %d ].\n", Sdense[0], Sdense[1], Sdense[2]);
 	size_t nG = S[0] * (S[1] * size_t(1 + S[2]/2)); //number of symmetry reduced reciprocal lattice vectors
 	size_t nGdense = Sdense[0] * (Sdense[1] * size_t(1+Sdense[2]/2));
+	size_t nArrays = data_RRT ? 7 : 1;
+	size_t arrayStride = nGdense; //for the complex arrays
+	size_t arrayStrideReal = 2*nGdense; //for the real arrays
 	
 	//Plan Fourier transforms:
-	ManagedArray<complex> dense; dense.init(nGdense);
+	ManagedArray<complex> dense; dense.init(nGdense*nArrays);
 	complex* denseArr = dense.data();
 	double* denseRealArr = (double*)denseArr;
 	logPrintf("Planning fourier transform ... "); logFlush();
@@ -127,15 +158,21 @@ void CoulombKernel::computeIsolated(double* data, const WignerSeitz& ws, symmetr
 	
 	//Long-range part in real space
 	logPrintf("Computing truncated long-range part in real space ... "); logFlush();
-	threadLaunch(CoulombKernelIsolated::realSpace_thread, 2*nGdense, Sdense, R, denseRealArr, &ws, sigma, omega);
+	threadLaunch(CoulombKernelIsolated::realSpace_thread, 2*nGdense, Sdense, R, denseRealArr, &ws, sigma, omega, data_RRT, arrayStrideReal);
 	logPrintf("Done.\n");
 	
 	//Add short-ranged part in reciprocal space (and down-sample if required):
 	logPrintf("Adding short-range part in reciprocal space ... "); logFlush();
 	fftw_execute(fftPlanR2C);
+	if(nArrays > 1)
+	{	for(size_t iArray=1; iArray<nArrays; iArray++)
+		{	double* arrayPtr = denseRealArr + iArray*arrayStrideReal;
+			fftw_execute_dft_r2c(fftPlanR2C, arrayPtr, (fftw_complex*)arrayPtr);
+		}
+	}
 	matrix3<> G = (2.*M_PI) * inv(R);
 	matrix3<> GGT = G * (~G);
-	threadLaunch(CoulombKernelIsolated::recipSpace_thread, nG, S, GGT, denseArr, Sdense, data, sigma);
+	threadLaunch(CoulombKernelIsolated::recipSpace_thread, nG, S, GGT, denseArr, Sdense, data, sigma, G, data_RRT, arrayStride);
 	fftw_destroy_plan(fftPlanR2C);
 	logPrintf("Done.\n");
 }
