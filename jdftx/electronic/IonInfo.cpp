@@ -156,6 +156,8 @@ void IonInfo::update(Energies& ener)
 		sp->updateLocal(Vlocps, rhoIon, nChargeball, nCoreTilde, tauCoreTilde);
 	//Add long-range part to Vlocps and smoothen rhoIon:
 	Vlocps += (*e->coulomb)(rhoIon, Coulomb::PointChargeRight);
+	if(computeStress and ionWidth)
+		rhoIonBare = clone(rhoIon); //remember rhoIon before convolution for stress calculation
 	rhoIon = gaussConvolve(rhoIon, ionWidth);
 	//Process partial core density:
 	if(nCoreTilde) nCore = I(nCoreTilde); // put in real space
@@ -241,7 +243,7 @@ double IonInfo::ionicEnergyAndGrad()
 	{	for(const auto& sp: species)
 			E_RRT += sp->getLocalStress(ccgrad_Vlocps, ccgrad_rhoIon,
 				ccgrad_nChargeball, ccgrad_nCore, ccgrad_tauCore);
-		E_RRT += e->coulomb->latticeGradient(rhoIon, ccgrad_Vlocps, Coulomb::PointChargeLeft);
+		E_RRT += e->coulomb->latticeGradient(ionWidth ? rhoIonBare : rhoIon, ccgrad_Vlocps, Coulomb::PointChargeLeft);
 	}
 	
 	//--------- Forces due to nonlocal pseudopotential contributions ---------

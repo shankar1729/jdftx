@@ -126,6 +126,7 @@ public:
 
 private:
 	const Everything* e;
+	ScalarFieldTilde rhoIonBare; //rhoIon without ionWidth required for stress calculation
 	
 	//! Compute all pair-potential terms in the energy, forces or lattice derivative (E_RRT) (electrostatic, and optionally vdW)
 	void pairPotentialsAndGrad(class Energies* ener=0, IonicGradient* forces=0, matrix3<>* E_RRT=0) const;
