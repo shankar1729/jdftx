@@ -74,6 +74,7 @@ protected:
 	std::vector<RadialFunctionG> Sf; //!< spherically-averaged structure factors for each solvent site
 	std::vector<int> atomicNumbers; //!< atomic number for each solvent site (for dispersion interactions)
 	static ScalarFieldTilde coulomb(const ScalarFieldTilde& rho) { return (-4*M_PI) * Linv(O(rho)); }
+	static matrix3<> coulombStress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y) { return (-4*M_PI) * LinvStress(X, Y); }
 	friend struct ChargedDefect;
 };
 

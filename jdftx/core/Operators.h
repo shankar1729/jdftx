@@ -79,12 +79,13 @@ ScalarFieldTilde L(const ScalarFieldTilde&); //!< Laplacian
 ScalarFieldTilde L(ScalarFieldTilde&&); //!< Laplacian
 complexScalarFieldTilde L(const complexScalarFieldTilde&); //!< Laplacian
 complexScalarFieldTilde L(complexScalarFieldTilde&&); //!< Laplacian
-matrix3<> Lstress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y); //!< Lattice vector derivative of dot(X,LY)
+matrix3<> Lstress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y); //!< Lattice vector derivative of dot(X,L(Y))
 
 ScalarFieldTilde Linv(const ScalarFieldTilde&); //!< Inverse Laplacian
 ScalarFieldTilde Linv(ScalarFieldTilde&&); //!< Inverse Laplacian
 complexScalarFieldTilde Linv(const complexScalarFieldTilde&); //!< Inverse Laplacian
 complexScalarFieldTilde Linv(complexScalarFieldTilde&&); //!< Inverse Laplacian
+matrix3<> LinvStress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y); //!< Lattice vector derivative of dot(X,Linv(Y))
 
 ScalarFieldTilde D(const ScalarFieldTilde&, int iDir); //!< compute the gradient in the iDir'th cartesian direction
 ScalarFieldTilde DD(const ScalarFieldTilde&, int iDir, int jDir); //!< second derivative along iDir'th and jDir'th cartesian directions

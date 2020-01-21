@@ -109,8 +109,6 @@ void LinearPCM::minimizeFluid()
 
 double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const
 {
-	if(Adiel_RRT) die("Stress not yet implemented in LinearPCM fluid.\n");
-	
 	EnergyComponents& Adiel = ((LinearPCM*)this)->Adiel;
 	const ScalarFieldTilde& phi = state; // that's what we solved for in minimize
 
@@ -123,10 +121,30 @@ double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplici
 	
 	//Compute gradient w.r.t shape function:
 	ScalarFieldArray Adiel_shape(shape.size());
-	Adiel_shape[0] = fsp.epsBulkTensor.length_squared()
-		? lengthSquaredWeighted((-1./(8*M_PI))*(-1.+fsp.epsBulkTensor), I(gradient(phi))) //dielectric contributions (anisotropic case)
-		: (-(epsBulk-1)/(8*M_PI)) * lengthSquared(I(gradient(phi))); //dielectric contributions (isotropic case)
+	{	//dielectric:
+		VectorField IgradPhi = I(gradient(phi));
+		Adiel_shape[0] = fsp.epsBulkTensor.length_squared()
+			? lengthSquaredWeighted((-1./(8*M_PI))*(-1.+fsp.epsBulkTensor), IgradPhi) //dielectric contributions (anisotropic case)
+			: (-(epsBulk-1)/(8*M_PI)) * lengthSquared(IgradPhi); //dielectric contributions (isotropic case)
+		//corresponding stress through Hessian term:
+		if(Adiel_RRT)
+		{	matrix3<> Ahess_RRT;
+			ScalarField epsilon = 1. + (epsBulk-1.) * shape[0]; //note anisotropic not supported
+			for(int iDir=0; iDir<3; iDir++)
+			{	ScalarField epsIgradPhi = epsilon * IgradPhi[iDir];
+				for(int jDir=iDir; jDir<3; jDir++)
+					Ahess_RRT(jDir,iDir) = Ahess_RRT(iDir,jDir) = gInfo.dV * dot(epsIgradPhi, IgradPhi[jDir]);
+			}
+			*Adiel_RRT += (1./(4*M_PI)) * Ahess_RRT;
+		}
+	}
 	if(k2factor) Adiel_shape.back() -= (k2factor/(8*M_PI)) * pow(I(phi),2); //ionic contributions
+	
+	//Stress:
+	if(Adiel_RRT)
+	{	*Adiel_RRT += Adiel["Electrostatic"] * matrix3<>(1,1,1) //volume contribution
+			- 0.5*coulombStress(rhoExplicitTilde, rhoExplicitTilde); //through coulomb in phiExt
+	}
 	
 	//Propagate shape gradients to A_nCavity:
 	ScalarField Adiel_nCavity;

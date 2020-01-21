@@ -200,7 +200,13 @@ double IonInfo::ionicEnergyAndGrad()
 	const ScalarFieldTilde ccgrad_nChargeball = eVars.V_cavity; //cavity potential for chargeballs
 	ScalarFieldTilde ccgrad_rhoIon = (*e->coulomb)(ccgrad_Vlocps, Coulomb::PointChargeLeft); //long-range portion of Vlocps for rhoIon
 	if(eVars.d_fluid) //and electrostatic potential due to fluid (if any):
-		ccgrad_rhoIon += gaussConvolve(eVars.d_fluid, ionWidth);
+	{	ccgrad_rhoIon +=  gaussConvolve(eVars.d_fluid, ionWidth);
+		if(computeStress)
+		{	E_RRT -= matrix3<>(1,1,1) * dot(eVars.d_fluid, O(rhoIon)); //cancel volume contribution from rhoIon (which has a 1/detR) from the overall Adiel volume contribution
+			if(ionWidth)
+				E_RRT += 0.5*ionWidth*ionWidth * Lstress(eVars.d_fluid, rhoIon); //stress through gaussConvolve (just a convolution of Lstress)
+		}
+	}
 	ScalarFieldTilde ccgrad_nCore, ccgrad_tauCore;
 	if(nCore) //cavity potential and exchange-correlation coupling to electron density for partial cores:
 	{	ScalarField VxcCore, VtauCore;
@@ -219,7 +225,7 @@ double IonInfo::ionicEnergyAndGrad()
 		if(computeStress)
 		{	E_RRT -= ExcCore_RRT;
 			//Additional terms through volume integration factors:
-			double volTerm = ExcCore + dot(ccgrad_nCore, J(nCore))*e->gInfo.detR;
+			double volTerm = ExcCore + dot(ccgrad_nCore - eVars.V_cavity, J(nCore))*e->gInfo.detR;
 			if(ccgrad_tauCore) volTerm += dot(ccgrad_tauCore, J(tauCore))*e->gInfo.detR;
 			E_RRT -= matrix3<>(1.,1.,1.) * volTerm;
 		}
