@@ -50,11 +50,11 @@ protected:
 	void updateCavity(); //!< update shape function(s) from nCavity, and energies dependent upon shape alone
 	
 	//! Propagate A_shape (+ cached Acavity_shape) and accumulate to gradients w.r.t nCavity and rhoExplicitTilde.
-	//! Set fluid force contributions (for atom-sphere cavities) if non-null.
-	void propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces) const;
+	//! Set fluid force contributions (for atom-sphere cavities) and stress contributions if non-null.
+	void propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces, matrix3<>* Adiel_RRT) const;
 	
-	//! Accumulate extra fluid forces (vdw and full-core forces, when applicable)
-	void accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde) const;
+	//! Accumulate extra fluid forces (vdw and full-core forces, when applicable), and optionally stresses if non-null
+	void accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde, matrix3<>* Adiel_RRT) const;
 	
 	ScalarFieldTilde getFullCore() const; //!< get full core correction for PCM variants that need them
 private:

@@ -53,7 +53,7 @@ public:
 
 	//! Compute gradient and free energy (with optional outputs)
 	double operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps& Adiel_state,
-		ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0, IonicGradient* forces=0) const;
+		ScalarFieldTilde* Adiel_rhoExplicitTilde=0, ScalarFieldTilde* Adiel_nCavityTilde=0, IonicGradient* forces=0, matrix3<>* Adiel_RRT=0) const;
 
 	// Interface for Minimizable:
 	void step(const ScalarFieldMuEps& dir, double alpha);

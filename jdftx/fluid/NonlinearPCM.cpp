@@ -180,7 +180,7 @@ void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const 
 }
 
 double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps& Adiel_state,
-	ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, IonicGradient* forces) const
+	ScalarFieldTilde* Adiel_rhoExplicitTilde, ScalarFieldTilde* Adiel_nCavityTilde, IonicGradient* forces, matrix3<>* Adiel_RRT) const
 {
 	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
 	ScalarFieldArray Adiel_shape; if(Adiel_nCavityTilde) nullToZero(Adiel_shape, gInfo, shape.size());
@@ -257,7 +257,7 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 	}
 	if(Adiel_nCavityTilde)
 	{	ScalarField Adiel_nCavity;
-		propagateCavityGradients(Adiel_shape, Adiel_nCavity, *Adiel_rhoExplicitTilde, forces);
+		propagateCavityGradients(Adiel_shape, Adiel_nCavity, *Adiel_rhoExplicitTilde, forces, Adiel_RRT);
 		*Adiel_nCavityTilde = J(Adiel_nCavity);
 	}
 	
@@ -290,8 +290,8 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 	if(Adiel_RRT) die("Stress not yet implemented in NonlinearPCM fluid.\n")
 		
 	ScalarFieldMuEps Adiel_state;
-	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde, extraForces);
-	accumExtraForces(extraForces, Adiel_nCavityTilde);
+	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde, extraForces, Adiel_RRT);
+	accumExtraForces(extraForces, Adiel_nCavityTilde, Adiel_RRT);
 	return A;
 }
 

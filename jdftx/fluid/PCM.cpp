@@ -386,7 +386,7 @@ void PCM::updateCavity()
 	}
 }
 
-void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces) const
+void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces, matrix3<>* Adiel_RRT) const
 {
 	if(forces) forces->init(e.iInfo); //zero and initialize forces if needed
 	
@@ -415,6 +415,8 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 			ScalarField nCavityExUnused; //unused return value below
 			ShapeFunctionSGA13::expandDensity(wExpand[i], Rex[i], nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity);
 		}
+		if(Adiel_RRT)
+			die("SGA13 cavity stress contributions not yet implemented.");
 	}
 	else if(fsp.pcmVariant == PCM_CANDLE)
 	{	ScalarField A_nCavityEx; ScalarFieldTilde A_phiExt; double A_pCavity=0.;
@@ -426,6 +428,8 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
 		((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wExpand[1]*J(shapeVdw)));
 		((PCM*)this)->A_pCavity = A_pCavity;
+		if(Adiel_RRT)
+			die("CANDLE cavity stress contributions not yet implemented.");
 	}
 	else if(fsp.pcmVariant == PCM_SoftSphere)
 	{	nullToZero(A_nCavity, gInfo); //no electronic contributions
@@ -441,6 +445,8 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 					(*forces)[iSp][iAtom] -= *(A_atposAllPtr++); //negative gradient
 			((PCM*)this)->A_cavityScale = cblas_ddot(Rall.size(), Rall.data(),1, A_Rall.data(),1) / fsp.cavityScale; //gradient w.r.t scale factor used for fits
 		}
+		if(Adiel_RRT)
+			die("SoftSphere cavity stress contributions not yet implemented.");
 	}
 	else if(fsp.pcmVariant == PCM_FixedCavity)
 	{	nullToZero(A_nCavity, gInfo); //No electronic or force contributions
@@ -459,14 +465,18 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		A_nCavity -= divergence(Dn * (inv(DnLength) * A_DnLength));
 		ShapeFunctionSCCS::propagateGradient(nCavity+(0.5*fsp.rhoDelta), -A_shapeMinus, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
 		ShapeFunctionSCCS::propagateGradient(nCavity-(0.5*fsp.rhoDelta),  A_shapeMinus, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
+		if(Adiel_RRT)
+			die("SCCS cavity stress contributions not yet implemented.");
 	}
 	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
 	{	ShapeFunction::propagateGradient(nCavity, A_shape[0] + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
+		if(Adiel_RRT)
+			die("GLSSA cavity stress contributions not yet implemented.");
 	}
 }
 
-void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde) const
+void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde, matrix3<>* Adiel_RRT) const
 {	if(forces)
 	{
 		//VDW contribution:
@@ -481,6 +491,8 @@ void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCav
 					Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
 				const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
 				e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
+				if(Adiel_RRT)
+					die("vdW stress contribution in PCMs not yet implemented.");
 				break;
 			}
 			default: break; //no VDW forces
@@ -496,6 +508,8 @@ void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCav
 						for(int k=0; k<3; k++)
 							(*forces)[iSp][iAtom][k] -= e.iInfo.species[iSp]->ZfullCore * sum(gradAtpos[k]); //negative gradient
 					}
+				if(Adiel_RRT)
+					die("Full core stress contribution in PCMs not yet implemented.");
 				break;
 			}
 			default: break; //no full-core forces

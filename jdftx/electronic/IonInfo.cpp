@@ -225,7 +225,7 @@ double IonInfo::ionicEnergyAndGrad()
 		if(computeStress)
 		{	E_RRT -= ExcCore_RRT;
 			//Additional terms through volume integration factors:
-			double volTerm = ExcCore + dot(ccgrad_nCore - eVars.V_cavity, J(nCore))*e->gInfo.detR;
+			double volTerm = ExcCore + dot(ccgrad_nCore, J(nCore))*e->gInfo.detR;
 			if(ccgrad_tauCore) volTerm += dot(ccgrad_tauCore, J(tauCore))*e->gInfo.detR;
 			E_RRT -= matrix3<>(1.,1.,1.) * volTerm;
 		}

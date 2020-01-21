@@ -280,10 +280,10 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	
 	//Propagate shape gradients to A_nCavity:
 	ScalarField Adiel_nCavity;
-	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces);
+	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
 	Adiel_nCavityTilde = nFluid * J(Adiel_nCavity);
 	
-	accumExtraForces(extraForces, Adiel_nCavityTilde);
+	accumExtraForces(extraForces, Adiel_nCavityTilde, Adiel_RRT);
 	return Adiel;
 }
 
