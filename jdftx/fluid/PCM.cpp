@@ -457,8 +457,6 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 					(*forces)[iSp][iAtom] -= *(A_atposAllPtr++); //negative gradient
 			((PCM*)this)->A_cavityScale = cblas_ddot(Rall.size(), Rall.data(),1, A_Rall.data(),1) / fsp.cavityScale; //gradient w.r.t scale factor used for fits
 		}
-		if(Adiel_RRT)
-			die("SoftSphere cavity stress contributions not yet implemented.");
 	}
 	else if(fsp.pcmVariant == PCM_FixedCavity)
 	{	nullToZero(A_nCavity, gInfo); //No electronic or force contributions
