@@ -363,9 +363,14 @@ void PCM::updateCavity()
 			A_tension = integral(surfaceDensity);
 			Adiel["CavityTension"] = A_tension * fsp.cavityTension;
 			Acavity_shape = (-fsp.cavityTension)*divergence(Dshape*invSurfaceDensity);
+			if(e.iInfo.computeStress)
+				Acavity_RRT = (-fsp.cavityTension * gInfo.dV) * dotOuter(Dshape, Dshape, invSurfaceDensity)
+					+ matrix3<>(1,1,1) * Adiel["CavityTension"];
 			if(fsp.cavityPressure)
 			{	Adiel["CavityPressure"] = fsp.cavityPressure * (gInfo.detR - integral(shape[0]));
 				Acavity_shape = Acavity_shape - fsp.cavityPressure;
+				if(e.iInfo.computeStress)
+					Acavity_RRT += matrix3<>(1,1,1) * Adiel["CavityPressure"];
 			}
 			break;
 		}
@@ -389,6 +394,7 @@ void PCM::updateCavity()
 void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces, matrix3<>* Adiel_RRT) const
 {
 	if(forces) forces->init(e.iInfo); //zero and initialize forces if needed
+	if(Adiel_RRT) *Adiel_RRT += Acavity_RRT; //add gradient of cavitation and dispersion interactions
 	
 	//Account for cavity masks, if any
 	if(zMask[0] || zMask[1])
@@ -471,8 +477,6 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
 	{	ShapeFunction::propagateGradient(nCavity, A_shape[0] + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
-		if(Adiel_RRT)
-			die("GLSSA cavity stress contributions not yet implemented.");
 	}
 }
 

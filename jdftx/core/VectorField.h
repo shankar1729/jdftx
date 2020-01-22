@@ -158,6 +158,8 @@ inline vector3<> sumComponents(const VectorField& X) { return vector3<>(sum(X[0]
 inline ScalarField lengthSquared(const VectorField& X) { return X[0]*X[0] + X[1]*X[1] + X[2]*X[2]; } //!< Elementwise length squared
 inline ScalarField lengthSquaredWeighted(const vector3<>& w, const VectorField& X) { return w[0]*X[0]*X[0] + w[1]*X[1]*X[1] + w[2]*X[2]*X[2]; } //!< Elementwise length squared (weighted)
 inline ScalarField dotElemwise(const VectorField& X, const VectorField& Y) { return X[0]*Y[0] + X[1]*Y[1] + X[2]*Y[2]; } //!< Elementwise dot
+inline matrix3<> dotOuter(const VectorField& X, const VectorField& Y); //!< Compute m(i,j) = dot(X[i], Y[j])
+inline matrix3<> dotOuter(const VectorField& X, const VectorField& Y, const ScalarField& w); //!< Compute m(i,j) = dot(X[i], w * Y[j])
 
 //Extra operators in R-space alone for scalar additions:
 template<int N> RptrMul& operator+=(RptrMul& in, double scalar) { Nloop(in[i]+=scalar;) return in; } //!<Increment by scalar
@@ -262,6 +264,26 @@ void TptrMul::saveToFile(const char* filename) const
 		fwriteLE(component[i]->data(), sizeof(typename T::DataType), component[i]->nElem, fp);
 	)
 	fclose(fp);
+}
+
+//Compute m(i,j) = dot(X[i], Y[j])
+inline matrix3<> dotOuter(const VectorField& X, const VectorField& Y)
+{	matrix3<> result;
+	for(int iDir=0; iDir<3; iDir++)
+		for(int jDir=iDir; jDir<3; jDir++)
+			result(jDir,iDir) = result(iDir,jDir) = dot(Y[iDir], X[jDir]);
+	return result;
+}
+
+//Compute m(i,j) = dot(X[i], w * Y[j])
+inline matrix3<> dotOuter(const VectorField& X, const VectorField& Y, const ScalarField& w) 
+{	matrix3<> result;
+	for(int iDir=0; iDir<3; iDir++)
+	{	ScalarField wYi = w * Y[iDir];
+		for(int jDir=iDir; jDir<3; jDir++)
+			result(jDir,iDir) = result(iDir,jDir) = dot(wYi, X[jDir]);
+	}
+	return result;
 }
 
 namespace ScalarFieldMultipletPrivate

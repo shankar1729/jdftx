@@ -128,14 +128,8 @@ double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplici
 			: (-(epsBulk-1)/(8*M_PI)) * lengthSquared(IgradPhi); //dielectric contributions (isotropic case)
 		//corresponding stress through Hessian term:
 		if(Adiel_RRT)
-		{	matrix3<> Ahess_RRT;
-			ScalarField epsilon = 1. + (epsBulk-1.) * shape[0]; //note anisotropic not supported
-			for(int iDir=0; iDir<3; iDir++)
-			{	ScalarField epsIgradPhi = epsilon * IgradPhi[iDir];
-				for(int jDir=iDir; jDir<3; jDir++)
-					Ahess_RRT(jDir,iDir) = Ahess_RRT(iDir,jDir) = gInfo.dV * dot(epsIgradPhi, IgradPhi[jDir]);
-			}
-			*Adiel_RRT += (1./(4*M_PI)) * Ahess_RRT;
+		{	ScalarField epsilon = 1. + (epsBulk-1.) * shape[0]; //note anisotropic not supported
+			*Adiel_RRT += (gInfo.dV/(4*M_PI)) * dotOuter(IgradPhi, IgradPhi, epsilon);
 		}
 	}
 	if(k2factor) Adiel_shape.back() -= (k2factor/(8*M_PI)) * pow(I(phi),2); //ionic contributions
