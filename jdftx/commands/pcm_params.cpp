@@ -126,7 +126,7 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_zMaskIonH, "zMaskIonH",
 	PCMp_zMaskSigma, "zMaskSigma",
 	PCMp_rhoMin, "rhoMin",
-	PCMp_rhoMax, "rhoMin",
+	PCMp_rhoMax, "rhoMax",
 	PCMp_rhoDelta, "rhoDelta",
 	PCMp_eta_wDiel, "eta_wDiel",
 	PCMp_sqrtC6eff, "sqrtC6eff",

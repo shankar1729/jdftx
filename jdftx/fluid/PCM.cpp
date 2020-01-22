@@ -380,12 +380,18 @@ void PCM::updateCavity()
 		case_PCM_SCCS_any:
 		{	//Volume contribution:
 			Adiel["CavityPressure"] = fsp.cavityPressure * (gInfo.detR - integral(shape[0]));
+			if(e.iInfo.computeStress)
+				Acavity_RRT = matrix3<>(1,1,1) * Adiel["CavityPressure"];
 			//Surface contribution:
 			ScalarField shapePlus, shapeMinus;
 			ShapeFunctionSCCS::compute(nCavity+(0.5*fsp.rhoDelta), shapePlus, fsp.rhoMin, fsp.rhoMax, epsBulk);
 			ShapeFunctionSCCS::compute(nCavity-(0.5*fsp.rhoDelta), shapeMinus, fsp.rhoMin, fsp.rhoMax, epsBulk);
-			ScalarField DnLength = sqrt(lengthSquared(gradient(nCavity)));
+			VectorField Dn = gradient(nCavity);
+			ScalarField DnLength = sqrt(lengthSquared(Dn));
 			Adiel["CavityTension"] = (fsp.cavityTension/fsp.rhoDelta) * integral(DnLength * (shapeMinus - shapePlus));
+			if(e.iInfo.computeStress)
+				Acavity_RRT += matrix3<>(1,1,1) * Adiel["CavityTension"]
+					- ((fsp.cavityTension/fsp.rhoDelta) * gInfo.dV) * dotOuter(Dn, Dn, inv(DnLength)*(shapeMinus-shapePlus));
 			break;
 		}
 	}
@@ -471,8 +477,6 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		A_nCavity -= divergence(Dn * (inv(DnLength) * A_DnLength));
 		ShapeFunctionSCCS::propagateGradient(nCavity+(0.5*fsp.rhoDelta), -A_shapeMinus, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
 		ShapeFunctionSCCS::propagateGradient(nCavity-(0.5*fsp.rhoDelta),  A_shapeMinus, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
-		if(Adiel_RRT)
-			die("SCCS cavity stress contributions not yet implemented.");
 	}
 	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
 	{	ShapeFunction::propagateGradient(nCavity, A_shape[0] + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
