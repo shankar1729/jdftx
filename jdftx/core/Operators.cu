@@ -230,7 +230,20 @@ void radialFunctionMultiply_gpu(const vector3<int> S, const matrix3<>& GGT, comp
 	gpuErrorCheck();
 }
 
+__global__
+void convolveStress_kernel(int zBlock, vector3<int> S, const matrix3<> GGT, const RadialFunctionG& w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{	COMPUTE_halfGindices
+	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
+	double G = sqrt(GGT.metric_length_squared(iG));
+	double minus_wPrime_by_G = G ? (-w.deriv(G)/G) : 0.;
+	grad_RRT[i] = (weight * minus_wPrime_by_G * real(X[i].conj() * Y[i])) * outer(vector3<>(iG));
+}
 
+void convolveStress_gpu(vector3<int> S, const matrix3<>& GGT, const RadialFunctionG& w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{	GpuLaunchConfigHalf3D glc(convolveStress_kernel, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		convolveStress_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, w, X, Y, grad_RRT);
+}
 
 __global__
 void exp_kernel(int N, double* X, double prefac)

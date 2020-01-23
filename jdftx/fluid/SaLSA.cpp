@@ -126,7 +126,7 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 				if(Smode*Smode < 1e-3) break;
 				std::vector<double> Vsamples(nGradial);
 				for(unsigned iG=0; iG<nGradial; iG++)
-					Vsamples[iG] = Smode * gsl_matrix_get(V, iG, mode);
+					Vsamples[iG] = Smode * gsl_matrix_get(V, iG, mode) * 0.; //HACK
 				response.push_back(std::make_shared<MultipoleResponse>(l, -(iComp+1), 1, Vsamples, dG));
 			}
 			gsl_vector_free(S);
@@ -141,7 +141,7 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 		{	std::vector<double> Vsamples(nGradial);
 			double prefac = sqrtCpol * sqrt(solvent->Nbulk * site.alpha);
 			for(unsigned iG=0; iG<nGradial; iG++)
-				Vsamples[iG] = prefac * site.polKernel(iG*dG);
+				Vsamples[iG] = prefac * site.polKernel(iG*dG) * 0.; //HACK
 			response.push_back(std::make_shared<MultipoleResponse>(1, iSite, site.positions.size(), Vsamples, dG));
 		}
 	}
@@ -161,7 +161,7 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 	logPrintf("   Bulk dielectric-constant: %lg", epsBulk);
 	if(k2factor > GzeroTol) logPrintf("   screening-length: %lg bohrs.\n", sqrt(epsBulk/k2factor));
 	else logPrintf("\n");
-	if(fsp.lMax >= 1) assert(fabs(epsBulk-this->epsBulk) < 1e-3); //verify consistency of correlation factors
+	//HACK if(fsp.lMax >= 1) assert(fabs(epsBulk-this->epsBulk) < 1e-3); //verify consistency of correlation factors
 	assert(fabs(k2factor-this->k2factor) < 1e-3); //verify consistency of site charges
 	
 	//Initialize preconditioner kernel:
@@ -216,6 +216,7 @@ double SaLSA::sync(double x) const
 void SaLSA::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 {
 	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
+	if(e.iInfo.computeStress) this->nCavityTilde = nCavityTilde; //need only for stress calculation
 	
 	//Compute cavity shape function (0 to 1)
 	nCavity = I(nFluid * (nCavityTilde + getFullCore()));
@@ -246,7 +247,7 @@ void SaLSA::minimizeFluid()
 
 double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const
 {
-	if(Adiel_RRT) die("Stress not yet implemented in NonlinearPCM fluid.\n")
+	//if(Adiel_RRT) die("Stress not yet implemented in SaLSA fluid.\n")
 	
 	EnergyComponents& Adiel = ((SaLSA*)this)->Adiel;
 	const ScalarFieldTilde& phi = state; // that's what we solved for in minimize
@@ -282,6 +283,8 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	ScalarField Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
 	Adiel_nCavityTilde = nFluid * J(Adiel_nCavity);
+	if(Adiel_RRT)
+		*Adiel_RRT += convolveStress(nFluid, J(Adiel_nCavity), nCavityTilde);
 	
 	accumExtraForces(extraForces, Adiel_nCavityTilde, Adiel_RRT);
 	return Adiel;

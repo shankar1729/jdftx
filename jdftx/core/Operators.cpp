@@ -557,6 +557,29 @@ VectorFieldTilde operator*(const RadialFunctionG& f, const VectorFieldTilde& in)
 	return out;
 }
 
+//Stress due to dot(X,O(w*Y))
+void convolveStress_thread(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& GGT, const RadialFunctionG& w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{	THREAD_halfGspaceLoop
+	(	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
+		double G = sqrt(GGT.metric_length_squared(iG));
+		double minus_wPrime_by_G = G ? (-w.deriv(G)/G) : 0.;
+		grad_RRT[i] = (weight * minus_wPrime_by_G * real(X[i].conj() * Y[i])) * outer(vector3<>(iG));
+	)
+}
+inline void convolveStress(const vector3<int> S, const matrix3<>& GGT, const RadialFunctionG& w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{	threadLaunch(convolveStress_thread, S[0]*S[1]*(S[2]/2+1), S, GGT, w, X, Y, grad_RRT);
+}
+#ifdef GPU_ENABLED //implemented in Operators.cu
+void convolveStress_gpu(const vector3<int> S, const matrix3<>& GGT, const RadialFunctionG& w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT);
+#endif
+matrix3<> convolveStress(const RadialFunctionG& w, const ScalarFieldTilde& X, const ScalarFieldTilde& Y)
+{	const GridInfo& gInfo = X->gInfo;
+	ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nG, isGpuEnabled());
+	callPref(convolveStress)(gInfo.S, gInfo.GGT, w, X->dataPref(), Y->dataPref(), result.dataPref());
+	matrix3<> resultSum = callPref(eblas_sum)(gInfo.nG, result.dataPref());
+	return gInfo.detR * (gInfo.GT * resultSum * gInfo.G);
+}
+
 //------------------------------ Nonlinear Unary operators ------------------------------
 
 void exp_sub(size_t i, double* X, double prefac) { X[i] = exp(prefac*X[i]); }

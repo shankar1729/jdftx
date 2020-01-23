@@ -108,6 +108,7 @@ ScalarFieldTilde radialFunctionG(const GridInfo& gInfo, const RadialFunctionG& f
 //Convolution by spherical function:
 ScalarFieldTilde operator*(const RadialFunctionG&, const ScalarFieldTilde&); //!< Convolve a scalar field by a radial function (preserve input)
 ScalarFieldTilde operator*(const RadialFunctionG&, ScalarFieldTilde&&); //!< Convolve a scalar field by a radial function (destructible input)
+matrix3<> convolveStress(const RadialFunctionG& w, const ScalarFieldTilde& X, const ScalarFieldTilde& Y); //!< stress due to dot(X,O(w*Y))
 
 //------------------------------ Nonlinear Unary operators ------------------------------
 

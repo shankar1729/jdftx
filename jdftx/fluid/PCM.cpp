@@ -340,7 +340,12 @@ void PCM::updateCavity()
 			const double coeff3 = Gamma - 1. -2.*Cp;
 			ScalarField sbar = I(wCavity*sTilde);
 			Adiel["Cavitation"] = nlT * integral(sbar*(Gamma + sbar*(coeff2 + sbar*(coeff3 + sbar*Cp))));
-			A_sTilde += wCavity*Idag(nlT * (Gamma + sbar*(2.*coeff2 + sbar*(3.*coeff3 + sbar*(4.*Cp)))));
+			{	ScalarFieldTilde A_sbar = Idag(nlT * (Gamma + sbar*(2.*coeff2 + sbar*(3.*coeff3 + sbar*(4.*Cp)))));
+				A_sTilde += wCavity*A_sbar;
+				if(e.iInfo.computeStress)
+					Acavity_RRT = (1./gInfo.nr) * convolveStress(wCavity, A_sbar, sTilde) //through convolution
+						+ matrix3<>(1,1,1) * Adiel["Cavitation"]; //through volume factor in integral
+			}
 			//Dispersion:
 			ScalarFieldTildeArray Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
 			for(unsigned i=0; i<Sf.size(); i++)
