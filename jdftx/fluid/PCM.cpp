@@ -351,11 +351,15 @@ void PCM::updateCavity()
 			for(unsigned i=0; i<Sf.size(); i++)
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
 			const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
-			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde);
+			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde,
+				0, e.iInfo.computeStress ? &Acavity_RRT : 0);
 			A_vdwScale = Adiel["Dispersion"]/vdwScaleEff;
 			for(unsigned i=0; i<Sf.size(); i++)
 				if(A_Ntilde[i])
-					A_sTilde += solvent->Nbulk * (Sf[i] * A_Ntilde[i]);
+				{	A_sTilde += solvent->Nbulk * (Sf[i] * A_Ntilde[i]);
+					if(e.iInfo.computeStress)
+						Acavity_RRT += (solvent->Nbulk/gInfo.nr) * convolveStress(Sf[i], A_Ntilde[i], sTilde);
+				}
 			//Propagate gradients to appropriate shape function:
 			(fsp.pcmVariant==PCM_SaLSA ? Acavity_shape : Acavity_shapeVdw) = Jdag(A_sTilde);
 			break;
@@ -487,44 +491,41 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 	}
 }
 
-void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde, matrix3<>* Adiel_RRT) const
-{	//VDW contribution:
+void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde) const
+{
+	if(not forces) return;
+
+	//VDW contribution:
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
 		case PCM_CANDLE:
 		case PCM_SGA13:
-		{	if(forces or Adiel_RRT)
-			{	const auto& solvent = fsp.solvents[0];
-				const ScalarFieldTilde sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape[0] : shapeVdw);
-				ScalarFieldTildeArray Ntilde(Sf.size());
-				for(unsigned i=0; i<Sf.size(); i++)
-					Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
-				const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
-				if(!vdwScaleEff) break;
-				e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
-				if(Adiel_RRT)
-					die("vdW stress contribution in PCMs not yet implemented.");
-			}
+		{	const auto& solvent = fsp.solvents[0];
+			const ScalarFieldTilde sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape[0] : shapeVdw);
+			ScalarFieldTildeArray Ntilde(Sf.size());
+			for(unsigned i=0; i<Sf.size(); i++)
+				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
+			const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
+			e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
 			break;
 		}
 		default: break; //no VDW contribution
 	}
+
 	//Full core contribution:
-	if(forces) //Full core does not contribute stress
-	{	switch(fsp.pcmVariant)
-		{	case PCM_SaLSA:
-			case PCM_CANDLE:
-			{	VectorFieldTilde gradAtpos; nullToZero(gradAtpos, gInfo);
-				for(unsigned iSp=0; iSp<atpos.size(); iSp++)
-					for(unsigned iAtom=0; iAtom<atpos[iSp].size(); iAtom++)
-					{	callPref(gradSGtoAtpos)(gInfo.S, atpos[iSp][iAtom], A_nCavityTilde->dataPref(), gradAtpos.dataPref());
-						for(int k=0; k<3; k++)
-							(*forces)[iSp][iAtom][k] -= e.iInfo.species[iSp]->ZfullCore * sum(gradAtpos[k]); //negative gradient
-					}
-				break;
-			}
-			default: break; //no full-core forces
+	switch(fsp.pcmVariant)
+	{	case PCM_SaLSA:
+		case PCM_CANDLE:
+		{	VectorFieldTilde gradAtpos; nullToZero(gradAtpos, gInfo);
+			for(unsigned iSp=0; iSp<atpos.size(); iSp++)
+				for(unsigned iAtom=0; iAtom<atpos[iSp].size(); iAtom++)
+				{	callPref(gradSGtoAtpos)(gInfo.S, atpos[iSp][iAtom], A_nCavityTilde->dataPref(), gradAtpos.dataPref());
+					for(int k=0; k<3; k++)
+						(*forces)[iSp][iAtom][k] -= e.iInfo.species[iSp]->ZfullCore * sum(gradAtpos[k]); //negative gradient
+				}
+			break;
 		}
+		default: break; //no full-core forces
 	}
 }
 

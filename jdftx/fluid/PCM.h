@@ -53,8 +53,8 @@ protected:
 	//! Set fluid force contributions (for atom-sphere cavities) and stress contributions if non-null.
 	void propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField& A_nCavity, ScalarFieldTilde& A_rhoExplicitTilde, IonicGradient* forces, matrix3<>* Adiel_RRT) const;
 	
-	//! Accumulate extra fluid forces (vdw and full-core forces, when applicable), and optionally stresses if non-null
-	void accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde, matrix3<>* Adiel_RRT) const;
+	//! Accumulate extra fluid forces (vdw and full-core forces, when applicable)
+	void accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde) const;
 	
 	ScalarFieldTilde getFullCore() const; //!< get full core correction for PCM variants that need them
 private:

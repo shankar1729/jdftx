@@ -145,7 +145,7 @@ double LinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplici
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
 	Adiel_nCavityTilde = J(Adiel_nCavity);
 	
-	accumExtraForces(extraForces, Adiel_nCavityTilde, Adiel_RRT);
+	accumExtraForces(extraForces, Adiel_nCavityTilde);
 	return Adiel;
 }
 

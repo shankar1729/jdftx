@@ -286,7 +286,7 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	if(Adiel_RRT)
 		*Adiel_RRT += convolveStress(nFluid, J(Adiel_nCavity), nCavityNetTilde);
 	
-	accumExtraForces(extraForces, Adiel_nCavityTilde, Adiel_RRT);
+	accumExtraForces(extraForces, Adiel_nCavityTilde);
 	return Adiel;
 }
 

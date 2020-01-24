@@ -291,7 +291,7 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 		
 	ScalarFieldMuEps Adiel_state;
 	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde, extraForces, Adiel_RRT);
-	accumExtraForces(extraForces, Adiel_nCavityTilde, Adiel_RRT);
+	accumExtraForces(extraForces, Adiel_nCavityTilde);
 	return A;
 }
 

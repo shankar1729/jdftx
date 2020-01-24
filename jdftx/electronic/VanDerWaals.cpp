@@ -186,7 +186,7 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 
 
 double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >& atpos, const ScalarFieldTildeArray& Ntilde, const std::vector< int >& atomicNumber,
-	const double scaleFac, ScalarFieldTildeArray* grad_Ntilde, IonicGradient* forces) const
+	const double scaleFac, ScalarFieldTildeArray* grad_Ntilde, IonicGradient* forces, matrix3<>* E_RRT) const
 {
 	double Etot = 0.;
 	const GridInfo& gInfo = Ntilde[0]->gInfo;
@@ -213,6 +213,8 @@ double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >&
 					(*grad_Ntilde)[j] += E_Ntilde; //accumulate into gradient wrt jth site density
 				if(forces)
 					ccgrad_SG += (-scaleFac) * (Kernel_ij * Ntilde[j]); //accumulate forces on ith atom type from jth site density
+				if(E_RRT)
+					*E_RRT -= scaleFac * convolveStress(Kernel_ij, SG, Ntilde[j]);
 			}
 
 		if(forces && ccgrad_SG) //calculate forces due to ith atom
