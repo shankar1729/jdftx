@@ -446,11 +446,13 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		A_nCavity += fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
 		((PCM*)this)->A_rhoNonES = coulomb(Sf[0]*A_phiExt);
 		A_rhoExplicitTilde += A_rhoNonES;
+		if(Adiel_RRT)
+		{	*Adiel_RRT += convolveStress(wExpand[0], J(A_shape[0]), J(shapeVdw))
+				+ fsp.Ztot * convolveStress(Sf[0], J(A_nCavityEx), J(nCavity));
+		}
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
 		((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wExpand[1]*J(shapeVdw)));
 		((PCM*)this)->A_pCavity = A_pCavity;
-		if(Adiel_RRT)
-			die("CANDLE cavity stress contributions not yet implemented.");
 	}
 	else if(fsp.pcmVariant == PCM_SoftSphere)
 	{	nullToZero(A_nCavity, gInfo); //no electronic contributions
