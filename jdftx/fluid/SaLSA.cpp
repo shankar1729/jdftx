@@ -126,7 +126,7 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 				if(Smode*Smode < 1e-3) break;
 				std::vector<double> Vsamples(nGradial);
 				for(unsigned iG=0; iG<nGradial; iG++)
-					Vsamples[iG] = Smode * gsl_matrix_get(V, iG, mode) * 0.; //HACK
+					Vsamples[iG] = Smode * gsl_matrix_get(V, iG, mode);
 				response.push_back(std::make_shared<MultipoleResponse>(l, -(iComp+1), 1, Vsamples, dG));
 			}
 			gsl_vector_free(S);
@@ -141,7 +141,7 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 		{	std::vector<double> Vsamples(nGradial);
 			double prefac = sqrtCpol * sqrt(solvent->Nbulk * site.alpha);
 			for(unsigned iG=0; iG<nGradial; iG++)
-				Vsamples[iG] = prefac * site.polKernel(iG*dG) * 0.; //HACK
+				Vsamples[iG] = prefac * site.polKernel(iG*dG);
 			response.push_back(std::make_shared<MultipoleResponse>(1, iSite, site.positions.size(), Vsamples, dG));
 		}
 	}
@@ -161,7 +161,7 @@ SaLSA::SaLSA(const Everything& e, const FluidSolverParams& fsp)
 	logPrintf("   Bulk dielectric-constant: %lg", epsBulk);
 	if(k2factor > GzeroTol) logPrintf("   screening-length: %lg bohrs.\n", sqrt(epsBulk/k2factor));
 	else logPrintf("\n");
-	//HACK if(fsp.lMax >= 1) assert(fabs(epsBulk-this->epsBulk) < 1e-3); //verify consistency of correlation factors
+	if(fsp.lMax >= 1) assert(fabs(epsBulk-this->epsBulk) < 1e-3); //verify consistency of correlation factors
 	assert(fabs(k2factor-this->k2factor) < 1e-3); //verify consistency of site charges
 	
 	//Initialize preconditioner kernel:
@@ -185,7 +185,6 @@ SaLSA::~SaLSA()
 {	nFluid.free();
 	Kkernel.free();
 }
-
 
 ScalarFieldTilde SaLSA::chi(const ScalarFieldTilde& phiTilde) const
 {	ScalarFieldTilde rhoTilde;
@@ -262,29 +261,44 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	//The "cavity" gradient is computed by chain rule via the gradient w.r.t to the shape function:
 	const auto& solvent = fsp.solvents[0];
 	ScalarFieldArray Adiel_shape(shape.size()); ScalarFieldArray Adiel_siteShape(solvent->molecule.sites.size());
+	matrix3<> Ahess_RRT; //lattice derivative contribution through Hessian
 	for(int r=rStart; r<rStop; r++)
 	{	const MultipoleResponse& resp = *response[r];
+		const ScalarField& s = resp.selectSite(shape, siteShape);
 		ScalarField& Adiel_s = resp.selectSite(Adiel_shape, Adiel_siteShape);
 		if(resp.l>6) die("Angular momenta l > 6 not supported.\n");
 		double prefac = 0.5 * 4*M_PI/(2*resp.l+1);
 		ScalarFieldArray IlGradVphi = I(lGradient(resp.V * phi, resp.l));
 		for(int lpm=0; lpm<(2*resp.l+1); lpm++)
-			Adiel_s -= prefac * (IlGradVphi[lpm]*IlGradVphi[lpm]);
+		{	Adiel_s -= prefac * (IlGradVphi[lpm]*IlGradVphi[lpm]);
+			if(Adiel_RRT)
+				Ahess_RRT -= (2.*prefac) * lGradientStress(resp.V, J(s * IlGradVphi[lpm]), phi, resp.l, lpm-resp.l);
+		}
 	}
 	for(unsigned iSite=0; iSite<solvent->molecule.sites.size(); iSite++)
 		if(Adiel_siteShape[iSite])
-			Adiel_shape[0] += I(Sf[iSite] * J(Adiel_siteShape[iSite]));
+		{	ScalarFieldTilde Adiel_siteShapeTilde = J(Adiel_siteShape[iSite]);
+			Adiel_shape[0] += I(Sf[iSite] * Adiel_siteShapeTilde);
+			if(Adiel_RRT)
+				Ahess_RRT += convolveStress(Sf[iSite], Adiel_siteShapeTilde, J(shape[0]));
+		}
 	for(ScalarField& A_s : Adiel_shape)
 	{	nullToZero(A_s, gInfo);
 		A_s->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	}
+	if(Adiel_RRT) mpiWorld->allReduce(Ahess_RRT, MPIUtil::ReduceSum);
 	
 	//Propagate shape gradients to A_nCavity:
 	ScalarField Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
 	Adiel_nCavityTilde = nFluid * J(Adiel_nCavity);
+	
+	//Stress contributions:
 	if(Adiel_RRT)
-		*Adiel_RRT += convolveStress(nFluid, J(Adiel_nCavity), nCavityNetTilde);
+		*Adiel_RRT += (1./(8*M_PI))*Lstress(phi,phi) + Ahess_RRT //from the Hessian as calculated above
+			+ Adiel["Electrostatic"] * matrix3<>(1,1,1) //volume contribution in electrostatic term
+			- 0.5*coulombStress(rhoExplicitTilde, rhoExplicitTilde) //through coulomb in phiExt
+			+ convolveStress(nFluid, J(Adiel_nCavity), nCavityNetTilde); //through cavity propagation
 	
 	accumExtraForces(extraForces, Adiel_nCavityTilde);
 	return Adiel;

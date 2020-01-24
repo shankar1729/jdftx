@@ -144,6 +144,16 @@ template<int l> __hostanddev__ void lDivergence_calc(int i, const vector3<int>& 
 }
 
 
+template<int lm> __hostanddev__  symmetricMatrix3<> lGradientStress_calc(const vector3<int>& iG, const matrix3<>& G, const RadialFunctionG& w)
+{	vector3<> qvec = iG * G; //k+G in cartesian coordinates
+	double q = qvec.length();
+	vector3<> qhat = qvec * (q ? 1.0/q : 0.0); //unit vector || qvec (set to 0 for q=0 (doesn't matter))
+	//q-gradient of w * Y: (Note that iota^l phase handled outside)
+	vector3<> wYprime = w(q) * YlmPrime<lm>(qvec) + qhat * (w.deriv(q) * Ylm<lm>(qvec));
+	return symmetricMatrix3<>(qvec[0]*wYprime[0], qvec[1]*wYprime[1], qvec[2]*wYprime[2],
+		qvec[1]*wYprime[2], qvec[2]*wYprime[0], qvec[0]*wYprime[1]);
+}
+
 __hostanddev__ complex blochPhase_calc(const vector3<int>& iv, const vector3<>& invS, const vector3<>& k)
 {	return cis(2*M_PI*dot(k, vector3<>(iv[0]*invS[0], iv[1]*invS[1], iv[2]*invS[2])));
 }

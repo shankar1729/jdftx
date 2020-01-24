@@ -136,6 +136,7 @@ template<typename T> double dot(const TptrCollection& x, const TptrCollection& y
 //Spherical tensor derivatives
 ScalarFieldTildeArray lGradient(const ScalarFieldTilde&, int l); //!< spherical tensor gradient of order l (2l+1 outputs, multiplied by Ylm(Ghat) (iG)^l)
 ScalarFieldTilde lDivergence(const ScalarFieldTildeArray&, int l); //!< spherical tensor divergence of order l (2l+1 inputs, multiplied by Ylm(Ghat) (iG)^l, and summed)
+matrix3<> lGradientStress(const RadialFunctionG&, const ScalarFieldTilde&, const ScalarFieldTilde&, int l, int m); //!< Stress corresponding to lGradient and a convolution
 
 //! Initialize (non-null) data to zero
 template<typename T> void initZero(TptrCollection& x)

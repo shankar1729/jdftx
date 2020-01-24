@@ -191,6 +191,26 @@ void lDivergence_gpu(const vector3<int>& S, const std::vector<const complex*>& i
 }
 
 
+template<int l, int m> __global__
+void lGradientStress_kernel(int zBlock, const vector3<int> S, const matrix3<> G, const RadialFunctionG& w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT, complex lPhase)
+{	COMPUTE_halfGindices
+	double weight = real(conj(X[i]) * Y[i] * lPhase) * (IS_NYQUIST
+			? 0 //drop nyquist frequency contributions
+			: (iG[2]==0 ? 1 : 2) ); //reciprocal space weights
+		grad_RRT[i] = weight * lGradientStress_calc<l*(l+1)+m>(iG, G, w);
+}
+template<int l, int m> void lGradientStress_gpu(const vector3<int>& S, const matrix3<>& G, const RadialFunctionG& w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{	const complex lPhase = cis(l*0.5*M_PI);
+	GpuLaunchConfigHalf3D glc(lGradientStress_kernel<l,m>, S);
+	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
+		lGradientStress_kernel<l,m><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, G, w, X, Y, grad_RRT, lPhase);
+	gpuErrorCheck();
+}
+void lGradientStress_gpu(const vector3<int>& S, const matrix3<>& G, const RadialFunctionG& w, const complex* X, const complex* Y, int l, int m, symmetricMatrix3<>* grad_RRT)
+{	SwitchTemplate_lm(l, m, lGradientStress_gpu, (S, G, w, X, Y, grad_RRT))
+}
+
+
 __global__
 void multiplyBlochPhase_kernel(int zBlock, const vector3<int> S, const vector3<> invS, complex* v, const vector3<> k)
 {	COMPUTE_rIndices

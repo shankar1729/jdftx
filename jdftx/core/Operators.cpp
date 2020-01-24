@@ -468,6 +468,34 @@ ScalarFieldTilde lDivergence(const ScalarFieldTildeArray& in, int l)
 }
 
 
+template<int l, int m> void lGradientStress_sub(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& G,
+		const RadialFunctionG& w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{	
+	const complex lPhase = cis(l*0.5*M_PI);
+	THREAD_halfGspaceLoop(
+		double weight = real(conj(X[i]) * Y[i] * lPhase) * (IS_NYQUIST
+			? 0 //drop nyquist frequency contributions
+			: (iG[2]==0 ? 1 : 2) ); //reciprocal space weights
+		grad_RRT[i] = weight * lGradientStress_calc<l*(l+1)+m>(iG, G, w);
+	)
+}
+template<int l, int m> void lGradientStress(const vector3<int>& S, const matrix3<>& G, const RadialFunctionG& w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+{	threadLaunch(lGradientStress_sub<l,m>, S[0]*S[1]*(S[2]/2+1), S, G, w, X, Y, grad_RRT);
+}
+void lGradientStress(const vector3<int>& S, const matrix3<>& G, const RadialFunctionG& w, const complex* X, const complex* Y, int l, int m, symmetricMatrix3<>* grad_RRT)
+{	SwitchTemplate_lm(l, m, lGradientStress, (S, G, w, X, Y, grad_RRT))
+}
+#ifdef GPU_ENABLED
+void lGradientStress_gpu(const vector3<int>& S, const matrix3<>& G, const RadialFunctionG& w, const complex* X, const complex* Y, int l, int m, symmetricMatrix3<>* grad_RRT);
+#endif
+matrix3<> lGradientStress(const RadialFunctionG& w, const ScalarFieldTilde& X, const ScalarFieldTilde& Y, int l, int m)
+{	const GridInfo& gInfo = X->gInfo;
+	ManagedArray<symmetricMatrix3<>> result; result.init(gInfo.nG, isGpuEnabled());
+	callPref(lGradientStress)(gInfo.S, gInfo.G, w, X->dataPref(), Y->dataPref(), l, m, result.dataPref());
+	matrix3<> resultSum = callPref(eblas_sum)(gInfo.nG, result.dataPref());
+	return (-gInfo.detR) * resultSum;
+}
+
 
 void multiplyBlochPhase_sub(size_t iStart, size_t iStop,
 	const vector3<int>& S, const vector3<>& invS, complex* v, const vector3<>& k)
