@@ -488,28 +488,30 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 }
 
 void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCavityTilde, matrix3<>* Adiel_RRT) const
-{	if(forces)
-	{
-		//VDW contribution:
-		switch(fsp.pcmVariant)
-		{	case PCM_SaLSA:
-			case PCM_CANDLE:
-			case PCM_SGA13:
+{	//VDW contribution:
+	switch(fsp.pcmVariant)
+	{	case PCM_SaLSA:
+		case PCM_CANDLE:
+		case PCM_SGA13:
+		{	if(forces or Adiel_RRT)
 			{	const auto& solvent = fsp.solvents[0];
 				const ScalarFieldTilde sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape[0] : shapeVdw);
 				ScalarFieldTildeArray Ntilde(Sf.size());
 				for(unsigned i=0; i<Sf.size(); i++)
 					Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
 				const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
+				if(!vdwScaleEff) break;
 				e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
 				if(Adiel_RRT)
 					die("vdW stress contribution in PCMs not yet implemented.");
-				break;
 			}
-			default: break; //no VDW forces
+			break;
 		}
-		//Full core contribution:
-		switch(fsp.pcmVariant)
+		default: break; //no VDW contribution
+	}
+	//Full core contribution:
+	if(forces) //Full core does not contribute stress
+	{	switch(fsp.pcmVariant)
 		{	case PCM_SaLSA:
 			case PCM_CANDLE:
 			{	VectorFieldTilde gradAtpos; nullToZero(gradAtpos, gInfo);
@@ -519,8 +521,6 @@ void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCav
 						for(int k=0; k<3; k++)
 							(*forces)[iSp][iAtom][k] -= e.iInfo.species[iSp]->ZfullCore * sum(gradAtpos[k]); //negative gradient
 					}
-				if(Adiel_RRT)
-					die("Full core stress contribution in PCMs not yet implemented.");
 				break;
 			}
 			default: break; //no full-core forces

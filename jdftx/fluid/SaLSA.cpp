@@ -216,10 +216,10 @@ double SaLSA::sync(double x) const
 void SaLSA::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 {
 	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
-	if(e.iInfo.computeStress) this->nCavityTilde = nCavityTilde; //need only for stress calculation
 	
 	//Compute cavity shape function (0 to 1)
-	nCavity = I(nFluid * (nCavityTilde + getFullCore()));
+	nCavityNetTilde = nCavityTilde + getFullCore();
+	nCavity = I(nFluid * nCavityNetTilde);
 	updateCavity();
 
 	//Compute site shape functions with the spherical ansatz:
@@ -284,7 +284,7 @@ double SaLSA::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTil
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
 	Adiel_nCavityTilde = nFluid * J(Adiel_nCavity);
 	if(Adiel_RRT)
-		*Adiel_RRT += convolveStress(nFluid, J(Adiel_nCavity), nCavityTilde);
+		*Adiel_RRT += convolveStress(nFluid, J(Adiel_nCavity), nCavityNetTilde);
 	
 	accumExtraForces(extraForces, Adiel_nCavityTilde, Adiel_RRT);
 	return Adiel;

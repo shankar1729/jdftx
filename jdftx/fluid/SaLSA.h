@@ -55,7 +55,7 @@ private:
 	RadialFunctionG nFluid; //electron density model for the fluid
 	RadialFunctionG Kkernel; ScalarField epsInv; //for preconditioner
 	ScalarFieldArray siteShape; //shape functions for sites
-	ScalarFieldTilde nCavityTilde; //input nCavity before convolution (needed an dstored only for stress calculation)
+	ScalarFieldTilde nCavityNetTilde; //input nCavity + full core before convolution
 };
 
 //! @}
