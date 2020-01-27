@@ -442,13 +442,15 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 	else if(fsp.pcmVariant == PCM_CANDLE)
 	{	ScalarField A_nCavityEx; ScalarFieldTilde A_phiExt; double A_pCavity=0.;
 		ShapeFunctionCANDLE::propagateGradient(nCavityEx[0], coulomb(Sf[0]*rhoExplicitTilde), I(wExpand[0]*J(A_shape[0])) + Acavity_shapeVdw,
-			A_nCavityEx, A_phiExt, A_pCavity, fsp.nc, fsp.sigma, fsp.pCavity);
+			A_nCavityEx, A_phiExt, A_pCavity, fsp.nc, fsp.sigma, fsp.pCavity, Adiel_RRT);
 		A_nCavity += fsp.Ztot * I(Sf[0] * J(A_nCavityEx));
 		((PCM*)this)->A_rhoNonES = coulomb(Sf[0]*A_phiExt);
 		A_rhoExplicitTilde += A_rhoNonES;
 		if(Adiel_RRT)
 		{	*Adiel_RRT += convolveStress(wExpand[0], J(A_shape[0]), J(shapeVdw))
-				+ fsp.Ztot * convolveStress(Sf[0], J(A_nCavityEx), J(nCavity));
+				+ fsp.Ztot * convolveStress(Sf[0], J(A_nCavityEx), J(nCavity))
+				+ coulombStress(A_phiExt, Sf[0]*rhoExplicitTilde)
+				+ convolveStress(Sf[0], coulomb(A_phiExt), rhoExplicitTilde);
 		}
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
 		((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wExpand[1]*J(shapeVdw)));

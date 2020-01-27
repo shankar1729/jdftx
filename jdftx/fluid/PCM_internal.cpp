@@ -72,7 +72,7 @@ namespace ShapeFunctionCANDLE
 			nc, sqrt(0.5)/sigma, pCavity);
 	}
 	void propagateGradient(const ScalarField& n, const ScalarFieldTilde& phi, const ScalarField& E_shape,
-		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity)
+		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity, matrix3<>* E_RRT)
 	{	VectorField Dn = gradient(n);
 		VectorField Dphi = I(gradient(phi));
 		nullToZero(E_n, n->gInfo);
@@ -83,6 +83,8 @@ namespace ShapeFunctionCANDLE
 			n->dataPref(), Dn.const_dataPref(), Dphi.const_dataPref(), 0,
 			E_shape->dataPref(), E_n->dataPref(), E_Dn.dataPref(), E_Dphi.dataPref(), E_pCavityArr->dataPref(),
 			nc, sqrt(0.5)/sigma, pCavity);
+		if(E_RRT)
+			*E_RRT -= n->gInfo.dV * (dotOuter(E_Dphi, Dphi) + dotOuter(E_Dn, Dn));
 		Dn=0; Dphi=0; //free memory
 		E_n -= divergence(E_Dn);
 		E_phi -= divergence(J(E_Dphi));

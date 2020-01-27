@@ -53,7 +53,7 @@ namespace ShapeFunctionCANDLE
 	
 	//! Propagate gradients w.r.t shape function to n, phi and pCavity (accumulate to E_n, E_phi, E_pCavity)
 	void propagateGradient(const ScalarField& n, const ScalarFieldTilde& phi, const ScalarField& E_shape,
-		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity);
+		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity, matrix3<>* E_RRT=0);
 }
 
 //! Shape function for \cite CavityWDA
