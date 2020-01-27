@@ -434,10 +434,8 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 			((PCM*)this)->A_nc += (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[i]);
 			//then propagate to original electron density:
 			ScalarField nCavityExUnused; //unused return value below
-			ShapeFunctionSGA13::expandDensity(wExpand[i], Rex[i], nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity);
+			ShapeFunctionSGA13::expandDensity(wExpand[i], Rex[i], nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity, Adiel_RRT);
 		}
-		if(Adiel_RRT)
-			die("SGA13 cavity stress contributions not yet implemented.");
 	}
 	else if(fsp.pcmVariant == PCM_CANDLE)
 	{	ScalarField A_nCavityEx; ScalarFieldTilde A_phiExt; double A_pCavity=0.;

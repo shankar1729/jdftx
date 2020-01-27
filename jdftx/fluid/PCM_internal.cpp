@@ -100,7 +100,7 @@ namespace ShapeFunctionSGA13
 	#ifdef GPU_ENABLED
 	void expandDensityHelper_gpu(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq);
 	#endif
-	void expandDensity(const RadialFunctionG& w, double R, const ScalarField& n, ScalarField& nEx, const ScalarField* A_nEx, ScalarField* A_n)
+	void expandDensity(const RadialFunctionG& w, double R, const ScalarField& n, ScalarField& nEx, const ScalarField* A_nEx, ScalarField* A_n, matrix3<>* E_RRT)
 	{	//Compute weighted densities:
 		ScalarFieldTilde nBarTilde = w * J(n);
 		ScalarField nBar = I(nBarTilde);
@@ -122,6 +122,9 @@ namespace ShapeFunctionSGA13
 			ScalarField A_DnBarSq = (*A_nEx) * nEx_DnBarSq;
 			A_nBarTilde -= (2.*R) * divergence(Idag(A_DnBarSq * DnBar)); //contribution through DnBar
 			(*A_n) += Jdag(w * A_nBarTilde);
+			if(E_RRT)
+				*E_RRT += (1./n->gInfo.nr) * convolveStress(w, A_nBarTilde, J(n))
+					- (2.*n->gInfo.dV) * dotOuter(DnBar, DnBar, A_DnBarSq);
 		}
 	}
 }

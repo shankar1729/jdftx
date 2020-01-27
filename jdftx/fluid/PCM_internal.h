@@ -60,7 +60,7 @@ namespace ShapeFunctionCANDLE
 namespace ShapeFunctionSGA13
 {
 	//! Compute expanded density nEx from n, and optionally propagate gradients from nEx to n (accumulate to A_n)
-	void expandDensity(const RadialFunctionG& w, double R, const ScalarField& n, ScalarField& nEx, const ScalarField* A_nEx=0, ScalarField* A_n=0);
+	void expandDensity(const RadialFunctionG& w, double R, const ScalarField& n, ScalarField& nEx, const ScalarField* A_nEx=0, ScalarField* A_n=0, matrix3<>* E_RRT=0);
 }
 
 //! Shape function for the soft-sphere model \cite PCM-SoftSphere
