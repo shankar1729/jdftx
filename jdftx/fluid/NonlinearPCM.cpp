@@ -206,8 +206,8 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 	}
 	
 	//Compute the dielectric free energy and bound charge:
-	VectorField eps = getEps(state), Adiel_eps;
-	{	ScalarField Aout; VectorField p;
+	VectorField eps = getEps(state), p, Adiel_eps;
+	{	ScalarField Aout;
 		initZero(Aout, gInfo);
 		nullToZero(p, gInfo);
 		nullToZero(Adiel_eps, gInfo);
@@ -215,12 +215,16 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 			p.dataPref(), Aout->dataPref(), Adiel_eps.dataPref(), Adiel_shape.size() ? Adiel_shape[0]->dataPref() : 0);
 		Adiel["Aeps"] = integral(Aout);
 		rhoFluidTilde -= divergence(J(p)); //include bound charge due to dielectric
+		if(!Adiel_RRT) p = 0; //only need later for lattice derivative
 	} //scoped to automatically deallocate temporaries
 	
 	//Compute the electrostatic terms:
 	ScalarFieldTilde phiFluidTilde = coulomb(rhoFluidTilde);
 	ScalarFieldTilde phiExplicitTilde = coulomb(rhoExplicitTilde);
 	Adiel["Coulomb"] = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
+	if(Adiel_RRT)
+		*Adiel_RRT += matrix3<>(1,1,1)*(Adiel["Coulomb"] + Adiel["Aeps"] + Adiel["Akappa"])
+			+ coulombStress(rhoFluidTilde, 0.5*rhoFluidTilde+rhoExplicitTilde);
 	
 	if(screeningEval)
 	{	//Propagate gradients from rhoIon to mu, shape
@@ -241,6 +245,7 @@ double NonlinearPCM::operator()(const ScalarFieldMuEps& state, ScalarFieldMuEps&
 	{	VectorField Adiel_p = I(gradient(phiFluidTilde+phiExplicitTilde)); //Because dagger(-divergence) = gradient
 		callPref(dielectricEval->convertDerivative)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
 			Adiel_p.const_dataPref(), Adiel_eps.dataPref(), Adiel_shape.size() ? Adiel_shape[0]->dataPref() : 0);
+		if(Adiel_RRT) *Adiel_RRT -= gInfo.dV * dotOuter(p, Adiel_p);
 	}
 	
 	//Optional outputs:
@@ -286,10 +291,7 @@ void NonlinearPCM::saveState(const char* filename) const
 }
 
 double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const
-{
-	if(Adiel_RRT) die("Stress not yet implemented in NonlinearPCM fluid.\n")
-		
-	ScalarFieldMuEps Adiel_state;
+{	ScalarFieldMuEps Adiel_state;
 	double A = (*this)(state, Adiel_state, &Adiel_rhoExplicitTilde, &Adiel_nCavityTilde, extraForces, Adiel_RRT);
 	accumExtraForces(extraForces, Adiel_nCavityTilde);
 	return A;
