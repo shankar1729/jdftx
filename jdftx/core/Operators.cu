@@ -192,7 +192,7 @@ void lDivergence_gpu(const vector3<int>& S, const std::vector<const complex*>& i
 
 
 template<int l, int m> __global__
-void lGradientStress_kernel(int zBlock, const vector3<int> S, const matrix3<> G, const RadialFunctionG& w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT, complex lPhase)
+void lGradientStress_kernel(int zBlock, const vector3<int> S, const matrix3<> G, const RadialFunctionG w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT, complex lPhase)
 {	COMPUTE_halfGindices
 	double weight = real(conj(X[i]) * Y[i] * lPhase) * (IS_NYQUIST
 			? 0 //drop nyquist frequency contributions
@@ -251,7 +251,7 @@ void radialFunctionMultiply_gpu(const vector3<int> S, const matrix3<>& GGT, comp
 }
 
 __global__
-void convolveStress_kernel(int zBlock, vector3<int> S, const matrix3<> GGT, const RadialFunctionG& w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
+void convolveStress_kernel(int zBlock, vector3<int> S, const matrix3<> GGT, const RadialFunctionG w, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
 {	COMPUTE_halfGindices
 	double weight = ((iG[2]==0) or (2*iG[2]==S[2])) ? 1 : 2; //weight factor for points in reduced reciprocal space of real scalar fields
 	double G = sqrt(GGT.metric_length_squared(iG));
