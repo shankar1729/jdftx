@@ -516,7 +516,7 @@ matrix3<> ElecVars::latticeGrad() const
 	//--- Fluid:
 	if(fluidSolver)
 	{	fluidSolver->get_Adiel_and_grad(0, 0, 0, &E_RRT);
-		E_RRT += id * (e->eInfo.nElectrons * fluidSolver->ionWidthMuCorrection()); //from 1/detR on mu correction
+		E_RRT += id * (e->iInfo.getZtot() * fluidSolver->ionWidthMuCorrection()); //from 1/detR on mu correction
 	}
 	
 	return E_RRT;
