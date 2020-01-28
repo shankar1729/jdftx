@@ -476,17 +476,98 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
-	if(ShouldDump(Momenta))
-	{	StartDump("momenta")
-		std::vector<matrix> momenta(eInfo.nStates);
+	if(ShouldDump(Momenta) or ShouldDump(Velocities) or ShouldDump(FermiVelocity))
+	{
+		//Common code: compute matrix elements:
+		std::vector<matrix> momenta(eInfo.nStates); //full matrices
+		std::vector<std::vector<vector3<>>> v(eInfo.nStates, std::vector<vector3<>>(eInfo.nBands)); //diagonal parts
+		bool needFull = ShouldDump(Momenta); //whether full matrices are needed
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) //kpoint/spin
-		{	momenta[q] = zeroes(eInfo.nBands, eInfo.nBands*3);
-			for(int k=0; k<3; k++) //cartesian direction
-				momenta[q].set(0,eInfo.nBands, eInfo.nBands*k,eInfo.nBands*(k+1),
-					complex(0,-1) * iInfo.rHcommutator(eVars.C[q], k, eVars.Hsub_eigs[q]) );
+		{	if(needFull) momenta[q] = zeroes(eInfo.nBands, eInfo.nBands*3);
+			for(int iDir=0; iDir<3; iDir++) //cartesian direction
+			{	matrix Pqk = complex(0,-1) * iInfo.rHcommutator(eVars.C[q], iDir, eVars.Hsub_eigs[q]);
+				if(needFull)
+					momenta[q].set(0,eInfo.nBands, eInfo.nBands*iDir,eInfo.nBands*(iDir+1), Pqk);
+				for(int b=0; b<eInfo.nBands; b++)
+					v[q][b][iDir] = Pqk(b,b).real();
+			}
 		}
-		eInfo.write(momenta, fname.c_str(), eInfo.nBands, eInfo.nBands*3);
-		EndDump
+		
+		//Output full momentum matrix elements:
+		if(ShouldDump(Momenta))
+		{	StartDump("momenta")
+			eInfo.write(momenta, fname.c_str(), eInfo.nBands, eInfo.nBands*3);
+			EndDump
+		}
+		
+		//Output diagonal band-velocity matrix elements:
+		if(ShouldDump(Velocities))
+		{	StartDump("velocities")
+			FILE* fp;
+			if(mpiWorld->isHead())
+			{	fp = fopen(fname.c_str(), "w");
+				if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
+				for(int q=0; q<eInfo.nStates; q++)
+				{	if(not eInfo.isMine(q)) mpiWorld->recvData(v[q], eInfo.whose(q), q);
+					fwrite(v[q].data(), sizeof(vector3<>), eInfo.nBands, fp);
+				}
+				fclose(fp);
+			}
+			else
+			{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+					mpiWorld->sendData(v[q], 0, q);
+			} 
+			EndDump
+		}
+		
+		//Print Fermi velocity and related statistics:
+		if(ShouldDump(FermiVelocity))
+		{	StartDump("FermiVelocity")
+			if(eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
+			{	FILE* fp;
+				double gEf = 0; //density of states per unit volume at Fermi level
+				matrix3<> vFsum, vFsqSum; //g(Ef)<(1/v)v.vT> and g(Ef)<v.vT> at Fermi level
+				double BzUnused = 0.;
+				double mu = (!std::isnan(eInfo.mu))
+					? eInfo.mu
+					: eInfo.findMu(e->eVars.Hsub_eigs, eInfo.nElectrons, BzUnused);
+				//Compute sum:
+				for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+				{	double dosPrefac = eInfo.qnums[q].weight/e->gInfo.detR;
+					for(int b=0; b<eInfo.nBands; b++)
+					{	const double& Eqb = eVars.Hsub_eigs[q][b];
+						const vector3<>& vqb = v[q][b];
+						double vSq = vqb.length_squared();
+						double w = dosPrefac * (-eInfo.smearPrime(mu, Eqb));
+						gEf += w;
+						if(vSq > symmThresholdSq)
+						{	vFsum += (w/sqrt(vSq)) * outer(vqb, vqb);
+							vFsqSum += w * outer(vqb, vqb);
+						}
+					}
+				}
+				mpiWorld->allReduce(gEf, MPIUtil::ReduceSum);
+				mpiWorld->allReduce(vFsum, MPIUtil::ReduceSum);
+				mpiWorld->allReduce(vFsqSum, MPIUtil::ReduceSum);
+				e->symm.symmetrize(vFsum);
+				e->symm.symmetrize(vFsqSum);
+				//Write from head:
+				if(mpiWorld->isHead())
+				{	fp = fopen(fname.c_str(), "w");
+					if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
+					fprintf(fp, "vF [Eh-a0]: %12lg\n", sqrt(trace(vFsqSum)/gEf));
+					fprintf(fp, "\ng(Ef) [1/(Eh-a0^3)]: %12lg\n", gEf);
+					fprintf(fp, "\ngv(Ef) [1/a0^2]: %12lg\n", trace(vFsum)/3); vFsum.print(fp, "%12lg ", true, 1e-12);
+					fprintf(fp, "\ngvv(Ef) [Eh/a0]: %12lg\n", trace(vFsqSum)/3); vFsqSum.print(fp, "%12lg ", true, 1e-12);
+					fprintf(fp, "\nUnit conversions:\n");
+					fprintf(fp, "1/a0^2 = %lg 1/(Ohm nm^2)\n", Ohm*std::pow(10.*Angstrom,2));
+					fprintf(fp, "Eh/a0 = %lg 1/(Ohm nm fs)\n", Ohm*(10.*Angstrom)*fs);
+					fclose(fp);
+				}
+				EndDump
+			}
+			else logPrintf("skipping (no smearing)\n");
+		}
 	}
 	
 	if(ShouldDump(RealSpaceWfns))
