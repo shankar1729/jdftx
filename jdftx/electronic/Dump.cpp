@@ -525,8 +525,12 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		{	StartDump("FermiVelocity")
 			if(eInfo.fillingsUpdate == ElecInfo::FillingsHsub)
 			{	FILE* fp;
-				double gEf = 0; //density of states per unit volume at Fermi level
-				matrix3<> vFsum, vFsqSum; //g(Ef)<(1/v)v.vT> and g(Ef)<v.vT> at Fermi level
+				const int nMu = 7;
+				const double dmu[nMu] = {0., -eInfo.smearingWidth, +eInfo.smearingWidth,
+					-2.*eInfo.smearingWidth, +2.*eInfo.smearingWidth,
+					-3.*eInfo.smearingWidth, +3.*eInfo.smearingWidth };
+				std::vector<double> gEf(nMu); //density of states per unit volume at Fermi level with each dmu
+				std::vector<matrix3<>> vFsum(nMu), vFsqSum(nMu); //g(Ef)<(1/v)v.vT> and g(Ef)<v.vT> at Fermi level with each dmu
 				double BzUnused = 0.;
 				double mu = (!std::isnan(eInfo.mu))
 					? eInfo.mu
@@ -538,27 +542,35 @@ void Dump::operator()(DumpFrequency freq, int iter)
 					{	const double& Eqb = eVars.Hsub_eigs[q][b];
 						const vector3<>& vqb = v[q][b];
 						double vSq = vqb.length_squared();
-						double w = dosPrefac * (-eInfo.smearPrime(mu, Eqb));
-						gEf += w;
-						if(vSq > symmThresholdSq)
-						{	vFsum += (w/sqrt(vSq)) * outer(vqb, vqb);
-							vFsqSum += w * outer(vqb, vqb);
+						matrix3<> vv = outer(vqb, vqb);
+						for(int iMu=0; iMu<nMu; iMu++)
+						{	double w = dosPrefac * (-eInfo.smearPrime(mu+dmu[iMu], Eqb));
+							gEf[iMu] += w;
+							if(vSq > symmThresholdSq)
+							{	vFsum[iMu] += (w/sqrt(vSq)) * vv;
+								vFsqSum[iMu] += w * vv;
+							}
 						}
 					}
 				}
-				mpiWorld->allReduce(gEf, MPIUtil::ReduceSum);
-				mpiWorld->allReduce(vFsum, MPIUtil::ReduceSum);
-				mpiWorld->allReduce(vFsqSum, MPIUtil::ReduceSum);
-				e->symm.symmetrize(vFsum);
-				e->symm.symmetrize(vFsqSum);
+				mpiWorld->allReduceData(gEf, MPIUtil::ReduceSum);
+				mpiWorld->allReduceData(vFsum, MPIUtil::ReduceSum);
+				mpiWorld->allReduceData(vFsqSum, MPIUtil::ReduceSum);
+				for(matrix3<>& m: vFsum) e->symm.symmetrize(m);
+				for(matrix3<>& m: vFsqSum) e->symm.symmetrize(m);
 				//Write from head:
 				if(mpiWorld->isHead())
 				{	fp = fopen(fname.c_str(), "w");
 					if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
-					fprintf(fp, "vF [Eh-a0]: %12lg\n", sqrt(trace(vFsqSum)/gEf));
-					fprintf(fp, "\ng(Ef) [1/(Eh-a0^3)]: %12lg\n", gEf);
-					fprintf(fp, "\ngv(Ef) [1/a0^2]: %12lg\n", trace(vFsum)/3); vFsum.print(fp, "%12lg ", true, 1e-12);
-					fprintf(fp, "\ngvv(Ef) [Eh/a0]: %12lg\n", trace(vFsqSum)/3); vFsqSum.print(fp, "%12lg ", true, 1e-12);
+					for(int iMu=0; iMu<nMu; iMu++)
+					{	fprintf(fp, "Results for dmu = %7lg Eh:\n", dmu[iMu]);
+						fprintf(fp, "-----------------------------\n");
+						fprintf(fp, "\nvF [Eh-a0]: %12lg\n", sqrt(trace(vFsqSum[iMu])/gEf[iMu]));
+						fprintf(fp, "\ng(Ef) [1/(Eh-a0^3)]: %12lg\n", gEf[iMu]);
+						fprintf(fp, "\ngv(Ef) [1/a0^2]: %12lg\n", trace(vFsum[iMu])/3); vFsum[iMu].print(fp, "%12lg ", true, 1e-12);
+						fprintf(fp, "\ngvv(Ef) [Eh/a0]: %12lg\n", trace(vFsqSum[iMu])/3); vFsqSum[iMu].print(fp, "%12lg ", true, 1e-12);
+						fprintf(fp, "\n\n");
+					}
 					fprintf(fp, "\nUnit conversions:\n");
 					fprintf(fp, "1/a0^2 = %lg 1/(Ohm nm^2)\n", Ohm*std::pow(10.*Angstrom,2));
 					fprintf(fp, "Eh/a0 = %lg 1/(Ohm nm fs)\n", Ohm*(10.*Angstrom)*fs);
