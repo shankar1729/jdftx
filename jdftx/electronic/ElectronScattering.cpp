@@ -31,6 +31,18 @@ matrix Im(const matrix& m)
 {	return complex(0,-0.5)*(m - dagger(m)); //(m - dagger(m))/(2i)
 }
 
+//Compute diag(dagger(X)*Y) efficiently (avoid the off-diagonals)
+diagMatrix diagDot(const matrix& X, const matrix& Y)
+{	assert(X.nCols()==Y.nCols());
+	assert(X.nRows()==Y.nRows());
+	diagMatrix ret(X.nCols());
+	const complex* Xdata = X.dataPref();
+	const complex* Ydata = Y.dataPref();
+	for(int b=0; b<ret.nRows(); b++)
+		ret[b] = callPref(eblas_zdotc)(X.nRows(), Xdata+X.index(0,b),1, Ydata+Y.index(0,b),1).real();
+	return ret;
+}
+
 //Pole function with imaginary being a Lorentzian:
 inline complex regularizedPole(double omega, double omega0, double etaInv)
 {	double t = etaInv*(omega-omega0);
@@ -349,7 +361,7 @@ void ElectronScattering::dump(const Everything& everything)
 					delta.push_back(e.gInfo.detR * event.fWeight * //overlap and sign for electron / hole
 						( regularizedDelta(omega, +event.Eji, etaInv)
 						- regularizedDelta(omega, -event.Eji, etaInv) ) ); //pick up correct omega
-				eventContrib += wOmega[iOmega] * delta * diag(dagger(nij) * ImKscr[iOmega] * nij);
+				eventContrib += wOmega[iOmega] * delta * diagDot(nij, ImKscr[iOmega] * nij);
 			}
 			//Accumulate contributions to linewidth:
 			int iReduced = supercell->kmeshTransform[ik].iReduced; //directly collect to reduced k-point
@@ -390,22 +402,6 @@ void ElectronScattering::dump(const Everything& everything)
 	logPrintf("done.\n");
 
 	logPrintf("\n"); logFlush();
-}
-
-//Calculate diag(A*dagger(B)) without constructing large intermediate matrix
-diagMatrix diagouter(const matrix& A, const matrix& B)
-{	assert(A.nRows()==B.nRows());
-	assert(A.nCols()==B.nCols());
-	//Elementwise multiply A and conj(B);
-	matrix ABconj = conj(B);
-	callPref(eblas_zmul)(ABconj.nData(), A.dataPref(),1, ABconj.dataPref(),1);
-	//Add columns of ABconj:
-	for(int col=1; col<ABconj.nCols(); col++)
-		callPref(eblas_zaxpy)(ABconj.nRows(), 1., ABconj.dataPref()+ABconj.index(0,col),1, ABconj.dataPref(),1);
-	//Return real part as diagMatrix:
-	diagMatrix result(ABconj.nRows(), 0.);
-	eblas_daxpy(result.nRows(), 1., (double*)ABconj.data(),2, result.data(),1);
-	return result;
 }
 
 std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMode, int iSpin, size_t ik, size_t iq, size_t& jk, matrix& nij) const

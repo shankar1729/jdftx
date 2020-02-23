@@ -66,6 +66,7 @@ namespace MemUsageReport
 					&& (usageMap[category].current+nBytes > usageMap[category].peak) )
 				{	printStack(true);
 					logPrintf("MEMUSAGE: %30s %12.6lf GB\n", category.c_str(), (usageMap[category].current+nBytes)*bytesToGB);
+					logFlush();
 				}
 				*/
 				usageMap[category] += nBytes;
