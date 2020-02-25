@@ -216,6 +216,36 @@ void randomize(matrix& x)
 		xData[i] = Random::normalComplex();
 }
 
+//Compute diag(dagger(X)*Y) efficiently (avoid the off-diagonals)
+void diagDot_thread(int colStart, int colStop, int nRows, const complex* X, const complex* Y, double* out)
+{	const complex* Xcur = X + colStart*nRows;
+	const complex* Ycur = Y + colStart*nRows;
+	for(int col=colStart; col<colStop; col++)
+	{	double result = 0.;
+		for(int iRow=0; iRow<nRows; iRow++)
+			result += ((Xcur++)->conj() * (*(Ycur++))).real();
+		out[col] = result;
+	}
+}
+void diagDot(int nRows, int nCols, const complex* X, const complex* Y, double* out)
+{	threadLaunch(diagDot_thread, nCols, nRows, X, Y, out);
+}
+#ifdef GPU_ENABLED
+void diagDot_gpu(int nRows, int nCols, const complex* X, const complex* Y, double* out); //implemented in matrixOperators.cu
+#endif
+diagMatrix diagDot(const matrix& X, const matrix& Y)
+{	static StopWatch watch("diagDot"); watch.start();
+	assert(X.nCols()==Y.nCols());
+	assert(X.nRows()==Y.nRows());
+	ManagedArray<double> buf; buf.init(X.nCols(), isGpuEnabled());
+	callPref(diagDot)(X.nRows(), X.nCols(), X.dataPref(), Y.dataPref(), buf.dataPref());
+	//Copy to diagMatrix:
+	diagMatrix result(X.nCols());
+	eblas_copy(result.data(), buf.data(), X.nCols());
+	watch.stop();
+	return result;
+}
+
 //---------------- Misc matrix ops --------------------
 
 complex det(const matrix& A)

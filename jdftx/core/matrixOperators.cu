@@ -91,6 +91,23 @@ void mulDMcomplex_gpu(int nRows, int nCols, const complex* D, const complex* M, 
 
 
 __global__
+void diagDot_kernel(int nRows, int nCols, const complex* X, const complex* Y, double* out)
+{	int iCol = kernelIndex1D(); if(iCol>=nCols) return;
+	double result = 0.;
+	for(int iRow=0; iRow<nRows; iRow++)
+	{	int index = iCol*nRows + iRow;
+		result += (X[index].conj() * Y[index]).real();
+	}
+	out[iCol] = result;
+}
+void diagDot_gpu(int nRows, int nCols, const complex* X, const complex* Y, double* out)
+{	GpuLaunchConfig1D glc(diagDot_kernel, nCols);
+	diagDot_kernel<<<glc.nBlocks,glc.nPerBlock>>>(nRows, nCols, X, Y, out);
+	gpuErrorCheck();
+}
+
+
+__global__
 void relativeHermiticityError_kernel(int N, const complex* data, double* buf)
 {	int i = kernelIndex1D();
 	if(i<N)

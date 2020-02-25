@@ -31,18 +31,6 @@ matrix Im(const matrix& m)
 {	return complex(0,-0.5)*(m - dagger(m)); //(m - dagger(m))/(2i)
 }
 
-//Compute diag(dagger(X)*Y) efficiently (avoid the off-diagonals)
-diagMatrix diagDot(const matrix& X, const matrix& Y)
-{	assert(X.nCols()==Y.nCols());
-	assert(X.nRows()==Y.nRows());
-	diagMatrix ret(X.nCols());
-	const complex* Xdata = X.dataPref();
-	const complex* Ydata = Y.dataPref();
-	for(int b=0; b<ret.nRows(); b++)
-		ret[b] = callPref(eblas_zdotc)(X.nRows(), Xdata+X.index(0,b),1, Ydata+Y.index(0,b),1).real();
-	return ret;
-}
-
 //Pole function with imaginary being a Lorentzian:
 inline complex regularizedPole(double omega, double omega0, double etaInv)
 {	double t = etaInv*(omega-omega0);

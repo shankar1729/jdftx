@@ -193,6 +193,7 @@ double dot(const matrix& x, const matrix& y);
 void randomize(diagMatrix& x);
 void randomize(matrix& x);
 
+diagMatrix diagDot(const matrix& X, const matrix& Y); //!< Compute diag(dagger(X)*Y) efficiently (avoid the off-diagonals)
 
 //------- Nonlinear matrix functions and their gradients ---------
 
