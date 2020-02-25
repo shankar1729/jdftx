@@ -64,7 +64,18 @@ template<typename scalar> __global__ void mulDM_kernel(int nRows, int nCols, con
 	out[index] = D[i] * M[index];
 }
 template<typename scalar> void mulMD_gpu(int nRows, int nCols, const complex* M, const scalar* D, complex* out)
-{	GpuLaunchConfig3D glc(mulMD_kernel<scalar>, vector3<int>(1,nCols,nRows));
+{	static const int nColsMax = 32768;
+	if(nCols > nColsMax)
+	{	//Break up into smaller calls to avoid CUDA grid limits:
+		int nLoop = ceildiv(nCols, nColsMax);
+		for(int colStart=0; colStart<nCols; colStart+=nColsMax)
+		{	int nColsCur = std::min(nCols-colStart, nColsMax);
+			int offset = colStart * nRows;
+			mulMD_gpu<scalar>(nRows, nColsCur, M+offset, D+colStart, out+offset);
+		}
+		return;
+	}
+	GpuLaunchConfig3D glc(mulMD_kernel<scalar>, vector3<int>(1,nCols,nRows));
 	mulMD_kernel<scalar><<<glc.nBlocks,glc.nPerBlock>>>(nRows, nCols, M, D, out);
 	gpuErrorCheck();
 }
