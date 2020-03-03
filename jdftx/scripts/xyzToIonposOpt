@@ -42,11 +42,12 @@ pclose(fin);
 
 #Read the ion coordinates (cartesian Angstrom):
 global ionpos;
-fin = popen("awk 'NR==1 {nAtoms=\$1} NR>2 && NR<=2+nAtoms {print \$2, \$3, \$4}' $inFile", "r");
+fin = popen("awk 'NR==1 {nAtoms=\$1} NR>2 && ((NR-1)%(nAtoms+2)>1) {print \$2, \$3, \$4}' $inFile", "r");
 ionpos = reshape(fscanf(fin, "%f"), 3,[]);
+nConfigs = size(ionpos,2) / nIons
 pclose(fin);
 
-ionpos = ionpos / 0.5291772; #Convert to angstrom
+ionpos = ionpos / 0.5291772; #Convert to Bohrs
 
 function m = rotAxis(iAxis, theta)
 	c = cos(theta); s = sin(theta);
@@ -81,12 +82,19 @@ fprintf(fp, "lattice \\\\\n\t%g 0 0 \\\\\n\t0 %g 0 \\\\\n\t0 0 %g\n", boxSize);
 fclose(fp);
 
 #Write ionpos file:
-fp = fopen("$ionposFile", "w");
-fprintf(fp, "#Ionic positions in cartesian coordinates:\n");
-for i=1:nIons
-	fprintf(fp, "ion %2s %10.5f %10.5f %10.5f %d\n", ionnames{i}, ionpos(:,i), i>1);
+for iConfig = 1:nConfigs
+	if nConfigs > 1
+		fname = sprintf("$ionposFile.%d", iConfig-1);
+	else
+		fname = "$ionposFile";
+	endif
+	fp = fopen(fname, "w");
+	fprintf(fp, "#Ionic positions in cartesian coordinates:\n");
+	for i=1:nIons
+		fprintf(fp, "ion %2s %10.5f %10.5f %10.5f 1\n", ionnames{i}, ionpos(:,i+(iConfig-1)*nIons));
+	endfor
+	fclose(fp);
 endfor
-fclose(fp);
 EOF
 
 octave -qf $infile.tmp.m
