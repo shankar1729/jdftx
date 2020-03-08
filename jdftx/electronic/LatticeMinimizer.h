@@ -65,11 +65,8 @@ private:
 	matrix3<> Pfree; //!< projection operator onto free directions (accounting for lattMoveScale and truncation)
 	double latticeK; //!< preconditioning factor for lattice degrees of freedom
 	
-	//! Updates lattice dependent quantities, but does not
-	//! reconverge ionic positions or wavefunctions
+	//! Updates lattice dependent quantities, but does not reconverge ionic positions or wavefunctions
 	static void updateLatticeDependent(Everything& e);
-	
-	friend class IonicDynamics;
 };
 
 //! @}

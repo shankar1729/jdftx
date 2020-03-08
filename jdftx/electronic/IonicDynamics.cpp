@@ -206,44 +206,10 @@ void IonicDynamics::computeKineticEnergy()
 	}
 }
 
-void IonicDynamics::computePressure() // <!  A very similar code can be found in LatticeMinimize.cpp
-{	double h = 1.0e-5; //Magic number from LatticeMinimize
-	matrix3<> Rorig = e.gInfo.R;
-	double V_0 = e.gInfo.detR;
-	matrix3<> direction(1.0,1.0,1.0); // identity
-	e.gInfo.R = Rorig + Rorig*(-2*h*direction);
-	LatticeMinimizer::updateLatticeDependent(e);
-	const double En2h = relevantFreeEnergy(e);
-	
-	e.gInfo.R = Rorig + Rorig*(-h*direction);
-	LatticeMinimizer::updateLatticeDependent(e);
-	const double Enh = relevantFreeEnergy(e);
-	
-	e.gInfo.R = Rorig + Rorig*(h*direction);
-	LatticeMinimizer::updateLatticeDependent(e);
-	const double Eph = relevantFreeEnergy(e);
-	
-	e.gInfo.R = Rorig + Rorig*(2*h*direction);
-	LatticeMinimizer::updateLatticeDependent(e);
-	const double Ep2h = relevantFreeEnergy(e);
-	
-	double centralDifference = (1./(12.*h))*(En2h - 8.*Enh + 8.*Eph - Ep2h); 
-	/*
-	We want dE/dV but with this centralDifference we have
-	dE/dx as E=E(V(x)) and V(x) = V_0*(1+x)^3
-		
-		dE/dV = (dE/dx)  / (dV/dx)
-		
-		dV/dx = 3*V_0*(1+x)^2
-		
-	we are computing the derivative at x=0 so:
-		dE/dV = (dE/dx) / (3*V_0)
-	and
-		P = -dE/dV
-	*/
-	pressure = -centralDifference/(3*V_0);
-	e.gInfo.R = Rorig; // Reset R
-	LatticeMinimizer::updateLatticeDependent(e);
+void IonicDynamics::computePressure()
+{	pressure = e.iInfo.computeStress
+		? (-1./3)*trace(e.iInfo.stress)
+		: NAN; //pressure not available
 }
 
 bool IonicDynamics::report(double t)
