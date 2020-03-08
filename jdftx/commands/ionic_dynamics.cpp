@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/command.h>
 #include <commands/ParamList.h>
 #include <electronic/Everything.h>
-#include <electronic/IonDynamicsParams.h>
+#include <electronic/IonicDynamicsParams.h>
 #include <core/Units.h>
 
 struct CommandIonicDynamics : public Command
@@ -36,7 +36,7 @@ struct CommandIonicDynamics : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	IonDynamicsParams& idp = e.ionDynamicsParams;
+	{	IonicDynamicsParams& idp = e.ionicDynParams;
 		double dt; pl.get(dt, 2.0, "time-step", true);
 		double tMax; pl.get(tMax, 0.0, "max-time", true);
 		idp.dt = dt*fs;
@@ -46,7 +46,7 @@ struct CommandIonicDynamics : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	IonDynamicsParams& idp = e.ionDynamicsParams;
+	{	IonicDynamicsParams& idp = e.ionicDynParams;
 		logPrintf("%lg %lg %lg %lg", idp.dt/fs, idp.tMax/fs, idp.kT, idp.alpha);
 	}
 }
@@ -83,7 +83,7 @@ struct CommandConfineDynamics : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	IonDynamicsParams& idp = e.ionDynamicsParams;
+	{	IonicDynamicsParams& idp = e.ionicDynParams;
 		pl.get(idp.confineType, ConfineNone, confiningPotentialTypeMap, "type", true);
 		int numOfParams;
 		switch (idp.confineType)
@@ -102,7 +102,7 @@ struct CommandConfineDynamics : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	IonDynamicsParams& idp = e.ionDynamicsParams;
+	{	IonicDynamicsParams& idp = e.ionicDynParams;
 		logPrintf("%s", confiningPotentialTypeMap.getString(idp.confineType));
 		for (auto p: idp.confineParameters)
 		{	logPrintf(" %lg", p);
@@ -132,13 +132,13 @@ struct CommandNetDriftRemoval : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	IonDynamicsParams& idp = e.ionDynamicsParams;
+	{	IonicDynamicsParams& idp = e.ionicDynParams;
 	        pl.get(idp.driftType, DriftMomentum, driftRemovalTypeMap, "scheme", true);
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	
-		IonDynamicsParams& idp = e.ionDynamicsParams;
+		IonicDynamicsParams& idp = e.ionicDynParams;
 		logPrintf("%s", driftRemovalTypeMap.getString(idp.driftType));
 	}
 }

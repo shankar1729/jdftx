@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElecMinimizer.h>
 #include <electronic/Dump.h>
 #include <electronic/LatticeMinimizer.h>
-#include <electronic/IonDynamics.h>
+#include <electronic/IonicDynamics.h>
 #include <core/Random.h>
 #include <core/BlasExtra.h>
 
@@ -40,10 +40,10 @@ inline double g_smoothLinear(double r, const std::vector<double>& ps)
 inline double V_smoothLinear(double r, const std::vector<double>& ps)
 {	return ps[0] * ps[1] * log(1.0 + exp((r-ps[2])/ps[1]));}
 
-void IonDynamics::velocitiesInit()
+void IonicDynamics::velocitiesInit()
 {	bool velocitiesGiven=true;
 	IonInfo& iInfo = e.iInfo;
-	IonDynamicsParams& idp = e.ionDynamicsParams;
+	IonicDynamicsParams& idp = e.ionicDynParams;
 	for(unsigned sp=0; sp < iInfo.species.size(); sp++) 
 	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
 		totalMass += spInfo.mass*amu*spInfo.atpos.size();
@@ -102,7 +102,7 @@ void IonDynamics::velocitiesInit()
 	assert( std::abs(kineticEnergy-3.0*kT*numberOfAtoms) < 1.0e-8);
 }
 
-double IonDynamics::computeAcceleration(IonicGradient& accel)
+double IonicDynamics::computeAcceleration(IonicGradient& accel)
 {	if(not e.iInfo.checkPositions())
 	{	e.iInfo.printPositions(globalLog);
 		die("\nMD step caused pseudopotential core overlaps.\n");
@@ -136,9 +136,9 @@ double IonDynamics::computeAcceleration(IonicGradient& accel)
 	
 	//add virtual confining gravitation-like acceleration, calculation done in cartesian coordinates
 	double virtualPotentialEnergy = 0.0;
-	const auto& confineType = e.ionDynamicsParams.confineType;
+	const auto& confineType = e.ionicDynParams.confineType;
 	if (confineType != ConfineNone)
-	{	const auto& ps = e.ionDynamicsParams.confineParameters;
+	{	const auto& ps = e.ionicDynParams.confineParameters;
 		auto spuriousPressure = 0.0;
 		bool isPolynomial = (confineType == ConfineLinear    || 
 				     confineType == ConfineQuadratic || 
@@ -182,7 +182,7 @@ double IonDynamics::computeAcceleration(IonicGradient& accel)
 	return relevantFreeEnergy(e) + virtualPotentialEnergy;
 }
 
-void IonDynamics::computeMomentum()
+void IonicDynamics::computeMomentum()
 {	vector3<> p(0.0,0.0,0.0);
 	double mass;
 	for(unsigned sp=0; sp<e.iInfo.species.size(); sp++)
@@ -195,7 +195,7 @@ void IonDynamics::computeMomentum()
 	totalMomentum = p; //in lattice
 }
 
-void IonDynamics::computeKineticEnergy()
+void IonicDynamics::computeKineticEnergy()
 {	kineticEnergy=0.0;
 	double mass;
 	for(unsigned sp=0; sp<e.iInfo.species.size(); sp++)
@@ -206,7 +206,7 @@ void IonDynamics::computeKineticEnergy()
 	}
 }
 
-void IonDynamics::computePressure() // <!  A very similar code can be found in LatticeMinimize.cpp
+void IonicDynamics::computePressure() // <!  A very similar code can be found in LatticeMinimize.cpp
 {	double h = 1.0e-5; //Magic number from LatticeMinimize
 	matrix3<> Rorig = e.gInfo.R;
 	double V_0 = e.gInfo.detR;
@@ -246,8 +246,8 @@ void IonDynamics::computePressure() // <!  A very similar code can be found in L
 	LatticeMinimizer::updateLatticeDependent(e);
 }
 
-bool IonDynamics::report(double t)
-{	int iter = lrint(t/e.ionDynamicsParams.dt); //round to int to get iteration number
+bool IonicDynamics::report(double t)
+{	int iter = lrint(t/e.ionicDynParams.dt); //round to int to get iteration number
 	//Dump:
 	e.dump(DumpFreq_Ionic, iter);
 	
@@ -259,13 +259,13 @@ bool IonDynamics::report(double t)
 	return false;
 }
 
-void IonDynamics::step(const IonicGradient& accel, const double& dt)
+void IonicDynamics::step(const IonicGradient& accel, const double& dt)
 {	IonicGradient dpos;
 	dpos.init(e.iInfo);
 	//Rescale the velocities to track the temperature
 	//Assumes that kinetic energy gives approximately the input temperature
-	double averageKineticEnergy = 1.5 * numberOfAtoms * e.ionDynamicsParams.kT;
-	double scaleFactor = 1.0 + 2.0 * e.ionDynamicsParams.alpha*(averageKineticEnergy-kineticEnergy)/
+	double averageKineticEnergy = 1.5 * numberOfAtoms * e.ionicDynParams.kT;
+	double scaleFactor = 1.0 + 2.0 * e.ionicDynParams.alpha*(averageKineticEnergy-kineticEnergy)/
 								kineticEnergy;
 	// Prevent scaling from being too aggressive
 	if (scaleFactor < 0.5) scaleFactor = 0.5;
@@ -293,38 +293,38 @@ void IonDynamics::step(const IonicGradient& accel, const double& dt)
 	}
 }
 
-void IonDynamics::run()
+void IonicDynamics::run()
 {	IonicGradient accel; //in cartesian coordinates
 	//Initialize old positions according to the temperature
 	velocitiesInit();
 	
-	if (e.ionDynamicsParams.confineType != ConfineNone)
+	if (e.ionicDynParams.confineType != ConfineNone)
 	{	centerOfMassToOrigin();
 	}
 	
 	accel.init(e.iInfo);
 	initialPotentialEnergy = (double)NAN; // ground state potential
-	nullToZero(e.eVars.nAccumulated,e.gInfo);
+	nullToZero(e.eVars.nAccum,e.gInfo);
 	
-	for(double t=0.0; t<e.ionDynamicsParams.tMax; t+=e.ionDynamicsParams.dt)
+	for(double t=0.0; t<e.ionicDynParams.tMax; t+=e.ionicDynParams.dt)
 	{	potentialEnergy = computeAcceleration(accel);
 		computeMomentum();computeKineticEnergy();computePressure();
 			
-		if (e.ionDynamicsParams.confineType == ConfineNone) assert(totalMomentumNorm<1e-7);
+		if (e.ionicDynParams.confineType == ConfineNone) assert(totalMomentumNorm<1e-7);
 		
 		if (std::isnan(initialPotentialEnergy ))
 			initialPotentialEnergy = potentialEnergy;
 		report(t);
-		step(accel, e.ionDynamicsParams.dt);
+		step(accel, e.ionicDynParams.dt);
 		//Accumulate the averaged electronic density over the trajectory
-		for(unsigned s=0; s<e.eVars.nAccumulated.size(); s++)
+		for(unsigned s=0; s<e.eVars.nAccum.size(); s++)
 		{
-		  e.eVars.nAccumulated[s]=(e.eVars.nAccumulated[s]*t+e.eVars.n[s]*e.ionDynamicsParams.dt)*(1.0/(t+e.ionDynamicsParams.dt));
+		  e.eVars.nAccum[s]=(e.eVars.nAccum[s]*t+e.eVars.n[s]*e.ionicDynParams.dt)*(1.0/(t+e.ionicDynParams.dt));
 		}
 	}
 }
 
-void IonDynamics::removeNetDriftVelocity()
+void IonicDynamics::removeNetDriftVelocity()
 {	vector3<> averageDrift = totalMomentum / totalMass;
 	//Subtract average drift velocity of center of mass from the individual velocities
 	for(auto& spInfo : e.iInfo.species)
@@ -333,7 +333,7 @@ void IonDynamics::removeNetDriftVelocity()
 	}
 }
 
-void IonDynamics::removeNetAvgMomentum()
+void IonicDynamics::removeNetAvgMomentum()
 {	vector3<> averageMomentum = totalMomentum / numberOfAtoms;
 	//Subtract average momentum from the individual momentums
 	for(auto& spInfo : e.iInfo.species)
@@ -344,7 +344,7 @@ void IonDynamics::removeNetAvgMomentum()
 }
 
 
-void IonDynamics::centerOfMassToOrigin()
+void IonicDynamics::centerOfMassToOrigin()
 {	//Calculate the weighted average of positions
 	vector3<> centerOfMass;
 	for(const auto& spInfo : e.iInfo.species)

@@ -191,7 +191,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDump(ElecDensity))
 		DUMP_spinCollection(eVars.n, "n")
 	if(ShouldDump(ElecDensityAccum))
-		DUMP_spinCollection(eVars.nAccumulated, "nAccum")
+		DUMP_spinCollection(eVars.nAccum, "nAccum")
 	if(iInfo.nCore) DUMP(iInfo.nCore, "nCore", CoreDensity)
 	
 	if((ShouldDump(KEdensity) or (e->exCorr.needsKEdensity() and ShouldDump(ElecDensity))))

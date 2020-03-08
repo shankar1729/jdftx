@@ -47,7 +47,7 @@ public:
 	
 	//Densities and potentials:
 	ScalarFieldArray n; //!< electron density (single ScalarField) or spin density (two ScalarFields [up,dn]) or spin density matrix (four ScalarFields [UpUp, DnDn, Re(UpDn), Im(UpDn)])
-	ScalarFieldArray nAccumulated; //!< ElecVars::n accumulated over an MD trajectory
+	ScalarFieldArray nAccum; //!< ElecVars::n accumulated over an MD trajectory
 	ScalarFieldArray get_nXC() const; //!< return the total (spin) density including core contributions
 	ScalarField get_nTot() const { return n.size()==1 ? n[0] : n[0]+n[1]; } //!< return the total electron density (even in spin polarized situations)
 	

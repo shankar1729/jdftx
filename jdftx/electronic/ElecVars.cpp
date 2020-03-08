@@ -63,8 +63,8 @@ void ElecVars::setup(const Everything &everything)
 	const GridInfo& gInfo = e->gInfo;
 
 	n.resize(eInfo.nDensities);
-	if(e->ionDynamicsParams.tMax)
-	  nAccumulated.resize(eInfo.nDensities);
+	if(e->ionicDynParams.tMax)
+	  nAccum.resize(eInfo.nDensities);
 	Vscloc.resize(n.size());
 	if(eInfo.hasU)
 	{	iInfo.rhoAtom_initZero(rhoAtom);

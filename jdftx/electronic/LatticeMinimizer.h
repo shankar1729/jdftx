@@ -69,7 +69,7 @@ private:
 	//! reconverge ionic positions or wavefunctions
 	static void updateLatticeDependent(Everything& e);
 	
-	friend class IonDynamics;
+	friend class IonicDynamics;
 };
 
 //! @}

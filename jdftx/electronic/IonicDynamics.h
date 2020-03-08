@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_IONDYNAMICS_H
-#define JDFTX_ELECTRONIC_IONDYNAMICS_H
+#ifndef JDFTX_ELECTRONIC_IONICDYNAMICS_H
+#define JDFTX_ELECTRONIC_IONICDYNAMICS_H
 
 #include <electronic/IonicMinimizer.h>
 #include <core/matrix3.h>
@@ -27,11 +27,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @{
 
 //! Ionic dynamics (AIMD)
-class IonDynamics
+class IonicDynamics
 {
 public:
 	void run(); //!< Run the simulation
-	IonDynamics(Everything& e) : e(e), totalMass(0.0), numberOfAtoms(0), imin(IonicMinimizer(e)){};
+	IonicDynamics(Everything& e) : e(e), totalMass(0.0), numberOfAtoms(0), imin(IonicMinimizer(e)){};
 private:
 	Everything& e;
 	double initialPotentialEnergy;
@@ -58,4 +58,4 @@ private:
 };
 
 //! @}
-#endif //JDFTX_ELECTRONIC_IONDYNAMICS_H
+#endif //JDFTX_ELECTRONIC_IONICDYNAMICS_H
