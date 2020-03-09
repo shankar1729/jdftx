@@ -156,7 +156,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		|| (ShouldDump(State)
 			&& (e->ionicMinParams.nIterations>0
 				|| e->latticeMinParams.nIterations>0
-				|| e->ionicDynParams.tMax>0 ) ) )
+				|| e->ionicDynParams.nSteps>0 ) ) )
 	{	StartDump("ionpos")
 		FILE* fp = mpiWorld->isHead() ? fopen(fname.c_str(), "w") : nullLog;
 		if(!fp) die("Error opening %s for writing.\n", fname.c_str());

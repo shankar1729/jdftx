@@ -72,7 +72,7 @@ void IonicDynamics::initializeVelocities()
 	
 	//Rescale to current temperature:
 	computeKineticEnergy();
-	double keRatio = (1.5*e.ionicDynParams.kT*nAtomsTot)/kineticEnergy;
+	double keRatio = (1.5*e.ionicDynParams.T0*nAtomsTot)/kineticEnergy;
 	double velocityScaleFactor = sqrt(keRatio);
 	for(auto& sp: e.iInfo.species)
 		for(vector3<>& vel: sp->velocities)
@@ -124,20 +124,21 @@ void IonicDynamics::computePressure()
 		: NAN; //pressure not available
 }
 
-bool IonicDynamics::report(double t)
-{	int iter = lrint(t/e.ionicDynParams.dt); //round to int to get iteration number
-	logPrintf("\nVerletMD: Iter: %3d  tMD[fs]: %9.2lf  Ekin: %8.4lf  Epot: %8.4lf  Etot: %8.4lf  P[Bar]: %8.4le  t[s]: %9.2lf\n",
+bool IonicDynamics::report(int iter, double t)
+{	logPrintf("\nVerletMD: Step: %3d  tMD[fs]: %9.2lf  Ekin: %8.4lf  Epot: %8.4lf  Etot: %8.4lf  P[Bar]: %8.4le  t[s]: %9.2lf\n",
 		iter, t/fs, kineticEnergy, potentialEnergy, kineticEnergy + potentialEnergy, pressure/Bar, clock_sec());
 	return imin.report(iter);
 }
 
 void IonicDynamics::step(const IonicGradient& accel, const double& dt)
-{	IonicGradient dpos;
+{	const IonicDynamicsParams& idp = e.ionicDynParams;
+	IonicGradient dpos;
 	dpos.init(e.iInfo);
 	//Rescale the velocities to track the temperature
 	//Assumes that kinetic energy gives approximately the input temperature
-	double averageKineticEnergy = 1.5 * nAtomsTot * e.ionicDynParams.kT;
-	double scaleFactor = 1.0 + 2.0 * e.ionicDynParams.alpha*(averageKineticEnergy-kineticEnergy)/ kineticEnergy;
+	double averageKineticEnergy = 1.5 * nAtomsTot * idp.T0;
+	double alpha = idp.dt / idp.tDampT;
+	double scaleFactor = 1.0 + 2.0 * alpha*(averageKineticEnergy-kineticEnergy)/ kineticEnergy;
 	// Prevent scaling from being too aggressive
 	if (scaleFactor < 0.5) scaleFactor = 0.5;
 	if (scaleFactor > 1.5) scaleFactor = 1.5;
@@ -165,22 +166,25 @@ void IonicDynamics::step(const IonicGradient& accel, const double& dt)
 }
 
 void IonicDynamics::run()
-{	IonicGradient accel; //in cartesian coordinates
+{	const IonicDynamicsParams& idp = e.ionicDynParams;
+	IonicGradient accel; //in cartesian coordinates
 	
 	accel.init(e.iInfo);
 	nullToZero(e.eVars.nAccum, e.gInfo);
 	
-	for(double t=0.0; t<e.ionicDynParams.tMax; t+=e.ionicDynParams.dt)
-	{	potentialEnergy = computeAcceleration(accel);
+	for(int iter=0; iter<idp.nSteps; iter++)
+	{	double t = iter*idp.dt;
+		potentialEnergy = computeAcceleration(accel);
 		computeKineticEnergy();
 		computePressure();
 			
-		report(t);
+		report(iter, t);
 		step(accel, e.ionicDynParams.dt);
+		
 		//Accumulate the averaged electronic density over the trajectory
 		for(unsigned s=0; s<e.eVars.nAccum.size(); s++)
-		{
-		  e.eVars.nAccum[s]=(e.eVars.nAccum[s]*t+e.eVars.n[s]*e.ionicDynParams.dt)*(1.0/(t+e.ionicDynParams.dt));
+		{	double fracNew = idp.dt/(t+idp.dt);
+			e.eVars.nAccum[s] += fracNew*(e.eVars.n[s] - e.eVars.nAccum[s]);
 		}
 	}
 }

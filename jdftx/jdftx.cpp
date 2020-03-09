@@ -88,15 +88,15 @@ int main(int argc, char** argv)
 	else if(e.vibrations) //Bypasses ionic/lattice minimization, calls electron/fluid minimization loops at various ionic configurations
 	{	e.vibrations->calculate();
 	}
+	else if(e.ionicDynParams.nSteps)
+	{	//Born-Oppenheimer molecular dynamics
+		IonicDynamics idyn(e);
+		idyn.run();
+	}
 	else if(e.latticeMinParams.nIterations)
 	{	//Lattice minimization loop (which invokes the ionic minimization loop)
 		LatticeMinimizer lmin(e);
 		lmin.minimize(e.latticeMinParams);
-	}
-	else if(e.ionicDynParams.tMax)
-	{	//Born-Oppenheimer molecular dynamics
-		IonicDynamics idyn(e);
-		idyn.run();
 	}
 	else
 	{	//Ionic minimization loop (which calls electron/fluid minimization loops)

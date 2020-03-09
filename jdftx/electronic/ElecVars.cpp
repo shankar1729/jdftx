@@ -63,7 +63,7 @@ void ElecVars::setup(const Everything &everything)
 	const GridInfo& gInfo = e->gInfo;
 
 	n.resize(eInfo.nDensities);
-	if(e->ionicDynParams.tMax)
+	if(e->ionicDynParams.nSteps)
 	  nAccum.resize(eInfo.nDensities);
 	Vscloc.resize(n.size());
 	if(eInfo.hasU)

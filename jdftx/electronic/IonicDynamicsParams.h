@@ -24,16 +24,25 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @addtogroup IonicSystem
 //! @{
-//! @file ionicDynParams.h ionicDynParams and related definitions
+//! @file IonicDynamicsParams.h Struct IonicDynamicsParams
 
 //! Parameters to control IonicDynamics
 struct IonicDynamicsParams
-{	double dt; //!< time step
-	double tMax; //!< maximum time
-	double kT; //!< temperature
-	double alpha; //!< velocity scaling parameter
+{	double dt; //!< time step [Eh^-1]
+	int nSteps; //!< number of steps
+	enum StatMethod { StatNone, Berendsen, NoseHoover } statMethod; //!< Method for thermo- and/or baro-stat
+	double T0; //!< initial temperature or set point temperature if StatMethod != StatNone [Eh]
+	double P0; //!< pressure set point [Eh/a0^3] (NAN if not barostatting (hydrostatic))
+	matrix3<> stress0; //!< stress set point [Eh/a0^3] (NAN if not barostatting (anisotropic))
+	double tDampT; //!< thermostat damping time [Eh^-1]
+	double tDampP; //!< barostat damping time [Eh^-1]
+	int chainLengthT; //!< Nose-Hoover chain length for thermostat
+	int chainLengthP; //!< Nose-Hoover chain length for barostat
 	
-	IonicDynamicsParams(): dt(1.0*fs), tMax(0.0) ,kT(0.001), alpha(0.0) {}
+	IonicDynamicsParams() : dt(1.*fs), nSteps(0), statMethod(StatNone),
+		T0(298*Kelvin), P0(NAN), stress0(NAN,NAN,NAN),
+		tDampT(50.*fs), tDampP(100.*fs),
+		chainLengthT(3), chainLengthP(3) {}
 };
 
 //! @}

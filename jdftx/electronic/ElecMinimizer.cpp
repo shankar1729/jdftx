@@ -363,7 +363,7 @@ void elecMinimize(Everything& e)
 	else
 	{	ElecMinimizer emin(e);
 		emin.minimize(e.elecMinParams);
-		if (!e.ionicDynParams.tMax) e.eVars.setEigenvectors(); //Don't spend time with this if running MD
+		if (!e.ionicDynParams.nSteps) e.eVars.setEigenvectors(); //Don't spend time with this if running MD
 	}
 	e.eVars.isRandom = false; //wavefunctions are no longer random
 	//Converge empty states if necessary:

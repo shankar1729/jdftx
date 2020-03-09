@@ -45,7 +45,7 @@ private:
 	//similar to the virtual functions of Minimizable:
 	void step(const IonicGradient&, const double&);   //!< Given the acceleration, take a time step. Scale the velocities if heat bath exists
 	double computeAcceleration(IonicGradient& accel); //!< Write acceleration into 'accel' in cartesian coordinates and return relevant energy.
-	bool report(double t);
+	bool report(int iter, double t);
 	
 	//Utility functions
 	void initializeVelocities(); //!< Initialize Maxwell-Boltzmann distribution of velocities
