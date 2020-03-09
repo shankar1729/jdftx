@@ -95,33 +95,26 @@ double IonicDynamics::computeAcceleration(IonicGradient& accel)
 	e.iInfo.ionicEnergyAndGrad(); //compute forces in lattice coordinates
 	accel = e.gInfo.invRT * e.iInfo.forces; //forces in cartesian coordinates (not accel. yet)
 	
+	//Compute net acceleration for subtraction:
 	vector3<> netAccel;
 	for(unsigned sp=0; sp<accel.size(); sp++)
-	{	for(unsigned atom=0; atom<accel[sp].size(); atom++)
-			netAccel += accel[sp][atom];
-	}
-	netAccel *= (1.0/Mtot); // This is the net acceleration of the unit cell.
+		for(const vector3<>& a: accel[sp])
+			netAccel += a;
+	netAccel *= (1./Mtot); // This is the net acceleration of the unit cell.
 
 	for(unsigned sp=0; sp<accel.size(); sp++)
-	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-		for(unsigned atom=0; atom<accel[sp].size(); atom++)
-		{	accel[sp][atom] *= 1.0/(spInfo.mass*amu);  //Divide force by mass to get the acceleration
-			accel[sp][atom] -= netAccel; // Subtract the net acceleration to cancel the drift.
-		}
+	{	double invM = 1./(e.iInfo.species[sp]->mass * amu);
+		for(vector3<>& a: accel[sp])
+			a = invM*a - netAccel; //convert to acceleration with mean removed
 	}
-	//accel is the acceleration in cartesian coordinates now.
 	return relevantFreeEnergy(e);
 }
 
 void IonicDynamics::computeKineticEnergy()
-{	kineticEnergy=0.0;
-	double mass;
-	for(unsigned sp=0; sp<e.iInfo.species.size(); sp++)
-	{	mass = (e.iInfo.species[sp])->mass*amu;
-		SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-		for(unsigned atom=0; atom<spInfo.velocities.size(); atom++)
-			kineticEnergy += mass*e.gInfo.RTR.metric_length_squared(spInfo.velocities[atom])/2.0; // KE += m * v^2 / 2
-	}
+{	kineticEnergy = 0.;
+	for(const auto& sp: e.iInfo.species)
+		for(vector3<>& vel: sp->velocities)
+			kineticEnergy += (0.5 * sp->mass*amu) * e.gInfo.RTR.metric_length_squared(vel);
 }
 
 void IonicDynamics::computePressure()
