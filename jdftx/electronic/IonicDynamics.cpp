@@ -33,53 +33,51 @@ IonicDynamics::IonicDynamics(Everything& e)
 {
 	logPrintf("---------- Ionic Dynamics -----------\n");
 	
-	//Initialize velocities:
+	//Initialize mass, atom count and check velocities:
 	bool velocitiesGiven=true;
-	IonInfo& iInfo = e.iInfo;
-	IonicDynamicsParams& idp = e.ionicDynParams;
 	Mtot = 0.;
 	nAtomsTot = 0;
-	for(unsigned sp=0; sp < iInfo.species.size(); sp++) 
-	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
-		Mtot += spInfo.mass*amu*spInfo.atpos.size();
-		nAtomsTot += spInfo.atpos.size();
-		if(!spInfo.velocities.size())
-		      velocitiesGiven=false; //If any of the velocities was missing then randomize them all.
+	for(auto& sp: e.iInfo.species)
+	{	Mtot += (sp->mass * amu) * sp->atpos.size();
+		nAtomsTot += sp->atpos.size();
+		if(!sp->velocities.size())
+		      velocitiesGiven=false; //If any velocities missing, randomize them all
 	}
-	if(velocitiesGiven)
-	{	computeKineticEnergy();
-		return;
-	}
-	double dt = idp.dt, kT = idp.kT;
-	double v,theta,phi;
+	
+	//Initialize velocities if necessary:
+	if(not velocitiesGiven)
+		initializeVelocities();
+	
+	computeKineticEnergy();
+}
+
+void IonicDynamics::initializeVelocities()
+{
+	//Initialize random velocities
 	vector3<> pTot; //total momentum
-	//--- Initialize random velocities
-	for(auto& sp: iInfo.species)
+	for(auto& sp: e.iInfo.species)
 		for(unsigned atom=0; atom<sp->atpos.size(); atom++)
-		{	v = Random::uniform(0.0,0.1);
-			theta=Random::uniform(0,M_PI), phi = Random::uniform(0,2*M_PI);
-			vector3<> vel(v*dt*sin(theta)*sin(phi),v*dt*sin(theta)*cos(phi),v*dt*cos(theta));
+		{	double v = Random::uniform(); //overall magnitude does not matter
+			double theta=Random::uniform(0,M_PI), phi = Random::uniform(0,2*M_PI);
+			vector3<> vel = v * vector3<>(sin(theta)*sin(phi),sin(theta)*cos(phi),cos(theta));
 			sp->velocities.push_back(vel);
 			pTot += sp->mass * vel;
 		}
-	//--- remove center of mass momentum:
-	for(auto& sp: iInfo.species)
+	
+	//Remove center of mass momentum:
+	for(auto& sp: e.iInfo.species)
 		for(vector3<>& vel: sp->velocities)
 			vel -= pTot / (sp->mass * nAtomsTot);
 	
-	//Now our lattice should not have an overall momentum
-	//We can scale the speeds to give us the right temperature.
+	//Rescale to current temperature:
 	computeKineticEnergy();
-	double energyRatio = (3.0*kT)/(kineticEnergy/nAtomsTot);
-	double velocityScaleFactor = sqrt(energyRatio);
-	for(unsigned sp=0; sp<iInfo.species.size(); sp++) // Scale the velocities
-	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
-		for(unsigned atom=0; atom<spInfo.velocities.size(); atom++)
-			spInfo.velocities[atom] *= velocityScaleFactor;
-	}
-	computeKineticEnergy();
-	assert(std::abs(kineticEnergy-3.0*kT*nAtomsTot) < 1.0e-8);
+	double keRatio = (3.*nAtomsTot*e.ionicDynParams.kT)/kineticEnergy;
+	double velocityScaleFactor = sqrt(keRatio);
+	for(auto& sp: e.iInfo.species)
+		for(vector3<>& vel: sp->velocities)
+			vel *= velocityScaleFactor;
 }
+
 
 double IonicDynamics::computeAcceleration(IonicGradient& accel)
 {	if(not e.iInfo.checkPositions())

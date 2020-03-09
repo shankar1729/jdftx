@@ -48,7 +48,7 @@ private:
 	bool report(double t);
 	
 	//Utility functions
-	void velocitiesInit();       //!< Randomly initialize the velocities assuming potential energy is zero (E_tot = KE = 3NkT at t=0)
+	void initializeVelocities(); //!< Initialize Maxwell-Boltzmann distribution of velocities
 	void computePressure();      //!< Updates pressure.
 	void computeKineticEnergy(); //!< Updates `kineticEnergy`
 };
