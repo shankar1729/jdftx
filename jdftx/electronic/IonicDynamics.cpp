@@ -71,7 +71,7 @@ void IonicDynamics::initializeVelocities()
 	
 	//Rescale to current temperature:
 	computeKineticEnergy();
-	double keRatio = (3.*nAtomsTot*e.ionicDynParams.kT)/kineticEnergy;
+	double keRatio = (1.5*e.ionicDynParams.kT*nAtomsTot)/kineticEnergy;
 	double velocityScaleFactor = sqrt(keRatio);
 	for(auto& sp: e.iInfo.species)
 		for(vector3<>& vel: sp->velocities)
