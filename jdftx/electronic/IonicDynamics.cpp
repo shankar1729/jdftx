@@ -53,16 +53,18 @@ IonicDynamics::IonicDynamics(Everything& e)
 
 void IonicDynamics::initializeVelocities()
 {
-	//Initialize random velocities
+	//Initialize random velocities with |v|^2 ~ 1/M
 	vector3<> pTot; //total momentum
 	for(auto& sp: e.iInfo.species)
+	{	double invsqrtM = 1./sqrt(sp->mass);
 		for(unsigned atom=0; atom<sp->atpos.size(); atom++)
-		{	double v = Random::uniform(); //overall magnitude does not matter
-			double theta=Random::uniform(0,M_PI), phi = Random::uniform(0,2*M_PI);
-			vector3<> vel = v * vector3<>(sin(theta)*sin(phi),sin(theta)*cos(phi),cos(theta));
+		{	vector3<> vel;
+			for(int iDir=0; iDir<3; iDir++)
+				vel[iDir] = Random::normal() * invsqrtM;
 			sp->velocities.push_back(vel);
 			pTot += sp->mass * vel;
 		}
+	}
 	
 	//Remove center of mass momentum:
 	for(auto& sp: e.iInfo.species)
