@@ -25,10 +25,12 @@ struct CommandIon : public Command
 {
 	CommandIon() : Command("ion", "jdftx/Ionic/Geometry")
 	{
-		format = "<species-id> <x0> <x1> <x2> <moveScale> [<constraint type>="
+		format = "<species-id> <x0> <x1> <x2> [v <vx0> <vx1> <vx2>] <moveScale> [<constraint type>="
 			+ constraintTypeMap.optionList() + " <d0> <d1> <d2> [<group>]]";
 		comments =
 			"Add an atom of species <species-id> at coordinates (<x0>,<x1>,<x2>).\n"
+			"\n"
+			"Optionally, for dynamics, specify ion velocity <v0>,<v1>,<v2> after keyword 'v'.\n"
 			"\n"
 			"<moveScale> preconditions the motion of this ion (set 0 to hold fixed)\n"
 			"\n"
@@ -45,7 +47,6 @@ struct CommandIon : public Command
 		allowMultiple = true;
 
 		require("ion-species");
-		forbid("ion-vel");
 		//Dependencies due to coordinate system option:
 		require("latt-scale");
 		require("coords-type");
@@ -60,17 +61,38 @@ struct CommandIon : public Command
 		vector3<> pos;
 		for(int k=0; k<3; k++)
 		{	ostringstream oss; oss << "x" << k;
-			pl.get(pos[k], 0.0, oss.str(), true);
+			pl.get(pos[k], 0., oss.str(), true);
 		}
 		//Transform coordinates if necessary
 		if(e.iInfo.coordsType == CoordsCartesian)
 			pos = inv(e.gInfo.R) * pos;
-		//Add position and move scale factor to list:
+		//Add position to list:
 		sp->atpos.push_back(pos);
+		sp->velocities.push_back(vector3<>(NAN,NAN,NAN));
 		
-		//Look for constraints
+		//Look for optional velocity and get moveScale:
+		string key;
+		pl.get(key, string(), "moveScale|v", true);
 		SpeciesInfo::Constraint constraint;
-		pl.get(constraint.moveScale, 0.0, "moveScale", true);
+		if(key == "v")
+		{	//Read velocity (update the NAN added above):
+			vector3<>& vel = sp->velocities.back();
+			for(int k=0; k<3; k++)
+			{	ostringstream oss; oss << "v" << k;
+				pl.get(vel[k], 0., oss.str(), true);
+			}
+			//Transform coordinates if necessary
+			if(e.iInfo.coordsType == CoordsCartesian)
+				vel = inv(e.gInfo.R) * vel;
+			//Get moveScale from command line beyond the velocity:
+			pl.get(constraint.moveScale, 0., "moveScale", true);
+		}
+		else
+		{	//No velocity: get moveScale from key
+			ParamList(key+" ").get(constraint.moveScale, 0., "moveScale", true);
+		}
+		
+		//Parse constraints
 		if(constraint.moveScale < 0.)   // Check for negative moveScales
 			throw string("moveScale cannot be negative");
 		pl.get(constraint.type, SpeciesInfo::Constraint::None, constraintTypeMap, "Type");
@@ -100,11 +122,19 @@ struct CommandIon : public Command
 		for(auto sp: e.iInfo.species)
 			for(unsigned at=0; at<sp->atpos.size(); at++)
 			{	if(iIon==iRep)
-				{	vector3<> pos = sp->atpos[at];
+				{	//Species and position:
+					vector3<> pos = sp->atpos[at];
 					if(e.iInfo.coordsType == CoordsCartesian)
 						pos = e.gInfo.R * pos; //report cartesian positions
-					logPrintf("%s %19.15lf %19.15lf %19.15lf %lg", sp->name.c_str(),
-						pos[0], pos[1], pos[2], sp->constraints[at].moveScale);
+					logPrintf("%s %19.15lf %19.15lf %19.15lf", sp->name.c_str(), pos[0], pos[1], pos[2]);
+					//Optional velocity:
+					vector3<> vel = sp->velocities[at];
+					if(not isnan(vel.length_squared()))
+					{	if(e.iInfo.coordsType == CoordsCartesian)
+							vel = e.gInfo.R * vel; //report cartesian velocities
+						logPrintf(" v %19.15lf %19.15lf %19.15lf", vel[0], vel[1], vel[2]);
+					}
+					logPrintf(" %lg", sp->constraints[at].moveScale);
 					if(sp->constraints[at].type != SpeciesInfo::Constraint::None)
 						sp->constraints[at].print(globalLog, e);
 				}

@@ -34,18 +34,19 @@ IonicDynamics::IonicDynamics(Everything& e)
 	logPrintf("---------- Ionic Dynamics -----------\n");
 	
 	//Initialize mass, atom count and check velocities:
-	bool velocitiesGiven=true;
+	bool vInitNeeded = false;
 	Mtot = 0.;
 	nAtomsTot = 0;
-	for(auto& sp: e.iInfo.species)
+	for(const auto& sp: e.iInfo.species)
 	{	Mtot += (sp->mass * amu) * sp->atpos.size();
 		nAtomsTot += sp->atpos.size();
-		if(!sp->velocities.size())
-		      velocitiesGiven=false; //If any velocities missing, randomize them all
+		for(const vector3<>& vel: sp->velocities)
+			if(isnan(vel.length_squared()))
+		      vInitNeeded = true; //If any velocity missing, randomize them all
 	}
 	
 	//Initialize velocities if necessary:
-	if(not velocitiesGiven)
+	if(vInitNeeded)
 		initializeVelocities();
 	
 	computeKineticEnergy();
@@ -57,11 +58,9 @@ void IonicDynamics::initializeVelocities()
 	vector3<> pTot; //total momentum
 	for(auto& sp: e.iInfo.species)
 	{	double invsqrtM = 1./sqrt(sp->mass);
-		for(unsigned atom=0; atom<sp->atpos.size(); atom++)
-		{	vector3<> vel;
-			for(int iDir=0; iDir<3; iDir++)
+		for(vector3<>& vel: sp->velocities)
+		{	for(int iDir=0; iDir<3; iDir++)
 				vel[iDir] = Random::normal() * invsqrtM;
-			sp->velocities.push_back(vel);
 			pTot += sp->mass * vel;
 		}
 	}

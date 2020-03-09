@@ -48,7 +48,7 @@ public:
 	bool fromWildcard; //!< whether this pseudopotential was automatically added using a wildcard (for command printing purposes only)
 	
 	std::vector<vector3<> > atpos; //!< array of atomic positions of this species
-	std::vector<vector3<> > velocities; //!< array of atomic velocities (null unless running MD) in lattice coordinates
+	std::vector<vector3<> > velocities; //!< array of atomic velocities (NAN unless running MD) in lattice coordinates
 	ManagedArray<vector3<>> atposManaged; //!< managed copy of atpos accessed from operator code (for auto cpu/gpu transfers)
 	void sync_atpos(); //!< update changes in atpos; call whenever atpos is changed (this will update atposManaged and invalidate cached projectors, if any)
 	

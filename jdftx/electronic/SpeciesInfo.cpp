@@ -251,30 +251,24 @@ void SpeciesInfo::setup(const Everything &everything)
 
 void SpeciesInfo::print(FILE* fp) const
 {	if(!atpos.size()) return; //unused species
-	if(!velocities.size())
-	{	for(unsigned at=0; at<atpos.size(); at++)
-		{	vector3<> pos = atpos[at]; //always in gInfo coordinates
-			if(e->iInfo.coordsType == CoordsCartesian)
-				pos = e->gInfo.R * pos; //convert to Cartesian coordinates
-			fprintf(fp, "ion %s %19.15lf %19.15lf %19.15lf %lg",
-				name.c_str(), pos[0], pos[1], pos[2], constraints[at].moveScale);
-			if(constraints[at].type != Constraint::None)
-				constraints[at].print(fp, *e);
-			fprintf(fp, "\n");
+	for(unsigned at=0; at<atpos.size(); at++)
+	{	//Position:
+		vector3<> pos = atpos[at]; //always in lattice coordinates
+		if(e->iInfo.coordsType == CoordsCartesian)
+			pos = e->gInfo.R * pos; //convert to Cartesian coordinates
+		fprintf(fp, "ion %s %19.15lf %19.15lf %19.15lf", name.c_str(), pos[0], pos[1], pos[2]);
+		//Velocity (if present):
+		vector3<> vel = velocities[at]; //always in lattice coordinates
+		if(not isnan(vel.length_squared()))
+		{	if(e->iInfo.coordsType == CoordsCartesian)
+				vel = e->gInfo.R * vel; //convert to Cartesian velocities
+			fprintf(fp, " v %19.15lf %19.15lf %19.15lf", vel[0], vel[1], vel[2]);
 		}
-	}
-	else
-	{	for(unsigned at=0; at<atpos.size(); at++)
-		{	vector3<> pos = atpos[at]; //always in gInfo coordinates
-			vector3<> vel = velocities[at];
-			if(e->iInfo.coordsType == CoordsCartesian)
-			{	pos = e->gInfo.R * pos; //convert to Cartesian coordinates
-				vel = e->gInfo.R * vel;
-			}
-			fprintf(fp, "ion-vel %s %19.15lf %19.15lf %19.15lf %19.15lf %19.15lf %19.15lf",
-				name.c_str(), pos[0], pos[1], pos[2], vel[0], vel[1], vel[2]);
-			fprintf(fp, "\n");
-		}
+		//Move scale and constraint:
+		fprintf(fp, " %lg", constraints[at].moveScale);
+		if(constraints[at].type != Constraint::None)
+			constraints[at].print(fp, *e);
+		fprintf(fp, "\n");
 	}
 }
 
