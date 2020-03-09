@@ -28,67 +28,49 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Random.h>
 #include <core/BlasExtra.h>
 
-// Sigmoid-like (Fermi function upside down) confining gravitational acceleration, 
-//   zero around origin constant far away
-// Positive since it is the magnitude
-// ps[0] -> g_far    ps[1] -> s     ps[2] -> r_0
-// g(r) = g_far / (1 + e^(-u) where u=(r-r_0)/s
-inline double g_smoothLinear(double r, const std::vector<double>& ps)
-{	return ps[0] / (1.0 + exp(-(r - ps[2]) / ps[1]));}
-
-// integral of sigmoid function (not potential energy, just potential)
-inline double V_smoothLinear(double r, const std::vector<double>& ps)
-{	return ps[0] * ps[1] * log(1.0 + exp((r-ps[2])/ps[1]));}
-
-void IonicDynamics::velocitiesInit()
-{	bool velocitiesGiven=true;
+IonicDynamics::IonicDynamics(Everything& e)
+: e(e), imin(IonicMinimizer(e))
+{
+	logPrintf("---------- Ionic Dynamics -----------\n");
+	
+	//Initialize velocities:
+	bool velocitiesGiven=true;
 	IonInfo& iInfo = e.iInfo;
 	IonicDynamicsParams& idp = e.ionicDynParams;
+	Mtot = 0.;
+	nAtomsTot = 0;
 	for(unsigned sp=0; sp < iInfo.species.size(); sp++) 
 	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
-		totalMass += spInfo.mass*amu*spInfo.atpos.size();
-		numberOfAtoms += spInfo.atpos.size();
-		if (!spInfo.velocities.size())
-		      velocitiesGiven=false;	//If any of the velocities was missing then randomize them all.
+		Mtot += spInfo.mass*amu*spInfo.atpos.size();
+		nAtomsTot += spInfo.atpos.size();
+		if(!spInfo.velocities.size())
+		      velocitiesGiven=false; //If any of the velocities was missing then randomize them all.
 	}
-	if (velocitiesGiven)
-	{	computeMomentum(); 
-		switch(idp.driftType)
-		{  
-		  case DriftVelocity: removeNetDriftVelocity(); break;
-		  case DriftNone: break;
-		  case DriftMomentum: 
-	          default: removeNetAvgMomentum(); break;
-		}		
-		computeKineticEnergy();
+	if(velocitiesGiven)
+	{	computeKineticEnergy();
 		return;
 	}
 	double dt = idp.dt, kT = idp.kT;
 	double v,theta,phi;
-	for(unsigned sp=0; sp<iInfo.species.size(); sp++) // Initialize random velocities
-	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
-		for(unsigned atom=0; atom<spInfo.atpos.size(); atom++)
+	vector3<> pTot; //total momentum
+	//--- Initialize random velocities
+	for(auto& sp: iInfo.species)
+		for(unsigned atom=0; atom<sp->atpos.size(); atom++)
 		{	v = Random::uniform(0.0,0.1);
 			theta=Random::uniform(0,M_PI), phi = Random::uniform(0,2*M_PI);
 			vector3<> vel(v*dt*sin(theta)*sin(phi),v*dt*sin(theta)*cos(phi),v*dt*cos(theta));
-			spInfo.velocities.push_back(vel);
+			sp->velocities.push_back(vel);
+			pTot += sp->mass * vel;
 		}
-	}
-	computeMomentum();
-	logPrintf("----------Ion Dynamics-----------\ndensity = %lg (in atomic units)\n",totalMass/e.gInfo.detR);
-	 //OK to always remove the net momentum of randomly initialized velocities using the default or specified scheme
-	switch(idp.driftType)
-		{  
-		  case DriftVelocity: removeNetDriftVelocity(); break;
-		  case DriftNone: 
-		  case DriftMomentum: 
-	          default: removeNetAvgMomentum(); break;
-		}
+	//--- remove center of mass momentum:
+	for(auto& sp: iInfo.species)
+		for(vector3<>& vel: sp->velocities)
+			vel -= pTot / (sp->mass * nAtomsTot);
 	
 	//Now our lattice should not have an overall momentum
 	//We can scale the speeds to give us the right temperature.
 	computeKineticEnergy();
-	double energyRatio = (3.0*kT)/(kineticEnergy/numberOfAtoms);
+	double energyRatio = (3.0*kT)/(kineticEnergy/nAtomsTot);
 	double velocityScaleFactor = sqrt(energyRatio);
 	for(unsigned sp=0; sp<iInfo.species.size(); sp++) // Scale the velocities
 	{	SpeciesInfo& spInfo = *(iInfo.species[sp]);
@@ -96,10 +78,7 @@ void IonicDynamics::velocitiesInit()
 			spInfo.velocities[atom] *= velocityScaleFactor;
 	}
 	computeKineticEnergy();
-	//check if the momentum sums up to zero and we have the correct energy
-	computeMomentum();
-	if(idp.driftType!=DriftNone) assert(e.gInfo.RTR.metric_length_squared(totalMomentum) < 1.0e-8);
-	assert( std::abs(kineticEnergy-3.0*kT*numberOfAtoms) < 1.0e-8);
+	assert(std::abs(kineticEnergy-3.0*kT*nAtomsTot) < 1.0e-8);
 }
 
 double IonicDynamics::computeAcceleration(IonicGradient& accel)
@@ -123,7 +102,7 @@ double IonicDynamics::computeAcceleration(IonicGradient& accel)
 	{	for(unsigned atom=0; atom<accel[sp].size(); atom++)
 			netAccel += accel[sp][atom];
 	}
-	netAccel *= (1.0/totalMass); // This is the net acceleration of the unit cell.
+	netAccel *= (1.0/Mtot); // This is the net acceleration of the unit cell.
 
 	for(unsigned sp=0; sp<accel.size(); sp++)
 	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
@@ -133,66 +112,7 @@ double IonicDynamics::computeAcceleration(IonicGradient& accel)
 		}
 	}
 	//accel is the acceleration in cartesian coordinates now.
-	
-	//add virtual confining gravitation-like acceleration, calculation done in cartesian coordinates
-	double virtualPotentialEnergy = 0.0;
-	const auto& confineType = e.ionicDynParams.confineType;
-	if (confineType != ConfineNone)
-	{	const auto& ps = e.ionicDynParams.confineParameters;
-		auto spuriousPressure = 0.0;
-		bool isPolynomial = (confineType == ConfineLinear    || 
-				     confineType == ConfineQuadratic || 
-				     confineType == ConfineCubic);
-		auto V0 = 0.0;	if (confineType == ConfineSmoothLinear) V0 = V_smoothLinear(0.0, ps);
-		for(unsigned sp=0; sp<accel.size(); sp++)
-		{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-			double mass = spInfo.mass*amu;
-			for(unsigned atom=0; atom<accel[sp].size(); atom++)
-			{	auto r = e.gInfo.R * spInfo.atpos[atom];
-				auto rNorm = r.length();
-				auto rHat = r/rNorm;
-				auto force = 0.0;
-				assert(fabs(rHat.length_squared() - 1.0) < 1e-7);
-				if (isPolynomial)
-				{	auto V = 0.0;
-					auto g = 0.0, gtmp = 0.0; // Ftmp is the helper that holds the terms while taking the derivative inside for loop if polynomial
-					for (auto p: ps)
-					{	V += p; V *= rNorm;
-						g += gtmp; g *= rNorm;  g += p; gtmp *= rNorm; gtmp += p; //derivative of V
-					}
-					virtualPotentialEnergy += mass*V;
-					force = mass*g;
-					accel[sp][atom] += (-g*rHat);
-				}
-				else if (confineType == ConfineSmoothLinear)
-				{	virtualPotentialEnergy += mass*(V_smoothLinear(rNorm, ps) - V0);
-					auto a = g_smoothLinear(rNorm, ps);
-					force = mass * a;
-					accel[sp][atom] += (-a*rHat);
-				}
-				spuriousPressure += force/(4*M_PI*rNorm*rNorm);
-				logPrintf("SpuriousInwardForce %s %19.15lf at radius %19.15lf of mass %19.15lf\n", 
-					  spInfo.name.c_str(), force, rNorm, mass);
-			}
-		}
-		
-		logPrintf("ConfiningPotentialEnergy = %lg   SpuriousPressure = %lg\n", virtualPotentialEnergy, spuriousPressure);
-	}
-	
-	return relevantFreeEnergy(e) + virtualPotentialEnergy;
-}
-
-void IonicDynamics::computeMomentum()
-{	vector3<> p(0.0,0.0,0.0);
-	double mass;
-	for(unsigned sp=0; sp<e.iInfo.species.size(); sp++)
-	{	mass = (e.iInfo.species[sp])->mass*amu;
-		SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-		for(unsigned atom=0; atom<spInfo.velocities.size(); atom++)
-			p = p + spInfo.velocities[atom]*mass;
-	}
-	totalMomentumNorm = sqrt( e.gInfo.RTR.metric_length_squared(p) ); //in cartesian
-	totalMomentum = p; //in lattice
+	return relevantFreeEnergy(e);
 }
 
 void IonicDynamics::computeKineticEnergy()
@@ -214,15 +134,9 @@ void IonicDynamics::computePressure()
 
 bool IonicDynamics::report(double t)
 {	int iter = lrint(t/e.ionicDynParams.dt); //round to int to get iteration number
-	//Dump:
-	e.dump(DumpFreq_Ionic, iter);
-	
-	logPrintf("\nVerletMD: Iter: %3d  tMD[fs]: %9.2lf  Ekin: %8.4lf  Epot: %8.4lf  Etot: %8.4lf  P[Bar]: %8.4le  Momentum: %8.4le  t[s]: %9.2lf\n",
-		iter, t/fs, kineticEnergy, potentialEnergy, kineticEnergy + potentialEnergy, pressure/Bar, totalMomentumNorm, clock_sec());
-	logPrintf("\n"); e.iInfo.printPositions(globalLog);
-	logPrintf("\n"); e.iInfo.forces.print(e, globalLog);
-	logPrintf("# Energy components:\n"); e.ener.print(); logPrintf("\n");
-	return false;
+	logPrintf("\nVerletMD: Iter: %3d  tMD[fs]: %9.2lf  Ekin: %8.4lf  Epot: %8.4lf  Etot: %8.4lf  P[Bar]: %8.4le  t[s]: %9.2lf\n",
+		iter, t/fs, kineticEnergy, potentialEnergy, kineticEnergy + potentialEnergy, pressure/Bar, clock_sec());
+	return imin.report(iter);
 }
 
 void IonicDynamics::step(const IonicGradient& accel, const double& dt)
@@ -230,9 +144,8 @@ void IonicDynamics::step(const IonicGradient& accel, const double& dt)
 	dpos.init(e.iInfo);
 	//Rescale the velocities to track the temperature
 	//Assumes that kinetic energy gives approximately the input temperature
-	double averageKineticEnergy = 1.5 * numberOfAtoms * e.ionicDynParams.kT;
-	double scaleFactor = 1.0 + 2.0 * e.ionicDynParams.alpha*(averageKineticEnergy-kineticEnergy)/
-								kineticEnergy;
+	double averageKineticEnergy = 1.5 * nAtomsTot * e.ionicDynParams.kT;
+	double scaleFactor = 1.0 + 2.0 * e.ionicDynParams.alpha*(averageKineticEnergy-kineticEnergy)/ kineticEnergy;
 	// Prevent scaling from being too aggressive
 	if (scaleFactor < 0.5) scaleFactor = 0.5;
 	if (scaleFactor > 1.5) scaleFactor = 1.5;
@@ -261,25 +174,15 @@ void IonicDynamics::step(const IonicGradient& accel, const double& dt)
 
 void IonicDynamics::run()
 {	IonicGradient accel; //in cartesian coordinates
-	//Initialize old positions according to the temperature
-	velocitiesInit();
-	
-	if (e.ionicDynParams.confineType != ConfineNone)
-	{	centerOfMassToOrigin();
-	}
 	
 	accel.init(e.iInfo);
-	initialPotentialEnergy = (double)NAN; // ground state potential
-	nullToZero(e.eVars.nAccum,e.gInfo);
+	nullToZero(e.eVars.nAccum, e.gInfo);
 	
 	for(double t=0.0; t<e.ionicDynParams.tMax; t+=e.ionicDynParams.dt)
 	{	potentialEnergy = computeAcceleration(accel);
-		computeMomentum();computeKineticEnergy();computePressure();
+		computeKineticEnergy();
+		computePressure();
 			
-		if (e.ionicDynParams.confineType == ConfineNone) assert(totalMomentumNorm<1e-7);
-		
-		if (std::isnan(initialPotentialEnergy ))
-			initialPotentialEnergy = potentialEnergy;
 		report(t);
 		step(accel, e.ionicDynParams.dt);
 		//Accumulate the averaged electronic density over the trajectory
@@ -288,42 +191,4 @@ void IonicDynamics::run()
 		  e.eVars.nAccum[s]=(e.eVars.nAccum[s]*t+e.eVars.n[s]*e.ionicDynParams.dt)*(1.0/(t+e.ionicDynParams.dt));
 		}
 	}
-}
-
-void IonicDynamics::removeNetDriftVelocity()
-{	vector3<> averageDrift = totalMomentum / totalMass;
-	//Subtract average drift velocity of center of mass from the individual velocities
-	for(auto& spInfo : e.iInfo.species)
-	{	for(auto& v : spInfo->velocities)
-			v -= averageDrift;
-	}
-}
-
-void IonicDynamics::removeNetAvgMomentum()
-{	vector3<> averageMomentum = totalMomentum / numberOfAtoms;
-	//Subtract average momentum from the individual momentums
-	for(auto& spInfo : e.iInfo.species)
-	{	for(unsigned atom=0; atom<spInfo->velocities.size(); atom++)
-			spInfo->velocities[atom] -= averageMomentum / (spInfo->mass*amu);
-	}
-
-}
-
-
-void IonicDynamics::centerOfMassToOrigin()
-{	//Calculate the weighted average of positions
-	vector3<> centerOfMass;
-	for(const auto& spInfo : e.iInfo.species)
-	{	auto w = (spInfo->mass) * amu / totalMass;
-		for(const auto& pos : spInfo->atpos)
-			centerOfMass += w * pos;
-	}
-	//Move everything
-	for(auto& spInfo : e.iInfo.species)
-	{	for(auto& pos : spInfo->atpos)
-			pos -= centerOfMass;
-		mpiWorld->bcastData(spInfo->atpos);
-		spInfo->sync_atpos();
-	}
-	logPrintf("Atoms are shifted to make the center of mass at origin\n");
 }

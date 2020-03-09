@@ -30,31 +30,27 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class IonicDynamics
 {
 public:
+	IonicDynamics(Everything& e); //!< Initialize dynamics
 	void run(); //!< Run the simulation
-	IonicDynamics(Everything& e) : e(e), totalMass(0.0), numberOfAtoms(0), imin(IonicMinimizer(e)){};
 private:
 	Everything& e;
-	double initialPotentialEnergy;
-	double kineticEnergy, potentialEnergy;
-	double pressure, totalMomentumNorm;
-	double totalMass; int numberOfAtoms;
-	vector3<double> totalMomentum;
+	int nAtomsTot; //!< total number of atoms in system
+	double Mtot; //!< total mass of system
+	double kineticEnergy; //!< current kinetic energy
+	double potentialEnergy; //!< current potential energy
+	double pressure; //!< current pressure
 	
 	IonicMinimizer imin; //Just to be able to call IonicMinimizer::step(). Doesn't minimize anything.
 
-	// similar to the virtual functions of Minimizable:
+	//similar to the virtual functions of Minimizable:
 	void step(const IonicGradient&, const double&);   //!< Given the acceleration, take a time step. Scale the velocities if heat bath exists
-	double computeAcceleration(IonicGradient& accel); //!< Write acceleration into `accel` in cartesian coordinates and return relevant energy.
+	double computeAcceleration(IonicGradient& accel); //!< Write acceleration into 'accel' in cartesian coordinates and return relevant energy.
 	bool report(double t);
 	
 	//Utility functions
 	void velocitiesInit();       //!< Randomly initialize the velocities assuming potential energy is zero (E_tot = KE = 3NkT at t=0)
-	void computeMomentum();      //!< Calculate totalMomentum and totalMomentumNorm.
 	void computePressure();      //!< Updates pressure.
 	void computeKineticEnergy(); //!< Updates `kineticEnergy`
-	void removeNetDriftVelocity(); //!< Removes net velocity
-	void removeNetAvgMomentum(); //!< Removes net average momentum per particle
-	void centerOfMassToOrigin(); //!< Translate the entire system to put the center of mass to origin
 };
 
 //! @}
