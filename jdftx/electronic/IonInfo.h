@@ -57,6 +57,7 @@ public:
 	coreOverlapCheck coreOverlapCondition; //! Check method used for determining whether pseudopotential cores overlap
 	bool vdWenable; //!< whether vdW pair-potential corrections are enabled
 	double vdWscale; //!< If non-zero, override the default scale parameter
+	double ljOverride; //!< If non-zero, replace electronic DFT with LJ pair potential with rCut=ljOverride (for testing geometry optimization and dynamics algorithms only)
 	
 	IonicGradient forces; //!< forces at current atomic positions in latice coordinates
 	matrix3<> stress; //!< stresses at current lattice geometry in Eh/a0^3 (only calculated if optimizing lattice or dumping stress)

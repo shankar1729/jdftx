@@ -184,7 +184,7 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 	
 	IonicGradient dpos = alpha * e.gInfo.invR * dir; //dir is in cartesian, atpos in lattice
 	
-	if(e.cntrl.dragWavefunctions || populationAnalysisPending)
+	if((e.cntrl.dragWavefunctions or populationAnalysisPending) and (not iInfo.ljOverride))
 	{	//Check if atomic orbitals available and compile list of displacements for each orbital:
 		std::vector< vector3<> > drColumns;
 		std::vector<int> spOffset(iInfo.species.size()+1, 0); //species offsets into atomic orbitals
@@ -264,8 +264,9 @@ void IonicMinimizer::step(const IonicGradient& dir, double alpha)
 	}
 	
 	//Orthonormalize wavefunctions: (must do this after updating atom positions, since O depends on atpos for ultrasoft)
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		eVars.orthonormalize(q);
+	if(not iInfo.ljOverride)
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			eVars.orthonormalize(q);
 	
 	watch.stop();
 }
@@ -281,7 +282,8 @@ double IonicMinimizer::compute(IonicGradient* grad, IonicGradient* Kgrad)
 	e.iInfo.update(e.ener);
 
 	//Minimize the electronic system:
-	elecFluidMinimize(e);
+	if(not e.iInfo.ljOverride)
+		elecFluidMinimize(e);
 	
 	//Calculate forces if needed:
 	if(grad)

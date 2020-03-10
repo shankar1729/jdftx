@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 
 IonicDynamics::IonicDynamics(Everything& e)
-: e(e), imin(IonicMinimizer(e))
+: e(e), imin(IonicMinimizer(e)), nAccumNeeded(false)
 {
 	logPrintf("---------- Ionic Dynamics -----------\n");
 	
@@ -50,6 +50,11 @@ IonicDynamics::IonicDynamics(Everything& e)
 		initializeVelocities();
 	
 	computeKineticEnergy();
+	
+	//Whether nAccum is needed:
+	for(auto dumpPair: e.dump)
+		if(dumpPair.second == DumpElecDensityAccum)
+			nAccumNeeded = true;
 }
 
 void IonicDynamics::initializeVelocities()
@@ -90,7 +95,8 @@ double IonicDynamics::computeAcceleration(IonicGradient& accel)
 	e.iInfo.update(e.ener);
 
 	//Minimize the system:
-	elecFluidMinimize(e);
+	if(not e.iInfo.ljOverride)
+		elecFluidMinimize(e);
 	
 	//Calculate forces
 	e.iInfo.ionicEnergyAndGrad(); //compute forces in lattice coordinates
@@ -182,9 +188,10 @@ void IonicDynamics::run()
 		step(accel, e.ionicDynParams.dt);
 		
 		//Accumulate the averaged electronic density over the trajectory
-		for(unsigned s=0; s<e.eVars.nAccum.size(); s++)
-		{	double fracNew = idp.dt/(t+idp.dt);
-			e.eVars.nAccum[s] += fracNew*(e.eVars.n[s] - e.eVars.nAccum[s]);
-		}
+		if(nAccumNeeded and (not e.iInfo.ljOverride))
+			for(unsigned s=0; s<e.eVars.nAccum.size(); s++)
+			{	double fracNew = idp.dt/(t+idp.dt);
+				e.eVars.nAccum[s] += fracNew*(e.eVars.n[s] - e.eVars.nAccum[s]);
+			}
 	}
 }

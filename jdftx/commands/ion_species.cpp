@@ -268,7 +268,7 @@ struct CommandSetVDW : public Command
 	{	format = "<species> <C6> <R0> [ <species2> ... ]";
 		comments =
 			"Manually adjust DFT-D2 vdW parameters from the default (atomic number based) values.\n"
-			"Specify C6 in J/mol*Angstrom^6 and R0 in Angstrom.";
+			"Specify C6 in J-nm^6/mol and R0 in Angstrom.";
 		
 		require("ion");
 	}

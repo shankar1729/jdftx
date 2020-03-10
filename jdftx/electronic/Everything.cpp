@@ -122,8 +122,9 @@ void Everything::setup()
 		exx = std::make_shared<ExactExchange>(*this);
 
 	//Setup VanDerWaals corrections
-	if(iInfo.vdWenable || eVars.fluidParams.needsVDW())
+	if(iInfo.vdWenable || eVars.fluidParams.needsVDW() || iInfo.ljOverride)
 		vanDerWaals = std::make_shared<VanDerWaals>(*this);
+	if(iInfo.ljOverride) eVars.skipWfnsInit = true; //don't need electronic degrees of freedom
 	
 	//Setup wavefunctions, densities, fluid, output module etc:
 	iInfo.update(ener); //needs to happen before eVars setup for LCAO

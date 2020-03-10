@@ -39,9 +39,9 @@ private:
 	double kineticEnergy; //!< current kinetic energy
 	double potentialEnergy; //!< current potential energy
 	double pressure; //!< current pressure
+	IonicMinimizer imin; //!< Just to be able to call IonicMinimizer::step(). Doesn't minimize anything.
+	bool nAccumNeeded; //!< Whether accumulated electron density is needed
 	
-	IonicMinimizer imin; //Just to be able to call IonicMinimizer::step(). Doesn't minimize anything.
-
 	//similar to the virtual functions of Minimizable:
 	void step(const IonicGradient&, const double&);   //!< Given the acceleration, take a time step. Scale the velocities if heat bath exists
 	double computeAcceleration(IonicGradient& accel); //!< Write acceleration into 'accel' in cartesian coordinates and return relevant energy.

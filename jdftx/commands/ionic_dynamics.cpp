@@ -73,7 +73,7 @@ EnumStringMap<IonicDynamicsParamsMember> idpmDescMap
 
 struct CommandIonicDynamics : public Command
 {
-	CommandIonicDynamics() : Command("ionic-dynamics", "jdftx/Ionic/Dynamics")
+	CommandIonicDynamics() : Command("ionic-dynamics", "jdftx/Ionic/Optimization")
 	{	format = "<time-step> <total-time> [<kT>=0.001] [<alpha>=0.0]";
 		comments = "Applies Verlet molecular dynamics\n"
 			   "Takes the time in femtoseconds and kT is in Hartree.\n"
@@ -140,3 +140,28 @@ struct CommandIonicDynamics : public Command
 	}
 }
 commandIonicDynamics;
+
+
+struct CommandLjOverride : public Command
+{
+	CommandLjOverride() : Command("lj-override", "jdftx/Ionic/Optimization")
+	{	format = "<rCut>";
+		comments =
+			"Replace electronic DFT by a Lennard-Jones only potential with cutoff <rCut> in Angstroms.\n"
+			"This potential will use LJ parameters, sigma = 2^(5/6) R0 and epsilon = C6/(128 R0^6),\n"
+			"where R0 and C6 are DFT-D2 parameters for each species (adjustable by command setVDW).\n"
+			"This is not for real calculations, but a quick way to debug ionic-minimize,\n"
+			"lattice-minimize or ionic-dynamics. Tip: set elec-cutoff to a small value to\n"
+			"speed up electronic initialization (which is not bypassed for code simplicity).";
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.iInfo.ljOverride, 0., "rCut", true);
+		e.iInfo.ljOverride *= Angstrom; //convert to atomic units
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%lg", e.iInfo.ljOverride/Angstrom);
+	}
+}
+commandLjOverride;

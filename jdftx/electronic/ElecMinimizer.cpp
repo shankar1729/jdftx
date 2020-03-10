@@ -377,7 +377,7 @@ void elecFluidMinimize(Everything &e)
 	ElecInfo& eInfo = e.eInfo;
 	IonInfo& iInfo = e.iInfo;
 	Energies &ener = e.ener;
-
+	
 	if(!eVars.HauxInitialized && eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 	{	if(std::isnan(eInfo.mu)) //Constant nElectrons mode
 		{	logPrintf("\nSetting the auxilliary hamiltonian equal to the subspace hamiltonian.\n");

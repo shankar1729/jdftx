@@ -36,6 +36,7 @@ IonInfo::IonInfo()
 {	shouldPrintForceComponents = false;
 	vdWenable = false;
 	vdWscale = 0.;
+	ljOverride = false;
 	computeStress = false;
 }
 
@@ -147,6 +148,11 @@ double IonInfo::getZtot() const
 void IonInfo::update(Energies& ener)
 {	const GridInfo &gInfo = e->gInfo;
 
+	if(ljOverride)
+	{	pairPotentialsAndGrad(&ener);
+		return;
+	}
+	
 	//----------- update Vlocps, rhoIon, nCore and nChargeball --------------
 	initZero(Vlocps, gInfo);
 	initZero(rhoIon, gInfo);
@@ -178,6 +184,19 @@ void IonInfo::update(Energies& ener)
 double IonInfo::ionicEnergyAndGrad()
 {	const ElecInfo &eInfo = e->eInfo;
 	const ElecVars &eVars = e->eVars;
+	
+	//Pure LJ pair potential override for ionic algorithm testing:
+	if(ljOverride)
+	{	matrix3<> E_RRT;
+		IonicGradient forcesPairPot; forcesPairPot.init(*this);
+		pairPotentialsAndGrad(0, &forcesPairPot, computeStress ? &E_RRT : 0);
+		if(computeStress)
+		{	stress = E_RRT * (1./e->gInfo.detR);
+			e->symm.symmetrize(stress);
+		}
+		forces = forcesPairPot;
+		return relevantFreeEnergy(*e);
+	}
 	
 	//Initialize lattice gradient for stress if needed:
 	matrix3<> E_RRT; //symmetric matrix derivative E_R . RT
@@ -474,16 +493,17 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces, matri
 {
 	//Obtain the list of atomic positions and charges:
 	std::vector<Atom> atoms;
+	int Zscale = ljOverride ? 0 : 1;
 	for(size_t spIndex=0; spIndex<species.size(); spIndex++)
 	{	const SpeciesInfo& sp = *species[spIndex];
 		for(const vector3<>& pos: sp.atpos)
-			atoms.push_back(Atom(sp.Z, pos, vector3<>(0.,0.,0.), sp.atomicNumber, spIndex));
+			atoms.push_back(Atom(Zscale*sp.Z, pos, vector3<>(0.,0.,0.), sp.atomicNumber, spIndex));
 	}
 	//Compute Ewald sum and gradients (this also moves each Atom::pos into fundamental zone)
 	double Eewald = e->coulomb->energyAndGrad(atoms, E_RRT);
 	//Compute optional pair-potential terms:
 	double EvdW = 0.;
-	if(vdWenable)
+	if(vdWenable or ljOverride)
 	{	double scaleFac = e->vanDerWaals->getScaleFactor(e->exCorr.getName(), vdWscale);
 		EvdW = e->vanDerWaals->energyAndGrad(atoms, scaleFac, E_RRT); //vanDerWaals energy+force
 	}

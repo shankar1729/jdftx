@@ -30,8 +30,23 @@ const int VanDerWaals::unitParticle;
 //vdW correction energy upto a factor of -s6 (where s6 is the ExCorr dependnet scale)
 //for a pair of atoms separated by r, given the C6 and R0 parameters for pair.
 //The corresponding derivative w.r.t r is stored in E_r
-inline double vdwPairEnergyAndGrad(double r, double C6, double R0, double& E_r)
+inline double vdwPairEnergyAndGrad(double r, double C6, double R0, double& E_r, double ljOverride)
 {
+	if(ljOverride)
+	{	//Pure LJ pair potential (used only for ionic algorithm testing):
+		if(r > ljOverride)
+		{	E_r = 0.;
+			return 0.;
+		}
+		else
+		{	double invr = 1./r;
+			double invr6 = pow(invr, 6);
+			double R06 = pow(R0,6);
+			E_r = 6 * (C6*invr6) * invr * (R06*invr6 - 1.);
+			return (C6*invr6) * (1. - 0.5*R06*invr6);
+		}
+	}
+	
 	//Regularize the spurious r=0 singularity in the Grimme vdw functional.
 	double invR0 = 1./R0, rByR0 = r * invR0;
 	if(rByR0 < 0.3000002494598603)
@@ -122,7 +137,8 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 	Citations::add("Van der Waals correction pair-potentials", "S. Grimme, J. Comput. Chem. 27, 1787 (2006)");
 	
 	//Print vdw parameter info and check atomic numbers:
-	if(!e->iInfo.vdWenable) logPrintf("\tNOTE: vdW corrections apply only for interactions with fluid.\n");
+	if(!e->iInfo.vdWenable and e->eVars.fluidSolver)
+		logPrintf("\tNOTE: vdW corrections apply only for interactions with fluid.\n");
 	for(size_t spIndex=0; spIndex<e->iInfo.species.size(); spIndex++)
 	{	const auto& sp = e->iInfo.species[spIndex];
 		assert(sp->atomicNumber);
@@ -135,12 +151,14 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 }
 
 double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr) const
-{
+{	static StopWatch watch("VanDerWaals::energyAndGrad"); watch.start();
+
 	//Truncate summation at 1/r^6 < 10^-16 => r ~ 100 bohrs
+	const double rCut = e->iInfo.ljOverride ? e->iInfo.ljOverride : 200.;
 	vector3<bool> isTruncated = e->coulombParams.isTruncated();
 	vector3<int> S; //number of unit cells sampled in each direction
 	for(int k=0; k<3; k++)
-		S[k] = 1 + 2*(isTruncated[k] ? 0 : (int)ceil(200./e->gInfo.R.column(k).length()));
+		S[k] = 1 + 2*(isTruncated[k] ? 0 : (int)ceil(rCut/e->gInfo.R.column(k).length()));
 	size_t nCellsHlf = S[0] * S[1] * (S[2]/2+1);; //similar to the half-G-space used for FFTs
 	size_t iStart, iStop; TaskDivision(nCellsHlf, mpiWorld).myRange(iStart, iStop);
 	
@@ -160,7 +178,7 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 				if(rSq)
 				{	double r = sqrt(rSq); double E_r = 0.;
 					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
-					Etot -= cellWeight * scaleFac * vdwPairEnergyAndGrad(r, C6, R0, E_r);
+					Etot -= cellWeight * scaleFac * vdwPairEnergyAndGrad(r, C6, R0, E_r, e->iInfo.ljOverride);
 					vector3<> E_x = (cellWeight * scaleFac * E_r/r) * (e->gInfo.RTR * x); 
 					forces[c1] += E_x;
 					forces[c2] -= E_x;
@@ -181,6 +199,7 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 	{	mpiWorld->allReduce(E_RRT, MPIUtil::ReduceSum, true);
 		*E_RRTptr += E_RRT;
 	}
+	watch.stop();
 	return Etot;
 }
 
@@ -232,6 +251,7 @@ double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >&
 
 double VanDerWaals::getScaleFactor(string exCorrName, double scaleOverride) const
 {	if(scaleOverride) return scaleOverride;
+	if(e->iInfo.ljOverride) return 1.;
 	auto iter = scalingFactor.find(exCorrName);
 	if(iter == scalingFactor.end())
 		die("\nGrimme vdW scale factor not known for functional %s.\n"
@@ -286,7 +306,7 @@ const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int ato
 	for(size_t i=0; i<nSamples; i++)
 	{	func.r[i] = r; //radial position
 		func.dr[i] = r * dlogr; //integration weight
-		func.f[i] = vdwPairEnergyAndGrad(r, C6, R0, E_r); //sample value
+		func.f[i] = vdwPairEnergyAndGrad(r, C6, R0, E_r, e->iInfo.ljOverride); //sample value
 		r *= rRatio;
 	}
 	
