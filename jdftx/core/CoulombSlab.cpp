@@ -81,6 +81,7 @@ public:
 		for(Atom& a: atoms)
 			for(int k=0; k<3; k++)
 				a.pos[k] -= floor(0.5 + a.pos[k] - pos0[k]);
+		if(not ZsqTot) return 0.;
 		
 		//Real space sum:
 		vector3<int> iR; //integer cell number

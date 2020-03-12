@@ -190,6 +190,7 @@ public:
 		vector3<> pos0 = atoms[0].pos;
 		for(Atom& a: atoms)
 			a.pos = pos0 + ws.restrict(a.pos - pos0);
+		if(not ZsqTot) return 0.;
 		
 		//Real space sum:
 		vector3<int> iR(0,0,0); //integer cell number
