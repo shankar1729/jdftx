@@ -108,7 +108,16 @@ void IonicDynamics::setVelocities(const IonicGradient& v)
 void IonicDynamics::computePressure()
 {	if(e.iInfo.computeStress)
 	{	stress = e.iInfo.stress;
-		//TODO: add kinetic stress
+		//Add kinetic stress
+		for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
+		{	const SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+			double prefac = (spInfo.mass*amu) / e.gInfo.detR;
+			for(const vector3<>& vel: spInfo.velocities)
+			{	vector3<> vCart = e.gInfo.R * vel;
+				stress -= prefac * outer(vCart,vCart);
+			}
+		}
+		//Compute pressure:
 		p = (-1./3)*trace(stress);
 	}
 	else //stress and pressure not available
@@ -135,6 +144,10 @@ void IonicDynamics::computePE(IonicGradient& accel)
 bool IonicDynamics::report(int iter, double t)
 {	logPrintf("\nIonicDynamics: Step: %3d  PE: %10.6lf  KE: %10.6lf  T[K]: %8.3lf  P[Bar]: %8.4le  tMD[fs]: %9.2lf  t[s]: %9.2lf\n",
 		iter, PE, KE, T/Kelvin, p/Bar, t/fs, clock_sec());
+	if(e.iInfo.computeStress)
+	{	logPrintf("\n# Stress tensor including kinetic terms in Cartesian coordinates [Eh/a0^3]:\n");
+		stress.print(globalLog, "%12lg ", true, 1e-14);
+	}
 	return imin.report(iter);
 }
 
