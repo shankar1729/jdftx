@@ -70,6 +70,11 @@ void IonicDynamics::initializeVelocities()
 		}
 	}
 	
+	//Apply constraints:
+	IonicGradient vel = getVelocities();
+	imin.constrain(vel);
+	setVelocities(vel);
+	
 	//Rescale to current temperature:
 	computeKE();
 	double keRatio = (0.5 * nDOF * e.ionicDynParams.T0)/KE;
