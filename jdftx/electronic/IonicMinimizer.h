@@ -56,7 +56,7 @@ class IonicMinimizer : public Minimizable<IonicGradient>
 {	Everything& e;
 	
 public:
-	IonicMinimizer(Everything& e);
+	IonicMinimizer(Everything& e, bool dynamicsMode=false);
 	//Virtual functions from Minimizable:
 	void step(const IonicGradient& dir, double alpha);
 	double compute(IonicGradient* grad, IonicGradient* Kgrad);
@@ -72,6 +72,7 @@ private:
 	bool populationAnalysisPending; //!< report() has requested a charge analysis output that is yet to be done
 	bool skipWfnsDrag; //!< whether to temprarily skip wavefunction dragging due to large steps
 	bool anyConstrained; //!< whether any atoms are constrained
+	bool dynamicsMode; //!< class used as a helper for IonicDynamics (changes Kgrad to be acceleration in compute)
 };
 
 //! @}

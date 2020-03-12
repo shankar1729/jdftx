@@ -37,21 +37,24 @@ private:
 	int nAtomsTot; //!< total number of atoms
 	int nDOF; //!< number of degrees of freedom
 	double Mtot; //!< total mass of system
-	double kineticEnergy; //!< current kinetic energy
-	double potentialEnergy; //!< current potential energy
-	double pressure; //!< current pressure
 	IonicMinimizer imin; //!< Just to be able to call IonicMinimizer::step(). Doesn't minimize anything.
 	bool nAccumNeeded; //!< Whether accumulated electron density is needed
 	
-	//similar to the virtual functions of Minimizable:
-	void step(const IonicGradient&, const double&);   //!< Given the acceleration, take a time step. Scale the velocities if heat bath exists
-	double computeAcceleration(IonicGradient& accel); //!< Write acceleration into 'accel' in cartesian coordinates and return relevant energy.
-	bool report(int iter, double t);
+	//Current thermodynamic properties:
+	double KE; //!< current kinetic energy
+	double PE; //!< current potential energy
+	double T; //!< current temperature
+	double p; //!< current pressure
+	matrix3<> stress; //!< current stress tensor (includes kinetic stress whereas IonInfo::stress does not)
 	
 	//Utility functions
 	void initializeVelocities(); //!< Initialize Maxwell-Boltzmann distribution of velocities
-	void computePressure();      //!< Updates pressure.
-	void computeKineticEnergy(); //!< Updates `kineticEnergy`
+	IonicGradient getVelocities(); //!< Get Cartesian velocities from SpeciesInfo lattice-coordinate versions
+	void setVelocities(const IonicGradient&); //!< Set SpeciesInfo velocities from Cartesian-coordinate version
+	void computePressure(); //!< Update pressure and stress
+	void computeKE(); //!< Update kinetic energy and temperature
+	void computePE(IonicGradient& accel); //!< Update potential energy and set acceleration
+	bool report(int iter, double t); //!< Report properties at current step
 };
 
 //! @}

@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 
 IonicDynamics::IonicDynamics(Everything& e)
-: e(e), imin(IonicMinimizer(e)), nAccumNeeded(false)
+: e(e), imin(IonicMinimizer(e, true)), nAccumNeeded(false)
 {
 	logPrintf("---------- Ionic Dynamics -----------\n");
 	
@@ -53,8 +53,6 @@ IonicDynamics::IonicDynamics(Everything& e)
 	if(vInitNeeded)
 		initializeVelocities();
 	
-	computeKineticEnergy();
-	
 	//Whether nAccum is needed:
 	for(auto dumpPair: e.dump)
 		if(dumpPair.second == DumpElecDensityAccum)
@@ -62,129 +60,114 @@ IonicDynamics::IonicDynamics(Everything& e)
 }
 
 void IonicDynamics::initializeVelocities()
-{
-	//Initialize random velocities with |v|^2 ~ 1/M
-	vector3<> pTot; //total momentum
+{	//Initialize random velocities with |v|^2 ~ 1/M
 	for(auto& sp: e.iInfo.species)
 	{	double invsqrtM = 1./sqrt(sp->mass);
 		for(vector3<>& vel: sp->velocities)
 		{	for(int iDir=0; iDir<3; iDir++)
 				vel[iDir] = Random::normal() * invsqrtM;
-			pTot += sp->mass * vel;
+			vel = e.gInfo.invR * vel; //convert to lattice coords
 		}
 	}
 	
 	//Rescale to current temperature:
-	computeKineticEnergy();
-	double keRatio = (0.5 * nDOF * e.ionicDynParams.T0)/kineticEnergy;
+	computeKE();
+	double keRatio = (0.5 * nDOF * e.ionicDynParams.T0)/KE;
 	double velocityScaleFactor = sqrt(keRatio);
 	for(auto& sp: e.iInfo.species)
 		for(vector3<>& vel: sp->velocities)
 			vel *= velocityScaleFactor;
 }
 
-
-double IonicDynamics::computeAcceleration(IonicGradient& accel)
-{	if(not e.iInfo.checkPositions())
-	{	e.iInfo.printPositions(globalLog);
-		die("\nMD step caused pseudopotential core overlaps.\n");
+//Get Cartesian velocities from SpeciesInfo lattice-coordinate versions
+IonicGradient IonicDynamics::getVelocities()
+{	IonicGradient v; v.init(e.iInfo);
+	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
+	{	const SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+		for(size_t at=0; at<spInfo.atpos.size(); at++)
+			v[sp][at] = e.gInfo.R * spInfo.velocities[at];
 	}
-	
-	//Initialize ion-dependent quantities at this position:
-	e.iInfo.update(e.ener);
-
-	//Minimize the system:
-	if(not e.iInfo.ljOverride)
-		elecFluidMinimize(e);
-	
-	//Calculate forces
-	e.iInfo.ionicEnergyAndGrad(); //compute forces in lattice coordinates
-	accel = e.gInfo.invRT * e.iInfo.forces; //forces in cartesian coordinates (not accel. yet)
-	
-	//Compute net acceleration for subtraction:
-	vector3<> netAccel;
-	for(unsigned sp=0; sp<accel.size(); sp++)
-		for(const vector3<>& a: accel[sp])
-			netAccel += a;
-	netAccel *= (1./Mtot); // This is the net acceleration of the unit cell.
-
-	for(unsigned sp=0; sp<accel.size(); sp++)
-	{	double invM = 1./(e.iInfo.species[sp]->mass * amu);
-		for(vector3<>& a: accel[sp])
-			a = invM*a - netAccel; //convert to acceleration with mean removed
-	}
-	return relevantFreeEnergy(e);
+	return v;
 }
 
-void IonicDynamics::computeKineticEnergy()
-{	kineticEnergy = 0.;
-	for(const auto& sp: e.iInfo.species)
-		for(vector3<>& vel: sp->velocities)
-			kineticEnergy += (0.5 * sp->mass*amu) * e.gInfo.RTR.metric_length_squared(vel);
+//Set SpeciesInfo velocities from Cartesian-coordinate version
+void IonicDynamics::setVelocities(const IonicGradient& v)
+{	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
+	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+		for(size_t at=0; at<spInfo.atpos.size(); at++)
+			spInfo.velocities[at] = e.gInfo.invR * v[sp][at];
+	}
 }
+
 
 void IonicDynamics::computePressure()
-{	pressure = e.iInfo.computeStress
-		? (-1./3)*trace(e.iInfo.stress)
-		: NAN; //pressure not available
+{	if(e.iInfo.computeStress)
+	{	stress = e.iInfo.stress;
+		//TODO: add kinetic stress
+		p = (-1./3)*trace(stress);
+	}
+	else //stress and pressure not available
+	{	stress = matrix3<>(NAN, NAN, NAN);
+		p = NAN;
+	}
+}
+
+void IonicDynamics::computeKE()
+{	KE = 0.;
+	for(const auto& sp: e.iInfo.species)
+		for(vector3<>& vel: sp->velocities)
+			KE += (0.5 * sp->mass*amu) * e.gInfo.RTR.metric_length_squared(vel);
+	T = 2*KE/nDOF;
+}
+
+void IonicDynamics::computePE(IonicGradient& accel)
+{	IonicGradient gradUnused;
+	PE = imin.compute(&gradUnused, &accel); //In dynamicsMode, IonicMinimizer::compute replaces Kgrad with acceleration
+	if(isnan(PE))
+		die("\nIonicDynamics: step caused pseudopotential core overlap (try core-overlap-check none).\n\n");
 }
 
 bool IonicDynamics::report(int iter, double t)
-{	logPrintf("\nVerletMD: Step: %3d  tMD[fs]: %9.2lf  Ekin: %8.4lf  Epot: %8.4lf  Etot: %8.4lf  P[Bar]: %8.4le  t[s]: %9.2lf\n",
-		iter, t/fs, kineticEnergy, potentialEnergy, kineticEnergy + potentialEnergy, pressure/Bar, clock_sec());
+{	logPrintf("\nIonicDynamics: Step: %3d  PE: %10.6lf  KE: %10.6lf  T[K]: %8.3lf  P[Bar]: %8.4le  tMD[fs]: %9.2lf  t[s]: %9.2lf\n",
+		iter, PE, KE, T/Kelvin, p/Bar, t/fs, clock_sec());
 	return imin.report(iter);
-}
-
-void IonicDynamics::step(const IonicGradient& accel, const double& dt)
-{	const IonicDynamicsParams& idp = e.ionicDynParams;
-	IonicGradient dpos;
-	dpos.init(e.iInfo);
-	//Rescale the velocities to track the temperature
-	//Assumes that kinetic energy gives approximately the input temperature
-	double averageKineticEnergy = 0.5 * nDOF * idp.T0;
-	double alpha = idp.dt / idp.tDampT;
-	double scaleFactor = 1.0 + 2.0 * alpha*(averageKineticEnergy-kineticEnergy)/ kineticEnergy;
-	// Prevent scaling from being too aggressive
-	if (scaleFactor < 0.5) scaleFactor = 0.5;
-	if (scaleFactor > 1.5) scaleFactor = 1.5;
-	
-	for(unsigned sp=0; sp < e.iInfo.species.size(); sp++) //initialize dpos with last step.
-	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-		for(unsigned atom=0; atom<spInfo.atpos.size(); atom++)
-		{	spInfo.velocities[atom] *= scaleFactor;
-			dpos[sp][atom] = spInfo.velocities[atom]*dt;
-		}
-	}
-	//given the previous dpos (v_{n-1}*dt) calculate new dpos (v_n*dt) 
-	dpos = dpos + e.gInfo.invR*accel*(dt*dt); //accel is in cartesian, dpos in lattice
-	
-	//call the IonicMinimizer::step() that moves the wavefunctions and the nuclei
-	imin.step(e.gInfo.R * dpos, 1.0); //takes its argument in cartesian coordinates
-	//Update the velocities
-	for(unsigned sp=0; sp < e.iInfo.species.size(); sp++)
-	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-		for(unsigned atom=0; atom<spInfo.atpos.size(); atom++)
-			spInfo.velocities[atom] = dpos[sp][atom]/dt;
-		mpiWorld->bcastData(spInfo.atpos);
-		spInfo.sync_atpos();
-	}
 }
 
 void IonicDynamics::run()
 {	const IonicDynamicsParams& idp = e.ionicDynParams;
-	IonicGradient accel; //in cartesian coordinates
 	
-	accel.init(e.iInfo);
-	nullToZero(e.eVars.nAccum, e.gInfo);
+	//Initial energies and forces
+	if(nAccumNeeded) nullToZero(e.eVars.nAccum, e.gInfo);
+	IonicGradient accel; //in Cartesian coordinates
+	computePE(accel);
+	computeKE();
+	computePressure();
 	
-	for(int iter=0; iter<idp.nSteps; iter++)
+	for(int iter=0; iter<=idp.nSteps; iter++)
 	{	double t = iter*idp.dt;
-		potentialEnergy = computeAcceleration(accel);
-		computeKineticEnergy();
-		computePressure();
-			
 		report(iter, t);
-		step(accel, e.ionicDynParams.dt);
+		if(iter==idp.nSteps) break;
+		
+		//Velocity Verlet step:
+		IonicGradient vel = getVelocities();
+		axpy(0.5*idp.dt, accel, vel); //Velocity update: first half step
+		imin.step(vel, idp.dt); //update positions
+		computePE(accel); //update acceleration
+		axpy(0.5*idp.dt, accel, vel); //Velocity update: second half step
+		setVelocities(vel);
+		
+		//Thermostats
+		computeKE();
+		if(idp.T0)
+		{	//Berendsen thermostat (currently hard-coded):
+			double scaleFactorKE = 1. + (idp.dt/idp.tDampT)*(0.5*nDOF*idp.T0/KE - 1.);
+			double scaleFactorVel = sqrt(scaleFactorKE);
+			KE *= scaleFactorKE;
+			for(auto& sp: e.iInfo.species)
+				for(vector3<>& vel: sp->velocities)
+					vel *= scaleFactorVel;
+		}
+		computePressure();
 		
 		//Accumulate the averaged electronic density over the trajectory
 		if(nAccumNeeded and (not e.iInfo.ljOverride))

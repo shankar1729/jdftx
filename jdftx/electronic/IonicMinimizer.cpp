@@ -156,7 +156,8 @@ IonicGradient operator*(const matrix3<>& mat, const IonicGradient& x)
 }
 
 
-IonicMinimizer::IonicMinimizer(Everything& e) : e(e), populationAnalysisPending(false), skipWfnsDrag(false)
+IonicMinimizer::IonicMinimizer(Everything& e, bool dynamicsMode)
+: e(e), populationAnalysisPending(false), skipWfnsDrag(false), dynamicsMode(dynamicsMode)
 {	//Check if any atoms constrained:
 	anyConstrained = false;
 	for(const auto sp: e.iInfo.species)
@@ -297,7 +298,9 @@ double IonicMinimizer::compute(IonicGradient* grad, IonicGradient* Kgrad)
 			for(unsigned sp=0; sp<Kgrad->size(); sp++)
 			{	const SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
 				for(unsigned atom=0; atom<Kgrad->at(sp).size(); atom++)
-					Kgrad->at(sp)[atom] *= spInfo.constraints[atom].moveScale;
+					Kgrad->at(sp)[atom] *= (dynamicsMode
+						? (spInfo.constraints[atom].moveScale ? -1./(spInfo.mass*amu) : 0.) //convert to acceleration (and ignore moveScale magnitude)
+						: spInfo.constraints[atom].moveScale);
 			}
 			constrain(*Kgrad); //Apply constraints
 		}
