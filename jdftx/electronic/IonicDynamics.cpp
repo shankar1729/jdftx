@@ -44,6 +44,10 @@ IonicDynamics::IonicDynamics(Everything& e)
 			if(isnan(vel.length_squared()))
 		      vInitNeeded = true; //If any velocity missing, randomize them all
 	}
+	nDOF = e.ionicMinParams.nDim;
+	if(nDOF == 3*nAtomsTot) nDOF -= 3; //discount overall translation
+	if(not nDOF)
+		die("No degrees of freedom for IonicDynamics.\n\n");
 	
 	//Initialize velocities if necessary:
 	if(vInitNeeded)
@@ -70,14 +74,9 @@ void IonicDynamics::initializeVelocities()
 		}
 	}
 	
-	//Remove center of mass momentum:
-	for(auto& sp: e.iInfo.species)
-		for(vector3<>& vel: sp->velocities)
-			vel -= pTot / (sp->mass * nAtomsTot);
-	
 	//Rescale to current temperature:
 	computeKineticEnergy();
-	double keRatio = (1.5*e.ionicDynParams.T0*nAtomsTot)/kineticEnergy;
+	double keRatio = (0.5 * nDOF * e.ionicDynParams.T0)/kineticEnergy;
 	double velocityScaleFactor = sqrt(keRatio);
 	for(auto& sp: e.iInfo.species)
 		for(vector3<>& vel: sp->velocities)
@@ -142,7 +141,7 @@ void IonicDynamics::step(const IonicGradient& accel, const double& dt)
 	dpos.init(e.iInfo);
 	//Rescale the velocities to track the temperature
 	//Assumes that kinetic energy gives approximately the input temperature
-	double averageKineticEnergy = 1.5 * nAtomsTot * idp.T0;
+	double averageKineticEnergy = 0.5 * nDOF * idp.T0;
 	double alpha = idp.dt / idp.tDampT;
 	double scaleFactor = 1.0 + 2.0 * alpha*(averageKineticEnergy-kineticEnergy)/ kineticEnergy;
 	// Prevent scaling from being too aggressive

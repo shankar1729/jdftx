@@ -34,7 +34,8 @@ public:
 	void run(); //!< Run the simulation
 private:
 	Everything& e;
-	int nAtomsTot; //!< total number of atoms in system
+	int nAtomsTot; //!< total number of atoms
+	int nDOF; //!< number of degrees of freedom
 	double Mtot; //!< total mass of system
 	double kineticEnergy; //!< current kinetic energy
 	double potentialEnergy; //!< current potential energy
