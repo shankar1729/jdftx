@@ -140,7 +140,7 @@ public:
 		{	if(brackets) fprintf(fp, "[ ");
 			for(int j=0; j<3; j++)
 			{	const scalar& mij = m[i][j];
-				fprintf(fp, format, fabs(mij)<suppressThreshold ? scalar() : mij);
+				fprintf(fp, format, std::abs(mij)<suppressThreshold ? scalar() : mij);
 			}
 			if(brackets) fprintf(fp, " ]\n"); else fprintf(fp, "\n");
 		}

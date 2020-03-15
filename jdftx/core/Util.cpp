@@ -455,14 +455,14 @@ StopWatch::StopWatch(string name) : Ttot(0), TsqTot(0), nT(0), name(name) { stop
 void StopWatch::start()
 {
 	#ifdef GPU_ENABLED
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 	#endif
 	tPrev = clock_us();
 }
 void StopWatch::stop()
 {
 	#ifdef GPU_ENABLED
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 	#endif
 	double T = clock_us()-tPrev;
 	Ttot+=T; TsqTot+=T*T; nT++;

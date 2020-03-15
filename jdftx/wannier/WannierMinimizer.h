@@ -244,24 +244,16 @@ class LongRangeSum2D
 {
 	const matrix3<> G, GGT; 
 	const std::vector<vector3<>> epsInf;
-	const int truncDir;
 	const double alphaInvBy4;
 	vector3<int> iGbox;
 	double t, epsbar, epspm, epszm, alpha1, alpha1b, alpha2, alpha2b;
 public:
 	LongRangeSum2D(const matrix3<>& R, const std::vector<vector3<>>& epsInf, const int truncDir, const double alpha=0.1)
-	: G(2*M_PI*inv(R)), GGT(G*(~G)),
-		epsInf(epsInf), truncDir(truncDir),
-		alphaInvBy4(0.25/alpha)
-	{
-		//Initialize sample counts
+	: G(2*M_PI*inv(R)), GGT(G*(~G)), epsInf(epsInf), alphaInvBy4(0.25/alpha)
+	{	//Initialize sample counts
 		const double Gmax = 12.*sqrt(alpha); //such that exp(-Gmax^2/(4 alpha)) < 1e-16
 		for(int i=0; i<3; i++)
-		{	if (i == truncDir)
-			{	iGbox[i] = 0;
-			}else
-			{	iGbox[i] = int(Gmax*R.column(i).length()/(2*M_PI)) + 2;} //margin to account for q 
-		}
+			iGbox[i] = (i==truncDir) ? 0 : (int(Gmax*R.column(i).length()/(2*M_PI)) + 2); //margin to account for q 
 		//Initialized epsilon combinations:
 		double eps1 = epsInf[3][0];
 		double eps2 = epsInf[3][1];

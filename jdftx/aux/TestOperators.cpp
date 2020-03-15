@@ -123,7 +123,7 @@ public:
 void sync()
 {
 	#ifdef GPU_ENABLED
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 	#endif
 }
 
