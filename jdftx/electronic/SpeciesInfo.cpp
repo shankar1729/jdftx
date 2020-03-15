@@ -259,7 +259,7 @@ void SpeciesInfo::print(FILE* fp) const
 		fprintf(fp, "ion %s %19.15lf %19.15lf %19.15lf", name.c_str(), pos[0], pos[1], pos[2]);
 		//Velocity (if present):
 		vector3<> vel = velocities[at]; //always in lattice coordinates
-		if(not isnan(vel.length_squared()))
+		if(not std::isnan(vel.length_squared()))
 		{	if(e->iInfo.coordsType == CoordsCartesian)
 				vel = e->gInfo.R * vel; //convert to Cartesian velocities
 			fprintf(fp, " v %19.15lf %19.15lf %19.15lf", vel[0], vel[1], vel[2]);

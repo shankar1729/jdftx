@@ -129,7 +129,7 @@ struct CommandIon : public Command
 					logPrintf("%s %19.15lf %19.15lf %19.15lf", sp->name.c_str(), pos[0], pos[1], pos[2]);
 					//Optional velocity:
 					vector3<> vel = sp->velocities[at];
-					if(not isnan(vel.length_squared()))
+					if(not std::isnan(vel.length_squared()))
 					{	if(e.iInfo.coordsType == CoordsCartesian)
 							vel = e.gInfo.R * vel; //report cartesian velocities
 						logPrintf(" v %19.15lf %19.15lf %19.15lf", vel[0], vel[1], vel[2]);

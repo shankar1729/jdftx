@@ -41,7 +41,7 @@ IonicDynamics::IonicDynamics(Everything& e)
 	{	Mtot += (sp->mass * amu) * sp->atpos.size();
 		nAtomsTot += sp->atpos.size();
 		for(const vector3<>& vel: sp->velocities)
-			if(isnan(vel.length_squared()))
+			if(std::isnan(vel.length_squared()))
 		      vInitNeeded = true; //If any velocity missing, randomize them all
 	}
 	nDOF = e.ionicMinParams.nDim;
@@ -137,7 +137,7 @@ void IonicDynamics::computeKE()
 void IonicDynamics::computePE(IonicGradient& accel)
 {	IonicGradient gradUnused;
 	PE = imin.compute(&gradUnused, &accel); //In dynamicsMode, IonicMinimizer::compute replaces Kgrad with acceleration
-	if(isnan(PE))
+	if(std::isnan(PE))
 		die("\nIonicDynamics: step caused pseudopotential core overlap (try core-overlap-check none).\n\n");
 }
 
