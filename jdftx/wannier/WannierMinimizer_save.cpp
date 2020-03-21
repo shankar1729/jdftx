@@ -182,6 +182,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	saveMLWF_H(iSpin, phase); //Hamiltonian
 	if(wannier.saveMomenta) saveMLWF_P(iSpin, phase); //Momenta
 	if(wannier.saveSpin) saveMLWF_S(iSpin, phase); //Spins
+	if(wannier.saveZ) saveMLWF_Z(iSpin, phase); //z position
 	if(wannier.zH) saveMLWF_W(iSpin, phase); //Slab weights
 	saveMLWF_ImSigma_ee(iSpin, phase);
 	
@@ -407,37 +408,57 @@ void WannierMinimizer::saveMLWF_W(int iSpin, const matrix& phase)
 			wTilde->data(), wannier.z0, wannier.zH, wannier.zSigma);
 		w = I(wTilde);
 	}
-	//Compute slab-weight matrix elements of Bloch states:
-	std::vector<matrix> wBloch(e.eInfo.nStates);
+	saveMLWF(iSpin, phase, w, "mlwfW");
+}
+
+//Thread function for setting z position operator:
+inline void zWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S, double Lz, double z0, double* z)
+{	double invSz = 1./S[2];
+	THREAD_rLoop
+	(	z[i] = invSz*iv[2] - z0;
+		z[i] -= floor(0.5 + z[i]); //wrap to [-0.5,0.5)
+		z[i] *= Lz; //convert to Cartesian bohrs
+	)
+}
+
+//Save z position matrix elements in Wannier basis, if requested:
+void WannierMinimizer::saveMLWF_Z(int iSpin, const matrix& phase)
+{	assert(wannier.saveZ);
+	assert(e.coulombParams.isTruncated()[2]);
+	//Construct slab weight function:
+	ScalarField z; nullToZero(z, e.gInfo);
+	double Lz = e.gInfo.R.column(2).length();
+	double z0 = e.coulombParams.embedCenter[2]; //in lattice coordinates
+	threadLaunch(zWeight_thread, e.gInfo.nr, e.gInfo.S, Lz, z0, z->data());
+	saveMLWF(iSpin, phase, z, "mlwfZ");
+}
+
+//Helper function for scalar field matrix elements (eg. slab and z)
+void WannierMinimizer::saveMLWF(int iSpin, const matrix& phase, const ScalarField& w, string varName)
+{	//Prepare scalar field for direct and augmented contributions:
 	ScalarFieldArray JdagOJw(1, JdagOJ(w));
 	e.iInfo.augmentDensityGridGrad(JdagOJw);
-	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		if(e.eInfo.qnums[q].index()==iSpin)
-		{	//Direct contributions from bands:
-			const ColumnBundle& Cq = e.eVars.C[q];
-			wBloch[q] = Cq ^ Idag_DiagV_I(Cq, JdagOJw);
-			//Ultrasoft augmentation:
-			const std::vector<matrix>& VdagCq = e.eVars.VdagC[q];
-			std::vector<matrix> wVdagCq(e.iInfo.species.size());
-			const QuantumNumber& qnum = e.eInfo.qnums[q];
-			e.iInfo.augmentDensitySphericalGrad(qnum, VdagCq, wVdagCq);
-			for(size_t sp=0; sp<VdagCq.size(); sp++)
-				if(wVdagCq[sp])
-					wBloch[q] += dagger(VdagCq[sp]) * wVdagCq[sp];
-		}
-	//Convert to Wannier basis:
+	//Compute matrix elements of w between Bloch states at full k mesh:
 	matrix wWannierTilde = zeroes(nCenters*nCenters, phase.nRows());
 	int iqMine = 0;
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-	{	matrix wSub = wBloch[kMesh[i].point.iReduced + iSpin*qCount];
-		if(kMesh[i].point.invert<0) //apply complex conjugate if needed:
-			callPref(eblas_dscal)(wSub.nData(), -1., ((double*)wSub.dataPref())+1, 2);
+	{	//Direct contributions from bands:
+		const ColumnBundle& Ck = getWfns(kMesh[i].point, iSpin);
+		matrix wSub = Ck ^ Idag_DiagV_I(Ck, JdagOJw);
+		//Ultrasoft augmentation:
+		for(const auto& sp: e.iInfo.species)
+			if(sp->isUltrasoft())
+			{	matrix VdagCk = (*sp->getV(Ck)) ^ Ck, wVdagCk;
+				sp->augmentDensitySphericalGrad(*(Ck.qnum), VdagCk, wVdagCk);
+				wSub += dagger(VdagCk) * wVdagCk;
+			}
+		
 		wSub = dagger(kMesh[i].U) * wSub * kMesh[i].U; //apply MLWF-optimized rotations
 		callPref(eblas_copy)(wWannierTilde.dataPref()+wWannierTilde.index(0,iqMine), wSub.dataPref(), wSub.nData());
 		iqMine++;
 	}
 	//Fourier transform to Wannier space and save
-	dumpWannierized(wWannierTilde, phase, "mlwfW", realPartOnly, iSpin);
+	dumpWannierized(wWannierTilde, phase, varName, realPartOnly, iSpin);
 }
 
 

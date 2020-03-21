@@ -32,6 +32,7 @@ enum WannierMember
 	WM_saveWfnsRealSpace,
 	WM_saveMomenta,
 	WM_saveSpin,
+	WM_saveZ,
 	WM_slabWeight,
 	WM_loadRotations,
 	WM_eigsOverride,
@@ -55,6 +56,7 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
 	WM_saveMomenta, "saveMomenta",
 	WM_saveSpin, "saveSpin",
+	WM_saveZ, "saveZ",
 	WM_slabWeight, "slabWeight",
 	WM_loadRotations, "loadRotations",
 	WM_eigsOverride, "eigsOverride",
@@ -130,6 +132,10 @@ struct CommandWannier : public Command
 			"\n+ saveSpin yes|no\n\n"
 			"   Whether to write spin matrix elements (for non-collinear calculations only).\n"
 			"   Default: no.\n"
+			"\n+ saveZ yes|no\n\n"
+			"   Whether to write matrix elements of position operator z (for electric field perturbations).\n"
+			"   Note that z refers to the third lattice direction, which must be truncated.\n"
+			"   Default: no.\n"
 			"\n+ slabWeight <z0> <zH> <zSigma>\n\n"
 			"   If specified, output the Wannier matrix elements of a slab weight function\n"
 			"   centered at z0 (lattice coordinates) with half-width zH (lattice coordinates)\n"
@@ -170,6 +176,7 @@ struct CommandWannier : public Command
 			"   Default: false.";
 		
 		require("spintype");
+		require("coulomb-interaction");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -215,6 +222,11 @@ struct CommandWannier : public Command
 					pl.get(wannier.saveSpin, false, boolMap, "saveSpin", true);
 					if(wannier.saveSpin and not e.eInfo.isNoncollinear())
 						throw string("saveSpin requires noncollinear spin mode");
+					break;
+				case WM_saveZ:
+					pl.get(wannier.saveZ, false, boolMap, "saveZ", true);
+					if(wannier.saveZ and not e.coulombParams.isTruncated()[2])
+						throw string("saveZ requires third lattice direction to be truncated");
 					break;
 				case WM_slabWeight:
 					pl.get(wannier.z0, 0., "z0", true);
@@ -266,6 +278,7 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
 		logPrintf(" \\\n\tsaveMomenta %s", boolMap.getString(wannier.saveMomenta));
 		logPrintf(" \\\n\tsaveSpin %s", boolMap.getString(wannier.saveSpin));
+		logPrintf(" \\\n\tsaveZ %s", boolMap.getString(wannier.saveZ));
 		if(wannier.zH)
 			logPrintf(" \\\n\tslabWeight %lg %lg %lg", wannier.z0, wannier.zH, wannier.zSigma);
 		logPrintf(" \\\n\tloadRotations %s", boolMap.getString(wannier.loadRotations));
