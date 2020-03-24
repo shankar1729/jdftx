@@ -132,9 +132,14 @@ struct CommandWannier : public Command
 			"\n+ saveSpin yes|no\n\n"
 			"   Whether to write spin matrix elements (for non-collinear calculations only).\n"
 			"   Default: no.\n"
-			"\n+ saveZ yes|no\n\n"
-			"   Whether to write matrix elements of position operator z (for electric field perturbations).\n"
-			"   Note that z refers to the third lattice direction, which must be truncated.\n"
+			"\n+ saveZ <Vfilename> <Emag>\n\n"
+			"   If specified, output matrix elements of z for perturbative electric field in post processing.\n"
+			"   <Vfilename> is Vscloc output from a calculation with an applied electric field, and it\n"
+			"   should be in the dump-name format contain $VAR (as in command fix-electron-potential).\n"
+			"   <Emag> is the magnitude of the difference in electric field (in Eh/a0) between that calculation\n"
+			"   and the present case. This combination is used to compute the matrix element accounting\n"
+			"   for static local field effects due to the response of the system to the electric field.\n"
+			"   Alternately, specify <Vfilename>=Ramp and <Emag>=0 to use a ramp potential (no local field).\n"
 			"   Default: no.\n"
 			"\n+ slabWeight <z0> <zH> <zSigma>\n\n"
 			"   If specified, output the Wannier matrix elements of a slab weight function\n"
@@ -224,9 +229,18 @@ struct CommandWannier : public Command
 						throw string("saveSpin requires noncollinear spin mode");
 					break;
 				case WM_saveZ:
-					pl.get(wannier.saveZ, false, boolMap, "saveZ", true);
-					if(wannier.saveZ and not e.coulombParams.isTruncated()[2])
-						throw string("saveZ requires third lattice direction to be truncated");
+					pl.get(wannier.zVfilename, string(), "Vfilename", true);
+					pl.get(wannier.zFieldMag, 0., "Emag", true);
+					if(wannier.zVfilename == "Ramp")
+					{	if(not e.coulombParams.isTruncated()[2])
+							throw string("saveZ in ramp mode requires third lattice direction to be truncated");
+					}
+					else
+					{	if(wannier.zVfilename.find("$VAR") == string::npos)
+							throw string("<Vfilename> must contain $VAR");
+						if(not wannier.zFieldMag)
+							throw string("<Emag> must be non-zero when reading in another potential");
+					}
 					break;
 				case WM_slabWeight:
 					pl.get(wannier.z0, 0., "z0", true);
@@ -278,7 +292,8 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
 		logPrintf(" \\\n\tsaveMomenta %s", boolMap.getString(wannier.saveMomenta));
 		logPrintf(" \\\n\tsaveSpin %s", boolMap.getString(wannier.saveSpin));
-		logPrintf(" \\\n\tsaveZ %s", boolMap.getString(wannier.saveZ));
+		if(wannier.zVfilename.length())
+			logPrintf(" \\\n\tsaveZ %s %lg", wannier.zVfilename.c_str(), wannier.zFieldMag);
 		if(wannier.zH)
 			logPrintf(" \\\n\tslabWeight %lg %lg %lg", wannier.z0, wannier.zH, wannier.zSigma);
 		logPrintf(" \\\n\tloadRotations %s", boolMap.getString(wannier.loadRotations));

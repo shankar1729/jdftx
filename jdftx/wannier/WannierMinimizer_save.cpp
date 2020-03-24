@@ -182,7 +182,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	saveMLWF_H(iSpin, phase); //Hamiltonian
 	if(wannier.saveMomenta) saveMLWF_P(iSpin, phase); //Momenta
 	if(wannier.saveSpin) saveMLWF_S(iSpin, phase); //Spins
-	if(wannier.saveZ) saveMLWF_Z(iSpin, phase); //z position
+	if(wannier.zVfilename.length()) saveMLWF_Z(iSpin, phase); //z position
 	if(wannier.zH) saveMLWF_W(iSpin, phase); //Slab weights
 	saveMLWF_ImSigma_ee(iSpin, phase);
 	
@@ -402,11 +402,11 @@ inline void slabWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S
 void WannierMinimizer::saveMLWF_W(int iSpin, const matrix& phase)
 {	assert(wannier.zH);
 	//Construct slab weight function:
-	ScalarField w;
+	ScalarFieldArray w(1);
 	{	ScalarFieldTilde wTilde; nullToZero(wTilde, e.gInfo);
 		threadLaunch(slabWeight_thread, e.gInfo.nG, e.gInfo.S, e.gInfo.GGT,
 			wTilde->data(), wannier.z0, wannier.zH, wannier.zSigma);
-		w = I(wTilde);
+		w[0] = I(wTilde);
 	}
 	saveMLWF(iSpin, phase, w, "mlwfW");
 }
@@ -422,23 +422,38 @@ inline void zWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S, d
 	)
 }
 
+void readDensityArray(ScalarFieldArray& var, string varName, string fnamePattern, const Everything* e); //declared in ElecVars.cpp
+
 //Save z position matrix elements in Wannier basis, if requested:
 void WannierMinimizer::saveMLWF_Z(int iSpin, const matrix& phase)
-{	assert(wannier.saveZ);
-	assert(e.coulombParams.isTruncated()[2]);
-	//Construct slab weight function:
-	ScalarField z; nullToZero(z, e.gInfo);
-	double Lz = e.gInfo.R.column(2).length();
-	double z0 = e.coulombParams.embedCenter[2]; //in lattice coordinates
-	threadLaunch(zWeight_thread, e.gInfo.nr, e.gInfo.S, Lz, z0, z->data());
-	z = I(gaussConvolve(J(z), 1.)); //smooth transition at boundary
+{	assert(wannier.zVfilename.length());
+	ScalarFieldArray z; 
+	if(wannier.zVfilename == "Ramp")
+	{	//Construct ramp along third lattice direction:
+		assert(e.coulombParams.isTruncated()[2]);
+		nullToZero(z, e.gInfo, 1);
+		double Lz = e.gInfo.R.column(2).length();
+		double z0 = e.coulombParams.embedCenter[2]; //in lattice coordinates
+		threadLaunch(zWeight_thread, e.gInfo.nr, e.gInfo.S, Lz, z0, z[0]->data());
+		z[0] = I(gaussConvolve(J(z[0]), 1.)); //smooth transition at boundary
+	}
+	else
+	{	//Construct from difference in potentials (account for local field):
+		assert(wannier.zFieldMag); //must have calculation with a different field read in
+		ScalarFieldArray V0, V1;
+		readDensityArray(V0, "Vscloc", wannier.initFilename, &e); //current V
+		readDensityArray(V1, "Vscloc", wannier.zVfilename, &e); //V from changed Efield
+		z = (1./(wannier.zFieldMag*e.gInfo.dV)) * (V1-V0);
+	}
 	saveMLWF(iSpin, phase, z, "mlwfZ");
 }
 
 //Helper function for scalar field matrix elements (eg. slab and z)
-void WannierMinimizer::saveMLWF(int iSpin, const matrix& phase, const ScalarField& w, string varName)
+void WannierMinimizer::saveMLWF(int iSpin, const matrix& phase, const ScalarFieldArray& w, string varName)
 {	//Prepare scalar field for direct and augmented contributions:
-	ScalarFieldArray JdagOJw(1, JdagOJ(w));
+	ScalarFieldArray JdagOJw;
+	for(const ScalarField& wi: w)
+		JdagOJw.push_back(JdagOJ(wi));
 	e.iInfo.augmentDensityGridGrad(JdagOJw);
 	//Compute matrix elements of w between Bloch states at full k mesh:
 	matrix wWannierTilde = zeroes(nCenters*nCenters, phase.nRows());

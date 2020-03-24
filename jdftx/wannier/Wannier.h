@@ -72,7 +72,9 @@ public:
 	bool saveWfnsRealSpace; //!< whether to output Wannier functions band-by-band in real-space
 	bool saveMomenta; //!< whether to output momentum matrix elements
 	bool saveSpin; //!< whether to output spin matrix elements (non-collinear only)
-	bool saveZ; //!< whether to output z matrix elements
+	
+	string zVfilename; //!< filename for reading Vscloc with an applied electric field for z matrix element output
+	double zFieldMag; //!< magnitude of electric field difference (Eh/a0) between current calculation and the specified Vscloc
 	
 	double z0, zH, zSigma; //!< center (lattice coords), half-width (lattice coords) and smoothness (bohrs) for slab-weight function
 

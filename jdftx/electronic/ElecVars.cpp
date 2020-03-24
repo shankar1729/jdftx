@@ -52,6 +52,32 @@ void applyBoxPot(int i, vector3<> r, matrix3<>& R, const ElecVars::BoxPotential*
 	Vbox[i] = bP->Vin;
 }
 
+//Helper function to read density (or potential) array
+void readDensityArray(ScalarFieldArray& var, string varName, string fnamePattern, const Everything* e)
+{
+	#define READchannel(var, suffix) \
+	{	string fname = fnamePattern; \
+		size_t pos = fname.find("$VAR"); \
+		assert(pos != string::npos); \
+		fname.replace(pos,4, (suffix)); \
+		logPrintf("Reading %s from file '%s' ... ", (suffix).c_str(), fname.c_str()); logFlush(); \
+		nullToZero(var, e->gInfo); \
+		loadRawBinary(var, fname.c_str()); \
+		logPrintf("done\n"); logFlush(); \
+	}
+	var.resize(e->eInfo.nDensities);
+	if(var.size()==1) { READchannel(var[0], varName) }
+	else
+	{	READchannel(var[0], varName+"_up")
+		READchannel(var[1], varName+"_dn")
+		if(var.size()==4)
+		{	READchannel(var[2], varName+"_re")
+			READchannel(var[3], varName+"_im")
+		}
+	}
+	#undef READchannel
+}
+
 void ElecVars::setup(const Everything &everything)
 {	
 	this->e = &everything;
@@ -131,28 +157,6 @@ void ElecVars::setup(const Everything &everything)
 	//Read in electron (spin) density if needed
 	if(e->cntrl.fixed_H)
 	{	string fnamePattern = nFilenamePattern.length() ? nFilenamePattern : VFilenamePattern; //Command ensures that the pattern has a "$VAR" in it
-		#define READchannel(var, suffix) \
-		{	string fname = fnamePattern; \
-			size_t pos = fname.find("$VAR"); \
-			assert(pos != string::npos); \
-			fname.replace(pos,4, suffix); \
-			logPrintf("Reading " #suffix " from file '%s' ... ", fname.c_str()); logFlush(); \
-			nullToZero(var, e->gInfo); \
-			loadRawBinary(var, fname.c_str()); \
-			logPrintf("done\n"); logFlush(); \
-		}
-		#define READ(var) \
-		{	var.resize(eInfo.nDensities); \
-			if(var.size()==1) { READchannel(var[0], #var) } \
-			else \
-			{	READchannel(var[0], #var "_up") \
-				READchannel(var[1], #var "_dn") \
-				if(var.size()==4) \
-				{	READchannel(var[2], #var "_re") \
-					READchannel(var[3], #var "_im") \
-				} \
-			} \
-		}
 		#define READrhoAtom(var) \
 		{	string fname = fnamePattern; \
 			size_t pos = fname.find("$VAR"); \
@@ -165,17 +169,16 @@ void ElecVars::setup(const Everything &everything)
 			logPrintf("done\n"); logFlush(); \
 		}
 		if(nFilenamePattern.length())
-		{	READ(n)
-			if(e->exCorr.needsKEdensity()) READ(tau)
+		{	readDensityArray(n, "n", fnamePattern, e);
+			if(e->exCorr.needsKEdensity()) readDensityArray(tau, "tau", fnamePattern, e);
 			if(eInfo.hasU) READrhoAtom(rhoAtom)
 		}
 		else
-		{	READ(Vscloc)
-			if(e->exCorr.needsKEdensity()) READ(Vtau)
+		{	readDensityArray(Vscloc, "Vscloc", fnamePattern, e);
+			if(e->exCorr.needsKEdensity()) readDensityArray(Vtau, "Vtau", fnamePattern, e);
 			if(eInfo.hasU) READrhoAtom(U_rhoAtom)
 		}
-		#undef READ
-		#undef READchannel
+		#undef READrhoAtom
 	}
 	
 	//Wavefunction initialiation (bypass in dry runs and phonon supercell calculations)

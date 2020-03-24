@@ -196,7 +196,7 @@ private:
 	void saveMLWF_S(int iSpin, const matrix& phase); //Spins
 	void saveMLWF_W(int iSpin, const matrix& phase); //Slab weights
 	void saveMLWF_Z(int iSpin, const matrix& phase); //z position operator
-	void saveMLWF(int iSpin, const matrix& phase, const ScalarField& w, string varName); //helper function for scalar field matrix elements (eg. slab and z)
+	void saveMLWF(int iSpin, const matrix& phase, const ScalarFieldArray& w, string varName); //helper function for scalar field matrix elements (eg. slab and z)
 	void saveMLWF_ImSigma_ee(int iSpin, const matrix& phase); //e-e linewidths
 	void saveMLWF_phonon(int iSpin); //e-ph matrix elements and related
 };
