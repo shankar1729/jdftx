@@ -417,6 +417,7 @@ inline void zWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S, d
 	THREAD_rLoop
 	(	z[i] = invSz*iv[2] - z0;
 		z[i] -= floor(0.5 + z[i]); //wrap to [-0.5,0.5)
+		if(fabs(z[i]) > 0.5-symmThreshold) z[i] = 0.; //Nyquist component
 		z[i] *= Lz; //convert to Cartesian bohrs
 	)
 }
@@ -430,6 +431,7 @@ void WannierMinimizer::saveMLWF_Z(int iSpin, const matrix& phase)
 	double Lz = e.gInfo.R.column(2).length();
 	double z0 = e.coulombParams.embedCenter[2]; //in lattice coordinates
 	threadLaunch(zWeight_thread, e.gInfo.nr, e.gInfo.S, Lz, z0, z->data());
+	z = I(gaussConvolve(J(z), 1.)); //smooth transition at boundary
 	saveMLWF(iSpin, phase, z, "mlwfZ");
 }
 
@@ -452,7 +454,12 @@ void WannierMinimizer::saveMLWF(int iSpin, const matrix& phase, const ScalarFiel
 				sp->augmentDensitySphericalGrad(*(Ck.qnum), VdagCk, wVdagCk);
 				wSub += dagger(VdagCk) * wVdagCk;
 			}
-		
+		//Suppress large off-diagonal matrix elements for numerical stability:
+		const diagMatrix& Ek = e.eVars.Hsub_eigs[kMesh[i].point.iReduced];
+		complex* wSubData = wSub.data();
+		for(int b1=0; b1<nBands; b1++)
+			for(int b2=0; b2<nBands; b2++)
+				*(wSubData++) *= exp(-0.5*std::pow((Ek[b1]-Ek[b2])/0.1, 2));
 		wSub = dagger(kMesh[i].U) * wSub * kMesh[i].U; //apply MLWF-optimized rotations
 		callPref(eblas_copy)(wWannierTilde.dataPref()+wWannierTilde.index(0,iqMine), wSub.dataPref(), wSub.nData());
 		iqMine++;
