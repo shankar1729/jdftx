@@ -165,3 +165,29 @@ struct CommandLjOverride : public Command
 	}
 }
 commandLjOverride;
+
+struct CommandThermostatVelocity : public Command
+{
+	CommandThermostatVelocity() : Command("thermostat-velocity", "jdftx/Ionic/Optimization")
+	{	format = "<v1> <v2> ...";
+		comments =
+			"Read thermostat internal velocities for continuing ionic dynamics.\n"
+			"This command is automatically dumped with ionpos from dynamics simulations\n"
+			"using Nose-Hoover chains that involve thermostat internal velocities.";
+	}
+	
+	void process(ParamList& pl, Everything& e)
+	{	e.iInfo.thermo.clear();
+		while(true)
+		{	double v = NAN;
+			pl.get(v, v, "v");
+			if(std::isnan(v)) break;
+			e.iInfo.thermo.push_back(v);
+		}
+	}
+	
+	void printStatus(Everything& e, int iRep)
+	{	for(const double& v: e.iInfo.thermo) logPrintf("%lg ", v);
+	}
+}
+commandThermostatVelocity;

@@ -49,6 +49,13 @@ IonicDynamics::IonicDynamics(Everything& e)
 	if(not nDOF)
 		die("No degrees of freedom for IonicDynamics.\n\n");
 	
+	//Thermostat initialization:
+	const IonicDynamicsParams& idp = e.ionicDynParams;
+	const int nDimThermo = (idp.statMethod==IonicDynamicsParams::NoseHoover)
+		? (idp.chainLengthT + (std::isnan(idp.P0+trace(idp.stress0)) ? 0 : idp.chainLengthP))
+		: 0;
+	e.iInfo.thermo.resize(nDimThermo, 0.);
+	
 	//Initialize velocities if necessary:
 	if(vInitNeeded)
 		initializeVelocities();
@@ -61,17 +68,15 @@ IonicDynamics::IonicDynamics(Everything& e)
 
 void IonicDynamics::initializeVelocities()
 {	//Initialize random velocities with |v|^2 ~ 1/M
-	for(auto& sp: e.iInfo.species)
-	{	double invsqrtM = 1./sqrt(sp->mass);
-		for(vector3<>& vel: sp->velocities)
-		{	for(int iDir=0; iDir<3; iDir++)
-				vel[iDir] = Random::normal() * invsqrtM;
-			vel = e.gInfo.invR * vel; //convert to lattice coords
-		}
+	IonicGradient vel; vel.init(e.iInfo);
+	randomize(vel); //unit normal distribution
+	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
+	{	double invsqrtM = 1./sqrt(e.iInfo.species[sp]->mass);
+		for(vector3<>& v: vel[sp]) v *= invsqrtM;
 	}
+	vel.thermo = e.iInfo.thermo;
 	
 	//Apply constraints:
-	IonicGradient vel = getVelocities();
 	imin.constrain(vel);
 	setVelocities(vel);
 	
@@ -92,6 +97,7 @@ IonicGradient IonicDynamics::getVelocities()
 		for(size_t at=0; at<spInfo.atpos.size(); at++)
 			v[sp][at] = e.gInfo.R * spInfo.velocities[at];
 	}
+	v.thermo = e.iInfo.thermo;
 	return v;
 }
 
@@ -102,6 +108,7 @@ void IonicDynamics::setVelocities(const IonicGradient& v)
 		for(size_t at=0; at<spInfo.atpos.size(); at++)
 			spInfo.velocities[at] = e.gInfo.invR * v[sp][at];
 	}
+	e.iInfo.thermo = v.thermo;
 }
 
 
@@ -139,6 +146,7 @@ IonicGradient IonicDynamics::computePE()
 	PE = imin.compute(&gradUnused, &accel); //In dynamicsMode, IonicMinimizer::compute replaces Kgrad with acceleration
 	if(std::isnan(PE))
 		die("\nIonicDynamics: step caused pseudopotential core overlap (try core-overlap-check none).\n\n");
+	accel.thermo.assign(e.iInfo.thermo.size(), 0.);
 	return accel;
 }
 
@@ -148,12 +156,36 @@ IonicGradient IonicDynamics::thermostat()
 	computeKE();
 	computePressure();
 	//Compute velocity-dependent forces (non-zero if thermostatting):
-	IonicGradient accelV; accelV.init(e.iInfo);
-	if(idp.T0)
+	IonicGradient accelV;
+	accelV.init(e.iInfo);
+	accelV.thermo.resize(e.iInfo.thermo.size());
+	if(idp.statMethod != IonicDynamicsParams::StatNone)
 	{	double relErrKE = KE/(0.5*nDOF*idp.T0) - 1.;
 		double omegaDamp = 1./idp.tDampT;
-		//Berendsen thermostat (hard-coded):
-		double minusGammaDamp = -0.5*omegaDamp*relErrKE;
+		//Compute damping term depending on thermostat:
+		double minusGammaDamp = 0.;
+		switch(idp.statMethod)
+		{	case IonicDynamicsParams::Berendsen:
+			{	minusGammaDamp = -0.5*omegaDamp*relErrKE;
+				break;
+			}
+			case IonicDynamicsParams::NoseHoover:
+			{	minusGammaDamp = -e.iInfo.thermo[0];
+				double omegaDampSq = omegaDamp*omegaDamp;
+				for(int j=0; j<idp.chainLengthT; j++)
+				{	//Coupling to system / previous thermostat DOF:
+					accelV.thermo[j] = (j==0)
+						? omegaDampSq * relErrKE
+						: (j==1 ? nDOF : 1) * std::pow(e.iInfo.thermo[j-1],2) - omegaDampSq;
+					//Coupling to next thermostat DOF:
+					if(j+1 < idp.chainLengthT)
+						accelV.thermo[j] -= e.iInfo.thermo[j] * e.iInfo.thermo[j+1];
+				}
+				break;
+			}
+			case IonicDynamicsParams::StatNone: break; //Never reached (just to suppress compiler warning)
+		}
+		//Add damping term to atom velocities
 		for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
 		{	const SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
 			for(size_t at=0; at<spInfo.atpos.size(); at++)
