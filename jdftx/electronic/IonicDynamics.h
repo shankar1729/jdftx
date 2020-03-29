@@ -53,7 +53,8 @@ private:
 	void setVelocities(const IonicGradient&); //!< Set SpeciesInfo velocities from Cartesian-coordinate version
 	void computePressure(); //!< Update pressure and stress
 	void computeKE(); //!< Update kinetic energy and temperature
-	void computePE(IonicGradient& accel); //!< Update potential energy and set acceleration
+	IonicGradient computePE(); //!< Update potential energy and return acceleration (due to potential forces)
+	IonicGradient thermostat(); //!< Return velocity-dependent acceleration due to thermostat (calls computeKE and computePressure)
 	bool report(int iter, double t); //!< Report properties at current step
 };
 

@@ -134,12 +134,37 @@ void IonicDynamics::computeKE()
 	T = 2*KE/nDOF;
 }
 
-void IonicDynamics::computePE(IonicGradient& accel)
-{	IonicGradient gradUnused;
+IonicGradient IonicDynamics::computePE()
+{	IonicGradient gradUnused, accel;
 	PE = imin.compute(&gradUnused, &accel); //In dynamicsMode, IonicMinimizer::compute replaces Kgrad with acceleration
 	if(std::isnan(PE))
 		die("\nIonicDynamics: step caused pseudopotential core overlap (try core-overlap-check none).\n\n");
+	return accel;
 }
+
+IonicGradient IonicDynamics::thermostat()
+{	const IonicDynamicsParams& idp = e.ionicDynParams;
+	//Update KE and pressure first:
+	computeKE();
+	computePressure();
+	//Compute velocity-dependent forces (non-zero if thermostatting):
+	IonicGradient accelV; accelV.init(e.iInfo);
+	if(idp.T0)
+	{	double relErrKE = KE/(0.5*nDOF*idp.T0) - 1.;
+		double omegaDamp = 1./idp.tDampT;
+		//Berendsen thermostat (hard-coded):
+		double minusGammaDamp = -0.5*omegaDamp*relErrKE;
+		for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
+		{	const SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+			for(size_t at=0; at<spInfo.atpos.size(); at++)
+			{	vector3<> vCart = e.gInfo.R * spInfo.velocities[at]; //current Cartesian velocity
+				accelV[sp][at] = minusGammaDamp * vCart;
+			}
+		}
+	}
+	return accelV;
+}
+
 
 bool IonicDynamics::report(int iter, double t)
 {	logPrintf("\nIonicDynamics: Step: %3d  PE: %10.6lf  KE: %10.6lf  T[K]: %8.3lf  P[Bar]: %8.4le  tMD[fs]: %9.2lf  t[s]: %9.2lf\n",
@@ -156,10 +181,7 @@ void IonicDynamics::run()
 	
 	//Initial energies and forces
 	if(nAccumNeeded) nullToZero(e.eVars.nAccum, e.gInfo);
-	IonicGradient accel; //in Cartesian coordinates
-	computePE(accel);
-	computeKE();
-	computePressure();
+	IonicGradient accel = computePE(), accelV = thermostat(); //in Cartesian coordinates
 	
 	for(int iter=0; iter<=idp.nSteps; iter++)
 	{	double t = iter*idp.dt;
@@ -167,25 +189,20 @@ void IonicDynamics::run()
 		if(iter==idp.nSteps) break;
 		
 		//Velocity Verlet step:
+		//--- velocity update: first half step
 		IonicGradient vel = getVelocities();
-		axpy(0.5*idp.dt, accel, vel); //Velocity update: first half step
-		imin.step(vel, idp.dt); //update positions
-		computePE(accel); //update acceleration
-		axpy(0.5*idp.dt, accel, vel); //Velocity update: second half step
+		axpy(0.5*idp.dt, accel+accelV, vel);
+		//--- position and position-dependent acceleration update:
+		imin.step(vel, idp.dt);
+		accel = computePE();
+		//--- velocity update: second half step estimator
+		axpy(0.5*idp.dt, accel+accelV, vel); //note second-order error here due to first-order error in accelV
 		setVelocities(vel);
-		
-		//Thermostats
-		computeKE();
-		if(idp.T0)
-		{	//Berendsen thermostat (currently hard-coded):
-			double scaleFactorKE = 1. + (idp.dt/idp.tDampT)*(0.5*nDOF*idp.T0/KE - 1.);
-			double scaleFactorVel = sqrt(scaleFactorKE);
-			KE *= scaleFactorKE;
-			for(auto& sp: e.iInfo.species)
-				for(vector3<>& vel: sp->velocities)
-					vel *= scaleFactorVel;
-		}
-		computePressure();
+		//--- velocity update: second half step corrector
+		IonicGradient accelVnew = thermostat();
+		axpy(0.5*idp.dt, accelVnew-accelV, vel); //corrects second-order error introduced in estimator step
+		setVelocities(vel);
+		accelV = thermostat();
 		
 		//Accumulate the averaged electronic density over the trajectory
 		if(nAccumNeeded and (not e.iInfo.ljOverride))
