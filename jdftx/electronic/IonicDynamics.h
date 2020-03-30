@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_IONICDYNAMICS_H
 #define JDFTX_ELECTRONIC_IONICDYNAMICS_H
 
-#include <electronic/IonicMinimizer.h>
+#include <electronic/LatticeMinimizer.h>
 #include <core/matrix3.h>
 
 //! @addtogroup IonicSystem
@@ -37,7 +37,10 @@ private:
 	int nAtomsTot; //!< total number of atoms
 	int nDOF; //!< number of degrees of freedom
 	double Mtot; //!< total mass of system
-	IonicMinimizer imin; //!< Just to be able to call IonicMinimizer::step(). Doesn't minimize anything.
+	bool statT; //!< whether temperature is stat'd (any thermostat)
+	bool statP; //!< whether pressure is stat'd (hydrostatic barostat)
+	bool statStress; //!<  whether stress is stat'd (anisotropic barostat)
+	LatticeMinimizer lmin; //!< Helper class for changing atomic positions / lattice vectors (doesn't minimize anything)
 	bool nAccumNeeded; //!< Whether accumulated electron density is needed
 	
 	//Current thermodynamic properties:
@@ -49,12 +52,12 @@ private:
 	
 	//Utility functions
 	void initializeVelocities(); //!< Initialize Maxwell-Boltzmann distribution of velocities
-	IonicGradient getVelocities(); //!< Get Cartesian velocities from SpeciesInfo lattice-coordinate versions
-	void setVelocities(const IonicGradient&); //!< Set SpeciesInfo velocities from Cartesian-coordinate version
+	LatticeGradient getVelocities(); //!< Get Cartesian velocities from SpeciesInfo lattice-coordinate versions
+	void setVelocities(const LatticeGradient&); //!< Set SpeciesInfo velocities from Cartesian-coordinate version
 	void computePressure(); //!< Update pressure and stress
 	void computeKE(); //!< Update kinetic energy and temperature
-	IonicGradient computePE(); //!< Update potential energy and return acceleration (due to potential forces)
-	IonicGradient thermostat(); //!< Return velocity-dependent acceleration due to thermostat (calls computeKE and computePressure)
+	LatticeGradient computePE(); //!< Update potential energy and return acceleration (due to potential forces)
+	LatticeGradient thermostat(); //!< Return velocity-dependent acceleration due to thermostat (calls computeKE and computePressure)
 	bool report(int iter, double t); //!< Report properties at current step
 };
 

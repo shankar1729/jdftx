@@ -27,17 +27,45 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 LatticeGradient& LatticeGradient::operator*=(double scale)
 {	lattice *= scale;
 	ionic *= scale;
+	for(double& v: thermo) v *= scale;
 	return *this;
 }
+
+LatticeGradient& LatticeGradient::operator+=(const LatticeGradient& other)
+{	axpy(1., other, *this);
+	return *this;
+}
+
+LatticeGradient LatticeGradient::operator+(const LatticeGradient& other) const
+{	LatticeGradient result(*this);
+	axpy(1., other, result);
+	return result;
+}
+
+LatticeGradient LatticeGradient::operator-(const LatticeGradient& other) const
+{	LatticeGradient result(*this);
+	axpy(-1., other, result);
+	return result;
+}
+
 void axpy(double alpha, const LatticeGradient& x, LatticeGradient& y)
 {	y.lattice += alpha * x.lattice;
 	axpy(alpha, x.ionic, y.ionic);
+	//Optional thermostat DOFs used only by IonicDynamics:
+	assert(x.thermo.size() == y.thermo.size());
+	for(size_t i=0; i<x.thermo.size(); i++)
+		y.thermo[i] += alpha * x.thermo[i];
 }
 double dot(const matrix3<>& x, const matrix3<>& y)
 {	return trace(x*(~y));
 }
 double dot(const LatticeGradient& x, const LatticeGradient& y)
-{	return dot(x.lattice,y.lattice) + dot(x.ionic,y.ionic);
+{	double result = dot(x.lattice,y.lattice) + dot(x.ionic,y.ionic);
+	//Optional thermostat DOFs used only by IonicDynamics:
+	assert(x.thermo.size() == y.thermo.size());
+	for(size_t i=0; i<x.thermo.size(); i++)
+		result += x.thermo[i] * y.thermo[i];
+	return result;
 }
 inline double nrm2(LatticeGradient& x) { return sqrt(dot(x,x)); }
 LatticeGradient clone(const LatticeGradient& x) { return x; }
@@ -46,6 +74,8 @@ void randomize(LatticeGradient& x)
 		for(int j=i; j<3; j++)
 			x.lattice(i,j) = (x.lattice(j,i) = Random::normal());
 	randomize(x.ionic);
+	//Optional thermostat DOFs used only by IonicDynamics:
+	for(double& v: x.thermo) v = Random::normal();
 }
 
 void bcast(matrix3<>& x)
@@ -55,10 +85,11 @@ void bcast(matrix3<>& x)
 
 //-------------  class LatticeMinimizer -----------------
 
-LatticeMinimizer::LatticeMinimizer(Everything& e)
-: e(e), imin(e), Rorig(e.gInfo.R), skipWfnsDrag(false)
+LatticeMinimizer::LatticeMinimizer(Everything& e, bool dynamicsMode, bool statP, bool statStress)
+: e(e), dynamicsMode(dynamicsMode), statP(statP), statStress(statStress),
+	imin(e, dynamicsMode), Rorig(e.gInfo.R), skipWfnsDrag(false)
 {
-	logPrintf("\n--------- Lattice Minimization ---------\n");
+	if(not dynamicsMode) logPrintf("\n--------- Lattice Minimization ---------\n");
 	
 	//Ensure that lattice-move-scale is commensurate with symmetries:
 	const std::vector<SpaceGroupOp>& sym = e.symm.getMatrices();
@@ -86,7 +117,7 @@ LatticeMinimizer::LatticeMinimizer(Everything& e)
 			Pfree -= outer(vk, vk); //project out this direction
 		}
 		else lattMoveScaleMean += e.cntrl.lattMoveScale[k];
-	if(vFixed.size()==3)
+	if(vFixed.size()==3 and (not dynamicsMode))
 		die("No lattice directions free for lattice minimization due to truncation and/or latt-move-scale.\n\n");
 	lattMoveScaleMean /= (3.-vFixed.size());
 	
@@ -95,7 +126,12 @@ LatticeMinimizer::LatticeMinimizer(Everything& e)
 }
 
 void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
-{	//Check if strain will become too large beforehand
+{	if(dynamicsMode and (not (statP or statStress)))
+	{	imin.step(dir.ionic, alpha); //since lattice constant, bypass more expensive processing below
+		return;
+	}
+	
+	//Check if strain will become too large beforehand
 	//(so that we can avoid updating wavefunctions for steps that will fail)
 	if(nrm2(strain+alpha*dir.lattice) > GridInfo::maxAllowedStrain) //strain will become large
 		skipWfnsDrag = true; //skip wavefunction drag till a 'real' compute occurs at an acceptable strain
@@ -179,8 +215,10 @@ double LatticeMinimizer::minimize(const MinimizeParams& params)
 }
 
 bool LatticeMinimizer::report(int iter)
-{	logPrintf("# Lattice vectors:\n"); e.gInfo.printLattice();
-	logPrintf("\n# Strain tensor in Cartesian coordinates:\n"); strain.print(globalLog, "%12lg ", true, 1e-14);
+{	if((not dynamicsMode) or statP or statStress)
+	{	logPrintf("# Lattice vectors:\n"); e.gInfo.printLattice();
+		logPrintf("\n# Strain tensor in Cartesian coordinates:\n"); strain.print(globalLog, "%12lg ", true, 1e-14);
+	}
 	return imin.report(iter); //IonicMinimizer::report will print stress, atomic positions, forces etc.
 }
 

@@ -89,8 +89,6 @@ IonicGradient& IonicGradient::operator*=(double s)
 {	for(unsigned sp=0; sp<size(); sp++)
 		for(unsigned atom=0; atom<at(sp).size(); atom++)
 			at(sp)[atom] *= s;
-	//Optional thermostat DOFs used only by IonicDynamics:
-	for(double& v: thermo) v *= s;
 	return *this;
 }
 
@@ -124,10 +122,6 @@ void axpy(double alpha, const IonicGradient& x, IonicGradient& y)
 		for(unsigned atom=0; atom<x[sp].size(); atom++)
 			y[sp][atom] += alpha * x[sp][atom];
 	}
-	//Optional thermostat DOFs used only by IonicDynamics:
-	assert(x.thermo.size() == y.thermo.size());
-	for(size_t i=0; i<x.thermo.size(); i++)
-		y.thermo[i] += alpha * x.thermo[i];
 }
 
 double dot(const IonicGradient& x, const IonicGradient& y)
@@ -138,10 +132,6 @@ double dot(const IonicGradient& x, const IonicGradient& y)
 		for(unsigned atom=0; atom<x[sp].size(); atom++)
 			result += dot(x[sp][atom], y[sp][atom]);
 	}
-	//Optional thermostat DOFs used only by IonicDynamics:
-	assert(x.thermo.size() == y.thermo.size());
-	for(size_t i=0; i<x.thermo.size(); i++)
-		result += x.thermo[i] * y.thermo[i];
 	return result;
 }
 
@@ -154,8 +144,6 @@ void randomize(IonicGradient& x)
 		for(unsigned atom=0; atom<x[sp].size(); atom++)
 			for(int k=0; k<3; k++)
 				x[sp][atom][k] = Random::normal();
-	//Optional thermostat DOFs used only by IonicDynamics:
-	for(double& v: x.thermo) v = Random::normal();
 }
 
 
@@ -164,7 +152,7 @@ IonicGradient operator*(const matrix3<>& mat, const IonicGradient& x)
 	for(unsigned sp=0; sp<x.size(); sp++)
 		for(unsigned atom=0; atom<x[sp].size(); atom++)
 			ret[sp][atom] = mat * x[sp][atom];
-	return ret; //thermostat DOFs assumed scalar and hence invariant under mat
+	return ret;
 }
 
 

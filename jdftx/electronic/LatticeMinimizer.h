@@ -30,8 +30,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 struct LatticeGradient
 {	matrix3<> lattice; //!< lattice component (stress)
 	IonicGradient ionic; //!< ionic or internal geometry component (forces)
-	
+	std::vector<double> thermo; //!< optional extra degrees of freedom used by thermostats in IonicDynamics
+
 	LatticeGradient& operator*=(double scale);
+	LatticeGradient& operator+=(const LatticeGradient&);
+	LatticeGradient operator+(const LatticeGradient&) const;
+	LatticeGradient operator-(const LatticeGradient&) const;
 };
 
 //Functions required by Minimizable<LatticeGradient>
@@ -44,7 +48,7 @@ void randomize(LatticeGradient& x); //!< initialize with random numbers
 class LatticeMinimizer : public Minimizable<LatticeGradient>
 {
 public:
-	LatticeMinimizer(Everything&);
+	LatticeMinimizer(Everything&, bool dynamicsMode=false, bool statP=false, bool statStress=false);
 	
 	//Virtual functions from Minimizable:
 	void step(const LatticeGradient& dir, double alpha);
@@ -58,7 +62,10 @@ public:
 	double minimize(const MinimizeParams& params); //!< minor addition to Minimizable::minimize to invoke charge analysis at final positions
 private:
 	Everything& e;
-	IonicMinimizer imin;
+	bool dynamicsMode; //!< whether LatticeMinimizer is operating as a helper class for IonicDynamics
+	bool statP; //!< in dynamicsMode, whether pressure is stat'd (hydrostatic barostat)
+	bool statStress; //!<  in dynamicsMode, whether stress is stat'd (anisotropic barostat)
+	IonicMinimizer imin; //!< acts as a helper to carry out force calculation, ionic steps and constraints
 	matrix3<> Rorig; //!< original lattice vectors (prior to relaxation)
 	matrix3<> strain; //!< minimizer state = strain relative to Rorig (i.e. R = Rorig * (1 + strain))
 	bool skipWfnsDrag; //!< whether to temporarily skip wavefunction drag due to large steps (for stability)

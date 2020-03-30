@@ -29,7 +29,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 
 IonicDynamics::IonicDynamics(Everything& e)
-: e(e), imin(IonicMinimizer(e, true)), nAccumNeeded(false)
+: e(e),
+	statT(e.ionicDynParams.statMethod!=IonicDynamicsParams::StatNone),
+	statP(statT and (not (std::isnan)(e.ionicDynParams.P0))),
+	statStress(statT and (not (std::isnan)(trace(e.ionicDynParams.stress0)))),
+	lmin(LatticeMinimizer(e, true, statP, statStress)), nAccumNeeded(false)
 {
 	logPrintf("---------- Ionic Dynamics -----------\n");
 	
@@ -52,7 +56,7 @@ IonicDynamics::IonicDynamics(Everything& e)
 	//Thermostat initialization:
 	const IonicDynamicsParams& idp = e.ionicDynParams;
 	const int nDimThermo = (idp.statMethod==IonicDynamicsParams::NoseHoover)
-		? (idp.chainLengthT + (std::isnan(idp.P0+trace(idp.stress0)) ? 0 : idp.chainLengthP))
+		? (idp.chainLengthT + ((statP or statStress) ? idp.chainLengthP : 0))
 		: 0;
 	e.iInfo.thermo.resize(nDimThermo, 0.);
 	
@@ -68,16 +72,16 @@ IonicDynamics::IonicDynamics(Everything& e)
 
 void IonicDynamics::initializeVelocities()
 {	//Initialize random velocities with |v|^2 ~ 1/M
-	IonicGradient vel; vel.init(e.iInfo);
+	LatticeGradient vel; vel.ionic.init(e.iInfo);
 	randomize(vel); //unit normal distribution
 	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
 	{	double invsqrtM = 1./sqrt(e.iInfo.species[sp]->mass);
-		for(vector3<>& v: vel[sp]) v *= invsqrtM;
+		for(vector3<>& v: vel.ionic[sp]) v *= invsqrtM;
 	}
 	vel.thermo = e.iInfo.thermo;
 	
 	//Apply constraints:
-	imin.constrain(vel);
+	lmin.constrain(vel);
 	setVelocities(vel);
 	
 	//Rescale to current temperature:
@@ -90,23 +94,23 @@ void IonicDynamics::initializeVelocities()
 }
 
 //Get Cartesian velocities from SpeciesInfo lattice-coordinate versions
-IonicGradient IonicDynamics::getVelocities()
-{	IonicGradient v; v.init(e.iInfo);
+LatticeGradient IonicDynamics::getVelocities()
+{	LatticeGradient v; v.ionic.init(e.iInfo);
 	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
 	{	const SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
 		for(size_t at=0; at<spInfo.atpos.size(); at++)
-			v[sp][at] = e.gInfo.R * spInfo.velocities[at];
+			v.ionic[sp][at] = e.gInfo.R * spInfo.velocities[at];
 	}
 	v.thermo = e.iInfo.thermo;
 	return v;
 }
 
 //Set SpeciesInfo velocities from Cartesian-coordinate version
-void IonicDynamics::setVelocities(const IonicGradient& v)
+void IonicDynamics::setVelocities(const LatticeGradient& v)
 {	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
 	{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
 		for(size_t at=0; at<spInfo.atpos.size(); at++)
-			spInfo.velocities[at] = e.gInfo.invR * v[sp][at];
+			spInfo.velocities[at] = e.gInfo.invR * v.ionic[sp][at];
 	}
 	e.iInfo.thermo = v.thermo;
 }
@@ -141,25 +145,25 @@ void IonicDynamics::computeKE()
 	T = 2*KE/nDOF;
 }
 
-IonicGradient IonicDynamics::computePE()
-{	IonicGradient gradUnused, accel;
-	PE = imin.compute(&gradUnused, &accel); //In dynamicsMode, IonicMinimizer::compute replaces Kgrad with acceleration
+LatticeGradient IonicDynamics::computePE()
+{	LatticeGradient gradUnused, accel;
+	PE = lmin.compute(&gradUnused, &accel); //In dynamicsMode, Lattice/IonicMinimizer::compute replaces Kgrad with acceleration
 	if(std::isnan(PE))
 		die("\nIonicDynamics: step caused pseudopotential core overlap (try core-overlap-check none).\n\n");
 	accel.thermo.assign(e.iInfo.thermo.size(), 0.);
 	return accel;
 }
 
-IonicGradient IonicDynamics::thermostat()
+LatticeGradient IonicDynamics::thermostat()
 {	const IonicDynamicsParams& idp = e.ionicDynParams;
 	//Update KE and pressure first:
 	computeKE();
 	computePressure();
 	//Compute velocity-dependent forces (non-zero if thermostatting):
-	IonicGradient accelV;
-	accelV.init(e.iInfo);
+	LatticeGradient accelV;
+	accelV.ionic.init(e.iInfo);
 	accelV.thermo.resize(e.iInfo.thermo.size());
-	if(idp.statMethod != IonicDynamicsParams::StatNone)
+	if(statT)
 	{	double relErrKE = KE/(0.5*nDOF*idp.T0) - 1.;
 		double omegaDamp = 1./idp.tDampT;
 		//Compute damping term depending on thermostat:
@@ -190,7 +194,7 @@ IonicGradient IonicDynamics::thermostat()
 		{	const SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
 			for(size_t at=0; at<spInfo.atpos.size(); at++)
 			{	vector3<> vCart = e.gInfo.R * spInfo.velocities[at]; //current Cartesian velocity
-				accelV[sp][at] = minusGammaDamp * vCart;
+				accelV.ionic[sp][at] = minusGammaDamp * vCart;
 			}
 		}
 	}
@@ -205,7 +209,7 @@ bool IonicDynamics::report(int iter, double t)
 	{	logPrintf("\n# Stress tensor including kinetic terms in Cartesian coordinates [Eh/a0^3]:\n");
 		stress.print(globalLog, "%12lg ", true, 1e-14);
 	}
-	return imin.report(iter);
+	return lmin.report(iter);
 }
 
 void IonicDynamics::run()
@@ -213,7 +217,7 @@ void IonicDynamics::run()
 	
 	//Initial energies and forces
 	if(nAccumNeeded) nullToZero(e.eVars.nAccum, e.gInfo);
-	IonicGradient accel = computePE(), accelV = thermostat(); //in Cartesian coordinates
+	LatticeGradient accel = computePE(), accelV = thermostat(); //in Cartesian coordinates
 	
 	for(int iter=0; iter<=idp.nSteps; iter++)
 	{	double t = iter*idp.dt;
@@ -222,16 +226,16 @@ void IonicDynamics::run()
 		
 		//Velocity Verlet step:
 		//--- velocity update: first half step
-		IonicGradient vel = getVelocities();
+		LatticeGradient vel = getVelocities();
 		axpy(0.5*idp.dt, accel+accelV, vel);
 		//--- position and position-dependent acceleration update:
-		imin.step(vel, idp.dt);
+		lmin.step(vel, idp.dt);
 		accel = computePE();
 		//--- velocity update: second half step estimator
 		axpy(0.5*idp.dt, accel+accelV, vel); //note second-order error here due to first-order error in accelV
 		setVelocities(vel);
 		//--- velocity update: second half step corrector
-		IonicGradient accelVnew = thermostat();
+		LatticeGradient accelVnew = thermostat();
 		axpy(0.5*idp.dt, accelVnew-accelV, vel); //corrects second-order error introduced in estimator step
 		setVelocities(vel);
 		accelV = thermostat();
