@@ -59,6 +59,9 @@ IonicDynamics::IonicDynamics(Everything& e)
 		? (idp.chainLengthT + ((statP or statStress) ? idp.chainLengthP : 0))
 		: 0;
 	e.iInfo.thermo.resize(nDimThermo, 0.);
+	if(statStress) stressTarget = idp.stress0;
+	if(statP) stressTarget = -idp.P0 * matrix3<>(1,1,1);
+	assert(not (statStress and statP));
 	
 	//Initialize velocities if necessary:
 	if(vInitNeeded)
@@ -197,6 +200,12 @@ LatticeGradient IonicDynamics::thermostat()
 				accelV.ionic[sp][at] = minusGammaDamp * vCart;
 			}
 		}
+		//Berendsen barostat:
+		if(idp.statMethod == IonicDynamicsParams::Berendsen and (statP or statStress))
+		{	const double B0 = 2.2e9*Pascal; //water bulk modulus to set the scale
+			accelV.lattice = (1./(idp.tDampP*B0)) * (stressTarget - stress);
+		}
+		lmin.constrain(accelV);
 	}
 	return accelV;
 }

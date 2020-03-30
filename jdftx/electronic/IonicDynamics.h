@@ -40,6 +40,7 @@ private:
 	bool statT; //!< whether temperature is stat'd (any thermostat)
 	bool statP; //!< whether pressure is stat'd (hydrostatic barostat)
 	bool statStress; //!<  whether stress is stat'd (anisotropic barostat)
+	matrix3<> stressTarget; //!< target stress tensor (for both types of barostats)
 	LatticeMinimizer lmin; //!< Helper class for changing atomic positions / lattice vectors (doesn't minimize anything)
 	bool nAccumNeeded; //!< Whether accumulated electron density is needed
 	

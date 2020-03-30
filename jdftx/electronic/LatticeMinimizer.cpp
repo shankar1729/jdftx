@@ -142,7 +142,7 @@ void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
 	//Project wavefunctions to atomic orbitals:
 	std::vector<matrix> coeff(e.eInfo.nStates); //best fit coefficients
 	int nAtomic = e.iInfo.nAtomicOrbitals();
-	if(e.cntrl.dragWavefunctions && nAtomic && (!skipWfnsDrag))
+	if(e.cntrl.dragWavefunctions and nAtomic and (not skipWfnsDrag) and (not e.iInfo.ljOverride))
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{	//Get atomic orbitals for old lattice:
 			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q, false);
@@ -162,16 +162,17 @@ void LatticeMinimizer::step(const LatticeGradient& dir, double alpha)
 	bcast(strain); //ensure consistency to numerical precision
 	updateLatticeDependent(e); // Updates lattice information
 
-	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{	//Restore wavefunctions from atomic orbitals:
-		if(e.cntrl.dragWavefunctions && nAtomic && (!skipWfnsDrag))
-		{	//Get atomic orbitals for new lattice:
-			ColumnBundle psi = e.iInfo.getAtomicOrbitals(q, false);
-			//Reconstitute wavefunctions:
-			e.eVars.C[q] += psi * coeff[q];
+	if(not e.iInfo.ljOverride)
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{	//Restore wavefunctions from atomic orbitals:
+			if(e.cntrl.dragWavefunctions and nAtomic and (not skipWfnsDrag))
+			{	//Get atomic orbitals for new lattice:
+				ColumnBundle psi = e.iInfo.getAtomicOrbitals(q, false);
+				//Reconstitute wavefunctions:
+				e.eVars.C[q] += psi * coeff[q];
+			}
+			e.eVars.orthonormalize(q); //Reorthonormalize wavefunctions
 		}
-		e.eVars.orthonormalize(q); //Reorthonormalize wavefunctions
-	}
 }
 
 double LatticeMinimizer::compute(LatticeGradient* grad, LatticeGradient* Kgrad)
@@ -193,7 +194,7 @@ double LatticeMinimizer::compute(LatticeGradient* grad, LatticeGradient* Kgrad)
 	imin.compute(grad ? &grad->ionic : 0, Kgrad ? &Kgrad->ionic : 0);
 	
 	//! Calculate lattice gradients (from stress computed along with forces above) if necessary:
-	if(grad)
+	if(grad and (not dynamicsMode)) //stress handled directly by IonicDynamics
 	{	//Calculate grad->lattice (in Eh units):
 		grad->lattice = e.iInfo.stress * e.gInfo.detR;
 		//Set Kgrad->lattice if necessary:
@@ -229,6 +230,9 @@ void LatticeMinimizer::constrain(LatticeGradient& dir)
 	dir.lattice = 0.5*(dir.lattice + ~(dir.lattice)); //ensure symmetric tensor
 	dir.lattice = Pfree * dir.lattice * Pfree; //latt-move-scale and truncation constraints
 	e.symm.symmetrize(dir.lattice); //lattice symmetries
+	//Override for isotropic barostat:
+	if(dynamicsMode and statP)
+		dir.lattice = (trace(dir.lattice)/trace(Pfree)) * Pfree;
 }
 
 double LatticeMinimizer::safeStepSize(const LatticeGradient& dir) const

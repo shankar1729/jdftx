@@ -121,6 +121,8 @@ struct CommandIonicDynamics : public Command
 				case IDPM_Delim: return; //end of input
 			}
 		}
+		if((not std::isnan(idp.P0)) and (not std::isnan(trace(idp.stress0))))
+			throw("Cannot specify both P0 (hydrostatic) and stress0 (anisotropic) barostats");
 	}
 
 	void printStatus(Everything& e, int iRep)
