@@ -23,11 +23,19 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <core/Random.h>
 
+void LatticeGradient::init(const IonInfo& iInfo)
+{	ionic.init(iInfo);
+	lattice = matrix3<>();
+	thermostat.assign(iInfo.thermostat.size(), 0.);
+	barostat.assign(iInfo.barostat.size(), 0.);
+}
+
 //Functions required by Minimizable<LatticeGradient>
 LatticeGradient& LatticeGradient::operator*=(double scale)
 {	lattice *= scale;
 	ionic *= scale;
-	for(double& v: thermo) v *= scale;
+	thermostat *= scale;
+	barostat *= scale;
 	return *this;
 }
 
@@ -51,21 +59,17 @@ LatticeGradient LatticeGradient::operator-(const LatticeGradient& other) const
 void axpy(double alpha, const LatticeGradient& x, LatticeGradient& y)
 {	y.lattice += alpha * x.lattice;
 	axpy(alpha, x.ionic, y.ionic);
-	//Optional thermostat DOFs used only by IonicDynamics:
-	assert(x.thermo.size() == y.thermo.size());
-	for(size_t i=0; i<x.thermo.size(); i++)
-		y.thermo[i] += alpha * x.thermo[i];
+	axpy(alpha, x.thermostat, y.thermostat);
+	axpy(alpha, x.barostat, y.barostat);
 }
 double dot(const matrix3<>& x, const matrix3<>& y)
 {	return trace(x*(~y));
 }
 double dot(const LatticeGradient& x, const LatticeGradient& y)
-{	double result = dot(x.lattice,y.lattice) + dot(x.ionic,y.ionic);
-	//Optional thermostat DOFs used only by IonicDynamics:
-	assert(x.thermo.size() == y.thermo.size());
-	for(size_t i=0; i<x.thermo.size(); i++)
-		result += x.thermo[i] * y.thermo[i];
-	return result;
+{	return dot(x.lattice,y.lattice)
+		+ dot(x.ionic,y.ionic)
+		+ dot(x.thermostat, y.thermostat)
+		+ dot(x.barostat, y.barostat);
 }
 inline double nrm2(LatticeGradient& x) { return sqrt(dot(x,x)); }
 LatticeGradient clone(const LatticeGradient& x) { return x; }
@@ -74,8 +78,8 @@ void randomize(LatticeGradient& x)
 		for(int j=i; j<3; j++)
 			x.lattice(i,j) = (x.lattice(j,i) = Random::normal());
 	randomize(x.ionic);
-	//Optional thermostat DOFs used only by IonicDynamics:
-	for(double& v: x.thermo) v = Random::normal();
+	randomize(x.thermostat);
+	randomize(x.barostat);
 }
 
 void bcast(matrix3<>& x)

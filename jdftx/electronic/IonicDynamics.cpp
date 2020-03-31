@@ -58,7 +58,7 @@ IonicDynamics::IonicDynamics(Everything& e)
 	const int nDimThermo = (idp.statMethod==IonicDynamicsParams::NoseHoover)
 		? (idp.chainLengthT + ((statP or statStress) ? idp.chainLengthP : 0))
 		: 0;
-	e.iInfo.thermo.resize(nDimThermo, 0.);
+	e.iInfo.thermostat.resize(nDimThermo, 0.);
 	if(statStress) stressTarget = idp.stress0;
 	if(statP) stressTarget = -idp.P0 * matrix3<>(1,1,1);
 	assert(not (statStress and statP));
@@ -75,13 +75,14 @@ IonicDynamics::IonicDynamics(Everything& e)
 
 void IonicDynamics::initializeVelocities()
 {	//Initialize random velocities with |v|^2 ~ 1/M
-	LatticeGradient vel; vel.ionic.init(e.iInfo);
+	LatticeGradient vel; vel.init(e.iInfo);
 	randomize(vel); //unit normal distribution
 	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
 	{	double invsqrtM = 1./sqrt(e.iInfo.species[sp]->mass);
 		for(vector3<>& v: vel.ionic[sp]) v *= invsqrtM;
 	}
-	vel.thermo = e.iInfo.thermo;
+	vel.thermostat = e.iInfo.thermostat;
+	vel.barostat = e.iInfo.barostat;
 	
 	//Apply constraints:
 	lmin.constrain(vel);
@@ -98,13 +99,18 @@ void IonicDynamics::initializeVelocities()
 
 //Get Cartesian velocities from SpeciesInfo lattice-coordinate versions
 LatticeGradient IonicDynamics::getVelocities()
-{	LatticeGradient v; v.ionic.init(e.iInfo);
+{	LatticeGradient v; v.init(e.iInfo);
 	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
 	{	const SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
 		for(size_t at=0; at<spInfo.atpos.size(); at++)
 			v.ionic[sp][at] = e.gInfo.R * spInfo.velocities[at];
 	}
-	v.thermo = e.iInfo.thermo;
+	v.thermostat = e.iInfo.thermostat;
+	v.barostat = e.iInfo.barostat;
+	//Berendsen barostat (sets the strain rate directly):
+	const IonicDynamicsParams& idp = e.ionicDynParams;
+	if(idp.statMethod == IonicDynamicsParams::Berendsen and (statP or statStress))
+		v.lattice = (1./(idp.tDampP*idp.B0)) * (stressTarget - stress);
 	return v;
 }
 
@@ -115,7 +121,8 @@ void IonicDynamics::setVelocities(const LatticeGradient& v)
 		for(size_t at=0; at<spInfo.atpos.size(); at++)
 			spInfo.velocities[at] = e.gInfo.invR * v.ionic[sp][at];
 	}
-	e.iInfo.thermo = v.thermo;
+	e.iInfo.thermostat = v.thermostat;
+	e.iInfo.barostat = v.barostat;	
 }
 
 
@@ -149,11 +156,10 @@ void IonicDynamics::computeKE()
 }
 
 LatticeGradient IonicDynamics::computePE()
-{	LatticeGradient gradUnused, accel;
+{	LatticeGradient gradUnused, accel; accel.init(e.iInfo);
 	PE = lmin.compute(&gradUnused, &accel); //In dynamicsMode, Lattice/IonicMinimizer::compute replaces Kgrad with acceleration
 	if(std::isnan(PE))
 		die("\nIonicDynamics: step caused pseudopotential core overlap (try core-overlap-check none).\n\n");
-	accel.thermo.assign(e.iInfo.thermo.size(), 0.);
 	return accel;
 }
 
@@ -163,9 +169,7 @@ LatticeGradient IonicDynamics::thermostat()
 	computeKE();
 	computePressure();
 	//Compute velocity-dependent forces (non-zero if thermostatting):
-	LatticeGradient accelV;
-	accelV.ionic.init(e.iInfo);
-	accelV.thermo.resize(e.iInfo.thermo.size());
+	LatticeGradient accelV; accelV.init(e.iInfo);
 	if(statT)
 	{	double relErrKE = KE/(0.5*nDOF*idp.T0) - 1.;
 		double omegaDamp = 1./idp.tDampT;
@@ -177,16 +181,16 @@ LatticeGradient IonicDynamics::thermostat()
 				break;
 			}
 			case IonicDynamicsParams::NoseHoover:
-			{	minusGammaDamp = -e.iInfo.thermo[0];
+			{	minusGammaDamp = -e.iInfo.thermostat[0];
 				double omegaDampSq = omegaDamp*omegaDamp;
 				for(int j=0; j<idp.chainLengthT; j++)
 				{	//Coupling to system / previous thermostat DOF:
-					accelV.thermo[j] = (j==0)
+					accelV.thermostat[j] = (j==0)
 						? omegaDampSq * relErrKE
-						: (j==1 ? nDOF : 1) * std::pow(e.iInfo.thermo[j-1],2) - omegaDampSq;
+						: (j==1 ? nDOF : 1) * std::pow(e.iInfo.thermostat[j-1],2) - omegaDampSq;
 					//Coupling to next thermostat DOF:
 					if(j+1 < idp.chainLengthT)
-						accelV.thermo[j] -= e.iInfo.thermo[j] * e.iInfo.thermo[j+1];
+						accelV.thermostat[j] -= e.iInfo.thermostat[j] * e.iInfo.thermostat[j+1];
 				}
 				break;
 			}
@@ -199,11 +203,6 @@ LatticeGradient IonicDynamics::thermostat()
 			{	vector3<> vCart = e.gInfo.R * spInfo.velocities[at]; //current Cartesian velocity
 				accelV.ionic[sp][at] = minusGammaDamp * vCart;
 			}
-		}
-		//Berendsen barostat:
-		if(idp.statMethod == IonicDynamicsParams::Berendsen and (statP or statStress))
-		{	const double B0 = 2.2e9*Pascal; //water bulk modulus to set the scale
-			accelV.lattice = (1./(idp.tDampP*B0)) * (stressTarget - stress);
 		}
 		lmin.constrain(accelV);
 	}

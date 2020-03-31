@@ -42,6 +42,7 @@ enum IonicDynamicsParamsMember
 	IDPM_tDampP,
 	IDPM_chainLengthT,
 	IDPM_chainLengthP,
+	IDPM_B0,
 	IDPM_Delim //!< delimiter to detect end of input
 };
 
@@ -55,7 +56,8 @@ EnumStringMap<IonicDynamicsParamsMember> idpmMap
 	IDPM_tDampT, "tDampT",
 	IDPM_tDampP, "tDampP",
 	IDPM_chainLengthT, "chainLengthT",
-	IDPM_chainLengthP, "chainLengthP"
+	IDPM_chainLengthP, "chainLengthP",
+	IDPM_B0, "B0"
 );
 
 EnumStringMap<IonicDynamicsParamsMember> idpmDescMap
@@ -68,7 +70,8 @@ EnumStringMap<IonicDynamicsParamsMember> idpmDescMap
 	IDPM_tDampT, "thermostat damping time [fs]",
 	IDPM_tDampP, "barostat damping time [fs]",
 	IDPM_chainLengthT, "Nose-Hoover chain length for thermostat",
-	IDPM_chainLengthP, "Nose-Hoover chain length for barostat"
+	IDPM_chainLengthP, "Nose-Hoover chain length for barostat",
+	IDPM_B0, "Characteristic bulk modulus [bar] for Berendsen barostat (damping ~ B0 * tDampP)"
 );
 
 struct CommandIonicDynamics : public Command
@@ -118,6 +121,7 @@ struct CommandIonicDynamics : public Command
 				case IDPM_tDampP: pl.get(idp.tDampP, 100., "tDampP", true); idp.tDampP *= fs; break;
 				case IDPM_chainLengthT: pl.get(idp.chainLengthT, 3, "chainLengthT", true); break;
 				case IDPM_chainLengthP: pl.get(idp.chainLengthP, 3, "chainLengthP", true); break;
+				case IDPM_B0: pl.get(idp.B0, nanVal, "B0", true); idp.B0 *= Bar; break;
 				case IDPM_Delim: return; //end of input
 			}
 		}
@@ -139,6 +143,7 @@ struct CommandIonicDynamics : public Command
 		logPrintf(" \\\n\ttDampP       %lg", idp.tDampP/fs);
 		logPrintf(" \\\n\tchainLengthT %d", idp.chainLengthT);
 		logPrintf(" \\\n\tchainLengthP %d", idp.chainLengthP);
+		logPrintf(" \\\n\tB0           %lg", idp.B0/Bar);
 	}
 }
 commandIonicDynamics;
@@ -168,28 +173,42 @@ struct CommandLjOverride : public Command
 }
 commandLjOverride;
 
-struct CommandThermostatVelocity : public Command
+//---- Thermostat / barostat velocities ----
+struct CommandStatVelocity : public Command
 {
-	CommandThermostatVelocity() : Command("thermostat-velocity", "jdftx/Ionic/Optimization")
+	CommandStatVelocity(string statName) : Command(statName+"-velocity", "jdftx/Ionic/Optimization")
 	{	format = "<v1> <v2> ...";
 		comments =
-			"Read thermostat internal velocities for continuing ionic dynamics.\n"
+			"Read "+statName+" internal velocities for continuing ionic dynamics.\n"
 			"This command is automatically dumped with ionpos from dynamics simulations\n"
-			"using Nose-Hoover chains that involve thermostat internal velocities.";
+			"using Nose-Hoover chains that involve "+statName+" internal velocities.";
 	}
 	
-	void process(ParamList& pl, Everything& e)
-	{	e.iInfo.thermo.clear();
+	void process(ParamList& pl, std::vector<double>& target)
+	{	target.clear();
 		while(true)
 		{	double v = NAN;
 			pl.get(v, v, "v");
 			if(std::isnan(v)) break;
-			e.iInfo.thermo.push_back(v);
+			target.push_back(v);
 		}
 	}
 	
-	void printStatus(Everything& e, int iRep)
-	{	for(const double& v: e.iInfo.thermo) logPrintf("%lg ", v);
+	void printStatus(const std::vector<double>& target)
+	{	for(const double& v: target) logPrintf("%lg ", v);
 	}
+};
+
+struct CommandThermostatVelocity : public CommandStatVelocity
+{	CommandThermostatVelocity() : CommandStatVelocity("thermostat") {}
+	void process(ParamList& pl, Everything& e) { CommandStatVelocity::process(pl, e.iInfo.thermostat); }
+	void printStatus(Everything& e, int iRep) {	CommandStatVelocity::printStatus(e.iInfo.thermostat); }
 }
 commandThermostatVelocity;
+
+struct CommandBarostatVelocity : public CommandStatVelocity
+{	CommandBarostatVelocity() : CommandStatVelocity("barostat") {}
+	void process(ParamList& pl, Everything& e) { CommandStatVelocity::process(pl, e.iInfo.barostat); }
+	void printStatus(Everything& e, int iRep) {	CommandStatVelocity::printStatus(e.iInfo.barostat); }
+}
+commandBarostatVelocity;

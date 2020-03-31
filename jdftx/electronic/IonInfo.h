@@ -62,7 +62,8 @@ public:
 	IonicGradient forces; //!< forces at current atomic positions in latice coordinates
 	matrix3<> stress; //!< stresses at current lattice geometry in Eh/a0^3 (only calculated if optimizing lattice or dumping stress)
 	bool computeStress; //!< flag to control whether ionicEnergyAndGrad() computes the stress tensor in addition to forces
-	std::vector<double> thermo; //!< optional thermostat internal degrees of freedom used for IonicDynamics
+	diagMatrix thermostat; //!< optional thermostat internal degrees of freedom used for IonicDynamics
+	diagMatrix barostat; //!< optional barostat internal degrees of freedom used for IonicDynamics
 	
 	ScalarFieldTilde Vlocps; //!< Net local pseudopotential
 	ScalarFieldTilde rhoIon; //!< Total ionic charge density (with width ionWidth, used for interactions with fluid)

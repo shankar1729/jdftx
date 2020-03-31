@@ -95,12 +95,15 @@ void IonInfo::setup(const Everything &everything)
 void IonInfo::printPositions(FILE* fp) const
 {	fprintf(fp, "# Ionic positions in %s coordinates:\n", coordsType==CoordsLattice ? "lattice" : "cartesian");
 	for(auto sp: species) sp->print(fp);
-	//Optional output of thermostat velocities:
-	if(thermo.size())
-	{	fprintf(fp, "thermostat-velocity");
-		for(const double& v: thermo) fprintf(fp, " %lg", v);
-		fprintf(fp, "\n");
-	}
+	//Optional output of thermostat / barostat velocities:
+	#define WriteStat(stat) \
+		if(stat.size()) \
+		{	fprintf(fp, #stat "-velocity"); \
+			stat.print(fp, " %lg"); \
+		}
+	WriteStat(thermostat)
+	WriteStat(barostat)
+	#undef WriteStat
 	fprintf(fp, "\n");
 }
 

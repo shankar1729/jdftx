@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_LATTICEMINIMIZER_H
 
 #include <electronic/IonicMinimizer.h>
+#include <core/matrix.h>
 
 //! @addtogroup IonicSystem
 //! @{
@@ -30,8 +31,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 struct LatticeGradient
 {	matrix3<> lattice; //!< lattice component (stress)
 	IonicGradient ionic; //!< ionic or internal geometry component (forces)
-	std::vector<double> thermo; //!< optional extra degrees of freedom used by thermostats in IonicDynamics
+	diagMatrix thermostat; //!< optional extra degrees of freedom used by thermostats in IonicDynamics
+	diagMatrix barostat; //!< optional extra degrees of freedom used by barostats in IonicDynamics
 
+	void init(const class IonInfo& iInfo); //!< initialize correct sizes
 	LatticeGradient& operator*=(double scale);
 	LatticeGradient& operator+=(const LatticeGradient&);
 	LatticeGradient operator+(const LatticeGradient&) const;

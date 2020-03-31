@@ -38,11 +38,12 @@ struct IonicDynamicsParams
 	double tDampP; //!< barostat damping time [Eh^-1]
 	int chainLengthT; //!< Nose-Hoover chain length for thermostat
 	int chainLengthP; //!< Nose-Hoover chain length for barostat
+	double B0; //!< characteristic bulk modulus for Berendsen barostat (default: water bulk modulus)
 	
 	IonicDynamicsParams() : dt(1.*fs), nSteps(0), statMethod(StatNone),
 		T0(298*Kelvin), P0(NAN), stress0(NAN,NAN,NAN),
 		tDampT(50.*fs), tDampP(100.*fs),
-		chainLengthT(3), chainLengthP(3) {}
+		chainLengthT(3), chainLengthP(3), B0(2.2E9*Pascal) {}
 };
 
 //! @}
