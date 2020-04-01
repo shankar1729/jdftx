@@ -347,22 +347,25 @@ void IonicMinimizer::constrain(IonicGradient& x)
 	
 	//HyperPlane (collective) constraints:
 	//--- get list of unique group labels:
-	std::set<string> groupLabels;
-	for(const auto& spInfo: e.iInfo.species)
-		for(const SpeciesInfo::Constraint& constraint: spInfo->constraints)
+	std::map<string,IonicGradient> hyperplanes;
+	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
+	{	const SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
+		for(size_t atom=0; atom<spInfo.atpos.size(); atom++)
+		{	const SpeciesInfo::Constraint& constraint = spInfo.constraints[atom];
 			if(constraint.type == SpeciesInfo::Constraint::HyperPlane)
-				groupLabels.insert(constraint.groupLabel);
-	//--- apply constraint to each group:
-	for(const string& groupLabel: groupLabels)
-	{	IonicGradient D; D.init(e.iInfo); // initialize direction to zero
-		for(unsigned sp=0; sp<D.size(); sp++)
-		{	SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-			for(unsigned atom=0; atom<D[sp].size(); atom++)
-			{	const SpeciesInfo::Constraint& constraint = spInfo.constraints[atom];
-				if(constraint.type==SpeciesInfo::Constraint::HyperPlane and constraint.groupLabel==groupLabel)
-					D[sp][atom] = spInfo.constraints[atom].d;  //D is the outer sum of relevant atomic constraint directions
-			}
+				for(const auto& entry: constraint.hyperplane)
+				{	auto iter = hyperplanes.find(entry.second);
+					if(iter == hyperplanes.end())
+					{	iter = hyperplanes.insert(std::make_pair(entry.second, IonicGradient())).first;
+						iter->second.init(e.iInfo);
+					}
+					iter->second[sp][atom] = entry.first;
+				}
 		}
+	}
+	//--- apply constraint to each group:
+	for(const auto& entry: hyperplanes)
+	{	const IonicGradient& D = entry.second;
 		double Dsq = dot(D,D);
 		if(Dsq > 1e-10) x += D*(-dot(D,x)/Dsq); //subtract the component along D
 	}

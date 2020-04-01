@@ -26,7 +26,7 @@ struct CommandIon : public Command
 	CommandIon() : Command("ion", "jdftx/Ionic/Geometry")
 	{
 		format = "<species-id> <x0> <x1> <x2> [v <vx0> <vx1> <vx2>] <moveScale> [<constraint type>="
-			+ constraintTypeMap.optionList() + " <d0> <d1> <d2> [<group>]]";
+			+ constraintTypeMap.optionList() + " <d0> <d1> <d2> [<group> [HyperPlane <d0> ...]]]";
 		comments =
 			"Add an atom of species <species-id> at coordinates (<x0>,<x1>,<x2>).\n"
 			"\n"
@@ -43,7 +43,14 @@ struct CommandIon : public Command
 			"ions by restricting their motion to a hyperplane with normal specified\n"
 			"by (<d0>,<d1>,<d2>) for all ions specifying a hyperplane constraint.\n"
 			"By default, all hyperplane-constrained ions are included in a single\n"
-			"group; use optional <group> label to specify multiple hyper-planes.";
+			"group; use optional <group> label to specify multiple hyper-planes.\n"
+			"Multiple hyperplane constraints may also be added to each atom,\n"
+			"but this requires an explicit group label for each hyperplane.\n"
+			"\n"
+			"Note that when coords-type is lattice, the constraints are in covariant\n"
+			"lattice coordinates (like direction indices) for line constraints, but\n"
+			"contravariant coordinates (like plane indices) for plane constraints.";
+		
 		allowMultiple = true;
 
 		require("ion-species");
@@ -102,10 +109,6 @@ struct CommandIon : public Command
 			pl.get(constraint.d[0], 0.0, "d0", true);				  
 			pl.get(constraint.d[1], 0.0, "d1", true);
 			pl.get(constraint.d[2], 0.0, "d2", true);
-			if(constraint.type == SpeciesInfo::Constraint::HyperPlane)
-				pl.get(constraint.groupLabel, string(), "group"); //optional group label for hyperplane constraint
-			if(not constraint.d.length_squared())
-				throw string("Constraint vector must be non-null");
 			if(e.iInfo.coordsType == CoordsLattice) //Transform to Cartesian (taking care of covariant/contravariant for line/plane directions)
 				switch(constraint.type)
 				{	case SpeciesInfo::Constraint::Linear:       constraint.d = e.gInfo.R * constraint.d; break;
@@ -113,6 +116,29 @@ struct CommandIon : public Command
 					case SpeciesInfo::Constraint::HyperPlane:   constraint.d = ~inv(e.gInfo.R) * constraint.d; break;
 					default: break;
 				}
+			if(constraint.type == SpeciesInfo::Constraint::HyperPlane)
+			{	string groupLabel;
+				pl.get(groupLabel, string(), "group"); //optional group label for hyperplane constraint
+				constraint.hyperplane.assign(1, std::make_pair(constraint.d, groupLabel));
+				constraint.d = vector3<>(); //zero out the constraint d to prevent incorrect symmetry checks
+				//Look for additional hyperplane constraints:
+				while(true)
+				{	string key; pl.get(key, string(), "Type");
+					if(not key.length()) break; //End of constraint list
+					if(key != "HyperPlane") throw string("Additional constraints must be of type HyperPlane");
+					vector3<> d;
+					pl.get(d[0], 0.0, "d0", true);				  
+					pl.get(d[1], 0.0, "d1", true);
+					pl.get(d[2], 0.0, "d2", true);
+					pl.get(groupLabel, string(), "group", true); //group label required for additional hyperplanes
+					if(e.iInfo.coordsType == CoordsLattice) d = ~inv(e.gInfo.R) * d; //transform to Cartesian
+					constraint.hyperplane.push_back(std::make_pair(d, groupLabel));
+				}
+			}
+			else //Note d can be null for a guiven atom with HyperPlane
+			{	if(not constraint.d.length_squared())
+					throw string("Constraint vector must be non-null");
+			}
 		}
 		sp->constraints.push_back(constraint);
 	}
