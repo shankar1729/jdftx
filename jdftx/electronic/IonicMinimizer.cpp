@@ -103,6 +103,11 @@ IonicGradient& IonicGradient::operator+=(const IonicGradient& other)
 	return *this;
 }
 
+IonicGradient& IonicGradient::operator-=(const IonicGradient& other)
+{	axpy(-1., other, *this);
+	return *this;
+}
+
 IonicGradient IonicGradient::operator+(const IonicGradient& other) const
 {	IonicGradient result(*this);
 	axpy(1., other, result);

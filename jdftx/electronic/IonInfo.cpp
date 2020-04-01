@@ -81,6 +81,10 @@ void IonInfo::setup(const Everything &everything)
 	//Determine whether to compute stress with forces:
 	if(e->latticeMinParams.nIterations)
 		computeStress = true; //needed for lattice minimization
+	if(e->ionicDynParams.statMethod != IonicDynamicsParams::StatNone
+		and ( (not (std::isnan)(e->ionicDynParams.P0))
+			or (not (std::isnan)(trace(e->ionicDynParams.stress0))) ) )
+		computeStress = true; //needed for ionic dynamics at constant pressure or stress
 	for(auto dumpPair: e->dump)
 		if(dumpPair.second == DumpStress)
 			computeStress = true; //needed for stress output

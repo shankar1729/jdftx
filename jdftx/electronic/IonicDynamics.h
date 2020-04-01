@@ -58,7 +58,7 @@ private:
 	void computePressure(); //!< Update pressure and stress
 	void computeKE(); //!< Update kinetic energy and temperature
 	LatticeGradient computePE(); //!< Update potential energy and return acceleration (due to potential forces)
-	LatticeGradient thermostat(); //!< Return velocity-dependent acceleration due to thermostat (calls computeKE and computePressure)
+	LatticeGradient thermostat(const LatticeGradient& vel); //!< Return velocity-dependent acceleration due to thermostat (calls setVelocities, computeKE and computePressure)
 	bool report(int iter, double t); //!< Report properties at current step
 };
 

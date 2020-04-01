@@ -55,10 +55,14 @@ IonicDynamics::IonicDynamics(Everything& e)
 	
 	//Thermostat initialization:
 	const IonicDynamicsParams& idp = e.ionicDynParams;
-	const int nDimThermo = (idp.statMethod==IonicDynamicsParams::NoseHoover)
-		? (idp.chainLengthT + ((statP or statStress) ? idp.chainLengthP : 0))
-		: 0;
-	e.iInfo.thermostat.resize(nDimThermo, 0.);
+	if(idp.statMethod==IonicDynamicsParams::NoseHoover)
+	{	e.iInfo.thermostat.resize(idp.chainLengthT);
+		e.iInfo.barostat.resize((statP or statStress) ? 6+idp.chainLengthP : 0);
+	}
+	else
+	{	e.iInfo.thermostat.clear();
+		e.iInfo.barostat.clear();
+	}
 	if(statStress) stressTarget = idp.stress0;
 	if(statP) stressTarget = -idp.P0 * matrix3<>(1,1,1);
 	assert(not (statStress and statP));
@@ -75,14 +79,12 @@ IonicDynamics::IonicDynamics(Everything& e)
 
 void IonicDynamics::initializeVelocities()
 {	//Initialize random velocities with |v|^2 ~ 1/M
-	LatticeGradient vel; vel.init(e.iInfo);
-	randomize(vel); //unit normal distribution
+	LatticeGradient vel = getVelocities();
+	randomize(vel.ionic); //unit normal distribution
 	for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
 	{	double invsqrtM = 1./sqrt(e.iInfo.species[sp]->mass);
 		for(vector3<>& v: vel.ionic[sp]) v *= invsqrtM;
 	}
-	vel.thermostat = e.iInfo.thermostat;
-	vel.barostat = e.iInfo.barostat;
 	
 	//Apply constraints:
 	lmin.constrain(vel);
@@ -106,11 +108,18 @@ LatticeGradient IonicDynamics::getVelocities()
 			v.ionic[sp][at] = e.gInfo.R * spInfo.velocities[at];
 	}
 	v.thermostat = e.iInfo.thermostat;
-	v.barostat = e.iInfo.barostat;
-	//Berendsen barostat (sets the strain rate directly):
-	const IonicDynamicsParams& idp = e.ionicDynParams;
-	if(idp.statMethod == IonicDynamicsParams::Berendsen and (statP or statStress))
-		v.lattice = (1./(idp.tDampP*idp.B0)) * (stressTarget - stress);
+	//Barostat:
+	if(statP or statStress)
+	{	const IonicDynamicsParams& idp = e.ionicDynParams;
+		//Berendsen barostat: sets the strain rate directly
+		if(idp.statMethod == IonicDynamicsParams::Berendsen)
+			v.lattice = (1./(idp.tDampP*idp.B0)) * (stressTarget - stress);
+		//Nose-Hoover barostat: separate the strain rate and lattice thermostat variables
+		if(idp.statMethod == IonicDynamicsParams::NoseHoover)
+		{	v.lattice = matrix3<>(*((const symmetricMatrix3<>*)e.iInfo.barostat.data()));
+			v.barostat.assign(e.iInfo.barostat.begin()+6, e.iInfo.barostat.end());
+		}
+	}
 	return v;
 }
 
@@ -122,9 +131,18 @@ void IonicDynamics::setVelocities(const LatticeGradient& v)
 			spInfo.velocities[at] = e.gInfo.invR * v.ionic[sp][at];
 	}
 	e.iInfo.thermostat = v.thermostat;
-	e.iInfo.barostat = v.barostat;	
+	//Barostat:
+	if(statP or statStress)
+	{	const IonicDynamicsParams& idp = e.ionicDynParams;
+		//No additional global state required for Berendsen barostat
+		//Nose-Hoover barostat: combine strain rate and lattice thermostat variables together
+		if(idp.statMethod == IonicDynamicsParams::NoseHoover)
+		{	symmetricMatrix3<> strainRate(v.lattice); //pack into symmetric matrix
+			eblas_copy(e.iInfo.barostat.data(), (const double*)&strainRate, 6);
+			eblas_copy(e.iInfo.barostat.data()+6, v.barostat.data(), v.barostat.nRows());
+		}
+	}
 }
-
 
 void IonicDynamics::computePressure()
 {	if(e.iInfo.computeStress)
@@ -163,9 +181,10 @@ LatticeGradient IonicDynamics::computePE()
 	return accel;
 }
 
-LatticeGradient IonicDynamics::thermostat()
+LatticeGradient IonicDynamics::thermostat(const LatticeGradient& vel)
 {	const IonicDynamicsParams& idp = e.ionicDynParams;
 	//Update KE and pressure first:
+	setVelocities(vel);
 	computeKE();
 	computePressure();
 	//Compute velocity-dependent forces (non-zero if thermostatting):
@@ -181,29 +200,48 @@ LatticeGradient IonicDynamics::thermostat()
 				break;
 			}
 			case IonicDynamicsParams::NoseHoover:
-			{	minusGammaDamp = -e.iInfo.thermostat[0];
+			{	minusGammaDamp = -vel.thermostat[0];
 				double omegaDampSq = omegaDamp*omegaDamp;
 				for(int j=0; j<idp.chainLengthT; j++)
 				{	//Coupling to system / previous thermostat DOF:
 					accelV.thermostat[j] = (j==0)
 						? omegaDampSq * relErrKE
-						: (j==1 ? nDOF : 1) * std::pow(e.iInfo.thermostat[j-1],2) - omegaDampSq;
+						: (j==1 ? nDOF : 1) * std::pow(vel.thermostat[j-1],2) - omegaDampSq;
 					//Coupling to next thermostat DOF:
 					if(j+1 < idp.chainLengthT)
-						accelV.thermostat[j] -= e.iInfo.thermostat[j] * e.iInfo.thermostat[j+1];
+						accelV.thermostat[j] -= vel.thermostat[j] * vel.thermostat[j+1];
+				}
+				//Barostat contributions:
+				if(statP or statStress)
+				{	minusGammaDamp -= trace(vel.lattice)/nDOF;
+					double omegaDampL = 1./idp.tDampP;
+					double omegaDampLsq = omegaDampL*omegaDampL;
+					int nFree = lmin.nFree();
+					int nDOF_L = (nFree*(nFree+1))/2;
+					accelV.lattice = (omegaDampLsq/((nDOF+nFree)*idp.T0))
+							* (e.gInfo.detR*(stressTarget-stress) + (2.*KE/nDOF)*matrix3<>(1,1,1))
+						- vel.barostat[0] * vel.lattice;
+					
+					logPrintf("nFree: %d\n", nFree);
+					accelV.lattice.print(globalLog, " %lg ");
+					
+					for(int j=0; j<idp.chainLengthP; j++)
+					{	//Coupling to system / previous barostat DOF:
+						accelV.barostat[j] = (j==0)
+							? ((nDOF+nFree)*1./nDOF_L) * trace((~vel.lattice)*vel.lattice) - omegaDampLsq
+							: (j==1 ? nDOF_L : 1) * std::pow(vel.barostat[j-1],2) - omegaDampLsq;
+						//Coupling to next barostat DOF:
+						if(j+1 < idp.chainLengthT)
+							accelV.barostat[j] -= vel.barostat[j] * vel.barostat[j+1];
+					}
 				}
 				break;
 			}
 			case IonicDynamicsParams::StatNone: break; //Never reached (just to suppress compiler warning)
 		}
-		//Add damping term to atom velocities
-		for(size_t sp=0; sp<e.iInfo.species.size(); sp++)
-		{	const SpeciesInfo& spInfo = *(e.iInfo.species[sp]);
-			for(size_t at=0; at<spInfo.atpos.size(); at++)
-			{	vector3<> vCart = e.gInfo.R * spInfo.velocities[at]; //current Cartesian velocity
-				accelV.ionic[sp][at] = minusGammaDamp * vCart;
-			}
-		}
+		//Set atom velocity damping terms:
+		accelV.ionic = vel.ionic * minusGammaDamp;
+		if(statP or statStress) accelV.ionic -= vel.lattice * vel.ionic; //strain rate contribution to Cartesian velocity change
 		lmin.constrain(accelV);
 	}
 	return accelV;
@@ -225,7 +263,7 @@ void IonicDynamics::run()
 	
 	//Initial energies and forces
 	if(nAccumNeeded) nullToZero(e.eVars.nAccum, e.gInfo);
-	LatticeGradient accel = computePE(), accelV = thermostat(); //in Cartesian coordinates
+	LatticeGradient accel = computePE(), accelV = thermostat(getVelocities()); //in Cartesian coordinates
 	
 	for(int iter=0; iter<=idp.nSteps; iter++)
 	{	double t = iter*idp.dt;
@@ -241,12 +279,10 @@ void IonicDynamics::run()
 		accel = computePE();
 		//--- velocity update: second half step estimator
 		axpy(0.5*idp.dt, accel+accelV, vel); //note second-order error here due to first-order error in accelV
-		setVelocities(vel);
 		//--- velocity update: second half step corrector
-		LatticeGradient accelVnew = thermostat();
+		LatticeGradient accelVnew = thermostat(vel);
 		axpy(0.5*idp.dt, accelVnew-accelV, vel); //corrects second-order error introduced in estimator step
-		setVelocities(vel);
-		accelV = thermostat();
+		accelV = thermostat(vel); //also sets velocities to iInfo and updates KE, pressure
 		
 		//Accumulate the averaged electronic density over the trajectory
 		if(nAccumNeeded and (not e.iInfo.ljOverride))

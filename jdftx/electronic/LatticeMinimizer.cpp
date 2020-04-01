@@ -26,8 +26,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 void LatticeGradient::init(const IonInfo& iInfo)
 {	ionic.init(iInfo);
 	lattice = matrix3<>();
-	thermostat.assign(iInfo.thermostat.size(), 0.);
-	barostat.assign(iInfo.barostat.size(), 0.);
+	thermostat.assign(iInfo.thermostat.nRows(), 0.);
+	barostat.assign(std::max(iInfo.barostat.nRows()-6,0), 0.); //when present, iInfo.barostat includes strain rate
 }
 
 //Functions required by Minimizable<LatticeGradient>

@@ -122,11 +122,12 @@ struct CommandIonicDynamics : public Command
 				case IDPM_chainLengthT: pl.get(idp.chainLengthT, 3, "chainLengthT", true); break;
 				case IDPM_chainLengthP: pl.get(idp.chainLengthP, 3, "chainLengthP", true); break;
 				case IDPM_B0: pl.get(idp.B0, nanVal, "B0", true); idp.B0 *= Bar; break;
-				case IDPM_Delim: return; //end of input
+				case IDPM_Delim: 
+					if((not std::isnan(idp.P0)) and (not std::isnan(trace(idp.stress0))))
+						throw(string("Cannot specify both P0 (hydrostatic) and stress0 (anisotropic) barostats"));
+					return; //end of input
 			}
 		}
-		if((not std::isnan(idp.P0)) and (not std::isnan(trace(idp.stress0))))
-			throw("Cannot specify both P0 (hydrostatic) and stress0 (anisotropic) barostats");
 	}
 
 	void printStatus(Everything& e, int iRep)
@@ -207,7 +208,9 @@ struct CommandThermostatVelocity : public CommandStatVelocity
 commandThermostatVelocity;
 
 struct CommandBarostatVelocity : public CommandStatVelocity
-{	CommandBarostatVelocity() : CommandStatVelocity("barostat") {}
+{	CommandBarostatVelocity() : CommandStatVelocity("barostat")
+	{	comments += "\n(The first six components are strain rate, while the rest are lattice thermostat velocities.)\n";
+	}
 	void process(ParamList& pl, Everything& e) { CommandStatVelocity::process(pl, e.iInfo.barostat); }
 	void printStatus(Everything& e, int iRep) {	CommandStatVelocity::printStatus(e.iInfo.barostat); }
 }

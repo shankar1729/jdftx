@@ -61,8 +61,8 @@ public:
 	double safeStepSize(const LatticeGradient& dir) const;
 	double sync(double x) const; //!< All processes minimize together; make sure scalars are in sync to round-off error
 
-	//void calculateStress(); //!< calculate current stress (in Eh/a0^3 units) and store to IonInfo::stress
 	double minimize(const MinimizeParams& params); //!< minor addition to Minimizable::minimize to invoke charge analysis at final positions
+	int nFree() { return (dynamicsMode and statP) ? 1 : int(round(trace(Pfree))); } //!< number of free lattice directions
 private:
 	Everything& e;
 	bool dynamicsMode; //!< whether LatticeMinimizer is operating as a helper class for IonicDynamics

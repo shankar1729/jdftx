@@ -38,6 +38,7 @@ struct IonicGradient : std::vector< std::vector< vector3<> > >
 	
 	IonicGradient& operator*=(double);
 	IonicGradient& operator+=(const IonicGradient&);
+	IonicGradient& operator-=(const IonicGradient&);
 	
 	IonicGradient operator*(double) const;
 	IonicGradient operator+(const IonicGradient&) const;
