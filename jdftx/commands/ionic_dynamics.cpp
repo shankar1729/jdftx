@@ -185,25 +185,28 @@ struct CommandStatVelocity : public Command
 			"using Nose-Hoover chains that involve "+statName+" internal velocities.";
 	}
 	
-	void process(ParamList& pl, std::vector<double>& target)
-	{	target.clear();
+	virtual diagMatrix& target(Everything& e)=0;
+	
+	void process(ParamList& pl, Everything& e)
+	{	diagMatrix& stat = target(e);
+		stat.clear();
 		while(true)
 		{	double v = NAN;
 			pl.get(v, v, "v");
 			if(std::isnan(v)) break;
-			target.push_back(v);
+			stat.push_back(v);
 		}
 	}
 	
-	void printStatus(const std::vector<double>& target)
-	{	for(const double& v: target) logPrintf("%lg ", v);
+	void printStatus(Everything& e, int iRep)
+	{	const diagMatrix& stat = target(e);
+		for(const double& v: stat) logPrintf("%lg ", v);
 	}
 };
 
 struct CommandThermostatVelocity : public CommandStatVelocity
 {	CommandThermostatVelocity() : CommandStatVelocity("thermostat") {}
-	void process(ParamList& pl, Everything& e) { CommandStatVelocity::process(pl, e.iInfo.thermostat); }
-	void printStatus(Everything& e, int iRep) {	CommandStatVelocity::printStatus(e.iInfo.thermostat); }
+	diagMatrix& target(Everything& e) { return e.iInfo.thermostat; }
 }
 commandThermostatVelocity;
 
@@ -211,7 +214,6 @@ struct CommandBarostatVelocity : public CommandStatVelocity
 {	CommandBarostatVelocity() : CommandStatVelocity("barostat")
 	{	comments += "\n(The first six components are strain rate, while the rest are lattice thermostat velocities.)\n";
 	}
-	void process(ParamList& pl, Everything& e) { CommandStatVelocity::process(pl, e.iInfo.barostat); }
-	void printStatus(Everything& e, int iRep) {	CommandStatVelocity::printStatus(e.iInfo.barostat); }
+	diagMatrix& target(Everything& e) { return e.iInfo.barostat; }
 }
 commandBarostatVelocity;
