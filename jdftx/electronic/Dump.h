@@ -47,7 +47,7 @@ enum DumpVariable { DumpNone, DumpState, //None or exactly those required to res
 	DumpElecDensity, DumpElecDensityAccum, DumpCoreDensity, DumpKEdensity, DumpFluidDensity, // electronic valence, core and KE densities, fluid densities
 	DumpDvac, DumpDfluid, DumpDtot, //electrostatic potential of explicit system, fluid system, total
 	DumpVcavity, DumpVfluidTot, //cavity potential of fluid, net electron potential due to fluid (electrostatic+cavity)
-	DumpVlocps, DumpVscloc, DumpBandEigs, DumpEigStats, DumpFillings, DumpRhoAtom, DumpBandUnfold,
+	DumpVlocps, DumpVscloc, DumpBandEigs, DumpBandProjections, DumpEigStats, DumpFillings, DumpRhoAtom, DumpBandUnfold,
 	DumpEcomponents, DumpExcCompare,
  	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpOcean, DumpBGW, DumpRealSpaceWfns, DumpFluidDebug, DumpSlabEpsilon, DumpBulkEpsilon, DumpChargedDefect,
 	DumpDOS, DumpPolarizability, DumpElectronScattering, DumpSIC, DumpDipole, DumpStress, DumpExcitations, DumpFCI, DumpSpin,

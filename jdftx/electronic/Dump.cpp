@@ -266,6 +266,52 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
+	if(ShouldDump(BandProjections) && isCevec)
+	{	StartDump("bandProjections")
+		FILE* fp = 0;
+		if(mpiWorld->isHead())
+		{	fp = fopen(fname.c_str(), "w");
+			//Write header:
+			fprintf(fp, "%d states, %d bands, %d orbital-projections, %lu species\n",
+				eInfo.nStates, eInfo.nBands, iInfo.nAtomicOrbitals(), iInfo.species.size());
+			fprintf(fp, "# Symbol nAtoms nOrbitalsPerAtom lMax nShells(l=0) ... nShells(l=lMax)\n");
+			for(const auto& sp: iInfo.species)
+			{	int nAtoms = sp->atpos.size();
+				int nOrbitalsPerAtom = sp->nAtomicOrbitals() / nAtoms;
+				int lMax = sp->lMaxAtomicOrbitals();
+				fprintf(fp, "%s %d %d %d", sp->name.c_str(), nAtoms, nOrbitalsPerAtom, lMax);
+				for(int l=0; l<=lMax; l++)
+					fprintf(fp, " %d", sp->nAtomicOrbitals(l));
+				fprintf(fp, "\n");
+			}
+		}
+		for(int q=0; q<eInfo.nStates; q++)
+		{	matrix proj; //orbitals: nOrbitals x nBands
+			if(eInfo.isMine(q))
+			{	proj = iInfo.getAtomicOrbitals(q, true) ^ eVars.C[q]; //dagger(Opsi).Cq
+				if(not mpiWorld->isHead()) mpiWorld->sendData(proj, 0, q); //send to head for writing
+			}
+			if(mpiWorld->isHead())
+			{	if(not eInfo.isMine(q)) //recv from process that stored q
+				{	proj.init(iInfo.nAtomicOrbitals(), eInfo.nBands);
+					mpiWorld->recvData(proj, eInfo.whose(q), q);
+				}
+				//Write projections:
+				fprintf(fp, "# ");
+				eInfo.kpointPrint(fp, q, true);
+				fprintf(fp, "; lines per band, with |projection|^2 per orbital:\n");
+				complex* projData = proj.data();
+				for(int b=0; b<proj.nCols(); b++) //bands
+				{	for(int a=0; a<proj.nRows(); a++) //orbitals
+						fprintf(fp, "%9.7lf ", (projData++)->norm()); //write |projection|^2
+					fprintf(fp, "\n");
+				}
+			}
+		}
+		if(mpiWorld->isHead()) fclose(fp);
+		EndDump
+	}
+	
 	if(ShouldDump(EigStats))
 	{	StartDump("eigStats")
 		double Emin = +INFINITY; int qEmin = 0;
