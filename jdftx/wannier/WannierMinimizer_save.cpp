@@ -408,7 +408,7 @@ void WannierMinimizer::saveMLWF_W(int iSpin, const matrix& phase)
 			wTilde->data(), wannier.z0, wannier.zH, wannier.zSigma);
 		w[0] = I(wTilde);
 	}
-	saveMLWF(iSpin, phase, w, "mlwfW");
+	saveMLWF(iSpin, phase, w, "mlwfW", false);
 }
 
 //Thread function for setting z position operator:
@@ -445,11 +445,11 @@ void WannierMinimizer::saveMLWF_Z(int iSpin, const matrix& phase)
 		readDensityArray(V1, "Vscloc", wannier.zVfilename, &e); //V from changed Efield
 		z = (1./(wannier.zFieldMag*e.gInfo.dV)) * (V1-V0);
 	}
-	saveMLWF(iSpin, phase, z, "mlwfZ");
+	saveMLWF(iSpin, phase, z, "mlwfZ", true);
 }
 
 //Helper function for scalar field matrix elements (eg. slab and z)
-void WannierMinimizer::saveMLWF(int iSpin, const matrix& phase, const ScalarFieldArray& w, string varName)
+void WannierMinimizer::saveMLWF(int iSpin, const matrix& phase, const ScalarFieldArray& w, string varName, bool suppressUnbound)
 {	//Prepare scalar field for direct and augmented contributions:
 	ScalarFieldArray JdagOJw;
 	for(const ScalarField& wi: w)
@@ -469,12 +469,13 @@ void WannierMinimizer::saveMLWF(int iSpin, const matrix& phase, const ScalarFiel
 				sp->augmentDensitySphericalGrad(*(Ck.qnum), VdagCk, wVdagCk);
 				wSub += dagger(VdagCk) * wVdagCk;
 			}
-		//Suppress large off-diagonal matrix elements for numerical stability:
-		const diagMatrix& Ek = e.eVars.Hsub_eigs[kMesh[i].point.iReduced];
-		complex* wSubData = wSub.data();
-		for(int b1=0; b1<nBands; b1++)
-			for(int b2=0; b2<nBands; b2++)
-				*(wSubData++) *= exp(-0.5*std::pow((Ek[b1]-Ek[b2])/0.1, 2));
+		//Suppress matrix elements of unbound states for numerical stability:
+		if(suppressUnbound and e.coulombParams.geometry!=CoulombParams::Periodic)
+		{	diagMatrix weightE = e.eVars.Hsub_eigs[kMesh[i].point.iReduced];
+			double sigmaE = 0.02; //selected to transition weights over ~ 1 eV below vacuum level
+			for(double& wE: weightE) wE = 0.5*erfc(wE/sigmaE+1); //convert energy to weight -> 0 for unbound states
+			wSub = weightE * wSub * weightE;
+		}
 		wSub = dagger(kMesh[i].U) * wSub * kMesh[i].U; //apply MLWF-optimized rotations
 		callPref(eblas_copy)(wWannierTilde.dataPref()+wWannierTilde.index(0,iqMine), wSub.dataPref(), wSub.nData());
 		iqMine++;

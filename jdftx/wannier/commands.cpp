@@ -146,7 +146,7 @@ struct CommandWannier : public Command
 			"   centered at z0 (lattice coordinates) with half-width zH (lattice coordinates)\n"
 			"   and Gaussian/erfc smoothness zSigma in bohrs. (Default: none)\n"
 			"\n+ loadRotations yes|no\n\n"
-			"   Whether to load rotations (.mlwU and .mlwfU2) from a previous %Wannier run.\n"
+			"   Whether to load rotations (.mlwU) from a previous %Wannier run.\n"
 			"   Default: no.\n"
 			"\n+ eigsOverride <filename>\n\n"
 			"   Optionally read an alternate eigenvalues file to over-ride those from the total\n"
