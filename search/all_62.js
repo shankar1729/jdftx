@@ -1,12 +1,14 @@
 var searchData=
 [
   ['b',['b',['../structScalarEOS__eval.html#a075f187555675e54abe92b6573a2220f',1,'ScalarEOS_eval::b()'],['../structWannierMinimizerFD_1_1Edge.html#a0f26da340e0886448627f91b70f1991f',1,'WannierMinimizerFD::Edge::b()']]],
+  ['b0',['B0',['../structIonicDynamicsParams.html#a4f0704d09fd140acc539f49d60de789a',1,'IonicDynamicsParams']]],
   ['banddavidson',['BandDavidson',['../classBandDavidson.html',1,'BandDavidson'],['../classBandDavidson.html#add77d9e76cfc63bc15061a573ec38c8c',1,'BandDavidson::BandDavidson()']]],
   ['bandminimize',['bandMinimize',['../group__ElecSystem.html#ga38c896fda498752c81c4a2bc447cd24b',1,'ElecMinimizer.h']]],
   ['bandminimizer',['BandMinimizer',['../classBandMinimizer.html',1,'BandMinimizer'],['../classBandMinimizer.html#a1a8f0f0a93dfc380c794d1e39165b87e',1,'BandMinimizer::BandMinimizer()']]],
   ['bandstructkpoints',['bandstructKpoints',['../bandstructKpoints.html',1,'Input_creation']]],
   ['band_20structure_20calculations',['Band structure calculations',['../BandStructure.html',1,'SolidTutorials']]],
   ['bar',['Bar',['../group__Utilities.html#gaab365c7f823c0119235f1be7c89e7718',1,'Units.h']]],
+  ['barostat',['barostat',['../classIonInfo.html#a1007e618faf939d247b176f34a0b42e9',1,'IonInfo::barostat()'],['../structLatticeGradient.html#a677086e4315fe1dd6e9f80bcf77cf376',1,'LatticeGradient::barostat()']]],
   ['basis',['Basis',['../classBasis.html',1,'Basis'],['../structColumnBundleTransform_1_1BasisWrapper.html#a41d80b7ad068d9c458c8301caa07d53a',1,'ColumnBundleTransform::BasisWrapper::basis()'],['../classEverything.html#a858a9a65fd54f65b7b363eddf6e654f7',1,'Everything::basis()'],['../classWannierMinimizer.html#a73e9f65c1f50236e9ddd53922364f928',1,'WannierMinimizer::basis()'],['../classBasis.html#abf650e273f63ab38dda50500050374d8',1,'Basis::Basis()']]],
   ['basiskdep',['basisKdep',['../classControl.html#afb40a85cdcf29fa297d073edd1769786',1,'Control::basisKdep()'],['../group__ElectronicDFT.html#ga6eac73bcefa5492bdaf1c1c2741cd9f3',1,'BasisKdep():&#160;Control.h']]],
   ['basissuper',['basisSuper',['../classWannierMinimizer.html#a4f61d57a5a1369b63cba59e2ca1cb3e5',1,'WannierMinimizer']]],
@@ -36,6 +38,7 @@ var searchData=
   ['bz',['Bz',['../classElecInfo.html#ab6fd0155603086ed27ba9b4ab66032f2',1,'ElecInfo']]],
   ['bibliographic_20references',['Bibliographic References',['../citelist.html',1,'']]],
   ['band_2dunfold',['band-unfold',['../CommandBandUnfold.html',1,'CommandIndex']]],
+  ['barostat_2dvelocity',['barostat-velocity',['../CommandBarostatVelocity.html',1,'CommandIndex']]],
   ['basis',['basis',['../CommandBasis.html',1,'CommandIndex']]],
   ['bgw_2dparams',['bgw-params',['../CommandBgwParams.html',1,'CommandIndex']]],
   ['box_2dpotential',['box-potential',['../CommandBoxPotential.html',1,'CommandIndex']]],

@@ -11,6 +11,5 @@ var searchData=
   ['kmesh',['kMesh',['../classWannierMinimizer.html#ae22b719a00f758551fb2086511f73cee',1,'WannierMinimizer::kMesh()'],['../structSupercell.html#a403c702a88d6431c3ee0f05a7d49b772',1,'Supercell::kmesh()']]],
   ['knormthreshold',['knormThreshold',['../structMinimizeParams.html#ae37a5c6511498eb6a0b7b6ca1edc9e90',1,'MinimizeParams']]],
   ['kpascal',['KPascal',['../group__Utilities.html#ga278dca3bb3312e40081f1b40c845b42e',1,'Units.h']]],
-  ['kpoints',['kpoints',['../classWannierMinimizer.html#ad17bf90d6629363889ef3652731c061a',1,'WannierMinimizer']]],
-  ['kt',['kT',['../structIonDynamicsParams.html#a043a20d993f4807edd7311c9828dd15b',1,'IonDynamicsParams']]]
+  ['kpoints',['kpoints',['../classWannierMinimizer.html#ad17bf90d6629363889ef3652731c061a',1,'WannierMinimizer']]]
 ];

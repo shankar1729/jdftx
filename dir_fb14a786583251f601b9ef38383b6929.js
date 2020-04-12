@@ -13,7 +13,7 @@ var dir_fb14a786583251f601b9ef38383b6929 =
     [ "ExCorr_internal_GGA.h", "ExCorr__internal__GGA_8h.html", "ExCorr__internal__GGA_8h" ],
     [ "ExCorr_internal_LDA.h", "ExCorr__internal__LDA_8h.html", "ExCorr__internal__LDA_8h" ],
     [ "ExCorr_internal_mGGA.h", "ExCorr__internal__mGGA_8h.html", "ExCorr__internal__mGGA_8h" ],
-    [ "IonDynamicsParams.h", "IonDynamicsParams_8h.html", "IonDynamicsParams_8h" ],
+    [ "IonicDynamicsParams.h", "IonicDynamicsParams_8h.html", null ],
     [ "IonicMinimizer.h", "IonicMinimizer_8h.html", "IonicMinimizer_8h" ],
     [ "IonInfo.h", "IonInfo_8h.html", "IonInfo_8h" ],
     [ "LatticeMinimizer.h", "LatticeMinimizer_8h.html", "LatticeMinimizer_8h" ],

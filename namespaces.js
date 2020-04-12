@@ -1,7 +1,6 @@
 var namespaces =
 [
     [ "MinimizeLinmin", "namespaceMinimizeLinmin.html", null ],
-    [ "Moments", "namespaceMoments.html", null ],
     [ "NonlinearPCMeval", "namespaceNonlinearPCMeval.html", null ],
     [ "QuinticSpline", "namespaceQuinticSpline.html", null ],
     [ "Random", "namespaceRandom.html", null ],

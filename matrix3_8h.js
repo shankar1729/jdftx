@@ -27,8 +27,10 @@ var matrix3_8h =
     [ "operator*", "matrix3_8h.html#ga2cca8a8abf0476b1a53058def5767c0d", null ],
     [ "operator*", "matrix3_8h.html#ga1c0e1353e0fb161ecd698bf69806f12a", null ],
     [ "operator*", "matrix3_8h.html#ga9bb970c1b7b00553127b19ef17066437", null ],
+    [ "operator*", "matrix3_8h.html#ga0f86ea4576b9ee169daa67fac0c1d0fd", null ],
     [ "operator*=", "matrix3_8h.html#gafe4fcc9295e587b534647ada3a0cf479", null ],
     [ "outer", "matrix3_8h.html#ga66888133579e8cc2a8f2734985f8ede2", null ],
+    [ "outer", "matrix3_8h.html#gaab9f415ff553b5d6926b2d8a4cbb0495", null ],
     [ "rotation", "matrix3_8h.html#ga4e13e7fc4752ad7dba78dd140ff7ff70", null ],
     [ "trace", "matrix3_8h.html#ga61a8512ca44943603f874fc2a3c4e317", null ]
 ];

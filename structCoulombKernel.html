@@ -114,8 +114,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ae10ee376c02c92aebade4bac74a724d9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae10ee376c02c92aebade4bac74a724d9"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>CoulombKernel</b> (const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; <a class="el" href="structCoulombKernel.html#aa110824dc8d1ae6f4d1ad4db4c568e4f">R</a>, const <a class="el" href="classvector3.html">vector3</a>&lt; int &gt; <a class="el" href="structCoulombKernel.html#ab3b92fdfd65afaf1ac2afa038b6e69cd">S</a>, const <a class="el" href="classvector3.html">vector3</a>&lt; bool &gt; <a class="el" href="structCoulombKernel.html#aeeb7607dcc23eca592d30dee70285a3b">isTruncated</a>, double <a class="el" href="structCoulombKernel.html#a3c7e59b98eb5be548fdbe06170a7e9b8">omega</a>=0.)</td></tr>
 <tr class="separator:ae10ee376c02c92aebade4bac74a724d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaf1e00027212a6535b400a8772f3f1a3"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structCoulombKernel.html#aaf1e00027212a6535b400a8772f3f1a3">compute</a> (double *data, const <a class="el" href="classWignerSeitz.html">WignerSeitz</a> &amp;ws) const </td></tr>
-<tr class="separator:aaf1e00027212a6535b400a8772f3f1a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeac026eb4fd1b23bc76832bdbb30ea93"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structCoulombKernel.html#aeac026eb4fd1b23bc76832bdbb30ea93">compute</a> (double *data, const <a class="el" href="classWignerSeitz.html">WignerSeitz</a> &amp;ws, <a class="el" href="structsymmetricMatrix3.html">symmetricMatrix3</a>&lt;&gt; *data_RRT=0) const </td></tr>
+<tr class="separator:aeac026eb4fd1b23bc76832bdbb30ea93"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -146,7 +146,7 @@ static const double&#160;</td><td class="memItemRight" valign="bottom"><a class=
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Wigner-Seitz truncated coulomb kernel generator. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="aaf1e00027212a6535b400a8772f3f1a3"></a>
+<a class="anchor" id="aeac026eb4fd1b23bc76832bdbb30ea93"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -160,7 +160,13 @@ static const double&#160;</td><td class="memItemRight" valign="bottom"><a class=
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const <a class="el" href="classWignerSeitz.html">WignerSeitz</a> &amp;&#160;</td>
-          <td class="paramname"><em>ws</em>&#160;</td>
+          <td class="paramname"><em>ws</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structsymmetricMatrix3.html">symmetricMatrix3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>data_RRT</em> = <code>0</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -169,7 +175,7 @@ static const double&#160;</td><td class="memItemRight" valign="bottom"><a class=
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Initialize the truncated kernel in data data must be allocated for S[0]*S[1]*(1+S[2]/2) entries (fftw c2r order). ws is the Wigner-Seitz cell corresponding to lattice vectors R. Supported modes include fully truncated (Isolated or Wigner-Seitz truncated exchange kernel) and one direction periodic (Wire geometry). </p>
+<p>Initialize the truncated kernel in data data must be allocated for S[0]*S[1]*(1+S[2]/2) entries (fftw c2r order). ws is the Wigner-Seitz cell corresponding to lattice vectors R. Supported modes include fully truncated (Isolated or Wigner-Seitz truncated exchange kernel) and one direction periodic (Wire geometry). Optionally initialize lattice derivative if data_RRT is non-null </p>
 
 </div>
 </div>

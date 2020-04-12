@@ -18,6 +18,7 @@ var ScalarFieldArray_8h =
     [ "Jdag", "ScalarFieldArray_8h.html#ga101d73ed0d08698e172d63efa72011dd", null ],
     [ "lDivergence", "ScalarFieldArray_8h.html#ga669c9ca358fcf20b5040d3230c47f1fd", null ],
     [ "lGradient", "ScalarFieldArray_8h.html#gaf783a0aec720d55e34f5ba4727718ee9", null ],
+    [ "lGradientStress", "ScalarFieldArray_8h.html#ga8b9af33e4b08f518cd9fa59c3dc4acfc", null ],
     [ "loadFromFile", "ScalarFieldArray_8h.html#ga78f4d7456f5fb96dac2bd030b0a683ac", null ],
     [ "nullToZero", "ScalarFieldArray_8h.html#ga5e1cf76bb4d988a4a156a12a56cb86ba", null ],
     [ "operator*", "ScalarFieldArray_8h.html#ga9a33e030f82522b4e970b9ad89cb9339", null ],

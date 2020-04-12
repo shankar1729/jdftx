@@ -20,7 +20,7 @@ var classmatrix3 =
     [ "operator/=", "classmatrix3.html#a3e08b9b05b1266dde0980511db28c094", null ],
     [ "operator==", "classmatrix3.html#a0d735a4759e0c07f7e33e782c8b26a70", null ],
     [ "operator~", "classmatrix3.html#a9bdac50302ff2edcdde5152be6aa7600", null ],
-    [ "print", "classmatrix3.html#a7e3b2c579f5b29a2c96441b0889df67c", null ],
+    [ "print", "classmatrix3.html#a2c845db5fb78327faac7a0b67e0babb0", null ],
     [ "row", "classmatrix3.html#a66192e436efe934d8fce0bc1e9a6efe5", null ],
     [ "set_col", "classmatrix3.html#a1c8f448c13e611a41caf6d7d014a169d", null ],
     [ "set_cols", "classmatrix3.html#ad97e0b2e3d04e90e25eacda5b774c40a", null ],

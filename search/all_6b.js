@@ -26,6 +26,5 @@ var searchData=
   ['kpointpair',['KpointPair',['../structWannierMinimizer_1_1KpointPair.html',1,'WannierMinimizer']]],
   ['kpointprint',['kpointPrint',['../classElecInfo.html#a7143a1a026346c54c53848874de9483c',1,'ElecInfo']]],
   ['kpoints',['kpoints',['../classWannierMinimizer.html#ad17bf90d6629363889ef3652731c061a',1,'WannierMinimizer']]],
-  ['kpointsprint',['kpointsPrint',['../classElecInfo.html#ab2645fe2b61ee1944b858a7c7aaca9c2',1,'ElecInfo']]],
-  ['kt',['kT',['../structIonDynamicsParams.html#a043a20d993f4807edd7311c9828dd15b',1,'IonDynamicsParams']]]
+  ['kpointsprint',['kpointsPrint',['../classElecInfo.html#ab2645fe2b61ee1944b858a7c7aaca9c2',1,'ElecInfo']]]
 ];

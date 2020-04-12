@@ -96,7 +96,6 @@ $(document).ready(function(){initNavTree('group__Output.html','');});
 <div class="header">
   <div class="summary">
 <a href="#files">Files</a> &#124;
-<a href="#namespaces">Namespaces</a> &#124;
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#define-members">Macros</a> &#124;
 <a href="#enum-members">Enumerations</a> &#124;
@@ -127,12 +126,6 @@ Files</h2></td></tr>
 <tr class="memitem:Wannier_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Wannier_8h.html">Wannier.h</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:WannierMinimizer_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="WannierMinimizer_8h.html">WannierMinimizer.h</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
-Namespaces</h2></td></tr>
-<tr class="memitem:namespaceMoments"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceMoments.html">Moments</a></td></tr>
-<tr class="memdesc:namespaceMoments"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper functions for moment calculations. <br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
@@ -197,6 +190,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLongRangeSum.html">LongRangeSum</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Long range sum over G-vectors used for polar corrections.  <a href="classLongRangeSum.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLongRangeSum2D.html">LongRangeSum2D</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Long range sum over G-vectors used for polar corrections.  <a href="classLongRangeSum2D.html#details">More...</a><br/></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannierMinimizerFD.html">WannierMinimizerFD</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions. ">Wannier</a> minimization with k-point finite difference localization measure.  <a href="classWannierMinimizerFD.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -249,37 +245,42 @@ Enumerations</h2></td></tr>
 &#160;&#160;<b>DumpVlocps</b>, 
 <b>DumpVscloc</b>, 
 <b>DumpBandEigs</b>, 
-<b>DumpEigStats</b>, 
+<b>DumpBandProjections</b>, 
 <br/>
-&#160;&#160;<b>DumpFillings</b>, 
+&#160;&#160;<b>DumpEigStats</b>, 
+<b>DumpFillings</b>, 
 <b>DumpRhoAtom</b>, 
 <b>DumpBandUnfold</b>, 
-<b>DumpEcomponents</b>, 
 <br/>
-&#160;&#160;<b>DumpExcCompare</b>, 
+&#160;&#160;<b>DumpEcomponents</b>, 
+<b>DumpExcCompare</b>, 
 <b>DumpBoundCharge</b>, 
 <b>DumpSolvationRadii</b>, 
-<b>DumpQMC</b>, 
 <br/>
-&#160;&#160;<b>DumpOcean</b>, 
+&#160;&#160;<b>DumpQMC</b>, 
+<b>DumpOcean</b>, 
 <b>DumpBGW</b>, 
 <b>DumpRealSpaceWfns</b>, 
-<b>DumpFluidDebug</b>, 
 <br/>
-&#160;&#160;<b>DumpSlabEpsilon</b>, 
+&#160;&#160;<b>DumpFluidDebug</b>, 
+<b>DumpSlabEpsilon</b>, 
 <b>DumpBulkEpsilon</b>, 
 <b>DumpChargedDefect</b>, 
-<b>DumpDOS</b>, 
 <br/>
-&#160;&#160;<b>DumpPolarizability</b>, 
+&#160;&#160;<b>DumpDOS</b>, 
+<b>DumpPolarizability</b>, 
 <b>DumpElectronScattering</b>, 
 <b>DumpSIC</b>, 
-<b>DumpDipole</b>, 
 <br/>
-&#160;&#160;<b>DumpStress</b>, 
+&#160;&#160;<b>DumpDipole</b>, 
+<b>DumpStress</b>, 
 <b>DumpExcitations</b>, 
-<b>DumpSpin</b>, 
+<b>DumpFCI</b>, 
+<br/>
+&#160;&#160;<b>DumpSpin</b>, 
 <b>DumpMomenta</b>, 
+<b>DumpVelocities</b>, 
+<b>DumpFermiVelocity</b>, 
 <br/>
 &#160;&#160;<b>DumpSymmetries</b>, 
 <b>DumpKpoints</b>, 
@@ -330,6 +331,14 @@ template&lt;typename T &gt; </td></tr>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Output.html#gae45f6c5bd0d6c46bc9eef1ed833dd344">dumpExcitations</a> (const <a class="el" href="classEverything.html">Everything</a> &amp;e, const char *filename)</td></tr>
 <tr class="memdesc:gae45f6c5bd0d6c46bc9eef1ed833dd344"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> information about excitation energies and matrix elements. <br/></td></tr>
 <tr class="separator:gae45f6c5bd0d6c46bc9eef1ed833dd344"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacf9a3ba260434c09052ed7ea0d5e4018"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gacf9a3ba260434c09052ed7ea0d5e4018"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Output.html#gacf9a3ba260434c09052ed7ea0d5e4018">dumpFCI</a> (const <a class="el" href="classEverything.html">Everything</a> &amp;e, const char *filename)</td></tr>
+<tr class="memdesc:gacf9a3ba260434c09052ed7ea0d5e4018"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> coulomb matrix elements in FCIDUMP format. <br/></td></tr>
+<tr class="separator:gacf9a3ba260434c09052ed7ea0d5e4018"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga20ee7928f15068995ec6f93d3d1d9be0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga20ee7928f15068995ec6f93d3d1d9be0"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Output.html#ga20ee7928f15068995ec6f93d3d1d9be0">dumpMoment</a> (const <a class="el" href="classEverything.html">Everything</a> &amp;e, const char *filename)</td></tr>
+<tr class="memdesc:ga20ee7928f15068995ec6f93d3d1d9be0"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> dipole moments. <br/></td></tr>
+<tr class="separator:ga20ee7928f15068995ec6f93d3d1d9be0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gab1f9907ec10d526ed5e48beae47730dd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gab1f9907ec10d526ed5e48beae47730dd"></a>
 <a class="el" href="structWannierGradient.html">WannierGradient</a>&#160;</td><td class="memItemRight" valign="bottom"><b>clone</b> (const <a class="el" href="structWannierGradient.html">WannierGradient</a> &amp;grad)</td></tr>
 <tr class="separator:gab1f9907ec10d526ed5e48beae47730dd"><td class="memSeparator" colspan="2">&#160;</td></tr>

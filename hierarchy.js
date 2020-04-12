@@ -37,6 +37,7 @@ var hierarchy =
       [ "CoulombSpherical", "classCoulombSpherical.html", null ],
       [ "CoulombWire", "classCoulombWire.html", null ]
     ] ],
+    [ "CoulombIonKernel_calc", "structCoulombIonKernel__calc.html", null ],
     [ "CoulombKernel", "structCoulombKernel.html", null ],
     [ "CoulombParams", "structCoulombParams.html", null ],
     [ "CoulombPeriodic_calc", "structCoulombPeriodic__calc.html", null ],
@@ -118,8 +119,8 @@ var hierarchy =
     ] ],
     [ "IncludeTXC", "structIncludeTXC.html", null ],
     [ "InitParams", "structInitParams.html", null ],
-    [ "IonDynamics", "classIonDynamics.html", null ],
-    [ "IonDynamicsParams", "structIonDynamicsParams.html", null ],
+    [ "IonicDynamics", "classIonicDynamics.html", null ],
+    [ "IonicDynamicsParams", "structIonicDynamicsParams.html", null ],
     [ "IonInfo", "classIonInfo.html", null ],
     [ "std::ios_base", null, [
       [ "std::basic_ios< Char >", null, [
@@ -168,6 +169,7 @@ var hierarchy =
     ] ],
     [ "LinkDescription< Enum >", "structLinkDescription.html", null ],
     [ "LongRangeSum", "classLongRangeSum.html", null ],
+    [ "LongRangeSum2D", "classLongRangeSum2D.html", null ],
     [ "ManagedMemoryBase", "classManagedMemoryBase.html", [
       [ "ManagedMemory< T >", "classManagedMemory.html", [
         [ "FieldData< T >", "structFieldData.html", null ],
@@ -198,6 +200,9 @@ var hierarchy =
       ] ],
       [ "ManagedMemory< size_t >", "classManagedMemory.html", [
         [ "ManagedArray< size_t >", "structManagedArray.html", null ]
+      ] ],
+      [ "ManagedMemory< symmetricMatrix3<> >", "classManagedMemory.html", [
+        [ "ManagedArray< symmetricMatrix3<> >", "structManagedArray.html", null ]
       ] ],
       [ "ManagedMemory< uint64_t >", "classManagedMemory.html", [
         [ "ManagedArray< uint64_t >", "structManagedArray.html", null ]
@@ -330,6 +335,7 @@ var hierarchy =
     [ "StopWatch", "classStopWatch.html", null ],
     [ "Supercell", "structSupercell.html", null ],
     [ "FluidSolver::SusceptibilityTerm", "structFluidSolver_1_1SusceptibilityTerm.html", null ],
+    [ "symmetricMatrix3< scalar >", "structsymmetricMatrix3.html", null ],
     [ "Symmetries", "classSymmetries.html", null ],
     [ "TaskDivision", "classTaskDivision.html", null ],
     [ "tensor3< scalar >", "classtensor3.html", null ],
@@ -347,7 +353,6 @@ var hierarchy =
     ] ],
     [ "vector3< scalar >", "classvector3.html", null ],
     [ "vector3< bool >", "classvector3.html", null ],
-    [ "vector3< double >", "classvector3.html", null ],
     [ "vector3< int >", "classvector3.html", null ],
     [ "vector3<>", "classvector3.html", null ],
     [ "Vibrations", "classVibrations.html", null ],

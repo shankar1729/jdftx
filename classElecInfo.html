@@ -126,6 +126,7 @@ Public Types</h2></td></tr>
 <tr class="separator:a92faa29cb05e176784b0dbe4bd249b9b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae6abeea5608f39a4dd57c8304e079028"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028">SmearingType</a> { <a class="el" href="classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028ab33e87d552c26bfdffd850578ff7eaca">SmearingFermi</a>, 
 <a class="el" href="classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028a9a0e9cde48d2f999e1adbd7a66452d67">SmearingGauss</a>, 
+<a class="el" href="classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028acb98ec19206c84075b4b885a0e0262e1">SmearingMP1</a>, 
 <a class="el" href="classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028a58dc7ef3f1efccbbe639c28f121b699e">SmearingCold</a>
  }</td></tr>
 <tr class="memdesc:ae6abeea5608f39a4dd57c8304e079028"><td class="mdescLeft">&#160;</td><td class="mdescRight">Smearing options.  <a href="classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028">More...</a><br/></td></tr>
@@ -350,6 +351,10 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>Everything</b></td><
 <tr class="memitem:a11e682b702900987689e5aeaa68f3cbb"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a11e682b702900987689e5aeaa68f3cbb"></a>
 class&#160;</td><td class="memItemRight" valign="bottom"><b>Phonon</b></td></tr>
 <tr class="separator:a11e682b702900987689e5aeaa68f3cbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acf9a3ba260434c09052ed7ea0d5e4018"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acf9a3ba260434c09052ed7ea0d5e4018"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classElecInfo.html#acf9a3ba260434c09052ed7ea0d5e4018">dumpFCI</a> (const <a class="el" href="classEverything.html">Everything</a> &amp;e, const char *filename)</td></tr>
+<tr class="memdesc:acf9a3ba260434c09052ed7ea0d5e4018"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> coulomb matrix elements in FCIDUMP format. <br/></td></tr>
+<tr class="separator:acf9a3ba260434c09052ed7ea0d5e4018"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Electronic system auxiliary information, fillings and related functions. </p>
@@ -393,6 +398,9 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>Phonon</b></td></tr>
 </td></tr>
 <tr><td class="fieldname"><em><a class="anchor" id="ae6abeea5608f39a4dd57c8304e079028a9a0e9cde48d2f999e1adbd7a66452d67"></a>SmearingGauss</em>&nbsp;</td><td class="fielddoc">
 <p>Gaussian smearing. </p>
+</td></tr>
+<tr><td class="fieldname"><em><a class="anchor" id="ae6abeea5608f39a4dd57c8304e079028acb98ec19206c84075b4b885a0e0262e1"></a>SmearingMP1</em>&nbsp;</td><td class="fielddoc">
+<p>Methfessel-Paxton order 1. </p>
 </td></tr>
 <tr><td class="fieldname"><em><a class="anchor" id="ae6abeea5608f39a4dd57c8304e079028a58dc7ef3f1efccbbe639c28f121b699e"></a>SmearingCold</em>&nbsp;</td><td class="fielddoc">
 <p>Cold smearing. </p>

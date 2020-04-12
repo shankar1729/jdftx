@@ -119,6 +119,8 @@ Macros</h2></td></tr>
 #define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga60f1cf2483a1cf0031f237bb3e50c299">callPref</a>(functionName)&#160;&#160;&#160;functionName##_gpu</td></tr>
 <tr class="memdesc:ga60f1cf2483a1cf0031f237bb3e50c299"><td class="mdescLeft">&#160;</td><td class="mdescRight">Select between functionName and functionName_gpu for the CPU and GPU executables respectively. <br/></td></tr>
 <tr class="separator:ga60f1cf2483a1cf0031f237bb3e50c299"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2de03654a575ed8fd0e64fd362057fc2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><b>DECLARE_eblas_sum</b>(sumFunc, sumStridedFunc)</td></tr>
+<tr class="separator:a2de03654a575ed8fd0e64fd362057fc2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -178,6 +180,24 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga38da349ef7eb56da44c850ce79513abd">eblas_zdivd_gpu</a> (const int N, const double *X, const int incX, <a class="el" href="structcomplex.html">complex</a> *Y, const int incY)</td></tr>
 <tr class="memdesc:ga38da349ef7eb56da44c850ce79513abd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equivalent of <a class="el" href="group__Operators.html#ga4d1d01b5955a584591c77bf491648d10" title="Specialization of eblas_div() for complex[] /= double[]. ">eblas_zdivd()</a> for GPU data pointers. <br/></td></tr>
 <tr class="separator:ga38da349ef7eb56da44c850ce79513abd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gafe47cd65bab7057a60eea6d75b065281"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gafe47cd65bab7057a60eea6d75b065281"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#gafe47cd65bab7057a60eea6d75b065281">eblas_sumStrided</a> (const int N, const int stride, const double *X, double *result)</td></tr>
+<tr class="memdesc:gafe47cd65bab7057a60eea6d75b065281"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return sum over array of doubles with specified stride. <br/></td></tr>
+<tr class="separator:gafe47cd65bab7057a60eea6d75b065281"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga81e1949388c17af1f3a06480413c7380"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga81e1949388c17af1f3a06480413c7380"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga81e1949388c17af1f3a06480413c7380">eblas_sumStrided_gpu</a> (const int N, const int stride, const double *X, double *result)</td></tr>
+<tr class="memdesc:ga81e1949388c17af1f3a06480413c7380"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equivalent of <a class="el" href="group__Operators.html#gafe47cd65bab7057a60eea6d75b065281" title="Return sum over array of doubles with specified stride. ">eblas_sumStrided()</a> for X on GPU; result is on CPU. <br/></td></tr>
+<tr class="separator:ga81e1949388c17af1f3a06480413c7380"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga19cd74e6a9a5958b2760ec024c2aa04d"><td class="memTemplParams" colspan="2"><a class="anchor" id="ga19cd74e6a9a5958b2760ec024c2aa04d"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ga19cd74e6a9a5958b2760ec024c2aa04d"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga19cd74e6a9a5958b2760ec024c2aa04d">eblas_sum</a> (const int N, const T *X)</td></tr>
+<tr class="memdesc:ga19cd74e6a9a5958b2760ec024c2aa04d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return sum over array of generic type T composed only of a certain number of double members. <br/></td></tr>
+<tr class="separator:ga19cd74e6a9a5958b2760ec024c2aa04d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga47a40a1408d6f741288c098ff5233295"><td class="memTemplParams" colspan="2"><a class="anchor" id="ga47a40a1408d6f741288c098ff5233295"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ga47a40a1408d6f741288c098ff5233295"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga47a40a1408d6f741288c098ff5233295">eblas_sum_gpu</a> (const int N, const T *X)</td></tr>
+<tr class="memdesc:ga47a40a1408d6f741288c098ff5233295"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equivalent of <a class="el" href="group__Operators.html#ga19cd74e6a9a5958b2760ec024c2aa04d" title="Return sum over array of generic type T composed only of a certain number of double members...">eblas_sum()</a> for GPU data pointers. <br/></td></tr>
+<tr class="separator:ga47a40a1408d6f741288c098ff5233295"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga77f427ab61421ff49e1a5e3f2e4bd5ab"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga77f427ab61421ff49e1a5e3f2e4bd5ab">eblas_lincomb</a> (const int N, const <a class="el" href="structcomplex.html">complex</a> &amp;sX, const <a class="el" href="structcomplex.html">complex</a> *X, const int incX, const <a class="el" href="structcomplex.html">complex</a> &amp;sY, const <a class="el" href="structcomplex.html">complex</a> *Y, const int incY, <a class="el" href="structcomplex.html">complex</a> *Z, const int incZ)</td></tr>
 <tr class="memdesc:ga77f427ab61421ff49e1a5e3f2e4bd5ab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Elementwise linear combination Z = sX * X + sY * Y.  <a href="group__Operators.html#ga77f427ab61421ff49e1a5e3f2e4bd5ab">More...</a><br/></td></tr>
 <tr class="separator:ga77f427ab61421ff49e1a5e3f2e4bd5ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -382,7 +402,41 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Commonly used BLAS-like routines. </p>
-</div></div><!-- contents -->
+</div><h2 class="groupheader">Macro Definition Documentation</h2>
+<a class="anchor" id="a2de03654a575ed8fd0e64fd362057fc2"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define DECLARE_eblas_sum</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">sumFunc, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">sumStridedFunc&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Value:</b><div class="fragment"><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt; T sumFunc(<span class="keyword">const</span> <span class="keywordtype">int</span> N, <span class="keyword">const</span> T* X) \</div>
+<div class="line">        {       <span class="keywordtype">int</span> Ndoubles = <span class="keyword">sizeof</span>(T)/<span class="keyword">sizeof</span>(<span class="keywordtype">double</span>); <a class="code" href="group__Utilities.html#ga53022762464514790477ba81ce0ab36a">\</a></div>
+<div class="line"><a class="code" href="group__Utilities.html#ga53022762464514790477ba81ce0ab36a">		assert</a>(Ndoubles * <span class="keyword">sizeof</span>(<span class="keywordtype">double</span>) == <span class="keyword">sizeof</span>(T)); \</div>
+<div class="line">                T result; sumStridedFunc(N, Ndoubles, (<span class="keyword">const</span> <span class="keywordtype">double</span>*)X, (<span class="keywordtype">double</span>*)&amp;result); \</div>
+<div class="line">                return result; \</div>
+<div class="line">        }</div>
+<div class="ttc" id="group__Utilities_html_ga53022762464514790477ba81ce0ab36a"><div class="ttname"><a href="group__Utilities.html#ga53022762464514790477ba81ce0ab36a">assert</a></div><div class="ttdeci">#define assert(expr)</div><div class="ttdoc">A custom assertion with stack trace (NOTE: enabled in release modes as well) </div><div class="ttdef"><b>Definition:</b> Util.h:121</div></div>
+</div><!-- fragment -->
+</div>
+</div>
+</div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->

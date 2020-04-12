@@ -141,8 +141,8 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>useGummel</b> () cons
 <tr class="separator:a93cc09be679c7b8fc14ba88233eb39e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af9cfa1a130a5dcb71d31228fcf70ee29"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#af9cfa1a130a5dcb71d31228fcf70ee29">set</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;rhoExplicitTilde, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;nCavityTilde)</td></tr>
 <tr class="separator:af9cfa1a130a5dcb71d31228fcf70ee29"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9ea77776d06809c06f6bebb68ddecf52"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a9ea77776d06809c06f6bebb68ddecf52">get_Adiel_and_grad</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> *Adiel_rhoExplicitTilde=0, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> *Adiel_nCavityTilde=0, <a class="el" href="structIonicGradient.html">IonicGradient</a> *extraForces=0) const </td></tr>
-<tr class="separator:a9ea77776d06809c06f6bebb68ddecf52"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a58ac5b277dfd4ca1360b4919a599669c"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a58ac5b277dfd4ca1360b4919a599669c">get_Adiel_and_grad</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> *Adiel_rhoExplicitTilde=0, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> *Adiel_nCavityTilde=0, <a class="el" href="structIonicGradient.html">IonicGradient</a> *extraForces=0, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *Adiel_RRT=0) const </td></tr>
+<tr class="separator:a58ac5b277dfd4ca1360b4919a599669c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a25d481856cc40a161c731c35c0da136d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a25d481856cc40a161c731c35c0da136d"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a25d481856cc40a161c731c35c0da136d">getSusceptibility</a> (const std::vector&lt; <a class="el" href="structcomplex.html">complex</a> &gt; &amp;omega, std::vector&lt; <a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html">SusceptibilityTerm</a> &gt; &amp;susceptibility, <a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> &amp;sTilde, bool elecOnly) const </td></tr>
 <tr class="memdesc:a25d481856cc40a161c731c35c0da136d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get susceptibility for a list of specified (complex) frequencies. <br/></td></tr>
@@ -208,10 +208,10 @@ Protected Member Functions</h2></td></tr>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a96974ff94a0cef8e97edec6d0ed72800">set_internal</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;rhoExplicitTilde, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;nCavityTilde)=0</td></tr>
 <tr class="memdesc:a96974ff94a0cef8e97edec6d0ed72800"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fluid-dependent implementation of <a class="el" href="structFluidSolver.html#af9cfa1a130a5dcb71d31228fcf70ee29">set()</a> <br/></td></tr>
 <tr class="separator:a96974ff94a0cef8e97edec6d0ed72800"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab51960b652da3556179498326ca4b6d7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab51960b652da3556179498326ca4b6d7"></a>
-virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#ab51960b652da3556179498326ca4b6d7">get_Adiel_and_grad_internal</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Adiel_rhoExplicitTilde, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Adiel_nCavityTilde, <a class="el" href="structIonicGradient.html">IonicGradient</a> *extraForces) const =0</td></tr>
-<tr class="memdesc:ab51960b652da3556179498326ca4b6d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fluid-dependent implementation of <a class="el" href="structFluidSolver.html#a9ea77776d06809c06f6bebb68ddecf52">get_Adiel_and_grad()</a> <br/></td></tr>
-<tr class="separator:ab51960b652da3556179498326ca4b6d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6fb52ce72d8eebbb405d1bf9a1a322cf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6fb52ce72d8eebbb405d1bf9a1a322cf"></a>
+virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a6fb52ce72d8eebbb405d1bf9a1a322cf">get_Adiel_and_grad_internal</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Adiel_rhoExplicitTilde, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Adiel_nCavityTilde, <a class="el" href="structIonicGradient.html">IonicGradient</a> *extraForces, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *Adiel_RRT) const =0</td></tr>
+<tr class="memdesc:a6fb52ce72d8eebbb405d1bf9a1a322cf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fluid-dependent implementation of <a class="el" href="structFluidSolver.html#a58ac5b277dfd4ca1360b4919a599669c">get_Adiel_and_grad()</a> <br/></td></tr>
+<tr class="separator:a6fb52ce72d8eebbb405d1bf9a1a322cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af3def4d7a31010b3a6c1f607ce57f92e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af3def4d7a31010b3a6c1f607ce57f92e"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#af3def4d7a31010b3a6c1f607ce57f92e">getSusceptibility_internal</a> (const std::vector&lt; <a class="el" href="structcomplex.html">complex</a> &gt; &amp;omega, std::vector&lt; <a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html">SusceptibilityTerm</a> &gt; &amp;susceptibility, <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;sArr, bool elecOnly) const </td></tr>
 <tr class="memdesc:af3def4d7a31010b3a6c1f607ce57f92e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fluid-dependent implementation of <a class="el" href="structFluidSolver.html#a25d481856cc40a161c731c35c0da136d" title="Get susceptibility for a list of specified (complex) frequencies. ">getSusceptibility()</a> <br/></td></tr>
@@ -304,7 +304,7 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 
 </div>
 </div>
-<a class="anchor" id="a9ea77776d06809c06f6bebb68ddecf52"></a>
+<a class="anchor" id="a58ac5b277dfd4ca1360b4919a599669c"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -324,7 +324,13 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype"><a class="el" href="structIonicGradient.html">IonicGradient</a> *&#160;</td>
-          <td class="paramname"><em>extraForces</em> = <code>0</code>&#160;</td>
+          <td class="paramname"><em>extraForces</em> = <code>0</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>Adiel_RRT</em> = <code>0</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -333,7 +339,7 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Compute gradients with respect to electronic side variables (if non-null), and return fluid+coupling free energy Any extra forces on explicit ions due to the fluid should be stored in extraForces (if non-null) This base-class wrapper handles grid embedding (if necessary) and calls set_internal of the derived class </p>
+<p>Compute gradients with respect to electronic side variables (if non-null), and return fluid+coupling free energy Any extra forces on explicit ions due to the fluid should be stored in extraForces (if non-null) Lattice derivative of the fluid energy should be stored in Adiel_RRT (if non-null) This base-class wrapper handles grid embedding (if necessary) and calls set_internal of the derived class </p>
 
 </div>
 </div>

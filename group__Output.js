@@ -9,7 +9,6 @@ var group__Output =
     [ "Phonon.h", "Phonon_8h.html", null ],
     [ "Wannier.h", "Wannier_8h.html", null ],
     [ "WannierMinimizer.h", "WannierMinimizer_8h.html", null ],
-    [ "Moments", "namespaceMoments.html", null ],
     [ "DOS", "classDOS.html", [
       [ "Weight", "structDOS_1_1Weight.html", [
         [ "OrbitalDesc", "structDOS_1_1Weight_1_1OrbitalDesc.html", [
@@ -279,8 +278,10 @@ var group__Output =
       [ "spinMode", "classWannier.html#a46308a6ccaefdceae0b39c4f259797a2", null ],
       [ "trialOrbitals", "classWannier.html#ae6db8ecc7b4a85492157748d7f703d79", null ],
       [ "z0", "classWannier.html#a6232136c34a7f6b2684b94579ee89b5a", null ],
+      [ "zFieldMag", "classWannier.html#a696a3b36c0b725385b13ee16221141e7", null ],
       [ "zH", "classWannier.html#ad51a869b88b3d8999cc5a607f1971e6a", null ],
-      [ "zSigma", "classWannier.html#a38e85ce9ab458acd25ed06edf0230a44", null ]
+      [ "zSigma", "classWannier.html#a38e85ce9ab458acd25ed06edf0230a44", null ],
+      [ "zVfilename", "classWannier.html#a0f88fd39c2baf5887400546c9bd032d4", null ]
     ] ],
     [ "WannierEverything", "structWannierEverything.html", [
       [ "setup", "structWannierEverything.html#a9b45fb0978443dd425e9d4841e55e8f3", null ],
@@ -381,6 +382,11 @@ var group__Output =
       [ "LongRangeSum", "classLongRangeSum.html#ac112cc4974744ea3377a4767e9aab0dd", null ],
       [ "operator()", "classLongRangeSum.html#a1d360ebb93613daa9294c194789636a4", null ]
     ] ],
+    [ "LongRangeSum2D", "classLongRangeSum2D.html", [
+      [ "LongRangeSum2D", "classLongRangeSum2D.html#a96c20db9c5549800f04f1dd9321e14cd", null ],
+      [ "operator()", "classLongRangeSum2D.html#a840d3c00d92bfc35ec0e0115b8f0055a", null ],
+      [ "wkernel", "classLongRangeSum2D.html#af80931f9442c2c6d31b7b75bee91b3ea", null ]
+    ] ],
     [ "WannierMinimizerFD", "classWannierMinimizerFD.html", [
       [ "Edge", "structWannierMinimizerFD_1_1Edge.html", [
         [ "b", "structWannierMinimizerFD_1_1Edge.html#a0f26da340e0886448627f91b70f1991f", null ],
@@ -413,6 +419,8 @@ var group__Output =
     ] ],
     [ "DumpVariable", "group__Output.html#gab78cde8e08849746f8d4ea413fb1a6d7", null ],
     [ "dumpExcitations", "group__Output.html#gae45f6c5bd0d6c46bc9eef1ed833dd344", null ],
+    [ "dumpFCI", "group__Output.html#gacf9a3ba260434c09052ed7ea0d5e4018", null ],
+    [ "dumpMoment", "group__Output.html#ga20ee7928f15068995ec6f93d3d1d9be0", null ],
     [ "loadRawBinary", "group__Output.html#gafc162aa4ca82dd811933c0d47ed936a5", null ],
     [ "loadRawBinary", "group__Output.html#gaf0fe0b87114a2d2abdcfd77e6323675a", null ],
     [ "saveDX", "group__Output.html#ga027303789663d526f15de586a01840ac", null ],

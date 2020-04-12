@@ -16,6 +16,7 @@ var classSymmetries =
     [ "symmetrize", "classSymmetries.html#ac31159a0c48647499ac64f5b2ef3aeee", null ],
     [ "symmetrize", "classSymmetries.html#a6044868d9237dbd3c01dc197b37a4acb", null ],
     [ "symmetrize", "classSymmetries.html#a76f5c7edec70870a13ab0bc7756ebf4c", null ],
+    [ "symmetrize", "classSymmetries.html#abed6051f67eeb097227f0ac18a0f7650", null ],
     [ "symmetrizeSpherical", "classSymmetries.html#a5e425cc5ef2e8bb215b70e193dcf7623", null ],
     [ "CommandDebug", "classSymmetries.html#a8acb8765d77f63bf270a50191f3ddacd", null ],
     [ "CommandKpointReduceInversion", "classSymmetries.html#a724bba69e6cbca5dc231fc273c2e77bd", null ],

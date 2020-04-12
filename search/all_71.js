@@ -13,7 +13,7 @@ var searchData=
   ['qstop',['qStop',['../classElecInfo.html#aae5f5c53efa48fe28b5c21c05f4460d9',1,'ElecInfo']]],
   ['qstopother',['qStopOther',['../classElecInfo.html#a09016163ce46ca2ee2df526219cdf923',1,'ElecInfo']]],
   ['qtol',['Qtol',['../classFluidMixture.html#a79d03c079da8e57a897b4a4cf4e8e2f3',1,'FluidMixture']]],
-  ['quad',['quad',['../structFluidComponent.html#ae27741331607ae87d008c07d5a6999ef',1,'FluidComponent::quad()'],['../classIdealGasPomega.html#a52b5950ddbfe03e881de2e12a934fb4d',1,'IdealGasPomega::quad()'],['../structMinimizeParams.html#a7b08a534183734884dc6d44a7cb5a03da9dad4dba6378290dcacad74bb476ad98',1,'MinimizeParams::Quad()']]],
+  ['quad',['Quad',['../structMinimizeParams.html#a7b08a534183734884dc6d44a7cb5a03da9dad4dba6378290dcacad74bb476ad98',1,'MinimizeParams::Quad()'],['../structFluidComponent.html#ae27741331607ae87d008c07d5a6999ef',1,'FluidComponent::quad()'],['../classIdealGasPomega.html#a52b5950ddbfe03e881de2e12a934fb4d',1,'IdealGasPomega::quad()']]],
   ['quad_5fngamma',['quad_nGamma',['../structFluidComponent.html#a30a97dcbde9837a00e97a13c216cace1',1,'FluidComponent']]],
   ['quantumnumber',['QuantumNumber',['../classQuantumNumber.html',1,'']]],
   ['quinticspline',['QuinticSpline',['../namespaceQuinticSpline.html',1,'']]],

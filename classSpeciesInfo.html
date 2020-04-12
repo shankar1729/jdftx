@@ -155,8 +155,8 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <a class="el" href="classSpeciesInfo.html#a05f561d493a1dc4e65ef899d9cf16057">PseudopotentialFormat</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a16fb15241b052f11c5d85e7585388895">getPSPFormat</a> ()</td></tr>
 <tr class="memdesc:a16fb15241b052f11c5d85e7585388895"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the pseudopotential format. <br/></td></tr>
 <tr class="separator:a16fb15241b052f11c5d85e7585388895"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a90b32bbcb32e9cf83933658898259e2a"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a90b32bbcb32e9cf83933658898259e2a">getV</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0) const </td></tr>
-<tr class="separator:a90b32bbcb32e9cf83933658898259e2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac15d5c3f6abb9423bb2b7f40e6d73e27"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#ac15d5c3f6abb9423bb2b7f40e6d73e27">getV</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0, const int stressDir=-1) const </td></tr>
+<tr class="separator:ac15d5c3f6abb9423bb2b7f40e6d73e27"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a734f58b6f1454958b24c40d9b80a640e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a734f58b6f1454958b24c40d9b80a640e"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a734f58b6f1454958b24c40d9b80a640e">nProjectors</a> () const </td></tr>
 <tr class="memdesc:a734f58b6f1454958b24c40d9b80a640e"><td class="mdescLeft">&#160;</td><td class="mdescRight">total number of projectors for all atoms in this species (number of columns in result of getV) <br/></td></tr>
@@ -183,10 +183,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#ae9b5302749cca4f0a67ac5c4bb130d77">augmentDensityGrid</a> (<a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;n) const </td></tr>
 <tr class="memdesc:ae9b5302749cca4f0a67ac5c4bb130d77"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate the spherical augmentation functions nAug to the grid electron density (call only once, after augmentDensitySpherical on all k-points) <br/></td></tr>
 <tr class="separator:ae9b5302749cca4f0a67ac5c4bb130d77"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2fff3e83066c1b7b563ac524e1dd207d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2fff3e83066c1b7b563ac524e1dd207d"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a2fff3e83066c1b7b563ac524e1dd207d">augmentDensityGridGrad</a> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;E_n, std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt; *forces=0)</td></tr>
-<tr class="memdesc:a2fff3e83066c1b7b563ac524e1dd207d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once) <br/></td></tr>
-<tr class="separator:a2fff3e83066c1b7b563ac524e1dd207d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af6cd7352e4fc2a3b1668238cbd4f3d39"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af6cd7352e4fc2a3b1668238cbd4f3d39"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#af6cd7352e4fc2a3b1668238cbd4f3d39">augmentDensityGridGrad</a> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;E_n, std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt; *forces=0, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *Eaug_RRT=0)</td></tr>
+<tr class="memdesc:af6cd7352e4fc2a3b1668238cbd4f3d39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once). Optionally collect forces and stress contributions. <br/></td></tr>
+<tr class="separator:af6cd7352e4fc2a3b1668238cbd4f3d39"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a00f6a8d8d933ff648ed66bab9065e1a2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a00f6a8d8d933ff648ed66bab9065e1a2"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a00f6a8d8d933ff648ed66bab9065e1a2">augmentDensitySphericalGrad</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const <a class="el" href="classmatrix.html">matrix</a> &amp;VdagCq, <a class="el" href="classmatrix.html">matrix</a> &amp;HVdagCq) const </td></tr>
 <tr class="memdesc:a00f6a8d8d933ff648ed66bab9065e1a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) <br/></td></tr>
@@ -206,12 +206,12 @@ double&#160;</td><td class="memItemRight" valign="bottom"><b>rhoAtom_computeU</b
 <tr class="memitem:a6aad370620b5c2ec3041979b0e902d86"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6aad370620b5c2ec3041979b0e902d86"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>rhoAtom_grad</b> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const <a class="el" href="classmatrix.html">matrix</a> *U_rhoAtomPtr, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;HCq) const </td></tr>
 <tr class="separator:a6aad370620b5c2ec3041979b0e902d86"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3fd8e5da12862fb0f19e1a70e68d6b0f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3fd8e5da12862fb0f19e1a70e68d6b0f"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>rhoAtom_forces</b> (const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C, const <a class="el" href="classmatrix.html">matrix</a> *U_rhoAtomPtr, std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt; &amp;forces) const </td></tr>
-<tr class="separator:a3fd8e5da12862fb0f19e1a70e68d6b0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a32a28c9cd3a9f6f0c4ae06ad4e4ceff0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a32a28c9cd3a9f6f0c4ae06ad4e4ceff0"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>rhoAtom_getV</b> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const <a class="el" href="classmatrix.html">matrix</a> *U_rhoAtomPtr, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Opsi, <a class="el" href="classmatrix.html">matrix</a> &amp;M, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0) const </td></tr>
-<tr class="separator:a32a28c9cd3a9f6f0c4ae06ad4e4ceff0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afcfa3e2a667e2bb681c3e52e6c297259"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="afcfa3e2a667e2bb681c3e52e6c297259"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>rhoAtom_forces</b> (const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C, const <a class="el" href="classmatrix.html">matrix</a> *U_rhoAtomPtr, std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt; &amp;forces, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *EU_RRT) const </td></tr>
+<tr class="separator:afcfa3e2a667e2bb681c3e52e6c297259"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3f914c4bfed6cdc0e0bcdf76aa982aab"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3f914c4bfed6cdc0e0bcdf76aa982aab"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>rhoAtom_getV</b> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const <a class="el" href="classmatrix.html">matrix</a> *U_rhoAtomPtr, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Opsi, <a class="el" href="classmatrix.html">matrix</a> &amp;M, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0, const int stressDir=-1) const </td></tr>
+<tr class="separator:a3f914c4bfed6cdc0e0bcdf76aa982aab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5d7b7cdcedb9b50db478d40cf319dcb6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5d7b7cdcedb9b50db478d40cf319dcb6"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a5d7b7cdcedb9b50db478d40cf319dcb6">accumulateAtomicDensity</a> (<a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> &amp;nTilde) const </td></tr>
 <tr class="memdesc:a5d7b7cdcedb9b50db478d40cf319dcb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate atomic density from this species. <br/></td></tr>
@@ -220,13 +220,13 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a4daf47eea1ba294bb6c1874bd88929f9">accumulateAtomicPotential</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;dTilde) const </td></tr>
 <tr class="memdesc:a4daf47eea1ba294bb6c1874bd88929f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate electrostatic potential of neutral atoms from this species. <br/></td></tr>
 <tr class="separator:a4daf47eea1ba294bb6c1874bd88929f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a832130e373e9a56223c1c0bfaf500d45"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a832130e373e9a56223c1c0bfaf500d45"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a832130e373e9a56223c1c0bfaf500d45">setAtomicOrbitals</a> (<a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, bool applyO, int colOffset=0, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0) const </td></tr>
-<tr class="memdesc:a832130e373e9a56223c1c0bfaf500d45"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate atomic orbitals with/without O preapplied (store in Y with an optional column offset, or calcluatulate k derivative if derivDir is non-null) <br/></td></tr>
-<tr class="separator:a832130e373e9a56223c1c0bfaf500d45"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abc84e4d9c2f88b23fb56e64c8b3364b4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#abc84e4d9c2f88b23fb56e64c8b3364b4">setAtomicOrbitals</a> (<a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, bool applyO, unsigned n, int l, int colOffset=0, int atomColStride=0, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0) const </td></tr>
-<tr class="memdesc:abc84e4d9c2f88b23fb56e64c8b3364b4"><td class="mdescLeft">&#160;</td><td class="mdescRight">If non-zero, atomColStride overrides the number of columns between the same orbital of multiple atoms (default = number of orbitals at current n and l)  <a href="#abc84e4d9c2f88b23fb56e64c8b3364b4">More...</a><br/></td></tr>
-<tr class="separator:abc84e4d9c2f88b23fb56e64c8b3364b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2c10bd60017d425cd7f978f919a0cd98"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2c10bd60017d425cd7f978f919a0cd98"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a2c10bd60017d425cd7f978f919a0cd98">setAtomicOrbitals</a> (<a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, bool applyO, int colOffset=0, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0, const int stressDir=-1) const </td></tr>
+<tr class="memdesc:a2c10bd60017d425cd7f978f919a0cd98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate atomic orbitals with/without O preapplied (store in Y with an optional column offset, or calculate derivatives instead) <br/></td></tr>
+<tr class="separator:a2c10bd60017d425cd7f978f919a0cd98"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a00a7d8f0dc352626b73b467e6b986183"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a00a7d8f0dc352626b73b467e6b986183">setAtomicOrbitals</a> (<a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, bool applyO, unsigned n, int l, int colOffset=0, int atomColStride=0, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0, const int stressDir=-1) const </td></tr>
+<tr class="memdesc:a00a7d8f0dc352626b73b467e6b986183"><td class="mdescLeft">&#160;</td><td class="mdescRight">If non-zero, atomColStride overrides the number of columns between the same orbital of multiple atoms (default = number of orbitals at current n and l)  <a href="#a00a7d8f0dc352626b73b467e6b986183">More...</a><br/></td></tr>
+<tr class="separator:a00a7d8f0dc352626b73b467e6b986183"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad54069ebe6187965a2aa00311a81db98"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad54069ebe6187965a2aa00311a81db98"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#ad54069ebe6187965a2aa00311a81db98">nAtomicOrbitals</a> () const </td></tr>
 <tr class="memdesc:ad54069ebe6187965a2aa00311a81db98"><td class="mdescLeft">&#160;</td><td class="mdescRight">return number of atomic orbitals in this species (all atoms) <br/></td></tr>
@@ -250,10 +250,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a442236647b83ab83a57df0bef17c424a">getLocalForces</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_Vlocps, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_rhoIon, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_nChargeball, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_nCore, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_tauCore) const </td></tr>
 <tr class="memdesc:a442236647b83ab83a57df0bef17c424a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the local forces (due to Vlocps, rhoIon, nChargeball and nCore/tauCore) <br/></td></tr>
 <tr class="separator:a442236647b83ab83a57df0bef17c424a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2a5fe2fb56d80f416d4ec3fd273af98f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2a5fe2fb56d80f416d4ec3fd273af98f"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a2a5fe2fb56d80f416d4ec3fd273af98f">accumNonlocalForces</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const <a class="el" href="classmatrix.html">matrix</a> &amp;VdagC, const <a class="el" href="classmatrix.html">matrix</a> &amp;E_VdagC, const <a class="el" href="classmatrix.html">matrix</a> &amp;grad_CdagOCq, std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt; &amp;forces) const </td></tr>
-<tr class="memdesc:a2a5fe2fb56d80f416d4ec3fd273af98f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Propagate gradient with respect to atomic projections (in E_VdagC, along with additional overlap contributions from grad_CdagOC) to forces: <br/></td></tr>
-<tr class="separator:a2a5fe2fb56d80f416d4ec3fd273af98f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a88297222f556bb1abd4fe4fe75243597"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a88297222f556bb1abd4fe4fe75243597"></a>
+<a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a88297222f556bb1abd4fe4fe75243597">getLocalStress</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_Vlocps, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_rhoIon, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_nChargeball, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_nCore, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_tauCore) const </td></tr>
+<tr class="memdesc:a88297222f556bb1abd4fe4fe75243597"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the local forces (due to Vlocps, rhoIon, nChargeball and nCore/tauCore) <br/></td></tr>
+<tr class="separator:a88297222f556bb1abd4fe4fe75243597"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4cbeee7eb46698754cbdd516e75fc6d5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a4cbeee7eb46698754cbdd516e75fc6d5">accumNonlocalForces</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const <a class="el" href="classmatrix.html">matrix</a> &amp;VdagC, const <a class="el" href="classmatrix.html">matrix</a> &amp;E_VdagC, const <a class="el" href="classmatrix.html">matrix</a> &amp;grad_CdagOCq, std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt; &amp;forces, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *Enl_RRT) const </td></tr>
+<tr class="separator:a4cbeee7eb46698754cbdd516e75fc6d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -297,7 +299,7 @@ std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt;&
 <tr class="separator:a343b757bb35b1ee545ec810781afc80c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abb5f6168cdd29a2f1097a2e33ca010e4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abb5f6168cdd29a2f1097a2e33ca010e4"></a>
 std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#abb5f6168cdd29a2f1097a2e33ca010e4">velocities</a></td></tr>
-<tr class="memdesc:abb5f6168cdd29a2f1097a2e33ca010e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">array of atomic velocities (null unless running MD) in lattice coordinates <br/></td></tr>
+<tr class="memdesc:abb5f6168cdd29a2f1097a2e33ca010e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">array of atomic velocities (NAN unless running MD) in lattice coordinates <br/></td></tr>
 <tr class="separator:abb5f6168cdd29a2f1097a2e33ca010e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae055f3aedcee980b10a5033c8886e69a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae055f3aedcee980b10a5033c8886e69a"></a>
 <a class="el" href="structManagedArray.html">ManagedArray</a>&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#ae055f3aedcee980b10a5033c8886e69a">atposManaged</a></td></tr>
@@ -416,6 +418,57 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>WannierMinimizer</b>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a class="anchor" id="a4cbeee7eb46698754cbdd516e75fc6d5"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void SpeciesInfo::accumNonlocalForces </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;&#160;</td>
+          <td class="paramname"><em>Cq</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classmatrix.html">matrix</a> &amp;&#160;</td>
+          <td class="paramname"><em>VdagC</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classmatrix.html">matrix</a> &amp;&#160;</td>
+          <td class="paramname"><em>E_VdagC</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classmatrix.html">matrix</a> &amp;&#160;</td>
+          <td class="paramname"><em>grad_CdagOCq</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt; &amp;&#160;</td>
+          <td class="paramname"><em>forces</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>Enl_RRT</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Propagate gradient with respect to atomic projections (in E_VdagC, along with additional overlap contributions from grad_CdagOC) to forces Additionally accumulate nonlocal stresses if Enl_RRT is non-null </p>
+
+</div>
+</div>
 <a class="anchor" id="a53711cef13c14c618ba956c9a3dd7b36"></a>
 <div class="memitem">
 <div class="memproto">
@@ -502,7 +555,7 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>WannierMinimizer</b>
 
 </div>
 </div>
-<a class="anchor" id="a90b32bbcb32e9cf83933658898259e2a"></a>
+<a class="anchor" id="ac15d5c3f6abb9423bb2b7f40e6d73e27"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -516,7 +569,13 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>WannierMinimizer</b>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *&#160;</td>
-          <td class="paramname"><em>derivDir</em> = <code>0</code>&#160;</td>
+          <td class="paramname"><em>derivDir</em> = <code>0</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const int&#160;</td>
+          <td class="paramname"><em>stressDir</em> = <code>-1</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -525,7 +584,7 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>WannierMinimizer</b>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Get projectors with qnum and basis matching Cq (optionally cached). If derivDir is non-null, return the derivative with respct to Cartesian k direction *derivDir instead (never cached). </p>
+<p>Get projectors with qnum and basis matching Cq (optionally cached). If derivDir is non-null, return the derivative with respct to Cartesian k direction *derivDir instead (never cached). If stressDir is &gt;=0, then calculate (i,j) component of dVnl/dR . RT where stressDir = 3*i+j </p>
 
 </div>
 </div>
@@ -566,7 +625,7 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>WannierMinimizer</b>
 
 </div>
 </div>
-<a class="anchor" id="abc84e4d9c2f88b23fb56e64c8b3364b4"></a>
+<a class="anchor" id="a00a7d8f0dc352626b73b467e6b986183"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -610,7 +669,13 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>WannierMinimizer</b>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *&#160;</td>
-          <td class="paramname"><em>derivDir</em> = <code>0</code>&#160;</td>
+          <td class="paramname"><em>derivDir</em> = <code>0</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const int&#160;</td>
+          <td class="paramname"><em>stressDir</em> = <code>-1</code>&#160;</td>
         </tr>
         <tr>
           <td></td>

@@ -20,7 +20,7 @@ var classEverything =
     [ "gInfoWfns", "classEverything.html#ae68ab48473f1acad4eddbfc2e25e7e89", null ],
     [ "iInfo", "classEverything.html#ae75fab70bd7c1c6de31d97155d821c80", null ],
     [ "inverseKSminParams", "classEverything.html#ad6414a61cbbaf109415d6b2ec26bbd54", null ],
-    [ "ionDynamicsParams", "classEverything.html#a60dca832b71d7d7559e074f65bef71f8", null ],
+    [ "ionicDynParams", "classEverything.html#a0ba23d7a065ce3d1f237edb872c9310b", null ],
     [ "ionicMinParams", "classEverything.html#aab973a64d0bf498876bdb4c64425d8c4", null ],
     [ "latticeMinParams", "classEverything.html#a14dc9f8f3155dfb48f9e5634aac304fb", null ],
     [ "scfParams", "classEverything.html#af1d98cdc21a9b866c7771a82ba40e2c0", null ],

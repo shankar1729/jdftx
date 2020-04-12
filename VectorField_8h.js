@@ -16,6 +16,8 @@ var VectorField_8h =
     [ "dot", "VectorField_8h.html#ga20ca3fbc7e2353234212dd9f97a9a3c3", null ],
     [ "dot", "VectorField_8h.html#ga51235343db247b9631a58c6a5e2f6c1c", null ],
     [ "dotElemwise", "VectorField_8h.html#ga5210a9104be0ce5d1aa169fdc2addf71", null ],
+    [ "dotOuter", "VectorField_8h.html#gaaa1f5248f90e82db1cdd2008ee85d2db", null ],
+    [ "dotOuter", "VectorField_8h.html#ga11d27cff8591fcfb1a2becf21d0e6a4e", null ],
     [ "getGzero", "VectorField_8h.html#ga78f4510f260fa20e9fc17e3badba61c5", null ],
     [ "gradient", "VectorField_8h.html#ga612451829b65ed9a343260a280695b9c", null ],
     [ "gradient", "VectorField_8h.html#ga55441e51b226e66aaf2bf72695635745", null ],

@@ -51,6 +51,8 @@ var classWannier =
     [ "spinMode", "classWannier.html#a46308a6ccaefdceae0b39c4f259797a2", null ],
     [ "trialOrbitals", "classWannier.html#ae6db8ecc7b4a85492157748d7f703d79", null ],
     [ "z0", "classWannier.html#a6232136c34a7f6b2684b94579ee89b5a", null ],
+    [ "zFieldMag", "classWannier.html#a696a3b36c0b725385b13ee16221141e7", null ],
     [ "zH", "classWannier.html#ad51a869b88b3d8999cc5a607f1971e6a", null ],
-    [ "zSigma", "classWannier.html#a38e85ce9ab458acd25ed06edf0230a44", null ]
+    [ "zSigma", "classWannier.html#a38e85ce9ab458acd25ed06edf0230a44", null ],
+    [ "zVfilename", "classWannier.html#a0f88fd39c2baf5887400546c9bd032d4", null ]
 ];

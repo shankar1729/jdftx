@@ -280,6 +280,7 @@ var group__Utilities =
     [ "Ylm", "group__Utilities.html#gac4e153a6c6c335c903f27f320b5be223", null ],
     [ "Ylm", "group__Utilities.html#ga6ab102bf63a678ba89b77dc2eed6fb18", null ],
     [ "YlmPrime", "group__Utilities.html#gabcc5f499214d7ae22da80692fe0fc123", null ],
+    [ "YlmPrime", "group__Utilities.html#gae159ba7fa1858ddaa9c05f7650691e9f", null ],
     [ "Ampere", "group__Utilities.html#ga2d85af88821df152c2edd97c64a6ce10", null ],
     [ "amu", "group__Utilities.html#ga0595e59a9bf296545e5ab563066df679", null ],
     [ "Angstrom", "group__Utilities.html#ga06074fa3af9aaecc152f6ae93d02fbc7", null ],

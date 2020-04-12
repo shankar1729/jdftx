@@ -133,6 +133,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>setup</b> (const <a c
 <tr class="separator:a344954949e356af10fec58f003ad99e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab4e025ca7cc627ae77b43edc11b227e5"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classElecVars.html#ab4e025ca7cc627ae77b43edc11b227e5">elecEnergyAndGrad</a> (<a class="el" href="classEnergies.html">Energies</a> &amp;ener, <a class="el" href="structElecGradient.html">ElecGradient</a> *grad=0, <a class="el" href="structElecGradient.html">ElecGradient</a> *Kgrad=0, bool calc_Hsub=false)</td></tr>
 <tr class="separator:ab4e025ca7cc627ae77b43edc11b227e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa92a0e26a5851765b96fe547a412b2bc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa92a0e26a5851765b96fe547a412b2bc"></a>
+<a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classElecVars.html#aa92a0e26a5851765b96fe547a412b2bc">latticeGrad</a> () const </td></tr>
+<tr class="memdesc:aa92a0e26a5851765b96fe547a412b2bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute gradient of electronic energy with respect to lattice vectors. <br/></td></tr>
+<tr class="separator:aa92a0e26a5851765b96fe547a412b2bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac5aacf0153457f48d7141c52ac821c78"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac5aacf0153457f48d7141c52ac821c78"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classElecVars.html#ac5aacf0153457f48d7141c52ac821c78">setEigenvectors</a> ()</td></tr>
 <tr class="memdesc:ac5aacf0153457f48d7141c52ac821c78"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set C to eigenvectors of the subspace hamiltonian. <br/></td></tr>
@@ -185,10 +189,10 @@ std::vector&lt; std::vector<br class="typebreak"/>
 <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classElecVars.html#a4861f0c29cbdc2c427f546e171a4ffd1">n</a></td></tr>
 <tr class="memdesc:a4861f0c29cbdc2c427f546e171a4ffd1"><td class="mdescLeft">&#160;</td><td class="mdescRight">electron density (single ScalarField) or spin density (two ScalarFields [up,dn]) or spin density matrix (four ScalarFields [UpUp, DnDn, Re(UpDn), Im(UpDn)]) <br/></td></tr>
 <tr class="separator:a4861f0c29cbdc2c427f546e171a4ffd1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0552af897d82aef1dbec2b9ae24214c2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0552af897d82aef1dbec2b9ae24214c2"></a>
-<a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classElecVars.html#a0552af897d82aef1dbec2b9ae24214c2">nAccumulated</a></td></tr>
-<tr class="memdesc:a0552af897d82aef1dbec2b9ae24214c2"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classElecVars.html#a4861f0c29cbdc2c427f546e171a4ffd1" title="electron density (single ScalarField) or spin density (two ScalarFields [up,dn]) or spin density matr...">ElecVars::n</a> accumulated over an MD trajectory. <br/></td></tr>
-<tr class="separator:a0552af897d82aef1dbec2b9ae24214c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a38ff9286bcaea57604ccbcd19090f583"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a38ff9286bcaea57604ccbcd19090f583"></a>
+<a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classElecVars.html#a38ff9286bcaea57604ccbcd19090f583">nAccum</a></td></tr>
+<tr class="memdesc:a38ff9286bcaea57604ccbcd19090f583"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classElecVars.html#a4861f0c29cbdc2c427f546e171a4ffd1" title="electron density (single ScalarField) or spin density (two ScalarFields [up,dn]) or spin density matr...">ElecVars::n</a> accumulated over an MD trajectory. <br/></td></tr>
+<tr class="separator:a38ff9286bcaea57604ccbcd19090f583"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4b6036a8ff97b3b531ed6241f9260269"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4b6036a8ff97b3b531ed6241f9260269"></a>
 <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classElecVars.html#a4b6036a8ff97b3b531ed6241f9260269">tau</a></td></tr>
 <tr class="memdesc:a4b6036a8ff97b3b531ed6241f9260269"><td class="mdescLeft">&#160;</td><td class="mdescRight">kinetic energy density including tauCore, if present (computed if a meta GGA is being used) <br/></td></tr>

@@ -40,5 +40,6 @@ var searchData=
   ['stopwatch',['StopWatch',['../classStopWatch.html',1,'']]],
   ['supercell',['Supercell',['../structSupercell.html',1,'']]],
   ['susceptibilityterm',['SusceptibilityTerm',['../structFluidSolver_1_1SusceptibilityTerm.html',1,'FluidSolver']]],
+  ['symmetricmatrix3',['symmetricMatrix3',['../structsymmetricMatrix3.html',1,'']]],
   ['symmetries',['Symmetries',['../classSymmetries.html',1,'']]]
 ];

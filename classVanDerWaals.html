@@ -120,10 +120,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:af1246f62f4269e601562ec62153aa280"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af1246f62f4269e601562ec62153aa280"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>VanDerWaals</b> (const <a class="el" href="classEverything.html">Everything</a> &amp;everything)</td></tr>
 <tr class="separator:af1246f62f4269e601562ec62153aa280"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2755a2b02c679b09933148c767a17f03"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVanDerWaals.html#a2755a2b02c679b09933148c767a17f03">energyAndGrad</a> (std::vector&lt; <a class="el" href="structAtom.html">Atom</a> &gt; &amp;atoms, const double scaleFac) const </td></tr>
-<tr class="separator:a2755a2b02c679b09933148c767a17f03"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1a86fe24bdfe0d7ec0f24b2e40ce5705"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVanDerWaals.html#a1a86fe24bdfe0d7ec0f24b2e40ce5705">energyAndGrad</a> (const std::vector&lt; std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt; &gt; &amp;atpos, const <a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> &amp;Ntilde, const std::vector&lt; int &gt; &amp;atomicNumber, const double scaleFac, <a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> *grad_Ntilde=0, struct <a class="el" href="structIonicGradient.html">IonicGradient</a> *forces=0) const </td></tr>
-<tr class="separator:a1a86fe24bdfe0d7ec0f24b2e40ce5705"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a06c51f5a9722112b0f785ae70766c7d6"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVanDerWaals.html#a06c51f5a9722112b0f785ae70766c7d6">energyAndGrad</a> (std::vector&lt; <a class="el" href="structAtom.html">Atom</a> &gt; &amp;atoms, const double scaleFac, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *E_RRT=0) const </td></tr>
+<tr class="separator:a06c51f5a9722112b0f785ae70766c7d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae607b9b23ae9e908976ab5dc63a0a126"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVanDerWaals.html#ae607b9b23ae9e908976ab5dc63a0a126">energyAndGrad</a> (const std::vector&lt; std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt; &gt; &amp;atpos, const <a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> &amp;Ntilde, const std::vector&lt; int &gt; &amp;atomicNumber, const double scaleFac, <a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> *grad_Ntilde=0, struct <a class="el" href="structIonicGradient.html">IonicGradient</a> *forces=0, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *E_RRT=0) const </td></tr>
+<tr class="separator:ae607b9b23ae9e908976ab5dc63a0a126"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ace55be279c004144f459a9944f8b9430"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVanDerWaals.html#ace55be279c004144f459a9944f8b9430">getScaleFactor</a> (<a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a> exCorrName, double scaleOverride=0.) const </td></tr>
 <tr class="separator:ace55be279c004144f459a9944f8b9430"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a29ec9e4e43e9b7d210f6d324d8c7081c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a29ec9e4e43e9b7d210f6d324d8c7081c"></a>
@@ -141,7 +141,7 @@ static const int&#160;</td><td class="memItemRight" valign="bottom"><a class="el
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>DFT-D2 pair potential dispersion correction <a class="el" href="citelist.html#CITEREF_Dispersion-Grimme">[10]</a>. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="a2755a2b02c679b09933148c767a17f03"></a>
+<a class="anchor" id="a06c51f5a9722112b0f785ae70766c7d6"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -155,7 +155,13 @@ static const int&#160;</td><td class="memItemRight" valign="bottom"><a class="el
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const double&#160;</td>
-          <td class="paramname"><em>scaleFac</em>&#160;</td>
+          <td class="paramname"><em>scaleFac</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>E_RRT</em> = <code>0</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -164,11 +170,11 @@ static const int&#160;</td><td class="memItemRight" valign="bottom"><a class="el
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Van der Waal correction energy for a collection of discrete atoms at fixed locations Corresponding forces are accumulated to <a class="el" href="structAtom.html#a8e174511a73f78abf347973fbedbaf3a" title="force in lattice coordinates (contravariant) ">Atom::force</a> for each atom </p>
+<p>Van der Waal correction energy for a collection of discrete atoms at fixed locations Corresponding forces are accumulated to <a class="el" href="structAtom.html#a8e174511a73f78abf347973fbedbaf3a" title="force in lattice coordinates (contravariant) ">Atom::force</a> for each atom If E_RRT is non-null, accumulate contributions to the symmetric lattice derivative (stress * volume) </p>
 
 </div>
 </div>
-<a class="anchor" id="a1a86fe24bdfe0d7ec0f24b2e40ce5705"></a>
+<a class="anchor" id="ae607b9b23ae9e908976ab5dc63a0a126"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -206,7 +212,13 @@ static const int&#160;</td><td class="memItemRight" valign="bottom"><a class="el
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">struct <a class="el" href="structIonicGradient.html">IonicGradient</a> *&#160;</td>
-          <td class="paramname"><em>forces</em> = <code>0</code>&#160;</td>
+          <td class="paramname"><em>forces</em> = <code>0</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>E_RRT</em> = <code>0</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -215,7 +227,7 @@ static const int&#160;</td><td class="memItemRight" valign="bottom"><a class="el
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Van der Waal correction to the interaction energy between the explicit atoms (from <a class="el" href="classIonInfo.html" title="Container class for ionic system: collection of species, each with several atoms. ...">IonInfo</a>) and the continuous fields Ntilde with specified atomic numbers. The gradient w.r.t site densities is accumulated to grad_Ntilde (if non-null) and the negative gradient w.r.t discrete atom positions is accumulated to forces (if non-null) </p>
+<p>Van der Waal correction to the interaction energy between the explicit atoms (from <a class="el" href="classIonInfo.html" title="Container class for ionic system: collection of species, each with several atoms. ...">IonInfo</a>) and the continuous fields Ntilde with specified atomic numbers. The gradient w.r.t site densities is accumulated to grad_Ntilde (if non-null), the negative gradient w.r.t discrete atom positions is accumulated to forces (if non-null) and the lattice gradient is accumulated to E_RRT (if non-null) </p>
 
 </div>
 </div>

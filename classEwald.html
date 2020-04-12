@@ -109,13 +109,13 @@ $(document).ready(function(){initNavTree('classEwald.html','');});
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:ad10e3af055fbcf88ecdc9157d0171c26"><td class="memItemLeft" align="right" valign="top">virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEwald.html#ad10e3af055fbcf88ecdc9157d0171c26">energyAndGrad</a> (std::vector&lt; <a class="el" href="structAtom.html">Atom</a> &gt; &amp;atoms) const =0</td></tr>
-<tr class="separator:ad10e3af055fbcf88ecdc9157d0171c26"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa01edebeced17f4c2672f9d6aae3d512"><td class="memItemLeft" align="right" valign="top">virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEwald.html#aa01edebeced17f4c2672f9d6aae3d512">energyAndGrad</a> (std::vector&lt; <a class="el" href="structAtom.html">Atom</a> &gt; &amp;atoms, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *E_RRT=0) const =0</td></tr>
+<tr class="separator:aa01edebeced17f4c2672f9d6aae3d512"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Abstract base class for <a class="el" href="classEwald.html" title="Abstract base class for Ewald summation in arbitrary dimension. ">Ewald</a> summation in arbitrary dimension. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="ad10e3af055fbcf88ecdc9157d0171c26"></a>
+<a class="anchor" id="aa01edebeced17f4c2672f9d6aae3d512"></a>
 <div class="memitem">
 <div class="memproto">
 <table class="mlabels">
@@ -126,8 +126,18 @@ Public Member Functions</h2></td></tr>
           <td class="memname">virtual double Ewald::energyAndGrad </td>
           <td>(</td>
           <td class="paramtype">std::vector&lt; <a class="el" href="structAtom.html">Atom</a> &gt; &amp;&#160;</td>
-          <td class="paramname"><em>atoms</em></td><td>)</td>
-          <td> const</td>
+          <td class="paramname"><em>atoms</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>E_RRT</em> = <code>0</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
         </tr>
       </table>
   </td>
@@ -136,7 +146,7 @@ Public Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Get the energy of a point charge configurtaion, and accumulate corresponding forces The implementation will shift each <a class="el" href="structAtom.html#a8ca7321068ad65442dc4ce620be85756" title="position in lattice coordinates (covariant) ">Atom::pos</a> by lattice vectors to bring it to the fundamental zone (or Wigner-Seitz cell as appropriate) </p>
+<p>Get the energy of a point charge configurtaion, and accumulate corresponding forces The implementation will shift each <a class="el" href="structAtom.html#a8ca7321068ad65442dc4ce620be85756" title="position in lattice coordinates (covariant) ">Atom::pos</a> by lattice vectors to bring it to the fundamental zone (or Wigner-Seitz cell as appropriate) If E_RRT is non-null, accumulate contrbutions to the symmetric lattice derivative (stress * volume) </p>
 
 </div>
 </div>

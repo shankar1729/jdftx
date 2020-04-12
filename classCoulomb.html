@@ -142,8 +142,12 @@ Public Member Functions</h2></td></tr>
 <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCoulomb.html#a53ede18941600802c48b3c409a9432a2">operator()</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;, <a class="el" href="classCoulomb.html#a233edca77acfc8a1cefef7918f798e65">PointChargeMode</a> pointChargeMode=<a class="el" href="classCoulomb.html#a233edca77acfc8a1cefef7918f798e65ac9d7d134ebad0d20f5d0863463415ee7">PointChargeNone</a>) const </td></tr>
 <tr class="memdesc:a53ede18941600802c48b3c409a9432a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply <a class="el" href="classCoulomb.html" title="Abstract base class for the (optionally truncated) Coulomb interaction. ">Coulomb</a> kernel (parameters same as destructible input version above) <br/></td></tr>
 <tr class="separator:a53ede18941600802c48b3c409a9432a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7d0ed793d8dbf590c3d90772dffed45e"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCoulomb.html#a7d0ed793d8dbf590c3d90772dffed45e">energyAndGrad</a> (std::vector&lt; <a class="el" href="structAtom.html">Atom</a> &gt; &amp;atoms) const </td></tr>
-<tr class="separator:a7d0ed793d8dbf590c3d90772dffed45e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6c82015f6f0d720997d244b01c62f582"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6c82015f6f0d720997d244b01c62f582"></a>
+<a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCoulomb.html#a6c82015f6f0d720997d244b01c62f582">latticeGradient</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;X, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Y, <a class="el" href="classCoulomb.html#a233edca77acfc8a1cefef7918f798e65">PointChargeMode</a> pointChargeMode=<a class="el" href="classCoulomb.html#a233edca77acfc8a1cefef7918f798e65ac9d7d134ebad0d20f5d0863463415ee7">PointChargeNone</a>) const </td></tr>
+<tr class="memdesc:a6c82015f6f0d720997d244b01c62f582"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the lattice gradient of dot(X, O(coulomb(Y)) <br/></td></tr>
+<tr class="separator:a6c82015f6f0d720997d244b01c62f582"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa5d8de7df578c01093d69dd1c0718df4"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCoulomb.html#aa5d8de7df578c01093d69dd1c0718df4">energyAndGrad</a> (std::vector&lt; <a class="el" href="structAtom.html">Atom</a> &gt; &amp;atoms, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *E_RRT=0) const </td></tr>
+<tr class="separator:aa5d8de7df578c01093d69dd1c0718df4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae94b881bec9a03126b12d2ee94dd8bd0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae94b881bec9a03126b12d2ee94dd8bd0"></a>
 <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCoulomb.html#ae94b881bec9a03126b12d2ee94dd8bd0">getEfieldPotential</a> () const </td></tr>
 <tr class="memdesc:ae94b881bec9a03126b12d2ee94dd8bd0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate the potential due to the Efield (if any) (Requires embedded truncation) <br/></td></tr>
@@ -152,6 +156,10 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a76dc817b3aa5574ed568a4c1b6c5d981"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab9d47d08fd15a498a7901e4cd63c58bb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCoulomb.html#ab9d47d08fd15a498a7901e4cd63c58bb">operator()</a> (const <a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a> &amp;, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; kDiff, double omega) const </td></tr>
 <tr class="separator:ab9d47d08fd15a498a7901e4cd63c58bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afd951289344d946406603969f62e50f7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="afd951289344d946406603969f62e50f7"></a>
+<a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCoulomb.html#afd951289344d946406603969f62e50f7">latticeGradient</a> (const <a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a> &amp;X, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; kDiff, double omega) const </td></tr>
+<tr class="memdesc:afd951289344d946406603969f62e50f7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the lattice gradient of exchange integral dot(X, O(coulomb(X)) for given k-point difference and screening parameter. <br/></td></tr>
+<tr class="separator:afd951289344d946406603969f62e50f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
@@ -164,6 +172,10 @@ Protected Member Functions</h2></td></tr>
 <tr class="separator:af268cc5e01552b760ce0408a44a8512e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afca175f9a2d84a0e95535f3e8211eafe"><td class="memItemLeft" align="right" valign="top">virtual std::shared_ptr&lt; <a class="el" href="classEwald.html">Ewald</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCoulomb.html#afca175f9a2d84a0e95535f3e8211eafe">createEwald</a> (<a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; R, size_t nAtoms) const =0</td></tr>
 <tr class="separator:afca175f9a2d84a0e95535f3e8211eafe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6ec6d2722dfbe2ed45eb548dc3536e83"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6ec6d2722dfbe2ed45eb548dc3536e83"></a>
+virtual <a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCoulomb.html#a6ec6d2722dfbe2ed45eb548dc3536e83">getLatticeGradient</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;X, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Y) const =0</td></tr>
+<tr class="memdesc:a6ec6d2722dfbe2ed45eb548dc3536e83"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the lattice gradient of dot(X, O(coulomb(Y)) <br/></td></tr>
+<tr class="separator:a6ec6d2722dfbe2ed45eb548dc3536e83"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -291,7 +303,7 @@ struct&#160;</td><td class="memItemRight" valign="bottom"><b>ChargedDefect</b></
 
 </div>
 </div>
-<a class="anchor" id="a7d0ed793d8dbf590c3d90772dffed45e"></a>
+<a class="anchor" id="aa5d8de7df578c01093d69dd1c0718df4"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -299,12 +311,22 @@ struct&#160;</td><td class="memItemRight" valign="bottom"><b>ChargedDefect</b></
           <td class="memname">double Coulomb::energyAndGrad </td>
           <td>(</td>
           <td class="paramtype">std::vector&lt; <a class="el" href="structAtom.html">Atom</a> &gt; &amp;&#160;</td>
-          <td class="paramname"><em>atoms</em></td><td>)</td>
-          <td> const</td>
+          <td class="paramname"><em>atoms</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>E_RRT</em> = <code>0</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Create the appropriate <a class="el" href="classEwald.html" title="Abstract base class for Ewald summation in arbitrary dimension. ">Ewald</a> class, if required, and call <a class="el" href="classEwald.html#ad10e3af055fbcf88ecdc9157d0171c26">Ewald::energyAndGrad</a> Includes interaction with Efield, if present (Requires embedded truncation) </p>
+<p>Create the appropriate <a class="el" href="classEwald.html" title="Abstract base class for Ewald summation in arbitrary dimension. ">Ewald</a> class, if required, and call <a class="el" href="classEwald.html#aa01edebeced17f4c2672f9d6aae3d512">Ewald::energyAndGrad</a> Includes interaction with Efield, if present (Requires embedded truncation) If E_RRT is non-null, accumulate contrbutions to the symmetric lattice derivative (stress * volume) </p>
 
 </div>
 </div>

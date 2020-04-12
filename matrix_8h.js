@@ -13,6 +13,7 @@ var matrix_8h =
     [ "det", "matrix_8h.html#gaf46b340c73345637a8d0cb0362a2de19", null ],
     [ "det", "matrix_8h.html#ga564c2777490ba869ad7aade933ebebea", null ],
     [ "diag", "matrix_8h.html#ga978a2396885e9e2727b317cabd017f4d", null ],
+    [ "diagDot", "matrix_8h.html#ga8bc169ea8e3dfad6bc7f850d86bcea4f", null ],
     [ "dot", "matrix_8h.html#ga5b2b3d87b30bf973b8a75a168b42117c", null ],
     [ "dot", "matrix_8h.html#gac5586d5772a25756ae7c28d53d1c2391", null ],
     [ "eye", "matrix_8h.html#gaf3158612f3015079598ca4652dba8803", null ],

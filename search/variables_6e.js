@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['n',['n',['../structDOS_1_1Weight_1_1OrbitalDesc.html#ae70fbb867684fbd54e6021749992db9c',1,'DOS::Weight::OrbitalDesc::n()'],['../classElecVars.html#a4861f0c29cbdc2c427f546e171a4ffd1',1,'ElecVars::n()'],['../structRadialSchrodinger_1_1Outputs.html#ac72907788b997138e0dc8a0a333ca297',1,'RadialSchrodinger::Outputs::n()'],['../structSCFvariable.html#a69181b5980fba094e502c6bd7c1b40d2',1,'SCFvariable::n()'],['../structFluidMixture_1_1Outputs.html#ab5752bf2ca0cfe23070da975d988afdc',1,'FluidMixture::Outputs::N()']]],
-  ['naccumulated',['nAccumulated',['../classElecVars.html#a0552af897d82aef1dbec2b9ae24214c2',1,'ElecVars']]],
+  ['n',['N',['../structFluidMixture_1_1Outputs.html#ab5752bf2ca0cfe23070da975d988afdc',1,'FluidMixture::Outputs::N()'],['../structDOS_1_1Weight_1_1OrbitalDesc.html#ae70fbb867684fbd54e6021749992db9c',1,'DOS::Weight::OrbitalDesc::n()'],['../classElecVars.html#a4861f0c29cbdc2c427f546e171a4ffd1',1,'ElecVars::n()'],['../structRadialSchrodinger_1_1Outputs.html#ac72907788b997138e0dc8a0a333ca297',1,'RadialSchrodinger::Outputs::n()'],['../structSCFvariable.html#a69181b5980fba094e502c6bd7c1b40d2',1,'SCFvariable::n()']]],
+  ['naccum',['nAccum',['../classElecVars.html#a38ff9286bcaea57604ccbcd19090f583',1,'ElecVars']]],
   ['nalphaadjustmax',['nAlphaAdjustMax',['../structMinimizeParams.html#aa2a8ed43a9ab2bd24ba90f32bd98e8f9',1,'MinimizeParams']]],
   ['name',['name',['../classCommand.html#a206f1dd0b28c9fafa0e457dc58bb66b4',1,'Command::name()'],['../classSpeciesInfo.html#a5cdc4258e5f741adb7582677ff0f46d3',1,'SpeciesInfo::name()'],['../structMolecule.html#a8af5d36d8b418e217b1013112d052616',1,'Molecule::name()'],['../structMolecule_1_1Site.html#a6d0a89c29abd52f842de28d9a3d15b19',1,'Molecule::Site::name()']]],
   ['nbands',['nBands',['../classTetrahedralDOS.html#a9e9997aaf5042f30918bc13c3323929f',1,'TetrahedralDOS::nBands()'],['../classWannierMinimizer.html#aca28446911c26fb767c94aa4a0f25809',1,'WannierMinimizer::nBands()']]],
@@ -43,6 +43,7 @@ var searchData=
   ['nspinor',['nSpinor',['../classWannierMinimizer.html#a777108ba31f1e3389274498fe007df71',1,'WannierMinimizer']]],
   ['nspins',['nSpins',['../classTetrahedralDOS.html#acd64ae7091fcfaabf1b33f903d3282cb',1,'TetrahedralDOS']]],
   ['nstates',['nStates',['../classElecInfo.html#a2344915dce312c95f8ae5b04c7b28b27',1,'ElecInfo::nStates()'],['../classTetrahedralDOS.html#a30db6caec4f53d006c7ebd14eea20c1a',1,'TetrahedralDOS::nStates()']]],
+  ['nsteps',['nSteps',['../structIonicDynamicsParams.html#ab190862a79501ed5a25d1032cc35d7b3',1,'IonicDynamicsParams']]],
   ['nt',['NT',['../structNonlinearPCMeval_1_1Dielectric.html#aa3d19d1e125bbc4be25da4ddd0b359e0',1,'NonlinearPCMeval::Dielectric']]],
   ['nulllog',['nullLog',['../group__Utilities.html#ga5a037ad642646d7d094bc2278d206d70',1,'Util.h']]],
   ['numericalorbindex',['numericalOrbIndex',['../structWannier_1_1AtomicOrbital.html#a8f4acad460233c36df0d9574d2825de2',1,'Wannier::AtomicOrbital']]],

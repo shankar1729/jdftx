@@ -18,6 +18,7 @@ var searchData=
   ['convcoupling',['ConvCoupling',['../classConvCoupling.html',1,'']]],
   ['coulomb',['Coulomb',['../classCoulomb.html',1,'']]],
   ['coulombcylindrical',['CoulombCylindrical',['../classCoulombCylindrical.html',1,'']]],
+  ['coulombionkernel_5fcalc',['CoulombIonKernel_calc',['../structCoulombIonKernel__calc.html',1,'']]],
   ['coulombisolated',['CoulombIsolated',['../classCoulombIsolated.html',1,'']]],
   ['coulombkernel',['CoulombKernel',['../structCoulombKernel.html',1,'']]],
   ['coulombparams',['CoulombParams',['../structCoulombParams.html',1,'']]],

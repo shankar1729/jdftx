@@ -149,8 +149,8 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>useGummel</b> () cons
 <tr class="separator:a93cc09be679c7b8fc14ba88233eb39e7 inherit pub_methods_structFluidSolver"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af9cfa1a130a5dcb71d31228fcf70ee29 inherit pub_methods_structFluidSolver"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#af9cfa1a130a5dcb71d31228fcf70ee29">set</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;rhoExplicitTilde, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;nCavityTilde)</td></tr>
 <tr class="separator:af9cfa1a130a5dcb71d31228fcf70ee29 inherit pub_methods_structFluidSolver"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9ea77776d06809c06f6bebb68ddecf52 inherit pub_methods_structFluidSolver"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a9ea77776d06809c06f6bebb68ddecf52">get_Adiel_and_grad</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> *Adiel_rhoExplicitTilde=0, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> *Adiel_nCavityTilde=0, <a class="el" href="structIonicGradient.html">IonicGradient</a> *extraForces=0) const </td></tr>
-<tr class="separator:a9ea77776d06809c06f6bebb68ddecf52 inherit pub_methods_structFluidSolver"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a58ac5b277dfd4ca1360b4919a599669c inherit pub_methods_structFluidSolver"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a58ac5b277dfd4ca1360b4919a599669c">get_Adiel_and_grad</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> *Adiel_rhoExplicitTilde=0, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> *Adiel_nCavityTilde=0, <a class="el" href="structIonicGradient.html">IonicGradient</a> *extraForces=0, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *Adiel_RRT=0) const </td></tr>
+<tr class="separator:a58ac5b277dfd4ca1360b4919a599669c inherit pub_methods_structFluidSolver"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a25d481856cc40a161c731c35c0da136d inherit pub_methods_structFluidSolver"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a25d481856cc40a161c731c35c0da136d"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a25d481856cc40a161c731c35c0da136d">getSusceptibility</a> (const std::vector&lt; <a class="el" href="structcomplex.html">complex</a> &gt; &amp;omega, std::vector&lt; <a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html">SusceptibilityTerm</a> &gt; &amp;susceptibility, <a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> &amp;sTilde, bool elecOnly) const </td></tr>
 <tr class="memdesc:a25d481856cc40a161c731c35c0da136d inherit pub_methods_structFluidSolver"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get susceptibility for a list of specified (complex) frequencies. <br/></td></tr>
@@ -185,8 +185,8 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPCM.html#a62f96d84b17a161a3bfd23de6fabf4b1">updateCavity</a> ()</td></tr>
 <tr class="memdesc:a62f96d84b17a161a3bfd23de6fabf4b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">update shape function(s) from nCavity, and energies dependent upon shape alone <br/></td></tr>
 <tr class="separator:a62f96d84b17a161a3bfd23de6fabf4b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab0a3d734efb1bbe57ba9033b5ab1c1d7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPCM.html#ab0a3d734efb1bbe57ba9033b5ab1c1d7">propagateCavityGradients</a> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;A_shape, <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;A_nCavity, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;A_rhoExplicitTilde, <a class="el" href="structIonicGradient.html">IonicGradient</a> *forces) const </td></tr>
-<tr class="separator:ab0a3d734efb1bbe57ba9033b5ab1c1d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a36bb8f7f97584d4424c8f7e6c081e161"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPCM.html#a36bb8f7f97584d4424c8f7e6c081e161">propagateCavityGradients</a> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;A_shape, <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;A_nCavity, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;A_rhoExplicitTilde, <a class="el" href="structIonicGradient.html">IonicGradient</a> *forces, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *Adiel_RRT) const </td></tr>
+<tr class="separator:a36bb8f7f97584d4424c8f7e6c081e161"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aac9a1ce92f566f409da39a8041d5499b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aac9a1ce92f566f409da39a8041d5499b"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPCM.html#aac9a1ce92f566f409da39a8041d5499b">accumExtraForces</a> (<a class="el" href="structIonicGradient.html">IonicGradient</a> *forces, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;A_nCavityTilde) const </td></tr>
 <tr class="memdesc:aac9a1ce92f566f409da39a8041d5499b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate extra fluid forces (vdw and full-core forces, when applicable) <br/></td></tr>
@@ -200,10 +200,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a96974ff94a0cef8e97edec6d0ed72800">set_internal</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;rhoExplicitTilde, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;nCavityTilde)=0</td></tr>
 <tr class="memdesc:a96974ff94a0cef8e97edec6d0ed72800 inherit pro_methods_structFluidSolver"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fluid-dependent implementation of <a class="el" href="structFluidSolver.html#af9cfa1a130a5dcb71d31228fcf70ee29">set()</a> <br/></td></tr>
 <tr class="separator:a96974ff94a0cef8e97edec6d0ed72800 inherit pro_methods_structFluidSolver"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab51960b652da3556179498326ca4b6d7 inherit pro_methods_structFluidSolver"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab51960b652da3556179498326ca4b6d7"></a>
-virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#ab51960b652da3556179498326ca4b6d7">get_Adiel_and_grad_internal</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Adiel_rhoExplicitTilde, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Adiel_nCavityTilde, <a class="el" href="structIonicGradient.html">IonicGradient</a> *extraForces) const =0</td></tr>
-<tr class="memdesc:ab51960b652da3556179498326ca4b6d7 inherit pro_methods_structFluidSolver"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fluid-dependent implementation of <a class="el" href="structFluidSolver.html#a9ea77776d06809c06f6bebb68ddecf52">get_Adiel_and_grad()</a> <br/></td></tr>
-<tr class="separator:ab51960b652da3556179498326ca4b6d7 inherit pro_methods_structFluidSolver"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6fb52ce72d8eebbb405d1bf9a1a322cf inherit pro_methods_structFluidSolver"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6fb52ce72d8eebbb405d1bf9a1a322cf"></a>
+virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#a6fb52ce72d8eebbb405d1bf9a1a322cf">get_Adiel_and_grad_internal</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Adiel_rhoExplicitTilde, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Adiel_nCavityTilde, <a class="el" href="structIonicGradient.html">IonicGradient</a> *extraForces, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *Adiel_RRT) const =0</td></tr>
+<tr class="memdesc:a6fb52ce72d8eebbb405d1bf9a1a322cf inherit pro_methods_structFluidSolver"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fluid-dependent implementation of <a class="el" href="structFluidSolver.html#a58ac5b277dfd4ca1360b4919a599669c">get_Adiel_and_grad()</a> <br/></td></tr>
+<tr class="separator:a6fb52ce72d8eebbb405d1bf9a1a322cf inherit pro_methods_structFluidSolver"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af3def4d7a31010b3a6c1f607ce57f92e inherit pro_methods_structFluidSolver"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af3def4d7a31010b3a6c1f607ce57f92e"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolver.html#af3def4d7a31010b3a6c1f607ce57f92e">getSusceptibility_internal</a> (const std::vector&lt; <a class="el" href="structcomplex.html">complex</a> &gt; &amp;omega, std::vector&lt; <a class="el" href="structFluidSolver_1_1SusceptibilityTerm.html">SusceptibilityTerm</a> &gt; &amp;susceptibility, <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;sArr, bool elecOnly) const </td></tr>
 <tr class="memdesc:af3def4d7a31010b3a6c1f607ce57f92e inherit pro_methods_structFluidSolver"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fluid-dependent implementation of <a class="el" href="structFluidSolver.html#a25d481856cc40a161c731c35c0da136d" title="Get susceptibility for a list of specified (complex) frequencies. ">getSusceptibility()</a> <br/></td></tr>
@@ -214,6 +214,9 @@ Static Protected Member Functions</h2></td></tr>
 <tr class="memitem:ab6a87279feb6c8a0e3c73c2b4853dde7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab6a87279feb6c8a0e3c73c2b4853dde7"></a>
 static <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><b>coulomb</b> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;rho)</td></tr>
 <tr class="separator:ab6a87279feb6c8a0e3c73c2b4853dde7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6aeee152704ebe7e782b0935c502c5d5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6aeee152704ebe7e782b0935c502c5d5"></a>
+static <a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><b>coulombStress</b> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;X, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Y)</td></tr>
+<tr class="separator:a6aeee152704ebe7e782b0935c502c5d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -293,7 +296,7 @@ std::vector&lt; std::vector<br class="typebreak"/>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Base class for all PCMs. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="ab0a3d734efb1bbe57ba9033b5ab1c1d7"></a>
+<a class="anchor" id="a36bb8f7f97584d4424c8f7e6c081e161"></a>
 <div class="memitem">
 <div class="memproto">
 <table class="mlabels">
@@ -322,7 +325,13 @@ std::vector&lt; std::vector<br class="typebreak"/>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype"><a class="el" href="structIonicGradient.html">IonicGradient</a> *&#160;</td>
-          <td class="paramname"><em>forces</em>&#160;</td>
+          <td class="paramname"><em>forces</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>Adiel_RRT</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -336,7 +345,7 @@ std::vector&lt; std::vector<br class="typebreak"/>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Propagate A_shape (+ cached Acavity_shape) and accumulate to gradients w.r.t nCavity and rhoExplicitTilde. Set fluid force contributions (for atom-sphere cavities) if non-null. </p>
+<p>Propagate A_shape (+ cached Acavity_shape) and accumulate to gradients w.r.t nCavity and rhoExplicitTilde. Set fluid force contributions (for atom-sphere cavities) and stress contributions if non-null. </p>
 
 </div>
 </div>

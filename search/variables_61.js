@@ -6,7 +6,6 @@ var searchData=
   ['adiel',['Adiel',['../classPCM.html#a5319547579afafbbc7c2dd3a3671d1a3',1,'PCM']]],
   ['aelec',['aElec',['../structMolecule_1_1Site.html#a413260fbd1e6cab78c9bafa619e14a6a',1,'Molecule::Site']]],
   ['allowmultiple',['allowMultiple',['../classCommand.html#acb6734f7e2a87580c8cab761737d42bc',1,'Command']]],
-  ['alpha',['alpha',['../structIonDynamicsParams.html#a3a2ad87ab4da1c9f54222debff570878',1,'IonDynamicsParams']]],
   ['alphatincreasefactor',['alphaTincreaseFactor',['../structMinimizeParams.html#a766535712118aa36486d1229f22a5bfd',1,'MinimizeParams']]],
   ['alphatmin',['alphaTmin',['../structMinimizeParams.html#add3a6266d5c13410ea29ae38a7acfb97',1,'MinimizeParams']]],
   ['alphatreducefactor',['alphaTreduceFactor',['../structMinimizeParams.html#ada7577db97d4f6ba4bf5d2593817ddcb',1,'MinimizeParams']]],

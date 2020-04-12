@@ -241,6 +241,9 @@ Macros</h2></td></tr>
 #define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gaabde4b0530466090debc4fa233f3b02f">SwitchTemplate_lm</a>(l, m, fTemplate, argList)</td></tr>
 <tr class="memdesc:gaabde4b0530466090debc4fa233f3b02f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Switch a function templated over l,m for all supported l,m with parenthesis enclosed argument list argList. <br/></td></tr>
 <tr class="separator:gaabde4b0530466090debc4fa233f3b02f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga84726cae68f4608defbb392e0eaafcc9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga84726cae68f4608defbb392e0eaafcc9"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>DECLARE_YlmPrime</b>(l, m)&#160;&#160;&#160;template&lt;&gt; __hostanddev__ <a class="el" href="classvector3.html">vector3</a>&lt;&gt; <a class="el" href="group__Utilities.html#gae159ba7fa1858ddaa9c05f7650691e9f">YlmPrime</a>&lt;l*(l+1)+m&gt;(const <a class="el" href="classvector3.html">vector3</a>&lt;&gt;&amp; qHat) { return <a class="el" href="group__Utilities.html#gae159ba7fa1858ddaa9c05f7650691e9f">YlmPrime</a>&lt;l,m&gt;(qHat); }</td></tr>
+<tr class="separator:ga84726cae68f4608defbb392e0eaafcc9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga41aec9e6b5a67316e6cd7eab79cf22f1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga41aec9e6b5a67316e6cd7eab79cf22f1">TIME</a>(title, fp, code)</td></tr>
 <tr class="memdesc:ga41aec9e6b5a67316e6cd7eab79cf22f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Elapsed time in seconds (from start of program)  <a href="#ga41aec9e6b5a67316e6cd7eab79cf22f1">More...</a><br/></td></tr>
 <tr class="separator:ga41aec9e6b5a67316e6cd7eab79cf22f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -478,11 +481,14 @@ double&#160;</td><td class="memItemRight" valign="bottom"><b>Ylm</b> (int l, int
 std::vector&lt; <a class="el" href="structYlmProdTerm.html">YlmProdTerm</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gace768f02bdda85c37426e83522cb3957">expandYlmProd</a> (int l1, int m1, int l2, int m2)</td></tr>
 <tr class="memdesc:gace768f02bdda85c37426e83522cb3957"><td class="mdescLeft">&#160;</td><td class="mdescRight">Wrapper function expandYlmProd with individual indices. <br/></td></tr>
 <tr class="separator:gace768f02bdda85c37426e83522cb3957"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gabcc5f499214d7ae22da80692fe0fc123"><td class="memTemplParams" colspan="2"><a class="anchor" id="gabcc5f499214d7ae22da80692fe0fc123"></a>
-template&lt;int l, int m&gt; </td></tr>
+<tr class="memitem:gabcc5f499214d7ae22da80692fe0fc123"><td class="memTemplParams" colspan="2">template&lt;int l, int m&gt; </td></tr>
 <tr class="memitem:gabcc5f499214d7ae22da80692fe0fc123"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ <a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gabcc5f499214d7ae22da80692fe0fc123">YlmPrime</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qHat)</td></tr>
-<tr class="memdesc:gabcc5f499214d7ae22da80692fe0fc123"><td class="mdescLeft">&#160;</td><td class="mdescRight">Derivative of spherical Harmonic with repect to iDir'th component of qHat. <br/></td></tr>
+<tr class="memdesc:gabcc5f499214d7ae22da80692fe0fc123"><td class="mdescLeft">&#160;</td><td class="mdescRight">Derivative of spherical Harmonic with repect to iDir'th component of qHat with separate l,m indices.  <a href="#gabcc5f499214d7ae22da80692fe0fc123">More...</a><br/></td></tr>
 <tr class="separator:gabcc5f499214d7ae22da80692fe0fc123"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae159ba7fa1858ddaa9c05f7650691e9f"><td class="memTemplParams" colspan="2">template&lt;int lm&gt; </td></tr>
+<tr class="memitem:gae159ba7fa1858ddaa9c05f7650691e9f"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ <a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gae159ba7fa1858ddaa9c05f7650691e9f">YlmPrime</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qHat)</td></tr>
+<tr class="memdesc:gae159ba7fa1858ddaa9c05f7650691e9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Derivative of spherical Harmonic with repect to iDir'th component of qHat with combined lm index.  <a href="#gae159ba7fa1858ddaa9c05f7650691e9f">More...</a><br/></td></tr>
+<tr class="separator:gae159ba7fa1858ddaa9c05f7650691e9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="memTemplParams" colspan="2"><a class="anchor" id="gaf7e7d2002e4e44f3405c5c3728f485f6"></a>
 template&lt;int l, int m&gt; </td></tr>
 <tr class="memitem:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gaf7e7d2002e4e44f3405c5c3728f485f6">set_YlmPrime</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; qHat, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;result)</td></tr>
@@ -1404,6 +1410,48 @@ template&lt;typename Callable , typename... Args&gt; </div>
       </table>
 </div><div class="memdoc">
 <p>Same as threadLaunch(int nThreads, Callable* func, size_t nJobs, Args... args) with nThreads = number of online processors. </p>
+
+</div>
+</div>
+<a class="anchor" id="gabcc5f499214d7ae22da80692fe0fc123"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int l, int m&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">__hostanddev__ <a class="el" href="classvector3.html">vector3</a> YlmPrime </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>qHat</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Derivative of spherical Harmonic with repect to iDir'th component of qHat with separate l,m indices. </p>
+<p>Derivative of spherical Harmonic with repect to iDir'th component of qHat with combined lm index. </p>
+
+</div>
+</div>
+<a class="anchor" id="gae159ba7fa1858ddaa9c05f7650691e9f"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int lm&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">__hostanddev__ <a class="el" href="classvector3.html">vector3</a> YlmPrime </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>qHat</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Derivative of spherical Harmonic with repect to iDir'th component of qHat with combined lm index. </p>
+<p>Derivative of spherical Harmonic with repect to iDir'th component of qHat with combined lm index. </p>
 
 </div>
 </div>

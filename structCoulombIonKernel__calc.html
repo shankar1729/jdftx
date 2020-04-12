@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.5"/>
-<title>JDFTx: IonDynamicsParams Struct Reference</title>
+<title>JDFTx: CoulombIonKernel_calc Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -76,7 +76,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('structIonDynamicsParams.html','');});
+$(document).ready(function(){initNavTree('structCoulombIonKernel__calc.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -97,65 +97,42 @@ $(document).ready(function(){initNavTree('structIonDynamicsParams.html','');});
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-attribs">Public Attributes</a> &#124;
-<a href="structIonDynamicsParams-members.html">List of all members</a>  </div>
+<a href="structCoulombIonKernel__calc-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">IonDynamicsParams Struct Reference<div class="ingroups"><a class="el" href="group__IonicSystem.html">Ionic system</a></div></div>  </div>
+<div class="title">CoulombIonKernel_calc Struct Reference<div class="ingroups"><a class="el" href="group__LongRange.html">Long-range interactions</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>Parameters to control IonicDynamics.  
- <a href="structIonDynamicsParams.html#details">More...</a></p>
+<p>Lattice derivative calculation for ionKernel used in embedded mode.  
+ <a href="structCoulombIonKernel__calc.html#details">More...</a></p>
 
-<p><code>#include &lt;IonDynamicsParams.h&gt;</code></p>
+<p><code>#include &lt;Coulomb_internal.h&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:ab12cd8a5989bef1c184582c87fd86a4d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab12cd8a5989bef1c184582c87fd86a4d"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIonDynamicsParams.html#ab12cd8a5989bef1c184582c87fd86a4d">IonDynamicsParams</a> ()</td></tr>
-<tr class="memdesc:ab12cd8a5989bef1c184582c87fd86a4d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the default values. <br/></td></tr>
-<tr class="separator:ab12cd8a5989bef1c184582c87fd86a4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aee85d103656fc06c819798f60ab49d14"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aee85d103656fc06c819798f60ab49d14"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>CoulombIonKernel_calc</b> (double ionWidth)</td></tr>
+<tr class="separator:aee85d103656fc06c819798f60ab49d14"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a61cb3d8e50512bfb8647d53f46acd3da"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a61cb3d8e50512bfb8647d53f46acd3da"></a>
+__hostanddev__ <a class="el" href="structsymmetricMatrix3.html">symmetricMatrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><b>latticeGradient</b> (const <a class="el" href="classvector3.html">vector3</a>&lt; int &gt; &amp;iG, const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; &amp;GGT) const </td></tr>
+<tr class="separator:a61cb3d8e50512bfb8647d53f46acd3da"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:a0e27138ee1e3783d5ab126ae5afedd41"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0e27138ee1e3783d5ab126ae5afedd41"></a>
-double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIonDynamicsParams.html#a0e27138ee1e3783d5ab126ae5afedd41">dt</a></td></tr>
-<tr class="memdesc:a0e27138ee1e3783d5ab126ae5afedd41"><td class="mdescLeft">&#160;</td><td class="mdescRight">time step <br/></td></tr>
-<tr class="separator:a0e27138ee1e3783d5ab126ae5afedd41"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a58cd2022aa48511617c3dc716bc6fa63"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a58cd2022aa48511617c3dc716bc6fa63"></a>
-double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIonDynamicsParams.html#a58cd2022aa48511617c3dc716bc6fa63">tMax</a></td></tr>
-<tr class="memdesc:a58cd2022aa48511617c3dc716bc6fa63"><td class="mdescLeft">&#160;</td><td class="mdescRight">maximum time <br/></td></tr>
-<tr class="separator:a58cd2022aa48511617c3dc716bc6fa63"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a043a20d993f4807edd7311c9828dd15b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a043a20d993f4807edd7311c9828dd15b"></a>
-double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIonDynamicsParams.html#a043a20d993f4807edd7311c9828dd15b">kT</a></td></tr>
-<tr class="memdesc:a043a20d993f4807edd7311c9828dd15b"><td class="mdescLeft">&#160;</td><td class="mdescRight">temperature <br/></td></tr>
-<tr class="separator:a043a20d993f4807edd7311c9828dd15b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3a2ad87ab4da1c9f54222debff570878"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3a2ad87ab4da1c9f54222debff570878"></a>
-double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIonDynamicsParams.html#a3a2ad87ab4da1c9f54222debff570878">alpha</a></td></tr>
-<tr class="memdesc:a3a2ad87ab4da1c9f54222debff570878"><td class="mdescLeft">&#160;</td><td class="mdescRight">velocity scaling parameter <br/></td></tr>
-<tr class="separator:a3a2ad87ab4da1c9f54222debff570878"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afa3957f32fd050327c77141e0b633055"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="afa3957f32fd050327c77141e0b633055"></a>
-<a class="el" href="group__IonicSystem.html#ga04cfb022608457ba4b7cbf136b73067d">DriftRemovalType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIonDynamicsParams.html#afa3957f32fd050327c77141e0b633055">driftType</a></td></tr>
-<tr class="memdesc:afa3957f32fd050327c77141e0b633055"><td class="mdescLeft">&#160;</td><td class="mdescRight">drift removal strategy <br/></td></tr>
-<tr class="separator:afa3957f32fd050327c77141e0b633055"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a14d0448ac7a1cae62bc781c4d7ef1e0a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a14d0448ac7a1cae62bc781c4d7ef1e0a"></a>
-<a class="el" href="group__IonicSystem.html#gac16d139baad6b851ecfb32c39cb3e644">ConfiningPotentialType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIonDynamicsParams.html#a14d0448ac7a1cae62bc781c4d7ef1e0a">confineType</a></td></tr>
-<tr class="memdesc:a14d0448ac7a1cae62bc781c4d7ef1e0a"><td class="mdescLeft">&#160;</td><td class="mdescRight">confinement potential type <br/></td></tr>
-<tr class="separator:a14d0448ac7a1cae62bc781c4d7ef1e0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abbc15afb3f89c824f890c947faab3c74"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abbc15afb3f89c824f890c947faab3c74"></a>
-std::vector&lt; double &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIonDynamicsParams.html#abbc15afb3f89c824f890c947faab3c74">confineParameters</a></td></tr>
-<tr class="memdesc:abbc15afb3f89c824f890c947faab3c74"><td class="mdescLeft">&#160;</td><td class="mdescRight">parameters controlling confinement potential <br/></td></tr>
-<tr class="separator:abbc15afb3f89c824f890c947faab3c74"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1f23dfdbfef3e54c7d7ffd232c283b25"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1f23dfdbfef3e54c7d7ffd232c283b25"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><b>expFac</b></td></tr>
+<tr class="separator:a1f23dfdbfef3e54c7d7ffd232c283b25"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Parameters to control IonicDynamics. </p>
+<div class="textblock"><p>Lattice derivative calculation for ionKernel used in embedded mode. </p>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
-<li>electronic/<a class="el" href="IonDynamicsParams_8h.html">IonDynamicsParams.h</a></li>
+<li>core/<a class="el" href="Coulomb__internal_8h.html">Coulomb_internal.h</a></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
-    <li class="navelem"><a class="el" href="structIonDynamicsParams.html">IonDynamicsParams</a></li>
+    <li class="navelem"><a class="el" href="structCoulombIonKernel__calc.html">CoulombIonKernel_calc</a></li>
 </div>
 </body>
 </html>

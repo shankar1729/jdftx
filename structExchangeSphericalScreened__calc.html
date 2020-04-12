@@ -113,6 +113,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:aef5426c5914da8b11b461493bccecdcd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aef5426c5914da8b11b461493bccecdcd"></a>
 __hostanddev__ double&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (double kSq) const </td></tr>
 <tr class="separator:aef5426c5914da8b11b461493bccecdcd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a367f8aa08ffa457744e77ab75137433f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a367f8aa08ffa457744e77ab75137433f"></a>
+__hostanddev__ double&#160;</td><td class="memItemRight" valign="bottom"><b>latticeGradientPrefac</b> (double kSq, double &amp;grad_lnDetR) const </td></tr>
+<tr class="separator:a367f8aa08ffa457744e77ab75137433f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -128,6 +131,14 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structExchangeSphericalScreened__calc.html#ab8dfe3178e72d8b68c042ed6171ffd1f">nSamples</a></td></tr>
 <tr class="memdesc:ab8dfe3178e72d8b68c042ed6171ffd1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">number of coefficients <br/></td></tr>
 <tr class="separator:ab8dfe3178e72d8b68c042ed6171ffd1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae2926ee76b5a3d4e9e286368a2ac769d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae2926ee76b5a3d4e9e286368a2ac769d"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structExchangeSphericalScreened__calc.html#ae2926ee76b5a3d4e9e286368a2ac769d">Rc</a></td></tr>
+<tr class="memdesc:ae2926ee76b5a3d4e9e286368a2ac769d"><td class="mdescLeft">&#160;</td><td class="mdescRight">truncation radius <br/></td></tr>
+<tr class="separator:ae2926ee76b5a3d4e9e286368a2ac769d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba2c0c2a1b67578a65ea190b09cca1cc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aba2c0c2a1b67578a65ea190b09cca1cc"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structExchangeSphericalScreened__calc.html#aba2c0c2a1b67578a65ea190b09cca1cc">erfcOmegaRc_4piBy3</a></td></tr>
+<tr class="memdesc:aba2c0c2a1b67578a65ea190b09cca1cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">(4 pi/3) erfc(omega*Rc), where omega is the screening parameter <br/></td></tr>
+<tr class="separator:aba2c0c2a1b67578a65ea190b09cca1cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Erfc-screened Spherical-truncated exchange. </p>

@@ -35,6 +35,7 @@ var searchData=
   ['epsinf',['epsInf',['../structFluidComponent.html#a0f2e9b6707cadbc442ef7a715a15278c',1,'FluidComponent::epsInf()'],['../structFluidSolver.html#ad3ef73a0951a85e0f00b7b74987a0ba8',1,'FluidSolver::epsInf()']]],
   ['epsinfoverride',['epsInfOverride',['../structFluidSolverParams.html#ac0799367b9bda3fc09e434bafc9e47ea',1,'FluidSolverParams']]],
   ['epslj',['epsLJ',['../structFluidComponent.html#a161e7f49bb4ba39e743a0a2c97cf63a3',1,'FluidComponent']]],
+  ['erfcomegarc_5f4piby3',['erfcOmegaRc_4piBy3',['../structExchangeSphericalScreened__calc.html#aba2c0c2a1b67578a65ea190b09cca1cc',1,'ExchangeSphericalScreened_calc']]],
   ['esigma',['Esigma',['../classDOS.html#afe8744b0e8c82e78997e8bc12e479755',1,'DOS']]],
   ['eta',['eta',['../structElectronScattering.html#a78b90b8f202342c4a39a9d6d2f8b0f37',1,'ElectronScattering']]],
   ['eta_5fwdiel',['eta_wDiel',['../structFluidSolverParams.html#a819e080231f1a5d3e8249256d4705576',1,'FluidSolverParams']]],

@@ -96,7 +96,6 @@ $(document).ready(function(){initNavTree('Dump__internal_8h.html','');});
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
-<a href="#namespaces">Namespaces</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">Dump_internal.h File Reference<div class="ingroups"><a class="el" href="group__Output.html">Outputs</a></div></div>  </div>
@@ -123,26 +122,20 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Model charge decsription (one for each defect in unit cell)  <a href="structChargedDefect_1_1Center.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
-Namespaces</h2></td></tr>
-<tr class="memitem:namespaceMoments"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceMoments.html">Moments</a></td></tr>
-<tr class="memdesc:namespaceMoments"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper functions for moment calculations. <br/></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:gae45f6c5bd0d6c46bc9eef1ed833dd344"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gae45f6c5bd0d6c46bc9eef1ed833dd344"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Output.html#gae45f6c5bd0d6c46bc9eef1ed833dd344">dumpExcitations</a> (const <a class="el" href="classEverything.html">Everything</a> &amp;e, const char *filename)</td></tr>
 <tr class="memdesc:gae45f6c5bd0d6c46bc9eef1ed833dd344"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> information about excitation energies and matrix elements. <br/></td></tr>
 <tr class="separator:gae45f6c5bd0d6c46bc9eef1ed833dd344"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a67a29d48a702df6f79d2e197c1179752"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a67a29d48a702df6f79d2e197c1179752"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceMoments.html#a67a29d48a702df6f79d2e197c1179752">Moments::rn_pow_x</a> (int i, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; r, int dir, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; R, double moment, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; r0, double *rx)</td></tr>
-<tr class="memdesc:a67a29d48a702df6f79d2e197c1179752"><td class="mdescLeft">&#160;</td><td class="mdescRight">set multipole spatial weights <br/></td></tr>
-<tr class="separator:a67a29d48a702df6f79d2e197c1179752"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a23d792b0e8086483c56cfd6a001ad18a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a23d792b0e8086483c56cfd6a001ad18a"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceMoments.html#a23d792b0e8086483c56cfd6a001ad18a">Moments::dumpMoment</a> (const <a class="el" href="classEverything.html">Everything</a> &amp;e, const char *filename, int n, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; origin)</td></tr>
-<tr class="memdesc:a23d792b0e8086483c56cfd6a001ad18a"><td class="mdescLeft">&#160;</td><td class="mdescRight">output multipole moments <br/></td></tr>
-<tr class="separator:a23d792b0e8086483c56cfd6a001ad18a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacf9a3ba260434c09052ed7ea0d5e4018"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gacf9a3ba260434c09052ed7ea0d5e4018"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Output.html#gacf9a3ba260434c09052ed7ea0d5e4018">dumpFCI</a> (const <a class="el" href="classEverything.html">Everything</a> &amp;e, const char *filename)</td></tr>
+<tr class="memdesc:gacf9a3ba260434c09052ed7ea0d5e4018"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> coulomb matrix elements in FCIDUMP format. <br/></td></tr>
+<tr class="separator:gacf9a3ba260434c09052ed7ea0d5e4018"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga20ee7928f15068995ec6f93d3d1d9be0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga20ee7928f15068995ec6f93d3d1d9be0"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Output.html#ga20ee7928f15068995ec6f93d3d1d9be0">dumpMoment</a> (const <a class="el" href="classEverything.html">Everything</a> &amp;e, const char *filename)</td></tr>
+<tr class="memdesc:ga20ee7928f15068995ec6f93d3d1d9be0"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> dipole moments. <br/></td></tr>
+<tr class="separator:ga20ee7928f15068995ec6f93d3d1d9be0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a580b971c39583b36cd3f2608dc23aef3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a580b971c39583b36cd3f2608dc23aef3"></a>
 <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>XC_Analysis::tauWeizsacker</b> (const <a class="el" href="classEverything.html">Everything</a> &amp;e)</td></tr>
 <tr class="memdesc:a580b971c39583b36cd3f2608dc23aef3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output Weizsacker KE density. <br/></td></tr>

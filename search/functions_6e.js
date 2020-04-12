@@ -11,6 +11,7 @@ var searchData=
   ['needsvdw',['needsVDW',['../structFluidSolverParams.html#a6dd173baebb46c51d3c10d521602da92',1,'FluidSolverParams']]],
   ['nelectronscalc',['nElectronsCalc',['../classElecInfo.html#ae877b476dd2cf27657fbafa43a894052',1,'ElecInfo']]],
   ['neutralityconstraint',['neutralityConstraint',['../structNonlinearPCMeval_1_1Screening.html#a6ffa96de39019494867606ee98f454fa',1,'NonlinearPCMeval::Screening']]],
+  ['nfree',['nFree',['../classLatticeMinimizer.html#ad456f4eaec2ead7ec144d188e15be932',1,'LatticeMinimizer']]],
   ['nonlinearpcm',['NonlinearPCM',['../classNonlinearPCM.html#a52cf5c73238e3e01163ed99aa113e65b',1,'NonlinearPCM']]],
   ['norientations',['nOrientations',['../classSO3quad.html#ab9fe10f8ae71de1d59334a5f93df6705',1,'SO3quad']]],
   ['norm',['norm',['../structcomplex.html#a87f5cb26f67478936dfffd8a0f88470a',1,'complex::norm()'],['../group__DataStructures.html#gafdc6e66498fa764535b0d516aca4a5f9',1,'norm():&#160;scalar.h']]],

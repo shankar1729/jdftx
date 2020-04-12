@@ -105,9 +105,9 @@ $(document).ready(function(){initNavTree('structnAugmentGradFunctor.html','');})
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aa7689fd92c25a623c4e2c8bca626c2ed"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa7689fd92c25a623c4e2c8bca626c2ed"></a>
-__hostanddev__&#160;</td><td class="memItemRight" valign="bottom"><b>nAugmentGradFunctor</b> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qvec, int nCoeff, double dGinv, const double *nRadial, const <a class="el" href="structcomplex.html">complex</a> &amp;E_n, double *E_nRadial, int dotPrefac)</td></tr>
-<tr class="separator:aa7689fd92c25a623c4e2c8bca626c2ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a710546b75d8be70772e066f31d429c78"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a710546b75d8be70772e066f31d429c78"></a>
+__hostanddev__&#160;</td><td class="memItemRight" valign="bottom"><b>nAugmentGradFunctor</b> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qvec, int nCoeff, double dGinv, const double *nRadial, const <a class="el" href="structcomplex.html">complex</a> &amp;E_n, double *E_nRadial, int dotPrefac, bool calcStress)</td></tr>
+<tr class="separator:a710546b75d8be70772e066f31d429c78"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a531e17ee20f9a8ce6a08b75678aae1b0"><td class="memTemplParams" colspan="2"><a class="anchor" id="a531e17ee20f9a8ce6a08b75678aae1b0"></a>
 template&lt;int lm&gt; </td></tr>
 <tr class="memitem:a531e17ee20f9a8ce6a08b75678aae1b0"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>operator()</b> (const <a class="el" href="structStaticLoopYlmTag.html">StaticLoopYlmTag</a>&lt; lm &gt; &amp;)</td></tr>
@@ -121,6 +121,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a691efd0835767d4f8983c1382df0ae75"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a691efd0835767d4f8983c1382df0ae75"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><b>q</b></td></tr>
 <tr class="separator:a691efd0835767d4f8983c1382df0ae75"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6171fca32c3ebd8fa7d92d4e6d810ebd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6171fca32c3ebd8fa7d92d4e6d810ebd"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><b>qInv</b></td></tr>
+<tr class="separator:a6171fca32c3ebd8fa7d92d4e6d810ebd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0606445280c8e300fee0c3bac11923b7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0606445280c8e300fee0c3bac11923b7"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>nCoeff</b></td></tr>
 <tr class="separator:a0606445280c8e300fee0c3bac11923b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -136,12 +139,18 @@ const double *&#160;</td><td class="memItemRight" valign="bottom"><b>nRadial</b>
 <tr class="memitem:a3f662d2442a16492d71097a1c62e32f0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3f662d2442a16492d71097a1c62e32f0"></a>
 <a class="el" href="structcomplex.html">complex</a>&#160;</td><td class="memItemRight" valign="bottom"><b>nE_n</b></td></tr>
 <tr class="separator:a3f662d2442a16492d71097a1c62e32f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac1568a5c1211b5b0e8b1cfdb83b85e6f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac1568a5c1211b5b0e8b1cfdb83b85e6f"></a>
+<a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memItemRight" valign="bottom"><b>nPrimeE_n</b></td></tr>
+<tr class="separator:ac1568a5c1211b5b0e8b1cfdb83b85e6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af14328c5ea701c013348285214f7a1d4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af14328c5ea701c013348285214f7a1d4"></a>
 double *&#160;</td><td class="memItemRight" valign="bottom"><b>E_nRadial</b></td></tr>
 <tr class="separator:af14328c5ea701c013348285214f7a1d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9ee67b4e389a311a1c9833120e98eecd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9ee67b4e389a311a1c9833120e98eecd"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>dotPrefac</b></td></tr>
 <tr class="separator:a9ee67b4e389a311a1c9833120e98eecd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a40216854df6054881e9f9ad2a89560e6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a40216854df6054881e9f9ad2a89560e6"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>calcStress</b></td></tr>
+<tr class="separator:a40216854df6054881e9f9ad2a89560e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>electronic/<a class="el" href="SpeciesInfo__internal_8h.html">SpeciesInfo_internal.h</a></li>

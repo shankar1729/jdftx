@@ -2,6 +2,7 @@ var SphericalHarmonics_8h =
 [
     [ "ADD", "SphericalHarmonics_8h.html#a2ea9470c4f438c5a7b5e41a69d4715ba", null ],
     [ "DECLARE_Ylm", "SphericalHarmonics_8h.html#a767e775981c5dea3fb3f2bbecb960815", null ],
+    [ "DECLARE_YlmPrime", "SphericalHarmonics_8h.html#ga84726cae68f4608defbb392e0eaafcc9", null ],
     [ "SwitchTemplate_lm", "SphericalHarmonics_8h.html#gaabde4b0530466090debc4fa233f3b02f", null ],
     [ "X2", "SphericalHarmonics_8h.html#a79ae03a0214cb30e57b9e8835f2a0019", null ],
     [ "X2Y2", "SphericalHarmonics_8h.html#ae0150d5da55e3ee6a583b641fc96f772", null ],
@@ -35,5 +36,6 @@ var SphericalHarmonics_8h =
     [ "Ylm", "SphericalHarmonics_8h.html#ga6ab102bf63a678ba89b77dc2eed6fb18", null ],
     [ "Ylm", "SphericalHarmonics_8h.html#gaf02081a62d087da9556829a15b4a1b9c", null ],
     [ "YlmPrime", "SphericalHarmonics_8h.html#gabcc5f499214d7ae22da80692fe0fc123", null ],
+    [ "YlmPrime", "SphericalHarmonics_8h.html#gae159ba7fa1858ddaa9c05f7650691e9f", null ],
     [ "YlmPrime", "SphericalHarmonics_8h.html#ga43338dfef72a746842e936a7f40540e7", null ]
 ];

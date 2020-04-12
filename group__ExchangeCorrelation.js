@@ -10,7 +10,7 @@ var group__ExchangeCorrelation =
       [ "~ExactExchange", "classExactExchange.html#a78541c29ce17a25bcaa4291eb3e1a672", null ],
       [ "addHamiltonian", "classExactExchange.html#a158652a993f396580c421c511264bce9", null ],
       [ "applyHamiltonian", "classExactExchange.html#a8b9b8165f9f4979e3201ed007bc0cdaf", null ],
-      [ "operator()", "classExactExchange.html#a5b85824af633fd94b37a9864b9d2dd0a", null ],
+      [ "operator()", "classExactExchange.html#ab62f19674f0b5b25a192274ec635a22f", null ],
       [ "setOccupied", "classExactExchange.html#a8a8a0edd33831e7270590f4508cae962", null ]
     ] ],
     [ "IncludeTXC", "structIncludeTXC.html", [
@@ -35,8 +35,8 @@ var group__ExchangeCorrelation =
       [ "getSecondDerivatives", "classExCorr.html#adb202dfe23268b02fe98f445b6abf1c7", null ],
       [ "hasEnergy", "classExCorr.html#a801a215c6b542688261245075d2bb51d", null ],
       [ "needsKEdensity", "classExCorr.html#a0ad1b712f8c9dd5f6897b1e020dcbd71", null ],
-      [ "operator()", "classExCorr.html#ac57ada147b19561d822e04fcfdf81c47", null ],
-      [ "operator()", "classExCorr.html#ace68616b407e1202a42520f951982d06", null ],
+      [ "operator()", "classExCorr.html#a1a62c0658a2d84f8d5114fe9fbce68a3", null ],
+      [ "operator()", "classExCorr.html#aefdced00a0d7869af4f46ca28f6685fc", null ],
       [ "setup", "classExCorr.html#a53e2c00fecad70c21d358d7a8da3357b", null ],
       [ "CommandElecExCorr", "classExCorr.html#a0aa828376d5b004b0057f15fab5874b9", null ],
       [ "CommandExchangeParameters", "classExCorr.html#a5c147d1f1a24c5a1fea11d266ff59c11", null ],

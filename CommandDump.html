@@ -113,6 +113,7 @@ $(document).ready(function(){initNavTree('CommandDump.html','');});
 <p>and each &lt;var&gt; is one of:</p>
 <ul>
 <li>BandEigs : Band Eigenvalues</li>
+<li>BandProjections : Projections of each band state against each atomic orbital</li>
 <li>BandUnfold : Unfold band structure from supercell to unit cell (see command <a class="el" href="CommandBandUnfold.html">band-unfold</a>)</li>
 <li>BGW : G-space wavefunctions, density and potential for Berkeley GW (requires HDF5 support)</li>
 <li>BoundCharge : Bound charge in the fluid</li>
@@ -131,7 +132,9 @@ $(document).ready(function(){initNavTree('CommandDump.html','');});
 <li>EresolvedDensity : Electron density from bands within specified energy ranges</li>
 <li>ExcCompare : <a class="el" href="classEnergies.html" title="Electronic energy components. ">Energies</a> for other exchange-correlation functionals (see command <a class="el" href="CommandElecExCorrCompare.html">elec-ex-corr-compare</a>)</li>
 <li>Excitations : Dumps dipole moments and transition strength (electric-dipole) of excitations</li>
+<li>FCI : Output <a class="el" href="classCoulomb.html" title="Abstract base class for the (optionally truncated) Coulomb interaction. ">Coulomb</a> matrix elements in FCIDUMP format</li>
 <li>FermiDensity : Electron density from fermi-derivative at specified energy</li>
+<li>FermiVelocity : Fermi velocity, density of states at Fermi level and related quantities</li>
 <li>Fillings : Fillings</li>
 <li>FluidDebug : Fluid specific debug output if any</li>
 <li>FluidDensity : Fluid densities (NO,NH,nWater for explicit fluids, cavity function for PCMs)</li>
@@ -146,7 +149,7 @@ $(document).ready(function(){initNavTree('CommandDump.html','');});
 <li>None : <a class="el" href="classDump.html" title="Stores list of what to output and when, and implements functions to do so. ">Dump</a> nothing</li>
 <li>Ocean : Wave functions for Ocean code</li>
 <li>OrbitalDep : Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)</li>
-<li>QMC : Blip'd orbitals and potential for CASINO <a class="el" href="citelist.html#CITEREF_Katie-QMC">[24]</a></li>
+<li>QMC : Blip'd orbitals and potential for CASINO <a class="el" href="citelist.html#CITEREF_Katie-QMC">[25]</a></li>
 <li>RealSpaceWfns : Real-space wavefunctions (one column per file)</li>
 <li>RhoAtom : Atomic-orbital projected density matrices (only for species with +U enabled)</li>
 <li>SelfInteractionCorrection: Calculates Perdew-Zunger self-interaction corrected Kohn-Sham eigenvalues</li>
@@ -157,6 +160,7 @@ $(document).ready(function(){initNavTree('CommandDump.html','');});
 <li>Stress : Dumps dE/dR_ij where R_ij is the i'th component of the j'th lattice vector</li>
 <li><a class="el" href="classSymmetries.html" title="Symmetry detection and symmetrization of various quantities. ">Symmetries</a> : List of symmetry matrices (in covariant lattice coordinates)</li>
 <li>Vcavity : Fluid cavitation potential on the electron density that determines the cavity</li>
+<li>Velocities : Diagonal momentum/velocity matrix elements in a binary file (indices outer to inner: state, band, cartesian direction)</li>
 <li>VfluidTot : Total contribution of fluid to the electron potential</li>
 <li>Vlocps : Local part of pseudopotentials</li>
 <li>Vscloc : Self-consistent potential</li>

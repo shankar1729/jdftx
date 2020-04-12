@@ -10,5 +10,6 @@ var searchData=
   ['historyfilename',['historyFilename',['../structSCFparams.html#a1cd84dfc9942028abd743817ba61fc79',1,'SCFparams']]],
   ['hsub',['Hsub',['../classElecVars.html#ac866c1431e771e28569ca1da28ad464e',1,'ElecVars']]],
   ['hsub_5feigs',['Hsub_eigs',['../classElecVars.html#ad39b10d2b0a8156c03e84914acccffd7',1,'ElecVars']]],
-  ['hsub_5fevecs',['Hsub_evecs',['../classElecVars.html#a3f4712788cc7810733c3c55dab165e90',1,'ElecVars']]]
+  ['hsub_5fevecs',['Hsub_evecs',['../classElecVars.html#a3f4712788cc7810733c3c55dab165e90',1,'ElecVars']]],
+  ['hyperplane',['hyperplane',['../structSpeciesInfo_1_1Constraint.html#a537e9290f562d932b0fc3ad5a0a9eb52',1,'SpeciesInfo::Constraint']]]
 ];

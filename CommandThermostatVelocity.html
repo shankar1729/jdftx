@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.5"/>
-<title>JDFTx: ion-vel</title>
+<title>JDFTx: thermostat-velocity</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -76,7 +76,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('CommandIonVel.html','');});
+$(document).ready(function(){initNavTree('CommandThermostatVelocity.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -95,17 +95,17 @@ $(document).ready(function(){initNavTree('CommandIonVel.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">ion-vel </div>  </div>
+<div class="title">thermostat-velocity </div>  </div>
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><h2>Syntax: </h2>
-<pre class="fragment">ion-vel &lt;species-id&gt; &lt;x0&gt; &lt;x1&gt; &lt;x2&gt; &lt;v0&gt; &lt;v1&gt; &lt;v2&gt;
+<pre class="fragment">thermostat-velocity &lt;v1&gt; &lt;v2&gt; ...
 </pre><h2>Description: </h2>
-<p>Add an atom of species &lt;species-id&gt; at coordinates (&lt;x0&gt;,&lt;x1&gt;,&lt;x2&gt;) with an initial velocity of (&lt;v0&gt;,&lt;v1&gt;,&lt;v2)&gt;</p>
+<p>Read thermostat internal velocities for continuing ionic dynamics. This command is automatically dumped with ionpos from dynamics simulations using Nose-Hoover chains that involve thermostat internal velocities.</p>
 <h2>Properties: </h2>
-<p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandCoordsType.html">coords-type</a> &#160;&#160;&#160; <a class="el" href="CommandIonSpecies.html">ion-species</a> &#160;&#160;&#160; <a class="el" href="CommandIonicDynamics.html">ionic-dynamics</a> &#160;&#160;&#160; <a class="el" href="CommandLattScale.html">latt-scale</a></p>
-<p><b>Forbids:</b> &#160;&#160;&#160; <a class="el" href="CommandIon.html">ion</a></p>
-<p><b>Allow multiple:</b>&#160;&#160;&#160; yes</p>
+<p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
+<p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>
+<p><b>Allow multiple:</b>&#160;&#160;&#160; no</p>
 <p><b>Default:</b> &#160;&#160;&#160; (None)</p>
 <p>Back to: <a class="el" href="Commands.html">Input file documentation</a> or <a class="el" href="CommandIndex.html">Index of commands</a> </p>
 </div></div><!-- contents -->

@@ -99,9 +99,24 @@ $(document).ready(function(){initNavTree('CommandIonicDynamics.html','');});
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><h2>Syntax: </h2>
-<pre class="fragment">ionic-dynamics &lt;time-step&gt; &lt;total-time&gt; [&lt;kT&gt;=0.001] [&lt;alpha&gt;=0.0]
+<pre class="fragment">ionic-dynamics &lt;key1&gt; &lt;value1&gt; &lt;key2&gt; &lt;value2&gt; ...
 </pre><h2>Description: </h2>
-<p>Applies Verlet molecular dynamics Takes the time in femtoseconds and kT is in Hartree. Give &lt;alpha&gt; if you want to the system to equilibrate with a heat bath at &lt;kT&gt;. Also make sure to turn the symmetries off if the initial velocities don't satisfy the symmetry conditions. Initial velocities will be assigned randomly if they are not given.</p>
+<p>Born-Oppenheimer molecular dynamics, controlled by keys:</p>
+<ul>
+<li>B0 : Characteristic bulk modulus [bar] for Berendsen barostat (damping ~ B0 * tDampP)</li>
+<li>chainLengthP: Nose-Hoover chain length for barostat</li>
+<li>chainLengthT: Nose-Hoover chain length for thermostat</li>
+<li>dt : time step [fs]</li>
+<li>nSteps : number of molecular dynamics steps</li>
+<li>P0 : barostat pressure [bar] (default NAN =&gt; no hydrostatic barostat)</li>
+<li>statMethod : Berendsen|None|NoseHoover (method for thermostat and/or barostat)</li>
+<li>stress0 : barostat stress components xx yy zz yz zx xy [bar] (default NANs =&gt; no anisotropic barostat)</li>
+<li>T0 : thermostat temperature or temperature for initial velocities [Kelvin]</li>
+<li>tDampP : barostat damping time [fs]</li>
+<li>tDampT : thermostat damping time [fs]</li>
+</ul>
+<p>Any number of these key-value pairs may be specified in any order.</p>
+<p>Note that nSteps must be non-zero to activate dynamics. Default mode is NVE; specify statMethod to add a thermostat or barostat</p>
 <h2>Properties: </h2>
 <p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>

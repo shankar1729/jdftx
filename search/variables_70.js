@@ -1,6 +1,7 @@
 var searchData=
 [
   ['p',['P',['../structFluidSolverParams.html#a343eeb9da18fcb4f9618c89ad28a776a',1,'FluidSolverParams']]],
+  ['p0',['P0',['../structIonicDynamicsParams.html#a4ac9c0e37458fd770218141e60bd58f3',1,'IonicDynamicsParams']]],
   ['packagename',['packageName',['../structInitParams.html#adc5da7aa00e31864265f9413fb20d01a',1,'InitParams']]],
   ['pascal',['Pascal',['../group__Utilities.html#ga126cef65679c94a01e8fb216febfde82',1,'Units.h']]],
   ['pcavity',['pCavity',['../structFluidSolverParams.html#a355e8e1fc05929d61ddeee896c34f614',1,'FluidSolverParams']]],

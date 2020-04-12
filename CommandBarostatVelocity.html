@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.5"/>
-<title>JDFTx: IonDynamics Class Reference</title>
+<title>JDFTx: barostat-velocity</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -76,7 +76,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('classIonDynamics.html','');});
+$(document).ready(function(){initNavTree('CommandBarostatVelocity.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -94,39 +94,24 @@ $(document).ready(function(){initNavTree('classIonDynamics.html','');});
 </div>
 
 <div class="header">
-  <div class="summary">
-<a href="#pub-methods">Public Member Functions</a> &#124;
-<a href="classIonDynamics-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">IonDynamics Class Reference<div class="ingroups"><a class="el" href="group__IonicSystem.html">Ionic system</a></div></div>  </div>
+<div class="title">barostat-velocity </div>  </div>
 </div><!--header-->
 <div class="contents">
-
-<p>Ionic dynamics (AIMD)  
- <a href="classIonDynamics.html#details">More...</a></p>
-
-<p><code>#include &lt;IonDynamics.h&gt;</code></p>
-<table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
-Public Member Functions</h2></td></tr>
-<tr class="memitem:acfe5d8d0b369e4ec78136a71e7b1034a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acfe5d8d0b369e4ec78136a71e7b1034a"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonDynamics.html#acfe5d8d0b369e4ec78136a71e7b1034a">run</a> ()</td></tr>
-<tr class="memdesc:acfe5d8d0b369e4ec78136a71e7b1034a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Run the simulation. <br/></td></tr>
-<tr class="separator:acfe5d8d0b369e4ec78136a71e7b1034a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af287f748d816a9e28999047de003c394"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af287f748d816a9e28999047de003c394"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>IonDynamics</b> (<a class="el" href="classEverything.html">Everything</a> &amp;e)</td></tr>
-<tr class="separator:af287f748d816a9e28999047de003c394"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table>
-<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Ionic dynamics (AIMD) </p>
-</div><hr/>The documentation for this class was generated from the following file:<ul>
-<li>electronic/IonDynamics.h</li>
-</ul>
-</div><!-- contents -->
+<div class="textblock"><h2>Syntax: </h2>
+<pre class="fragment">barostat-velocity &lt;v1&gt; &lt;v2&gt; ...
+</pre><h2>Description: </h2>
+<p>Read barostat internal velocities for continuing ionic dynamics. This command is automatically dumped with ionpos from dynamics simulations using Nose-Hoover chains that involve barostat internal velocities. (The first six components are strain rate, while the rest are lattice thermostat velocities.)</p>
+<h2>Properties: </h2>
+<p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
+<p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>
+<p><b>Allow multiple:</b>&#160;&#160;&#160; no</p>
+<p><b>Default:</b> &#160;&#160;&#160; (None)</p>
+<p>Back to: <a class="el" href="Commands.html">Input file documentation</a> or <a class="el" href="CommandIndex.html">Index of commands</a> </p>
+</div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
-    <li class="navelem"><a class="el" href="classIonDynamics.html">IonDynamics</a></li>
 </div>
 </body>
 </html>

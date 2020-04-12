@@ -102,16 +102,13 @@ $(document).ready(function(){initNavTree('structCbar__k__sigma.html','');});
 </div><!--header-->
 <div class="contents">
 
-<p>Look-up table for Cbar_k^sigma(rho) for specific values of k and sigma.  
- <a href="structCbar__k__sigma.html#details">More...</a></p>
-
 <p><code>#include &lt;Coulomb_internal.h&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a22e341041d022c1dca43a717be2553d1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a22e341041d022c1dca43a717be2553d1"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>Cbar_k_sigma</b> (double k, double sigma, double rhoMax, double rho0=1.)</td></tr>
-<tr class="separator:a22e341041d022c1dca43a717be2553d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a212b0f9765cf5416c881d4229c25e5b7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a212b0f9765cf5416c881d4229c25e5b7"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>Cbar_k_sigma</b> (double k, double sigma, double rhoMax, double rho0=1., bool prime=false)</td></tr>
+<tr class="separator:a212b0f9765cf5416c881d4229c25e5b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abc5012a49b0219717717c6c153573149"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abc5012a49b0219717717c6c153573149"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structCbar__k__sigma.html#abc5012a49b0219717717c6c153573149">value</a> (double rho) const </td></tr>
 <tr class="memdesc:abc5012a49b0219717717c6c153573149"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get value: <br/></td></tr>
@@ -122,7 +119,7 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <tr class="separator:ac9732d8fdf4d01d84582edea4d0aba38"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Look-up table for Cbar_k^sigma(rho) for specific values of k and sigma. </p>
+<div class="textblock"><p>Look-up table for Cbar_k^sigma(rho) for specific values of k and sigma If prime=true, construct lookup table for -d(Cbar_k^sigma(rho))/dk instead </p>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li>core/<a class="el" href="Coulomb__internal_8h.html">Coulomb_internal.h</a></li>
 </ul>

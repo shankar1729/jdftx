@@ -11,6 +11,7 @@ var structSpeciesInfo_1_1Constraint =
     [ "operator()", "structSpeciesInfo_1_1Constraint.html#acef9ffed9042d3052829d550762509a0", null ],
     [ "print", "structSpeciesInfo_1_1Constraint.html#ab3d61a073aae570a01ce8abbe734d85a", null ],
     [ "d", "structSpeciesInfo_1_1Constraint.html#aeb8103a2ad40eee65fd275b1c9ffc89a", null ],
+    [ "hyperplane", "structSpeciesInfo_1_1Constraint.html#a537e9290f562d932b0fc3ad5a0a9eb52", null ],
     [ "moveScale", "structSpeciesInfo_1_1Constraint.html#ab2a6058ec91d02b3d1030feda5b1eaab", null ],
     [ "type", "structSpeciesInfo_1_1Constraint.html#a97235409909fdbee032cece57b9c106f", null ]
 ];

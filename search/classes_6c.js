@@ -12,5 +12,6 @@ var searchData=
   ['linearsolvable',['LinearSolvable',['../structLinearSolvable.html',1,'']]],
   ['linearsolvable_3c_20scalarfieldtilde_20_3e',['LinearSolvable&lt; ScalarFieldTilde &gt;',['../structLinearSolvable.html',1,'']]],
   ['linkdescription',['LinkDescription',['../structLinkDescription.html',1,'']]],
-  ['longrangesum',['LongRangeSum',['../classLongRangeSum.html',1,'']]]
+  ['longrangesum',['LongRangeSum',['../classLongRangeSum.html',1,'']]],
+  ['longrangesum2d',['LongRangeSum2D',['../classLongRangeSum2D.html',1,'']]]
 ];

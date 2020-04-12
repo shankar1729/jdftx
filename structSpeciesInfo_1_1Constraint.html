@@ -111,19 +111,17 @@ $(document).ready(function(){initNavTree('structSpeciesInfo_1_1Constraint.html',
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a857f445f8b6b58fdc10d41371db4633d"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSpeciesInfo_1_1Constraint.html#a857f445f8b6b58fdc10d41371db4633d">ConstraintType</a> { <b>None</b>, 
+<tr class="memitem:a857f445f8b6b58fdc10d41371db4633d"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><b>ConstraintType</b> { <b>None</b>, 
 <b>Linear</b>, 
 <b>Planar</b>, 
 <b>HyperPlane</b>
  }</td></tr>
-<tr class="memdesc:a857f445f8b6b58fdc10d41371db4633d"><td class="mdescLeft">&#160;</td><td class="mdescRight">The direction or plane normal of the constraint (in cartesian coordinates) <br/></td></tr>
 <tr class="separator:a857f445f8b6b58fdc10d41371db4633d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:acef9ffed9042d3052829d550762509a0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acef9ffed9042d3052829d550762509a0"></a>
-<a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSpeciesInfo_1_1Constraint.html#acef9ffed9042d3052829d550762509a0">operator()</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;grad) const </td></tr>
-<tr class="memdesc:acef9ffed9042d3052829d550762509a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the constraint that is being applied to the ion. <br/></td></tr>
+<a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;grad) const </td></tr>
 <tr class="separator:acef9ffed9042d3052829d550762509a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a36496f42c98b07c8dfd3790ad52278e9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a36496f42c98b07c8dfd3790ad52278e9"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>isEquivalent</b> (const <a class="el" href="structSpeciesInfo_1_1Constraint.html">Constraint</a> &amp;otherConstraint, const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; &amp;transform) const </td></tr>
@@ -138,16 +136,23 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>print</b> (FILE *fp, 
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:ab2a6058ec91d02b3d1030feda5b1eaab"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab2a6058ec91d02b3d1030feda5b1eaab"></a>
-double&#160;</td><td class="memItemRight" valign="bottom"><b>moveScale</b></td></tr>
+double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSpeciesInfo_1_1Constraint.html#ab2a6058ec91d02b3d1030feda5b1eaab">moveScale</a></td></tr>
+<tr class="memdesc:ab2a6058ec91d02b3d1030feda5b1eaab"><td class="mdescLeft">&#160;</td><td class="mdescRight">preconditioning factor (0 fixes ion) <br/></td></tr>
 <tr class="separator:ab2a6058ec91d02b3d1030feda5b1eaab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeb8103a2ad40eee65fd275b1c9ffc89a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aeb8103a2ad40eee65fd275b1c9ffc89a"></a>
 <a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSpeciesInfo_1_1Constraint.html#aeb8103a2ad40eee65fd275b1c9ffc89a">d</a></td></tr>
-<tr class="memdesc:aeb8103a2ad40eee65fd275b1c9ffc89a"><td class="mdescLeft">&#160;</td><td class="mdescRight">preconditioning factor (0 fixes ion) <br/></td></tr>
+<tr class="memdesc:aeb8103a2ad40eee65fd275b1c9ffc89a"><td class="mdescLeft">&#160;</td><td class="mdescRight">The direction or plane normal of the constraint (in cartesian coordinates) <br/></td></tr>
 <tr class="separator:aeb8103a2ad40eee65fd275b1c9ffc89a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a97235409909fdbee032cece57b9c106f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a97235409909fdbee032cece57b9c106f"></a>
 enum <br class="typebreak"/>
-<a class="el" href="structSpeciesInfo_1_1Constraint.html#a857f445f8b6b58fdc10d41371db4633d">SpeciesInfo::Constraint::ConstraintType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
+SpeciesInfo::Constraint::ConstraintType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSpeciesInfo_1_1Constraint.html#a97235409909fdbee032cece57b9c106f">type</a></td></tr>
+<tr class="memdesc:a97235409909fdbee032cece57b9c106f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the constraint that is being applied to the ion. <br/></td></tr>
 <tr class="separator:a97235409909fdbee032cece57b9c106f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a537e9290f562d932b0fc3ad5a0a9eb52"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a537e9290f562d932b0fc3ad5a0a9eb52"></a>
+std::vector&lt; std::pair<br class="typebreak"/>
+&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt;, <a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSpeciesInfo_1_1Constraint.html#a537e9290f562d932b0fc3ad5a0a9eb52">hyperplane</a></td></tr>
+<tr class="memdesc:a537e9290f562d932b0fc3ad5a0a9eb52"><td class="mdescLeft">&#160;</td><td class="mdescRight">list of d and group labels for hyperplanes <br/></td></tr>
+<tr class="separator:a537e9290f562d932b0fc3ad5a0a9eb52"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Contains the information on the constraints of motion for each ion. </p>

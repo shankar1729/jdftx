@@ -1,6 +1,7 @@
 var BlasExtra_8h =
 [
     [ "callPref", "BlasExtra_8h.html#ga60f1cf2483a1cf0031f237bb3e50c299", null ],
+    [ "DECLARE_eblas_sum", "BlasExtra_8h.html#a2de03654a575ed8fd0e64fd362057fc2", null ],
     [ "eblas_accumNorm", "BlasExtra_8h.html#ga6c1b03241b133beaed04728d26a086e3", null ],
     [ "eblas_accumNorm_gpu", "BlasExtra_8h.html#ga4990759337c29d9752c444b78e3930db", null ],
     [ "eblas_accumProd", "BlasExtra_8h.html#ga1e140105e5e7ee1f8baaff4e6a016bf5", null ],
@@ -39,6 +40,10 @@ var BlasExtra_8h =
     [ "eblas_scatter_zaxpy_gpu", "BlasExtra_8h.html#gab777fea35e9b776432add8df3f2ff2f7", null ],
     [ "eblas_scatter_zdaxpy", "BlasExtra_8h.html#ga6920f2c3375ac67c6baf1af5c8043063", null ],
     [ "eblas_scatter_zdaxpy_gpu", "BlasExtra_8h.html#ga3dd3623c1986cc3347b38d084d9a9e71", null ],
+    [ "eblas_sum", "BlasExtra_8h.html#ga19cd74e6a9a5958b2760ec024c2aa04d", null ],
+    [ "eblas_sum_gpu", "BlasExtra_8h.html#ga47a40a1408d6f741288c098ff5233295", null ],
+    [ "eblas_sumStrided", "BlasExtra_8h.html#gafe47cd65bab7057a60eea6d75b065281", null ],
+    [ "eblas_sumStrided_gpu", "BlasExtra_8h.html#ga81e1949388c17af1f3a06480413c7380", null ],
     [ "eblas_symmetrize", "BlasExtra_8h.html#ga9d2cefdcc0e49ab0781fab0609ef5d74", null ],
     [ "eblas_symmetrize", "BlasExtra_8h.html#gaa0c011b9e8e8f8086690068bcfa7ca92", null ],
     [ "eblas_symmetrize", "BlasExtra_8h.html#gae73590ae7d8bc5430e35a0eca6590b09", null ],

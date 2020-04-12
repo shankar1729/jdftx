@@ -145,6 +145,14 @@ std::shared_ptr&lt; class <a class="el" href="classCoulomb.html">Coulomb</a> &gt
 std::shared_ptr&lt; class <a class="el" href="classCoulomb.html">Coulomb</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structCoulombParams.html#aa115995516687c5ffae6be033a1cea7d">createCoulomb</a> (const <a class="el" href="classGridInfo.html">GridInfo</a> &amp;gInfo, const std::shared_ptr&lt; <a class="el" href="classGridInfo.html">GridInfo</a> &gt; gInfoWfns, std::shared_ptr&lt; class <a class="el" href="classCoulomb.html">Coulomb</a> &gt; &amp;coulombWfns) const </td></tr>
 <tr class="memdesc:aa115995516687c5ffae6be033a1cea7d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create one or two <a class="el" href="classCoulomb.html" title="Abstract base class for the (optionally truncated) Coulomb interaction. ">Coulomb</a> objects as needed, based on whether a separate wave-function grid gInfoWfns exists. <br/></td></tr>
 <tr class="separator:aa115995516687c5ffae6be033a1cea7d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a52d1633bcaf8c7b3baf5c108fd826a47"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a52d1633bcaf8c7b3baf5c108fd826a47"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structCoulombParams.html#a52d1633bcaf8c7b3baf5c108fd826a47">recreateCoulomb</a> (const <a class="el" href="classGridInfo.html">GridInfo</a> &amp;gInfo, std::shared_ptr&lt; class <a class="el" href="classCoulomb.html">Coulomb</a> &gt; &amp;coulomb, <a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a> purpose=<a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a>()) const </td></tr>
+<tr class="memdesc:a52d1633bcaf8c7b3baf5c108fd826a47"><td class="mdescLeft">&#160;</td><td class="mdescRight">Re-create a <a class="el" href="classCoulomb.html" title="Abstract base class for the (optionally truncated) Coulomb interaction. ">Coulomb</a> object, keeping pointers intact (using placement new) if non-null. <br/></td></tr>
+<tr class="separator:a52d1633bcaf8c7b3baf5c108fd826a47"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad35530440b608b33b11415b9c8f58509"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad35530440b608b33b11415b9c8f58509"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structCoulombParams.html#ad35530440b608b33b11415b9c8f58509">recreateCoulomb</a> (const <a class="el" href="classGridInfo.html">GridInfo</a> &amp;gInfo, const std::shared_ptr&lt; <a class="el" href="classGridInfo.html">GridInfo</a> &gt; gInfoWfns, std::shared_ptr&lt; class <a class="el" href="classCoulomb.html">Coulomb</a> &gt; &amp;coulomb, std::shared_ptr&lt; class <a class="el" href="classCoulomb.html">Coulomb</a> &gt; &amp;coulombWfns) const </td></tr>
+<tr class="memdesc:ad35530440b608b33b11415b9c8f58509"><td class="mdescLeft">&#160;</td><td class="mdescRight">Re-create one or two <a class="el" href="classCoulomb.html" title="Abstract base class for the (optionally truncated) Coulomb interaction. ">Coulomb</a> objects as needed, keeping pointers intact (using placement new) if non-null. <br/></td></tr>
+<tr class="separator:ad35530440b608b33b11415b9c8f58509"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abe92561efc38d050ed5dedff4827e063"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abe92561efc38d050ed5dedff4827e063"></a>
 <a class="el" href="classvector3.html">vector3</a>&lt; bool &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structCoulombParams.html#abe92561efc38d050ed5dedff4827e063">isTruncated</a> () const </td></tr>
 <tr class="memdesc:abe92561efc38d050ed5dedff4827e063"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a list of which directions are truncated: <br/></td></tr>
@@ -198,6 +206,10 @@ std::set&lt; double &gt;&#160;</td><td class="memItemRight" valign="bottom"><a c
 std::shared_ptr&lt; struct <a class="el" href="structSupercell.html">Supercell</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structCoulombParams.html#af0c72edec7dc6040ac11a7d5d3aff6aa">supercell</a></td></tr>
 <tr class="memdesc:af0c72edec7dc6040ac11a7d5d3aff6aa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Description of k-point supercell for exchange. <br/></td></tr>
 <tr class="separator:af0c72edec7dc6040ac11a7d5d3aff6aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a57b98de6c5942981c10818eb8828910b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a57b98de6c5942981c10818eb8828910b"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structCoulombParams.html#a57b98de6c5942981c10818eb8828910b">computeStress</a></td></tr>
+<tr class="memdesc:a57b98de6c5942981c10818eb8828910b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether stress calculation will be required (Isolated and Wire need extra initialization) <br/></td></tr>
+<tr class="separator:a57b98de6c5942981c10818eb8828910b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Parameters controlling <a class="el" href="classCoulomb.html" title="Abstract base class for the (optionally truncated) Coulomb interaction. ">Coulomb</a> interactions. </p>
@@ -224,10 +236,10 @@ std::shared_ptr&lt; struct <a class="el" href="structSupercell.html">Supercell</
 <p><a class="el" href="classEwald.html" title="Abstract base class for Ewald summation in arbitrary dimension. ">Ewald</a> sum on a probe charge per unit cell (3D/2D/1D periodic systems) </p>
 </td></tr>
 <tr><td class="fieldname"><em><a class="anchor" id="a4c748577e8daa85d6c37203d93842daca2743f5a0487b72e808846443483b64bb"></a>SphericalTruncated</em>&nbsp;</td><td class="fielddoc">
-<p>Wigner-Seitz volume spherical truncation <a class="el" href="citelist.html#CITEREF_SphericalTruncation">[26]</a>. </p>
+<p>Wigner-Seitz volume spherical truncation <a class="el" href="citelist.html#CITEREF_SphericalTruncation">[27]</a>. </p>
 </td></tr>
 <tr><td class="fieldname"><em><a class="anchor" id="a4c748577e8daa85d6c37203d93842daca341d65550117e9dd43691e67640133f3"></a>WignerSeitzTruncated</em>&nbsp;</td><td class="fielddoc">
-<p>Wigner-Seitz cell truncation <a class="el" href="citelist.html#CITEREF_TruncatedEXX">[27]</a>. </p>
+<p>Wigner-Seitz cell truncation <a class="el" href="citelist.html#CITEREF_TruncatedEXX">[28]</a>. </p>
 </td></tr>
 </table>
 

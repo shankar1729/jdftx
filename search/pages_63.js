@@ -6,7 +6,6 @@ var searchData=
   ['chargeball',['chargeball',['../CommandChargeball.html',1,'CommandIndex']]],
   ['charged_2ddefect',['charged-defect',['../CommandChargedDefect.html',1,'CommandIndex']]],
   ['charged_2ddefect_2dcorrection',['charged-defect-correction',['../CommandChargedDefectCorrection.html',1,'CommandIndex']]],
-  ['confine_2ddynamics',['confine-dynamics',['../CommandConfineDynamics.html',1,'CommandIndex']]],
   ['converge_2dempty_2dstates',['converge-empty-states',['../CommandConvergeEmptyStates.html',1,'CommandIndex']]],
   ['coords_2dtype',['coords-type',['../CommandCoordsType.html',1,'CommandIndex']]],
   ['core_2doverlap_2dcheck',['core-overlap-check',['../CommandCoreOverlapCheck.html',1,'CommandIndex']]],

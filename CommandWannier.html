@@ -114,10 +114,10 @@ $(document).ready(function(){initNavTree('CommandWannier.html','');});
 <p class="startli">For fixed band calculations, 0-based index of lowest band used. The number of bands equals the number of wannier-centers specified. Default: 0. Use in insulator calculations to ignore semi-core orbitals.</p>
 </li>
 <li><p class="startli">outerWindow &lt;eMin&gt; &lt;eMax&gt;</p>
-<p class="startli">Energy window within which bands contribute to wannier functions <a class="el" href="citelist.html#CITEREF_MLWFmetal">[25]</a>. bStart is ignored if outerWindow is specified.</p>
+<p class="startli">Energy window within which bands contribute to wannier functions <a class="el" href="citelist.html#CITEREF_MLWFmetal">[26]</a>. bStart is ignored if outerWindow is specified.</p>
 </li>
 <li><p class="startli">innerWindow &lt;eMin&gt; &lt;eMax&gt;</p>
-<p class="startli">Inner energy window within which bands are used exactly <a class="el" href="citelist.html#CITEREF_MLWFmetal">[25]</a>. Requires outerWindow, and innerWindow must be its subset.</p>
+<p class="startli">Inner energy window within which bands are used exactly <a class="el" href="citelist.html#CITEREF_MLWFmetal">[26]</a>. Requires outerWindow, and innerWindow must be its subset.</p>
 </li>
 <li><p class="startli">frozenCenters &lt;nFrozen&gt; &lt;filename&gt;</p>
 <p class="startli">Include frozen Wannier centers imported as unitary rotations from &lt;filename&gt; (.mlwfU output from another wannier run on the same jdftx state), and force the current centers to be orthogonal to the imported ones. Note that all output of this run will include the frozen as well as new centers for convenience.</p>
@@ -135,11 +135,14 @@ $(document).ready(function(){initNavTree('CommandWannier.html','');});
 <li><p class="startli">saveSpin yes|no</p>
 <p class="startli">Whether to write spin matrix elements (for non-collinear calculations only). Default: no.</p>
 </li>
+<li><p class="startli">saveZ &lt;Vfilename&gt; &lt;Emag&gt;</p>
+<p class="startli">If specified, output matrix elements of z for perturbative electric field in post processing. &lt;Vfilename&gt; is Vscloc output from a calculation with an applied electric field, and it should be in the <a class="el" href="CommandDumpName.html">dump-name</a> format contain $VAR (as in command <a class="el" href="CommandFixElectronPotential.html">fix-electron-potential</a>). &lt;Emag&gt; is the magnitude of the difference in electric field (in Eh/a0) between that calculation and the present case. This combination is used to compute the matrix element accounting for static local field effects due to the response of the system to the electric field. Alternately, specify &lt;Vfilename&gt;=Ramp and &lt;Emag&gt;=0 to use a ramp potential (no local field). Default: no.</p>
+</li>
 <li><p class="startli">slabWeight &lt;z0&gt; &lt;zH&gt; &lt;zSigma&gt;</p>
 <p class="startli">If specified, output the <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions. ">Wannier</a> matrix elements of a slab weight function centered at z0 (lattice coordinates) with half-width zH (lattice coordinates) and Gaussian/erfc smoothness zSigma in bohrs. (Default: none)</p>
 </li>
 <li><p class="startli">loadRotations yes|no</p>
-<p class="startli">Whether to load rotations (.mlwU and .mlwfU2) from a previous Wannier run. Default: no.</p>
+<p class="startli">Whether to load rotations (.mlwU) from a previous Wannier run. Default: no.</p>
 </li>
 <li><p class="startli">eigsOverride &lt;filename&gt;</p>
 <p class="startli">Optionally read an alternate eigenvalues file to over-ride those from the total energy calculation. Useful for generating <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions. ">Wannier</a> Hamiltonians using eigenvalues from another DFT or a many-body perturbation theory code.</p>
@@ -164,7 +167,7 @@ $(document).ready(function(){initNavTree('CommandWannier.html','');});
 </li>
 </ul>
 <h2>Properties: </h2>
-<p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandSpintype.html">spintype</a></p>
+<p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandCoulombInteraction.html">coulomb-interaction</a> &#160;&#160;&#160; <a class="el" href="CommandSpintype.html">spintype</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Allow multiple:</b>&#160;&#160;&#160; no</p>
 <p><b>Default:</b> &#160;&#160;&#160; (None)</p>

@@ -8,6 +8,7 @@ var classElecInfo =
     [ "SmearingType", "classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028", [
       [ "SmearingFermi", "classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028ab33e87d552c26bfdffd850578ff7eaca", null ],
       [ "SmearingGauss", "classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028a9a0e9cde48d2f999e1adbd7a66452d67", null ],
+      [ "SmearingMP1", "classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028acb98ec19206c84075b4b885a0e0262e1", null ],
       [ "SmearingCold", "classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028a58dc7ef3f1efccbbe639c28f121b699e", null ]
     ] ],
     [ "ElecInfo", "classElecInfo.html#a4fffe7ff6c98d4882fe2a05f9c8dfdc8", null ],
@@ -47,6 +48,7 @@ var classElecInfo =
     [ "CommandElecInitialMagnetization", "classElecInfo.html#ae01d8e36e7cd51a1aa723c6d5b948100", null ],
     [ "CommandInitialState", "classElecInfo.html#a59d2a84f0031f4537f344c8638ccd123", null ],
     [ "CommandKpointFolding", "classElecInfo.html#a3b23ea5e7afacc47087aef45700a6e4a", null ],
+    [ "dumpFCI", "classElecInfo.html#acf9a3ba260434c09052ed7ea0d5e4018", null ],
     [ "ElecVars", "classElecInfo.html#a7abd8d7763d2dee6b8e864912e990c5c", null ],
     [ "Everything", "classElecInfo.html#a33017c7621b786830c58963ad1d27edd", null ],
     [ "LCAOminimizer", "classElecInfo.html#ada9945d41b36ec7e805dcc0ca95e3758", null ],

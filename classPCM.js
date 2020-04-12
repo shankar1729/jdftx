@@ -7,7 +7,7 @@ var classPCM =
     [ "dumpDensities", "classPCM.html#a0c3633ed5e8fd101f2654bf790d3ec58", null ],
     [ "getFullCore", "classPCM.html#a1630884d1cc48c5f5d1813ff4bbd646f", null ],
     [ "printDebug", "classPCM.html#a6013e3c1e3ad0bca80eac7c0b45984ca", null ],
-    [ "propagateCavityGradients", "classPCM.html#ab0a3d734efb1bbe57ba9033b5ab1c1d7", null ],
+    [ "propagateCavityGradients", "classPCM.html#a36bb8f7f97584d4424c8f7e6c081e161", null ],
     [ "updateCavity", "classPCM.html#a62f96d84b17a161a3bfd23de6fabf4b1", null ],
     [ "ChargedDefect", "classPCM.html#af2113cdbe96a273ed2ebfbec4c72f18a", null ],
     [ "Adiel", "classPCM.html#a5319547579afafbbc7c2dd3a3671d1a3", null ],

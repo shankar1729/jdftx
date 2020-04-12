@@ -11,5 +11,6 @@ var searchData=
   ['linearscreening',['linearScreening',['../structFluidSolverParams.html#ac0c9d395e0512ffa227e863cfac58241',1,'FluidSolverParams']]],
   ['lineprefix',['linePrefix',['../structMinimizeParams.html#ac8c7c64673e63f884897940eb98ad1a3',1,'MinimizeParams::linePrefix()'],['../structPulayParams.html#a248bcbef05e87ca67f888ff57f046b95',1,'PulayParams::linePrefix()']]],
   ['liter',['liter',['../group__Utilities.html#ga2161034ba3dc89bf7e0a94a7d17a95de',1,'Units.h']]],
+  ['ljoverride',['ljOverride',['../classIonInfo.html#a11cc8ad1ccfa19f7571955b48c70da6a',1,'IonInfo']]],
   ['loadrotations',['loadRotations',['../classWannier.html#ace70414800c2db3e71a60a40e13ecce2',1,'Wannier']]]
 ];

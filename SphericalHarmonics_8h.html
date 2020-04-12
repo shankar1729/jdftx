@@ -143,6 +143,9 @@ Macros</h2></td></tr>
 <tr class="memitem:a2ea9470c4f438c5a7b5e41a69d4715ba"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2ea9470c4f438c5a7b5e41a69d4715ba"></a>
 #define&#160;</td><td class="memItemRight" valign="bottom"><b>ADD</b>(l, m, coeff)&#160;&#160;&#160;result.push_back(<a class="el" href="structYlmProdTerm.html">YlmProdTerm</a>(l,m,coeff))</td></tr>
 <tr class="separator:a2ea9470c4f438c5a7b5e41a69d4715ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga84726cae68f4608defbb392e0eaafcc9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga84726cae68f4608defbb392e0eaafcc9"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>DECLARE_YlmPrime</b>(l, m)&#160;&#160;&#160;template&lt;&gt; __hostanddev__ <a class="el" href="classvector3.html">vector3</a>&lt;&gt; <a class="el" href="group__Utilities.html#gae159ba7fa1858ddaa9c05f7650691e9f">YlmPrime</a>&lt;l*(l+1)+m&gt;(const <a class="el" href="classvector3.html">vector3</a>&lt;&gt;&amp; qHat) { return <a class="el" href="group__Utilities.html#gae159ba7fa1858ddaa9c05f7650691e9f">YlmPrime</a>&lt;l,m&gt;(qHat); }</td></tr>
+<tr class="separator:ga84726cae68f4608defbb392e0eaafcc9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -370,11 +373,14 @@ double&#160;</td><td class="memItemRight" valign="bottom"><b>Ylm</b> (int l, int
 std::vector&lt; <a class="el" href="structYlmProdTerm.html">YlmProdTerm</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gace768f02bdda85c37426e83522cb3957">expandYlmProd</a> (int l1, int m1, int l2, int m2)</td></tr>
 <tr class="memdesc:gace768f02bdda85c37426e83522cb3957"><td class="mdescLeft">&#160;</td><td class="mdescRight">Wrapper function expandYlmProd with individual indices. <br/></td></tr>
 <tr class="separator:gace768f02bdda85c37426e83522cb3957"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gabcc5f499214d7ae22da80692fe0fc123"><td class="memTemplParams" colspan="2"><a class="anchor" id="gabcc5f499214d7ae22da80692fe0fc123"></a>
-template&lt;int l, int m&gt; </td></tr>
+<tr class="memitem:gabcc5f499214d7ae22da80692fe0fc123"><td class="memTemplParams" colspan="2">template&lt;int l, int m&gt; </td></tr>
 <tr class="memitem:gabcc5f499214d7ae22da80692fe0fc123"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ <a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gabcc5f499214d7ae22da80692fe0fc123">YlmPrime</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qHat)</td></tr>
-<tr class="memdesc:gabcc5f499214d7ae22da80692fe0fc123"><td class="mdescLeft">&#160;</td><td class="mdescRight">Derivative of spherical Harmonic with repect to iDir'th component of qHat. <br/></td></tr>
+<tr class="memdesc:gabcc5f499214d7ae22da80692fe0fc123"><td class="mdescLeft">&#160;</td><td class="mdescRight">Derivative of spherical Harmonic with repect to iDir'th component of qHat with separate l,m indices.  <a href="group__Utilities.html#gabcc5f499214d7ae22da80692fe0fc123">More...</a><br/></td></tr>
 <tr class="separator:gabcc5f499214d7ae22da80692fe0fc123"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae159ba7fa1858ddaa9c05f7650691e9f"><td class="memTemplParams" colspan="2">template&lt;int lm&gt; </td></tr>
+<tr class="memitem:gae159ba7fa1858ddaa9c05f7650691e9f"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ <a class="el" href="classvector3.html">vector3</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gae159ba7fa1858ddaa9c05f7650691e9f">YlmPrime</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qHat)</td></tr>
+<tr class="memdesc:gae159ba7fa1858ddaa9c05f7650691e9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Derivative of spherical Harmonic with repect to iDir'th component of qHat with combined lm index.  <a href="group__Utilities.html#gae159ba7fa1858ddaa9c05f7650691e9f">More...</a><br/></td></tr>
+<tr class="separator:gae159ba7fa1858ddaa9c05f7650691e9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="memTemplParams" colspan="2"><a class="anchor" id="gaf7e7d2002e4e44f3405c5c3728f485f6"></a>
 template&lt;int l, int m&gt; </td></tr>
 <tr class="memitem:gaf7e7d2002e4e44f3405c5c3728f485f6"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gaf7e7d2002e4e44f3405c5c3728f485f6">set_YlmPrime</a> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; qHat, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;result)</td></tr>

@@ -10,6 +10,7 @@ var ColumnBundle_8h =
     [ "init", "ColumnBundle_8h.html#gaa66c0693f6874d54058d37e321e207d0", null ],
     [ "L", "ColumnBundle_8h.html#gaf6d4d30b7062edfd0f75a082814c3067", null ],
     [ "Linv", "ColumnBundle_8h.html#ga20720de21af94d24497310b259876d2a", null ],
+    [ "Lstress", "ColumnBundle_8h.html#gad68024dc4c9e7f987c92a988e9ed1620", null ],
     [ "O", "ColumnBundle_8h.html#ga4597f9dccad3baeb8f90d0986b15dade", null ],
     [ "operator*", "ColumnBundle_8h.html#ga10c9a340498c7d5c7b81e524e6b7ab8d", null ],
     [ "operator*", "ColumnBundle_8h.html#gac9bab5b50a85b03a28f3cd507b5199a9", null ],

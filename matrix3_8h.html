@@ -112,6 +112,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classmatrix3.html">matrix3&lt; scalar &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">3x3 matrix  <a href="classmatrix3.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsymmetricMatrix3.html">symmetricMatrix3&lt; scalar &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Symmetric matrix that stores only non-redundant entries (with limited operations)  <a href="structsymmetricMatrix3.html#details">More...</a><br/></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSpaceGroupOp.html">SpaceGroupOp</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Space group operation r -&gt; rot * r + a in real-space lattice coordinates.  <a href="structSpaceGroupOp.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -230,6 +233,18 @@ template&lt;typename scalar &gt; </td></tr>
 __hostanddev__ <a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga4e13e7fc4752ad7dba78dd140ff7ff70">rotation</a> (double theta, int axis)</td></tr>
 <tr class="memdesc:ga4e13e7fc4752ad7dba78dd140ff7ff70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a rotation matrix. <br/></td></tr>
 <tr class="separator:ga4e13e7fc4752ad7dba78dd140ff7ff70"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0f86ea4576b9ee169daa67fac0c1d0fd"><td class="memTemplParams" colspan="2"><a class="anchor" id="ga0f86ea4576b9ee169daa67fac0c1d0fd"></a>
+template&lt;typename scalar &gt; </td></tr>
+<tr class="memitem:ga0f86ea4576b9ee169daa67fac0c1d0fd"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ <br class="typebreak"/>
+<a class="el" href="structsymmetricMatrix3.html">symmetricMatrix3</a>&lt; scalar &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga0f86ea4576b9ee169daa67fac0c1d0fd">operator*</a> (scalar s, <a class="el" href="structsymmetricMatrix3.html">symmetricMatrix3</a>&lt; scalar &gt; m)</td></tr>
+<tr class="memdesc:ga0f86ea4576b9ee169daa67fac0c1d0fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Scale. <br/></td></tr>
+<tr class="separator:ga0f86ea4576b9ee169daa67fac0c1d0fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaab9f415ff553b5d6926b2d8a4cbb0495"><td class="memTemplParams" colspan="2"><a class="anchor" id="gaab9f415ff553b5d6926b2d8a4cbb0495"></a>
+template&lt;typename scalar &gt; </td></tr>
+<tr class="memitem:gaab9f415ff553b5d6926b2d8a4cbb0495"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ <br class="typebreak"/>
+<a class="el" href="structsymmetricMatrix3.html">symmetricMatrix3</a>&lt; scalar &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gaab9f415ff553b5d6926b2d8a4cbb0495">outer</a> (const <a class="el" href="classvector3.html">vector3</a>&lt; scalar &gt; &amp;v)</td></tr>
+<tr class="memdesc:gaab9f415ff553b5d6926b2d8a4cbb0495"><td class="mdescLeft">&#160;</td><td class="mdescRight">Symmetric outer product of vector. <br/></td></tr>
+<tr class="separator:gaab9f415ff553b5d6926b2d8a4cbb0495"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>3x3 matrices with CPU and GPU operators </p>

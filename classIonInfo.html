@@ -138,10 +138,8 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cl
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a38b5c7e87e6b546117cf07eec5f8d75a">update</a> (class <a class="el" href="classEnergies.html">Energies</a> &amp;)</td></tr>
 <tr class="memdesc:a38b5c7e87e6b546117cf07eec5f8d75a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update Vlocps, rhoIon, nChargeball, nCore and the energies dependent only on ionic positions. <br/></td></tr>
 <tr class="separator:a38b5c7e87e6b546117cf07eec5f8d75a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae0bf667acc37ade16bec21abca3fe379"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae0bf667acc37ade16bec21abca3fe379"></a>
-double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#ae0bf667acc37ade16bec21abca3fe379">ionicEnergyAndGrad</a> (<a class="el" href="structIonicGradient.html">IonicGradient</a> &amp;<a class="el" href="classIonInfo.html#a9878631a33ae059352c4a61ef2f14340">forces</a>) const </td></tr>
-<tr class="memdesc:ae0bf667acc37ade16bec21abca3fe379"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the total (free) energy and calculate the ionic gradient (forces) <br/></td></tr>
-<tr class="separator:ae0bf667acc37ade16bec21abca3fe379"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8552d7085b111addb36913ab2ae268a3"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a8552d7085b111addb36913ab2ae268a3">ionicEnergyAndGrad</a> ()</td></tr>
+<tr class="separator:a8552d7085b111addb36913ab2ae268a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a65b6d23511d1eed78fe8ef7816c2e62e"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a65b6d23511d1eed78fe8ef7816c2e62e">EnlAndGrad</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;Fq, const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;VdagCq, std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;HVdagCq) const </td></tr>
 <tr class="separator:a65b6d23511d1eed78fe8ef7816c2e62e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1ca3164f200f8780763f7ee6faefc5c8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1ca3164f200f8780763f7ee6faefc5c8"></a>
@@ -160,10 +158,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#aa2999661e1fae3fbe97f4157a69d3868">augmentDensityGrid</a> (<a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;n) const </td></tr>
 <tr class="memdesc:aa2999661e1fae3fbe97f4157a69d3868"><td class="mdescLeft">&#160;</td><td class="mdescRight">propagate from spherical functions to grid <br/></td></tr>
 <tr class="separator:aa2999661e1fae3fbe97f4157a69d3868"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6caabff0119bc343f71f5510e315ebd5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6caabff0119bc343f71f5510e315ebd5"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a6caabff0119bc343f71f5510e315ebd5">augmentDensityGridGrad</a> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;E_n, <a class="el" href="structIonicGradient.html">IonicGradient</a> *<a class="el" href="classIonInfo.html#a9878631a33ae059352c4a61ef2f14340">forces</a>=0) const </td></tr>
-<tr class="memdesc:a6caabff0119bc343f71f5510e315ebd5"><td class="mdescLeft">&#160;</td><td class="mdescRight">propagate grid gradients to spherical functions <br/></td></tr>
-<tr class="separator:a6caabff0119bc343f71f5510e315ebd5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a74911235712cc91632b7cbdbcc140cf8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a74911235712cc91632b7cbdbcc140cf8"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a74911235712cc91632b7cbdbcc140cf8">augmentDensityGridGrad</a> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;E_n, <a class="el" href="structIonicGradient.html">IonicGradient</a> *<a class="el" href="classIonInfo.html#a9878631a33ae059352c4a61ef2f14340">forces</a>=0, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *Eaug_RRT=0) const </td></tr>
+<tr class="memdesc:a74911235712cc91632b7cbdbcc140cf8"><td class="mdescLeft">&#160;</td><td class="mdescRight">propagate grid gradients to spherical functions <br/></td></tr>
+<tr class="separator:a74911235712cc91632b7cbdbcc140cf8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aace084a8f52fd2634ed9ba91354592d9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aace084a8f52fd2634ed9ba91354592d9"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#aace084a8f52fd2634ed9ba91354592d9">augmentDensitySphericalGrad</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;VdagCq, std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;HVdagCq) const </td></tr>
 <tr class="memdesc:aace084a8f52fd2634ed9ba91354592d9"><td class="mdescLeft">&#160;</td><td class="mdescRight">propagate spherical function gradients to wavefunctions <br/></td></tr>
@@ -193,10 +191,10 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cl
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a86fbebb5d6ca259ee166c9ab7341be69">rhoAtom_grad</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;U_rhoAtom, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;HCq) const </td></tr>
 <tr class="memdesc:a86fbebb5d6ca259ee166c9ab7341be69"><td class="mdescLeft">&#160;</td><td class="mdescRight">propagate U_rhoAtom to wavefunction gradient (per k-point to enable band structure) <br/></td></tr>
 <tr class="separator:a86fbebb5d6ca259ee166c9ab7341be69"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ade05a0f025c8af8c1f4838338f69f48d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ade05a0f025c8af8c1f4838338f69f48d"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#ade05a0f025c8af8c1f4838338f69f48d">rhoAtom_forces</a> (const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C, const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;U_rhoAtom, <a class="el" href="structIonicGradient.html">IonicGradient</a> &amp;<a class="el" href="classIonInfo.html#a9878631a33ae059352c4a61ef2f14340">forces</a>) const </td></tr>
-<tr class="memdesc:ade05a0f025c8af8c1f4838338f69f48d"><td class="mdescLeft">&#160;</td><td class="mdescRight">propagate U_rhoAtom to forces <br/></td></tr>
-<tr class="separator:ade05a0f025c8af8c1f4838338f69f48d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aff18a8e7040c97021981772fd2efce9b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aff18a8e7040c97021981772fd2efce9b"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#aff18a8e7040c97021981772fd2efce9b">rhoAtom_forces</a> (const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C, const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;U_rhoAtom, <a class="el" href="structIonicGradient.html">IonicGradient</a> &amp;<a class="el" href="classIonInfo.html#a9878631a33ae059352c4a61ef2f14340">forces</a>, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *EU_RRT) const </td></tr>
+<tr class="memdesc:aff18a8e7040c97021981772fd2efce9b"><td class="mdescLeft">&#160;</td><td class="mdescRight">propagate U_rhoAtom to forces (and optionally stress) <br/></td></tr>
+<tr class="separator:aff18a8e7040c97021981772fd2efce9b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3d1aeff866028e2b1dbc8e242197cf22"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3d1aeff866028e2b1dbc8e242197cf22"></a>
 <a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a3d1aeff866028e2b1dbc8e242197cf22">rHcommutator</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, int iDir, const <a class="el" href="classmatrix.html">matrix</a> &amp;YdagHY) const </td></tr>
 <tr class="memdesc:a3d1aeff866028e2b1dbc8e242197cf22"><td class="mdescLeft">&#160;</td><td class="mdescRight">Expectation value of [r_iDir,H] = D_iDir + nonlocal corrections. <br/></td></tr>
@@ -239,14 +237,30 @@ std::vector&lt; <a class="el" href="group__Utilities.html#ga8365eedfd1b023938737
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#aec5ab9fe8aa095250aaf78fe83e84c24">vdWscale</a></td></tr>
 <tr class="memdesc:aec5ab9fe8aa095250aaf78fe83e84c24"><td class="mdescLeft">&#160;</td><td class="mdescRight">If non-zero, override the default scale parameter. <br/></td></tr>
 <tr class="separator:aec5ab9fe8aa095250aaf78fe83e84c24"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a11cc8ad1ccfa19f7571955b48c70da6a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a11cc8ad1ccfa19f7571955b48c70da6a"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a11cc8ad1ccfa19f7571955b48c70da6a">ljOverride</a></td></tr>
+<tr class="memdesc:a11cc8ad1ccfa19f7571955b48c70da6a"><td class="mdescLeft">&#160;</td><td class="mdescRight">If non-zero, replace electronic DFT with LJ pair potential with rCut=ljOverride (for testing geometry optimization and dynamics algorithms only) <br/></td></tr>
+<tr class="separator:a11cc8ad1ccfa19f7571955b48c70da6a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9878631a33ae059352c4a61ef2f14340"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9878631a33ae059352c4a61ef2f14340"></a>
 <a class="el" href="structIonicGradient.html">IonicGradient</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a9878631a33ae059352c4a61ef2f14340">forces</a></td></tr>
-<tr class="memdesc:a9878631a33ae059352c4a61ef2f14340"><td class="mdescLeft">&#160;</td><td class="mdescRight">forces at current atomic positions <br/></td></tr>
+<tr class="memdesc:a9878631a33ae059352c4a61ef2f14340"><td class="mdescLeft">&#160;</td><td class="mdescRight">forces at current atomic positions in latice coordinates <br/></td></tr>
 <tr class="separator:a9878631a33ae059352c4a61ef2f14340"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a804b55006dbb912b0317ebda63097812"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a804b55006dbb912b0317ebda63097812"></a>
 <a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a804b55006dbb912b0317ebda63097812">stress</a></td></tr>
 <tr class="memdesc:a804b55006dbb912b0317ebda63097812"><td class="mdescLeft">&#160;</td><td class="mdescRight">stresses at current lattice geometry in Eh/a0^3 (only calculated if optimizing lattice or dumping stress) <br/></td></tr>
 <tr class="separator:a804b55006dbb912b0317ebda63097812"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeec6ad80dc3445ba75890620acc5d412"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aeec6ad80dc3445ba75890620acc5d412"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#aeec6ad80dc3445ba75890620acc5d412">computeStress</a></td></tr>
+<tr class="memdesc:aeec6ad80dc3445ba75890620acc5d412"><td class="mdescLeft">&#160;</td><td class="mdescRight">flag to control whether <a class="el" href="classIonInfo.html#a8552d7085b111addb36913ab2ae268a3">ionicEnergyAndGrad()</a> computes the stress tensor in addition to forces <br/></td></tr>
+<tr class="separator:aeec6ad80dc3445ba75890620acc5d412"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a103cc45f5de31df5a26853dd58e99e17"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a103cc45f5de31df5a26853dd58e99e17"></a>
+<a class="el" href="classdiagMatrix.html">diagMatrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a103cc45f5de31df5a26853dd58e99e17">thermostat</a></td></tr>
+<tr class="memdesc:a103cc45f5de31df5a26853dd58e99e17"><td class="mdescLeft">&#160;</td><td class="mdescRight">optional thermostat internal degrees of freedom used for <a class="el" href="classIonicDynamics.html" title="Ionic dynamics (AIMD) ">IonicDynamics</a> <br/></td></tr>
+<tr class="separator:a103cc45f5de31df5a26853dd58e99e17"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1007e618faf939d247b176f34a0b42e9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1007e618faf939d247b176f34a0b42e9"></a>
+<a class="el" href="classdiagMatrix.html">diagMatrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a1007e618faf939d247b176f34a0b42e9">barostat</a></td></tr>
+<tr class="memdesc:a1007e618faf939d247b176f34a0b42e9"><td class="mdescLeft">&#160;</td><td class="mdescRight">optional barostat internal degrees of freedom used for <a class="el" href="classIonicDynamics.html" title="Ionic dynamics (AIMD) ">IonicDynamics</a> <br/></td></tr>
+<tr class="separator:a1007e618faf939d247b176f34a0b42e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9be0d552d1d98e0ee9d80ad16105c22d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9be0d552d1d98e0ee9d80ad16105c22d"></a>
 <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a9be0d552d1d98e0ee9d80ad16105c22d">Vlocps</a></td></tr>
 <tr class="memdesc:a9be0d552d1d98e0ee9d80ad16105c22d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Net local pseudopotential. <br/></td></tr>
@@ -344,6 +358,22 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>shouldPrintForceCompo
       </table>
 </div><div class="memdoc">
 <p>Return the non-local pseudopotential energy due to a single state. Optionally accumulate the corresponding electronic gradient in HCq and ionic gradient in forces </p>
+
+</div>
+</div>
+<a class="anchor" id="a8552d7085b111addb36913ab2ae268a3"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">double IonInfo::ionicEnergyAndGrad </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Return the total (free) energy and update the ionic gradient in <a class="el" href="classIonInfo.html#a9878631a33ae059352c4a61ef2f14340" title="forces at current atomic positions in latice coordinates ">IonInfo::forces</a> If <a class="el" href="classIonInfo.html#aeec6ad80dc3445ba75890620acc5d412" title="flag to control whether ionicEnergyAndGrad() computes the stress tensor in addition to forces ...">IonInfo::computeStress</a> = true, also update the lattice gradient in <a class="el" href="classIonInfo.html#a804b55006dbb912b0317ebda63097812" title="stresses at current lattice geometry in Eh/a0^3 (only calculated if optimizing lattice or dumping str...">IonInfo::stress</a> </p>
 
 </div>
 </div>

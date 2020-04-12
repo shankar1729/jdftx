@@ -112,8 +112,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a0493fb1a1da53043cfcd9342a54f75d5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0493fb1a1da53043cfcd9342a54f75d5"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>ExactExchange</b> (const <a class="el" href="classEverything.html">Everything</a> &amp;e)</td></tr>
 <tr class="separator:a0493fb1a1da53043cfcd9342a54f75d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5b85824af633fd94b37a9864b9d2dd0a"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExactExchange.html#a5b85824af633fd94b37a9864b9d2dd0a">operator()</a> (double aXX, double omega, const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C, std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; *HC=0) const </td></tr>
-<tr class="separator:a5b85824af633fd94b37a9864b9d2dd0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab62f19674f0b5b25a192274ec635a22f"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExactExchange.html#ab62f19674f0b5b25a192274ec635a22f">operator()</a> (double aXX, double omega, const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C, std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; *HC=0, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *EXX_RRT=0) const </td></tr>
+<tr class="separator:ab62f19674f0b5b25a192274ec635a22f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8a8a0edd33831e7270590f4508cae962"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8a8a0edd33831e7270590f4508cae962"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExactExchange.html#a8a8a0edd33831e7270590f4508cae962">setOccupied</a> (const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C)</td></tr>
 <tr class="memdesc:a8a8a0edd33831e7270590f4508cae962"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the occupied wavefunctions and occupation factors in preparation for applyHamiltonian. <br/></td></tr>
@@ -130,7 +130,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Exact-exchange calculator. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="a5b85824af633fd94b37a9864b9d2dd0a"></a>
+<a class="anchor" id="ab62f19674f0b5b25a192274ec635a22f"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -162,7 +162,13 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; *&#160;</td>
-          <td class="paramname"><em>HC</em> = <code>0</code>&#160;</td>
+          <td class="paramname"><em>HC</em> = <code>0</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *&#160;</td>
+          <td class="paramname"><em>EXX_RRT</em> = <code>0</code>&#160;</td>
         </tr>
         <tr>
           <td></td>

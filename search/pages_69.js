@@ -8,7 +8,6 @@ var searchData=
   ['ionic_2ddynamics',['ionic-dynamics',['../CommandIonicDynamics.html',1,'CommandIndex']]],
   ['ionic_2dminimize',['ionic-minimize',['../CommandIonicMinimize.html',1,'CommandIndex']]],
   ['ion_2dspecies',['ion-species',['../CommandIonSpecies.html',1,'CommandIndex']]],
-  ['ion_2dvel',['ion-vel',['../CommandIonVel.html',1,'CommandIndex']]],
   ['ion_2dwidth',['ion-width',['../CommandIonWidth.html',1,'CommandIndex']]],
   ['input_20file_20documentation',['Input file documentation',['../Commands.html',1,'Using']]],
   ['input_20creation',['Input creation',['../Input_creation.html',1,'Scripts']]],

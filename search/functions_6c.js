@@ -1,6 +1,8 @@
 var searchData=
 [
   ['l',['L',['../group__Operators.html#ga3ec23a133a869027aabe0ff69416098c',1,'L(const ScalarFieldTilde &amp;):&#160;Operators.h'],['../group__Operators.html#ga57cdbf674f659ec92117c2723fbe1041',1,'L(ScalarFieldTilde &amp;&amp;):&#160;Operators.h'],['../group__Operators.html#ga32f2044bbbf883442ef1bef985a8a161',1,'L(const complexScalarFieldTilde &amp;):&#160;Operators.h'],['../group__Operators.html#gaeff4b1799cf81f1461948b41f8540c33',1,'L(complexScalarFieldTilde &amp;&amp;):&#160;Operators.h'],['../group__DataStructures.html#gaf6d4d30b7062edfd0f75a082814c3067',1,'L(const ColumnBundle &amp;Y):&#160;ColumnBundle.h']]],
+  ['latticegrad',['latticeGrad',['../classElecVars.html#aa92a0e26a5851765b96fe547a412b2bc',1,'ElecVars']]],
+  ['latticegradient',['latticeGradient',['../classCoulomb.html#a6c82015f6f0d720997d244b01c62f582',1,'Coulomb::latticeGradient(const ScalarFieldTilde &amp;X, const ScalarFieldTilde &amp;Y, PointChargeMode pointChargeMode=PointChargeNone) const '],['../classCoulomb.html#afd951289344d946406603969f62e50f7',1,'Coulomb::latticeGradient(const complexScalarFieldTilde &amp;X, vector3&lt;&gt; kDiff, double omega) const '],['../structExchangeEval.html#aa1975a77041944a9dc0a18cf5ad01fec',1,'ExchangeEval::latticeGradient()']]],
   ['lda_5feval',['LDA_eval',['../group__ExchangeCorrelation.html#ga3b268dc23d9a2cc1f7777769b91d42cb',1,'ExCorr_internal_LDA.h']]],
   ['lda_5feval_3c_20lda_5fc_5fpw_20_3e',['LDA_eval&lt; LDA_C_PW &gt;',['../group__ExchangeCorrelation.html#gab6694d7e98d8850f5ebb6f499ffaacd3',1,'ExCorr_internal_LDA.h']]],
   ['lda_5feval_3c_20lda_5fc_5fpw_5fprec_20_3e',['LDA_eval&lt; LDA_C_PW_prec &gt;',['../group__ExchangeCorrelation.html#gacb858ca5725cad106a1abe28237185b9',1,'ExCorr_internal_LDA.h']]],
@@ -11,12 +13,14 @@ var searchData=
   ['lengthsquared',['lengthSquared',['../group__DataStructures.html#ga50d4527e1bba1c7da1c2dc383db55dc2',1,'VectorField.h']]],
   ['lengthsquaredweighted',['lengthSquaredWeighted',['../group__DataStructures.html#ga48c14533ed11f539a45f9a74cd748c3d',1,'VectorField.h']]],
   ['lgradient',['lGradient',['../group__DataStructures.html#gaf783a0aec720d55e34f5ba4727718ee9',1,'ScalarFieldArray.h']]],
+  ['lgradientstress',['lGradientStress',['../group__DataStructures.html#ga8b9af33e4b08f518cd9fa59c3dc4acfc',1,'ScalarFieldArray.h']]],
   ['linearpcm',['LinearPCM',['../classLinearPCM.html#a5aca17dd2fe976308ab289e48eef4eb6',1,'LinearPCM']]],
   ['linkdescription',['LinkDescription',['../structLinkDescription.html#a632a18fcaa6a8e34d88a79f46b42bfbf',1,'LinkDescription::LinkDescription()'],['../group__Input.html#gac7b9dce2303e2f00e6fc538d9eda3593',1,'linkDescription():&#160;command.h']]],
   ['linmincubicwolfe',['linminCubicWolfe',['../namespaceMinimizeLinmin.html#ae2849b292a709e09ed626dde406758c3',1,'MinimizeLinmin']]],
   ['linminquad',['linminQuad',['../namespaceMinimizeLinmin.html#af8a2004b57577444c0824c6320ca474b',1,'MinimizeLinmin']]],
   ['linminrelax',['linminRelax',['../namespaceMinimizeLinmin.html#a0b3df8ec898d3bb5745d1eea19616cd1',1,'MinimizeLinmin']]],
   ['linv',['Linv',['../group__Operators.html#ga38b5711e00e7f670eec824ed0b6cb513',1,'Linv(const ScalarFieldTilde &amp;):&#160;Operators.h'],['../group__Operators.html#ga9488747d1840ff8960979b54f897cd29',1,'Linv(ScalarFieldTilde &amp;&amp;):&#160;Operators.h'],['../group__Operators.html#ga0cf33f566c492d3e5ef97b79099e3898',1,'Linv(const complexScalarFieldTilde &amp;):&#160;Operators.h'],['../group__Operators.html#ga3a33ce685690f0b3c667501900180ae2',1,'Linv(complexScalarFieldTilde &amp;&amp;):&#160;Operators.h'],['../group__DataStructures.html#ga20720de21af94d24497310b259876d2a',1,'Linv(const ColumnBundle &amp;Y):&#160;ColumnBundle.h']]],
+  ['linvstress',['LinvStress',['../group__Operators.html#ga595ed6b4aaa38ce3fac1abe87a2a1af0',1,'Operators.h']]],
   ['lmaxatomicorbitals',['lMaxAtomicOrbitals',['../classSpeciesInfo.html#a776bc2eb4f3707ed02bc32f36a3e5692',1,'SpeciesInfo']]],
   ['loadfromfile',['loadFromFile',['../structScalarFieldMultiplet.html#a74d2bae2399950fc09483406435c0ad9',1,'ScalarFieldMultiplet::loadFromFile()'],['../group__DataStructures.html#ga78f4d7456f5fb96dac2bd030b0a683ac',1,'loadFromFile():&#160;ScalarFieldArray.h']]],
   ['loadrawbinary',['loadRawBinary',['../group__Output.html#gafc162aa4ca82dd811933c0d47ed936a5',1,'loadRawBinary(Tptr &amp;X, FILE *fp):&#160;ScalarFieldIO.h'],['../group__Output.html#gaf0fe0b87114a2d2abdcfd77e6323675a',1,'loadRawBinary(Tptr &amp;X, const char *filename):&#160;ScalarFieldIO.h']]],
@@ -27,5 +31,6 @@ var searchData=
   ['log',['log',['../group__Operators.html#gaa64b9d74b134b3fae88fdf46664cb4c6',1,'log(const ScalarField &amp;):&#160;Operators.h'],['../group__Operators.html#ga52e644af4f4dceb2eddcc6316886232b',1,'log(ScalarField &amp;&amp;):&#160;Operators.h']]],
   ['logresume',['logResume',['../group__Utilities.html#ga2e328f5822df6619349d3353d189497e',1,'Util.h']]],
   ['logsuspend',['logSuspend',['../group__Utilities.html#ga5c70fa36eb7403aa691c5c28c04c4c00',1,'Util.h']]],
+  ['lstress',['Lstress',['../group__Operators.html#gad7d77ea83beeab9d54d3449486206533',1,'Lstress(const ScalarFieldTilde &amp;X, const ScalarFieldTilde &amp;Y):&#160;Operators.h'],['../group__DataStructures.html#gad68024dc4c9e7f987c92a988e9ed1620',1,'Lstress(const ColumnBundle &amp;Y, const diagMatrix &amp;F):&#160;ColumnBundle.h']]],
   ['lu',['LU',['../group__DataStructures.html#gae9910e3dfd426c3fa42d17a532fd57fa',1,'matrix.h']]]
 ];

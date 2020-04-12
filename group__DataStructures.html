@@ -169,6 +169,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classmatrix3.html">matrix3&lt; scalar &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">3x3 matrix  <a href="classmatrix3.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsymmetricMatrix3.html">symmetricMatrix3&lt; scalar &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Symmetric matrix that stores only non-redundant entries (with limited operations)  <a href="structsymmetricMatrix3.html#details">More...</a><br/></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSpaceGroupOp.html">SpaceGroupOp</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Space group operation r -&gt; rot * r + a in real-space lattice coordinates.  <a href="structSpaceGroupOp.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -479,6 +482,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>randomize</b> (<a cla
 <tr class="memitem:ga8796c3b4c33ebe9f6dd952f600803585"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga8796c3b4c33ebe9f6dd952f600803585"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>randomize</b> (<a class="el" href="classmatrix.html">matrix</a> &amp;x)</td></tr>
 <tr class="separator:ga8796c3b4c33ebe9f6dd952f600803585"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8bc169ea8e3dfad6bc7f850d86bcea4f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga8bc169ea8e3dfad6bc7f850d86bcea4f"></a>
+<a class="el" href="classdiagMatrix.html">diagMatrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga8bc169ea8e3dfad6bc7f850d86bcea4f">diagDot</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;X, const <a class="el" href="classmatrix.html">matrix</a> &amp;Y)</td></tr>
+<tr class="memdesc:ga8bc169ea8e3dfad6bc7f850d86bcea4f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute diag(dagger(X)*Y) efficiently (avoid the off-diagonals) <br/></td></tr>
+<tr class="separator:ga8bc169ea8e3dfad6bc7f850d86bcea4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga38f53b7400e8545f331500300b8a9a9f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga38f53b7400e8545f331500300b8a9a9f">inv</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;A)</td></tr>
 <tr class="memdesc:ga38f53b7400e8545f331500300b8a9a9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute inverse of an arbitrary matrix A (via LU decomposition)  <a href="#ga38f53b7400e8545f331500300b8a9a9f">More...</a><br/></td></tr>
 <tr class="separator:ga38f53b7400e8545f331500300b8a9a9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -646,6 +653,18 @@ template&lt;typename scalar &gt; </td></tr>
 __hostanddev__ <a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga4e13e7fc4752ad7dba78dd140ff7ff70">rotation</a> (double theta, int axis)</td></tr>
 <tr class="memdesc:ga4e13e7fc4752ad7dba78dd140ff7ff70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a rotation matrix. <br/></td></tr>
 <tr class="separator:ga4e13e7fc4752ad7dba78dd140ff7ff70"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0f86ea4576b9ee169daa67fac0c1d0fd"><td class="memTemplParams" colspan="2"><a class="anchor" id="ga0f86ea4576b9ee169daa67fac0c1d0fd"></a>
+template&lt;typename scalar &gt; </td></tr>
+<tr class="memitem:ga0f86ea4576b9ee169daa67fac0c1d0fd"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ <br class="typebreak"/>
+<a class="el" href="structsymmetricMatrix3.html">symmetricMatrix3</a>&lt; scalar &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga0f86ea4576b9ee169daa67fac0c1d0fd">operator*</a> (scalar s, <a class="el" href="structsymmetricMatrix3.html">symmetricMatrix3</a>&lt; scalar &gt; m)</td></tr>
+<tr class="memdesc:ga0f86ea4576b9ee169daa67fac0c1d0fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Scale. <br/></td></tr>
+<tr class="separator:ga0f86ea4576b9ee169daa67fac0c1d0fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaab9f415ff553b5d6926b2d8a4cbb0495"><td class="memTemplParams" colspan="2"><a class="anchor" id="gaab9f415ff553b5d6926b2d8a4cbb0495"></a>
+template&lt;typename scalar &gt; </td></tr>
+<tr class="memitem:gaab9f415ff553b5d6926b2d8a4cbb0495"><td class="memTemplItemLeft" align="right" valign="top">__hostanddev__ <br class="typebreak"/>
+<a class="el" href="structsymmetricMatrix3.html">symmetricMatrix3</a>&lt; scalar &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gaab9f415ff553b5d6926b2d8a4cbb0495">outer</a> (const <a class="el" href="classvector3.html">vector3</a>&lt; scalar &gt; &amp;v)</td></tr>
+<tr class="memdesc:gaab9f415ff553b5d6926b2d8a4cbb0495"><td class="mdescLeft">&#160;</td><td class="mdescRight">Symmetric outer product of vector. <br/></td></tr>
+<tr class="separator:gaab9f415ff553b5d6926b2d8a4cbb0495"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gad36834723954888c912f9e270e92de50"><td class="memTemplParams" colspan="2"><a class="anchor" id="gad36834723954888c912f9e270e92de50"></a>
 template&lt;class T &gt; </td></tr>
 <tr class="memitem:gad36834723954888c912f9e270e92de50"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gad36834723954888c912f9e270e92de50">ceildiv</a> (T num, T den)</td></tr>
@@ -826,6 +845,10 @@ template&lt;typename T &gt; </td></tr>
 <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga669c9ca358fcf20b5040d3230c47f1fd">lDivergence</a> (const <a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> &amp;, int l)</td></tr>
 <tr class="memdesc:ga669c9ca358fcf20b5040d3230c47f1fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">spherical tensor divergence of order l (2l+1 inputs, multiplied by Ylm(Ghat) (iG)^l, and summed) <br/></td></tr>
 <tr class="separator:ga669c9ca358fcf20b5040d3230c47f1fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8b9af33e4b08f518cd9fa59c3dc4acfc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga8b9af33e4b08f518cd9fa59c3dc4acfc"></a>
+<a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga8b9af33e4b08f518cd9fa59c3dc4acfc">lGradientStress</a> (const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;, int l, int m)</td></tr>
+<tr class="memdesc:ga8b9af33e4b08f518cd9fa59c3dc4acfc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stress corresponding to lGradient and a convolution. <br/></td></tr>
+<tr class="separator:ga8b9af33e4b08f518cd9fa59c3dc4acfc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga0ed56eefb9b45cbac470cfdb458319b2"><td class="memTemplParams" colspan="2"><a class="anchor" id="ga0ed56eefb9b45cbac470cfdb458319b2"></a>
 template&lt;typename T &gt; </td></tr>
 <tr class="memitem:ga0ed56eefb9b45cbac470cfdb458319b2"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga0ed56eefb9b45cbac470cfdb458319b2">initZero</a> (<a class="el" href="group__DataStructures.html#gae25dfb7042291399ba969bfb8f6b461d">TptrCollection</a> &amp;x)</td></tr>
@@ -1363,6 +1386,14 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga5210a9104be0ce5d1aa169fdc2addf71">dotElemwise</a> (const <a class="el" href="group__DataStructures.html#ga99abc7575c2216d80ed5d3e5d137b901">VectorField</a> &amp;X, const <a class="el" href="group__DataStructures.html#ga99abc7575c2216d80ed5d3e5d137b901">VectorField</a> &amp;Y)</td></tr>
 <tr class="memdesc:ga5210a9104be0ce5d1aa169fdc2addf71"><td class="mdescLeft">&#160;</td><td class="mdescRight">Elementwise dot. <br/></td></tr>
 <tr class="separator:ga5210a9104be0ce5d1aa169fdc2addf71"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaaa1f5248f90e82db1cdd2008ee85d2db"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gaaa1f5248f90e82db1cdd2008ee85d2db"></a>
+<a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gaaa1f5248f90e82db1cdd2008ee85d2db">dotOuter</a> (const <a class="el" href="group__DataStructures.html#ga99abc7575c2216d80ed5d3e5d137b901">VectorField</a> &amp;X, const <a class="el" href="group__DataStructures.html#ga99abc7575c2216d80ed5d3e5d137b901">VectorField</a> &amp;Y)</td></tr>
+<tr class="memdesc:gaaa1f5248f90e82db1cdd2008ee85d2db"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute m(i,j) = dot(X[i], Y[j]) <br/></td></tr>
+<tr class="separator:gaaa1f5248f90e82db1cdd2008ee85d2db"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga11d27cff8591fcfb1a2becf21d0e6a4e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga11d27cff8591fcfb1a2becf21d0e6a4e"></a>
+<a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga11d27cff8591fcfb1a2becf21d0e6a4e">dotOuter</a> (const <a class="el" href="group__DataStructures.html#ga99abc7575c2216d80ed5d3e5d137b901">VectorField</a> &amp;X, const <a class="el" href="group__DataStructures.html#ga99abc7575c2216d80ed5d3e5d137b901">VectorField</a> &amp;Y, const <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;w)</td></tr>
+<tr class="memdesc:ga11d27cff8591fcfb1a2becf21d0e6a4e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute m(i,j) = dot(X[i], w * Y[j]) <br/></td></tr>
+<tr class="separator:ga11d27cff8591fcfb1a2becf21d0e6a4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac8f02131a4db84259f875cb9492213c1"><td class="memTemplParams" colspan="2"><a class="anchor" id="gac8f02131a4db84259f875cb9492213c1"></a>
 template&lt;int N&gt; </td></tr>
 <tr class="memitem:gac8f02131a4db84259f875cb9492213c1"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="group__DataStructures.html#gaeb41c1eb2e324ca862b7249bc127e796">RptrMul</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gac8f02131a4db84259f875cb9492213c1">operator+=</a> (<a class="el" href="group__DataStructures.html#gaeb41c1eb2e324ca862b7249bc127e796">RptrMul</a> &amp;in, double scalar)</td></tr>
@@ -1583,6 +1614,10 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 <a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga20720de21af94d24497310b259876d2a">Linv</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y)</td></tr>
 <tr class="memdesc:ga20720de21af94d24497310b259876d2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply Laplacian inverse. <br/></td></tr>
 <tr class="separator:ga20720de21af94d24497310b259876d2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad68024dc4c9e7f987c92a988e9ed1620"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gad68024dc4c9e7f987c92a988e9ed1620"></a>
+<a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gad68024dc4c9e7f987c92a988e9ed1620">Lstress</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;F)</td></tr>
+<tr class="memdesc:gad68024dc4c9e7f987c92a988e9ed1620"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute lattice vector derivative of Tr[Y^LYF] (used for KE stress calculation) <br/></td></tr>
+<tr class="separator:gad68024dc4c9e7f987c92a988e9ed1620"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga4597f9dccad3baeb8f90d0986b15dade"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga4597f9dccad3baeb8f90d0986b15dade"></a>
 <a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga4597f9dccad3baeb8f90d0986b15dade">O</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; *VdagY=0)</td></tr>
 <tr class="memdesc:ga4597f9dccad3baeb8f90d0986b15dade"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply overlap (and optionally retrieve pseudopotential projections for later reuse) <br/></td></tr>

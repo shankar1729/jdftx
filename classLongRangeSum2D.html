@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.5"/>
-<title>JDFTx: Moments Namespace Reference</title>
+<title>JDFTx: LongRangeSum2D Class Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -76,7 +76,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('namespaceMoments.html','');});
+$(document).ready(function(){initNavTree('classLongRangeSum2D.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -95,33 +95,40 @@ $(document).ready(function(){initNavTree('namespaceMoments.html','');});
 
 <div class="header">
   <div class="summary">
-<a href="#func-members">Functions</a>  </div>
+<a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="classLongRangeSum2D-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">Moments Namespace Reference<div class="ingroups"><a class="el" href="group__Output.html">Outputs</a></div></div>  </div>
+<div class="title">LongRangeSum2D Class Reference<div class="ingroups"><a class="el" href="group__Output.html">Outputs</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>Helper functions for moment calculations.  
-<a href="#details">More...</a></p>
+<p>Long range sum over G-vectors used for polar corrections.  
+ <a href="classLongRangeSum2D.html#details">More...</a></p>
+
+<p><code>#include &lt;WannierMinimizer.h&gt;</code></p>
 <table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
-Functions</h2></td></tr>
-<tr class="memitem:a67a29d48a702df6f79d2e197c1179752"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a67a29d48a702df6f79d2e197c1179752"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceMoments.html#a67a29d48a702df6f79d2e197c1179752">rn_pow_x</a> (int i, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; r, int dir, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; R, double moment, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; r0, double *rx)</td></tr>
-<tr class="memdesc:a67a29d48a702df6f79d2e197c1179752"><td class="mdescLeft">&#160;</td><td class="mdescRight">set multipole spatial weights <br/></td></tr>
-<tr class="separator:a67a29d48a702df6f79d2e197c1179752"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a23d792b0e8086483c56cfd6a001ad18a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a23d792b0e8086483c56cfd6a001ad18a"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceMoments.html#a23d792b0e8086483c56cfd6a001ad18a">dumpMoment</a> (const <a class="el" href="classEverything.html">Everything</a> &amp;e, const char *filename, int n, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; origin)</td></tr>
-<tr class="memdesc:a23d792b0e8086483c56cfd6a001ad18a"><td class="mdescLeft">&#160;</td><td class="mdescRight">output multipole moments <br/></td></tr>
-<tr class="separator:a23d792b0e8086483c56cfd6a001ad18a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:a96c20db9c5549800f04f1dd9321e14cd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a96c20db9c5549800f04f1dd9321e14cd"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>LongRangeSum2D</b> (const <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; &amp;R, const std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt;&gt; &amp;epsInf, const int truncDir, const double alpha=0.1)</td></tr>
+<tr class="separator:a96c20db9c5549800f04f1dd9321e14cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af80931f9442c2c6d31b7b75bee91b3ea"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af80931f9442c2c6d31b7b75bee91b3ea"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><b>wkernel</b> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;qG)</td></tr>
+<tr class="separator:af80931f9442c2c6d31b7b75bee91b3ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a840d3c00d92bfc35ec0e0115b8f0055a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a840d3c00d92bfc35ec0e0115b8f0055a"></a>
+<a class="el" href="structcomplex.html">complex</a>&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;q, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;Zeff, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;atpos)</td></tr>
+<tr class="separator:a840d3c00d92bfc35ec0e0115b8f0055a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Helper functions for moment calculations. </p>
-</div></div><!-- contents -->
+<div class="textblock"><p>Long range sum over G-vectors used for polar corrections. </p>
+</div><hr/>The documentation for this class was generated from the following file:<ul>
+<li>wannier/<a class="el" href="WannierMinimizer_8h.html">WannierMinimizer.h</a></li>
+</ul>
+</div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
-    <li class="navelem"><a class="el" href="namespaceMoments.html">Moments</a></li>
+    <li class="navelem"><a class="el" href="classLongRangeSum2D.html">LongRangeSum2D</a></li>
 </div>
 </body>
 </html>

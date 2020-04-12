@@ -21,6 +21,7 @@ var searchData=
   ['trace_5fcubed_5fgrad',['trace_cubed_grad',['../group__ClassicalDFT.html#ga014878b5a4af17423da97bb9bdbbba5f',1,'MixedFMT_internal.h']]],
   ['traceinner',['traceinner',['../group__DataStructures.html#gaa738ca3a7d2d3d6aac2c10fda8c7212c',1,'ColumnBundle.h']]],
   ['transform',['transform',['../structRadialFunctionR.html#a6fee11b87c9b56bb3206eabbdec4bcb0',1,'RadialFunctionR::transform(int l, double G) const '],['../structRadialFunctionR.html#a6d68758dec24130b80ad90b6fcaa9ead',1,'RadialFunctionR::transform(int l, double dG, int nGrid, RadialFunctionG &amp;func) const '],['../classBlockRotationMatrix.html#a27dfbbd7ab844fb547a7cf11b6aef625',1,'BlockRotationMatrix::transform()']]],
+  ['transformedkernelstress_5fcalc',['transformedKernelStress_calc',['../group__LongRange.html#gad8585e85633b06b78a0aded59700b8d7',1,'Coulomb_internal.h']]],
   ['transformvdagc',['transformVdagC',['../classColumnBundleTransform.html#a6e8ea54c27d11dd8600967fe0402f289',1,'ColumnBundleTransform']]],
   ['translate',['translate',['../group__DataStructures.html#gaa8ec8dabcaa967f5e4b9304d3a09ae40',1,'translate(ColumnBundle &amp;&amp;, vector3&lt;&gt; dr):&#160;ColumnBundle.h'],['../group__DataStructures.html#ga1281b30e04ec70a4c9cd0fff1cc145be',1,'translate(const ColumnBundle &amp;, vector3&lt;&gt; dr):&#160;ColumnBundle.h']]],
   ['translatecolumns',['translateColumns',['../group__DataStructures.html#gad45659650b6bb083aabae792b10d2507',1,'ColumnBundle.h']]],

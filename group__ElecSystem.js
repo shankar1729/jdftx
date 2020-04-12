@@ -50,6 +50,7 @@ var group__ElecSystem =
       [ "SmearingType", "classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028", [
         [ "SmearingFermi", "classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028ab33e87d552c26bfdffd850578ff7eaca", null ],
         [ "SmearingGauss", "classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028a9a0e9cde48d2f999e1adbd7a66452d67", null ],
+        [ "SmearingMP1", "classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028acb98ec19206c84075b4b885a0e0262e1", null ],
         [ "SmearingCold", "classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028a58dc7ef3f1efccbbe639c28f121b699e", null ]
       ] ],
       [ "ElecInfo", "classElecInfo.html#a4fffe7ff6c98d4882fe2a05f9c8dfdc8", null ],
@@ -89,6 +90,7 @@ var group__ElecSystem =
       [ "CommandElecInitialMagnetization", "classElecInfo.html#ae01d8e36e7cd51a1aa723c6d5b948100", null ],
       [ "CommandInitialState", "classElecInfo.html#a59d2a84f0031f4537f344c8638ccd123", null ],
       [ "CommandKpointFolding", "classElecInfo.html#a3b23ea5e7afacc47087aef45700a6e4a", null ],
+      [ "dumpFCI", "classElecInfo.html#acf9a3ba260434c09052ed7ea0d5e4018", null ],
       [ "ElecVars", "classElecInfo.html#a7abd8d7763d2dee6b8e864912e990c5c", null ],
       [ "Everything", "classElecInfo.html#a33017c7621b786830c58963ad1d27edd", null ],
       [ "LCAOminimizer", "classElecInfo.html#ada9945d41b36ec7e805dcc0ca95e3758", null ],
@@ -144,6 +146,7 @@ var group__ElecSystem =
       [ "get_nTot", "classElecVars.html#af6f15f4c625a949f89a0455a53db8b88", null ],
       [ "get_nXC", "classElecVars.html#aafee57a145268df49e6bb30b32a69447", null ],
       [ "KEdensity", "classElecVars.html#ad5006682be385495e65144501226ab0b", null ],
+      [ "latticeGrad", "classElecVars.html#aa92a0e26a5851765b96fe547a412b2bc", null ],
       [ "orthonormalize", "classElecVars.html#aec59211b62ea0b47c1346a4fc4561c63", null ],
       [ "setEigenvectors", "classElecVars.html#ac5aacf0153457f48d7141c52ac821c78", null ],
       [ "setup", "classElecVars.html#a1d95bd46d82d02f610a4871286efa038", null ],
@@ -168,7 +171,7 @@ var group__ElecSystem =
       [ "initLCAO", "classElecVars.html#a4c8817f45b1b9beb14bcfd9f23132b13", null ],
       [ "isRandom", "classElecVars.html#abbe76718a018334491da6896284a7de6", null ],
       [ "n", "classElecVars.html#a4861f0c29cbdc2c427f546e171a4ffd1", null ],
-      [ "nAccumulated", "classElecVars.html#a0552af897d82aef1dbec2b9ae24214c2", null ],
+      [ "nAccum", "classElecVars.html#a38ff9286bcaea57604ccbcd19090f583", null ],
       [ "nFilenamePattern", "classElecVars.html#aaa52e1886b211eb9f97e1d4c510e4cae", null ],
       [ "readConversion", "classElecVars.html#a4394c7f4c24e3ffddaedd6fce10c17a1", null ],
       [ "rhoAtom", "classElecVars.html#abab4c93c06aea2862abb9aa0352e9ee0", null ],

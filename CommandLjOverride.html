@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.5"/>
-<title>JDFTx: Member List</title>
+<title>JDFTx: lj-override</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -76,7 +76,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('structIonDynamicsParams.html','');});
+$(document).ready(function(){initNavTree('CommandLjOverride.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -95,21 +95,20 @@ $(document).ready(function(){initNavTree('structIonDynamicsParams.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">IonDynamicsParams Member List</div>  </div>
+<div class="title">lj-override </div>  </div>
 </div><!--header-->
 <div class="contents">
-
-<p>This is the complete list of members for <a class="el" href="structIonDynamicsParams.html">IonDynamicsParams</a>, including all inherited members.</p>
-<table class="directory">
-  <tr class="even"><td class="entry"><a class="el" href="structIonDynamicsParams.html#a3a2ad87ab4da1c9f54222debff570878">alpha</a></td><td class="entry"><a class="el" href="structIonDynamicsParams.html">IonDynamicsParams</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="structIonDynamicsParams.html#abbc15afb3f89c824f890c947faab3c74">confineParameters</a></td><td class="entry"><a class="el" href="structIonDynamicsParams.html">IonDynamicsParams</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="structIonDynamicsParams.html#a14d0448ac7a1cae62bc781c4d7ef1e0a">confineType</a></td><td class="entry"><a class="el" href="structIonDynamicsParams.html">IonDynamicsParams</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="structIonDynamicsParams.html#afa3957f32fd050327c77141e0b633055">driftType</a></td><td class="entry"><a class="el" href="structIonDynamicsParams.html">IonDynamicsParams</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="structIonDynamicsParams.html#a0e27138ee1e3783d5ab126ae5afedd41">dt</a></td><td class="entry"><a class="el" href="structIonDynamicsParams.html">IonDynamicsParams</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="structIonDynamicsParams.html#ab12cd8a5989bef1c184582c87fd86a4d">IonDynamicsParams</a>()</td><td class="entry"><a class="el" href="structIonDynamicsParams.html">IonDynamicsParams</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="structIonDynamicsParams.html#a043a20d993f4807edd7311c9828dd15b">kT</a></td><td class="entry"><a class="el" href="structIonDynamicsParams.html">IonDynamicsParams</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="structIonDynamicsParams.html#a58cd2022aa48511617c3dc716bc6fa63">tMax</a></td><td class="entry"><a class="el" href="structIonDynamicsParams.html">IonDynamicsParams</a></td><td class="entry"></td></tr>
-</table></div><!-- contents -->
+<div class="textblock"><h2>Syntax: </h2>
+<pre class="fragment">lj-override &lt;rCut&gt;
+</pre><h2>Description: </h2>
+<p>Replace electronic DFT by a Lennard-Jones only potential with cutoff &lt;rCut&gt; in Angstroms. This potential will use LJ parameters, sigma = 2^(5/6) R0 and epsilon = C6/(128 R0^6), where R0 and C6 are DFT-D2 parameters for each species (adjustable by command <a class="el" href="CommandSetVDW.html">setVDW</a>). This is not for real calculations, but a quick way to debug <a class="el" href="CommandIonicMinimize.html">ionic-minimize</a>, <a class="el" href="CommandLatticeMinimize.html">lattice-minimize</a> or <a class="el" href="CommandIonicDynamics.html">ionic-dynamics</a>. Tip: set <a class="el" href="CommandElecCutoff.html">elec-cutoff</a> to a small value to speed up electronic initialization (which is not bypassed for code simplicity).</p>
+<h2>Properties: </h2>
+<p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
+<p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>
+<p><b>Allow multiple:</b>&#160;&#160;&#160; no</p>
+<p><b>Default:</b> &#160;&#160;&#160; (None)</p>
+<p>Back to: <a class="el" href="Commands.html">Input file documentation</a> or <a class="el" href="CommandIndex.html">Index of commands</a> </p>
+</div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->

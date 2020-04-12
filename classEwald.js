@@ -1,4 +1,4 @@
 var classEwald =
 [
-    [ "energyAndGrad", "classEwald.html#ad10e3af055fbcf88ecdc9157d0171c26", null ]
+    [ "energyAndGrad", "classEwald.html#aa01edebeced17f4c2672f9d6aae3d512", null ]
 ];

@@ -1,7 +1,9 @@
 var searchData=
 [
   ['b',['b',['../structScalarEOS__eval.html#a075f187555675e54abe92b6573a2220f',1,'ScalarEOS_eval::b()'],['../structWannierMinimizerFD_1_1Edge.html#a0f26da340e0886448627f91b70f1991f',1,'WannierMinimizerFD::Edge::b()']]],
+  ['b0',['B0',['../structIonicDynamicsParams.html#a4f0704d09fd140acc539f49d60de789a',1,'IonicDynamicsParams']]],
   ['bar',['Bar',['../group__Utilities.html#gaab365c7f823c0119235f1be7c89e7718',1,'Units.h']]],
+  ['barostat',['barostat',['../classIonInfo.html#a1007e618faf939d247b176f34a0b42e9',1,'IonInfo::barostat()'],['../structLatticeGradient.html#a677086e4315fe1dd6e9f80bcf77cf376',1,'LatticeGradient::barostat()']]],
   ['basis',['basis',['../structColumnBundleTransform_1_1BasisWrapper.html#a41d80b7ad068d9c458c8301caa07d53a',1,'ColumnBundleTransform::BasisWrapper::basis()'],['../classEverything.html#a858a9a65fd54f65b7b363eddf6e654f7',1,'Everything::basis()'],['../classWannierMinimizer.html#a73e9f65c1f50236e9ddd53922364f928',1,'WannierMinimizer::basis()']]],
   ['basiskdep',['basisKdep',['../classControl.html#afb40a85cdcf29fa297d073edd1769786',1,'Control']]],
   ['basissuper',['basisSuper',['../classWannierMinimizer.html#a4f61d57a5a1369b63cba59e2ca1cb3e5',1,'WannierMinimizer']]],

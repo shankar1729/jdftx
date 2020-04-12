@@ -99,15 +99,16 @@ $(document).ready(function(){initNavTree('CommandElecSmearing.html','');});
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><h2>Syntax: </h2>
-<pre class="fragment">elec-smearing &lt;smearingType&gt;=Cold|Fermi|Gauss &lt;smearingWidth&gt;
+<pre class="fragment">elec-smearing &lt;smearingType&gt;=Cold|Fermi|Gauss|MP1 &lt;smearingWidth&gt;
 </pre><h2>Description: </h2>
 <p>Use variable electronic fillings using a smearing function selected by &lt;smearingType&gt;:</p>
 <ul>
 <li>Cold : Use the cold smearing function <a class="el" href="citelist.html#CITEREF_ColdSmearing">[20]</a> to approximate zero temperature</li>
 <li>Fermi: Use a Fermi-Dirac function for fillings</li>
 <li>Gauss: Use a gaussian-based (erfc) function for fillings</li>
+<li>MP1 : Use an order-1 Methfessel-Paxton <a class="el" href="citelist.html#CITEREF_MP1">[22]</a> function for fillings</li>
 </ul>
-<p>with width set by &lt;smearingWidth&gt; in Hartrees. The width corresponds to kT (electronic temperature) for Fermi smearing, and sigma/2 for the Gauss and Cold smearing options: this convention results in roughly the same rate of k-point convergence for all three methods using the same width. However, the entropy contribution at the same width will follow the order Fermi &gt; Gauss &gt;&gt; Cold.</p>
+<p>with width set by &lt;smearingWidth&gt; in Hartrees. The width corresponds to kT (electronic temperature) for Fermi smearing, and sigma/2 for the remaining gaussian-based options: this convention results in roughly the same rate of k-point convergence for all smearing methods using the same width. However, the entropy contribution at the same width will follow the order Fermi &gt; Gauss &gt;&gt; (Cold, MP1).</p>
 <h2>Properties: </h2>
 <p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandLcaoParams.html">lcao-params</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>
