@@ -221,10 +221,6 @@ LatticeGradient IonicDynamics::thermostat(const LatticeGradient& vel)
 					accelV.lattice = (omegaDampLsq/((nDOF+nFree)*idp.T0))
 							* (e.gInfo.detR*(stressTarget-stress) + (2.*KE/nDOF)*matrix3<>(1,1,1))
 						- vel.barostat[0] * vel.lattice;
-					
-					logPrintf("nFree: %d\n", nFree);
-					accelV.lattice.print(globalLog, " %lg ");
-					
 					for(int j=0; j<idp.chainLengthP; j++)
 					{	//Coupling to system / previous barostat DOF:
 						accelV.barostat[j] = (j==0)
