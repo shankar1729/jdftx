@@ -288,7 +288,7 @@ plots the difference and reports the VBM shift.
     import numpy as np
     import matplotlib.pyplot as plt
     
-    S = [ 56, 28, 160 ]            #Sample count
+    S = [ 56, 28, 160 ]            #Sample count (fftbox from log file)
     L = [ 12.26123, 5.59, 33. ]    #Lattice vector lengths (bohrs)
     z = np.arange(S[2])*L[2]/S[2]  #z-coordinates of grid points
     
