@@ -126,7 +126,7 @@ complexScalarFieldTilde O(complexScalarFieldTilde&& in) { return in *= in->gInfo
 
 //Forward transform
 ScalarField I(ScalarFieldTilde&& in, int nThreads)
-{	//CPU c2r transforms destroy input, but this input can be destroyed
+{	//c2r transforms may destroy input, but this input can be destroyed
 	ScalarField out(ScalarFieldData::alloc(in->gInfo, isGpuEnabled()));
 	#ifdef GPU_ENABLED
 	cufftExecZ2D(in->gInfo.planZ2D, (double2*)in->dataGpu(false), out->dataGpu(false));
@@ -139,12 +139,8 @@ ScalarField I(ScalarFieldTilde&& in, int nThreads)
 	return out;
 }
 ScalarField I(const ScalarFieldTilde& in, int nThreads)
-{	//CPU c2r transforms destroy input, hence copy input in that case (and let that copy be destroyed above)
-	#ifdef GPU_ENABLED
-	return I((ScalarFieldTilde&&)in, nThreads);
-	#else
-	return  I(in->clone(), nThreads);
-	#endif
+{	//c2r transforms may destroy input, hence copy input (and let that copy be destroyed above)
+	return I(in->clone(), nThreads);
 }
 complexScalarField I(const complexScalarFieldTilde& in, int nThreads)
 {	complexScalarField out(complexScalarFieldData::alloc(in->gInfo, isGpuEnabled()));
