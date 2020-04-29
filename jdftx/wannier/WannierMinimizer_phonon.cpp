@@ -136,7 +136,8 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 				double normFac = 1./(nAtoms*prodPhononSup);
 				for(int b2=0; b2<nBands; b2++)
 					for(int b1=0; b1<nBands; b1++)
-						*(Hdata++) -= *(Ddata++) * (E[b1]-E[b2]) * normFac;
+						*(Hdata++) -= normFac * (*(Ddata++) * (E[b1]-E[b2])
+							+ (b1==b2 ? -e.coulombParams.Efield[iDir] : 0.)); //external electric field contribution
 				nrmCorr += std::pow(nrm2(dagger(U) * phononHsubMean * U), 2);
 				//Apply correction:
 				for(int iAtom=0; iAtom<nAtoms; iAtom++)
