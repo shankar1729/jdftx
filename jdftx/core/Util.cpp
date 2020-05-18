@@ -439,7 +439,7 @@ void finalizeSystem(bool successful)
 inline double clock_us_epoch() //time in microseconds (since standard POSIX specified epoch)
 {	timeval tv;
 	gettimeofday(&tv,NULL);
-	return ((tv.tv_sec & 0x1fffff) * 1e6) + tv.tv_usec;
+	return ((double)tv.tv_sec) * 1e6 + tv.tv_usec;
 }
 double clock_us()
 {	static double tStart = clock_us_epoch();
