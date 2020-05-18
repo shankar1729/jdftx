@@ -53,6 +53,7 @@ int main(int argc, char** argv)
 	
 	if(e.cntrl.dumpOnly)
 	{	//Single energy calculation so that all dependent quantities have been initialized:
+		if(eVars.isRandom) die("Electronic state required for dump-only mode has not been read in (using initial-state or wavefunction).\n\n");
 		logPrintf("\n----------- Energy evaluation at fixed state -------------\n"); logFlush();
 		eVars.elecEnergyAndGrad(e.ener, 0, 0, true); //calculate Hsub so that eigenvalues are available (used by many dumps)
 		logPrintf("# Energy components:\n"); e.ener.print(); logPrintf("\n");
