@@ -35,6 +35,7 @@
 
 + Documentation updates:
 	- Added tutorial demonstrating use of \ref EphMatrixElements
+	- Added suite of tutorials on \ref DefectTutorials calculations including in bulk, surface and 2D materials
 	- Updated %Wannier tutorials to account for new MLWF format from 1.5 version
 
 

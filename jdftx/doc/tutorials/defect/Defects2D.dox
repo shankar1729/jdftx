@@ -1,0 +1,211 @@
+/** \page Defects2D Defects in 2D materials
+
+TODO
+
+\image html tutorial/DielectricProfile.png
+
+This tutorial will introduce the calculation of energies of charged defects in
+two-dimensional (2D) materials within JDFTx, taking one Carbon substituting one
+Boron in monolayer hBN as an example.
+
+Due to the long-range Coulomb interactions between the periodic images of
+charges, the first-principles calculations of charged defects under periodic
+boundary conditions are plagued by a very slow supercell size convergence, which
+is even more problematic for 2D materials. We correct the energy of a defect
+with charge *q* by using a Gaussian charge model and calculating the difference
+between the electrostatic energy of that charge with isolated and periodic
+boundary conditions, \f$E_{\text{corr}}\f$:
+
+\f[
+E_{\text{corr}} = E_{\text{isolated}} - E_{\text{periodic}} + \text{qV}
+\f]
+
+where the last term is an alignment contribution accounting for the difference
+in the electrostatic potential of the model charge far from the defect compared
+to that calculated by DFT.
+
+We obtain the \f$E_{\text{corr}}\f$ by using
+
+    charged-defect 0.44444444 0.55555555 0.5 -1 1
+    charged-defect-correction stoich.d_tot anisotropic.slabeEpsilon 8 1
+
+with the first command, the defect charge density is modeled by a Gaussian
+charge of width *sigma* = 1 with net electron count *q* = -1 located at (*x0* = 0.38888889,
+*x1* = 0.44444445, *x2* = 0.5) in Lattice coordinates. For the second command,
+stoich.d_tot is the electrostatic potential file from perfect hBN system without
+defect which is used to calculate , and anisotropic.slabEpsilon is the
+dielectric function profile.
+
+We obtain the electrostatic energies and for a chosen model defect charge
+distribution by calculating , in which is the electrostatic potential solved by
+the Poisson equation. The alignment term can be obtained through the
+comparison of the model potential and electrostatic potential in the DFT
+calculations.
+
+The detailed process has been implemented in JDFTx and only the dielectric
+profile is needed as an input file.
+
+Before performing energy calculations, we will determine the spatial profile of
+anisotropic dielectric function for perfect 2D materials first. The profile in
+slab normal direction is calculated using command *slab-epsilon* within JDFTx.
+The input files are as following:
+
+Saving the following to common.in:
+
+    lattice Hexagonal 4.747 20         #Unitcell of perfect hBN
+    coulomb-interaction Slab 001     #Periodic along vacuum direction 001
+    coulomb-truncation-embed 0 0 0.5
+    ion-species GBRV/$ID_pbe.uspp
+    elec-cutoff 20 100
+    electronic-SCF
+    ionic-minimize nIterations 100
+
+Saving the following to minus.in:
+
+    include common.in
+    ion B 0.333333 0.666667 0.5 1
+    ion N 0.666667 0.333333 0.5 1
+    kpoint-folding 12 12 1
+    electric-field 0 0 -0.001         #Applying electric field
+    dump-name minus.$VAR
+    dump End Dtot
+
+and run
+
+    mpirun -n 4 jdftx -i minus.in | tee minus.out
+
+Getting the output file minus.d_tot. Then perform the calculation in opposite electric filed using the following input file,
+
+Saving the following to plus.in:
+    
+    include common.in
+    ion B 0.333333 0.666667 0.5 1
+    ion N 0.666667 0.333333 0.5 1
+    kpoint-folding 12 12 1
+    electric-field 0 0 +0.001                     #Applying opposite electric field
+    slab-epsilon minus.d_tot 1.0 0 0 -0.001     #See parameter details in command
+    slab-epsilon
+    dump-name plus.$VAR
+    dump End None
+
+and run
+
+    mpirun -n 4 jdftx -i plus.in | tee plus.out
+
+Getting the output file of plus.slabEpsilon.
+
+Next, we calculate the in-plane macroscopic dielectric constant within Quantum
+Espresso (QE). We need to consecutively perform calculations in pw.x, ph.x
+(including command epsil = .true.) and dynmat.x (including command lperm =
+.true.). We skip the details about input files of QE which can be found in the
+<https://www.quantum-espresso.org/>.
+
+Examine the output file. Extracting the macroscopic dielectric constant from
+dynmat.out (it is low-frequency value including both electronic and ionic
+contribution in the case here).
+
+Using the following script *epsAnisotropic.py* and the macroscopic dielectric
+constant obtained above, we can get the anisotropic dielectric profile,
+anisotropic.slabEpsilon.
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    epsPerpData = np.loadtxt('plus.slabEpsilon')
+    z = epsPerpData[:,0]
+    epsPerp = epsPerpData[:,1]
+    
+    bulkEpsilonPar = 2.770871                 #the in-plane macroscopic dielectric constant from QE
+    Lz = 20                                 #length of unit cell, unit bohr
+    parConserved = (bulkEpsilonPar-1)*Lz
+    
+    parProfile = 1.-1./epsPerp
+    dz = z[1]-z[0]
+    parProfileInt = np.sum(parProfile)*dz
+    parProfile *= 1./parProfileInt            #nomralize to integral=1
+    epsPar = 1. + parProfile*parConserved
+    
+    header = 'distance[bohr] epsilon_normal epsilon_||'
+    outData = np.array([z,epsPerp,epsPar]).T
+    np.savetxt('anisotropic.slabEpsilon', outData, header=header)
+
+    plt.plot(z, epsPerp, label=r'$\epsilon_\perp$')
+    plt.plot(z, epsPar, label=r'$\epsilon_\parallel$')
+    plt.legend()
+    plt.show()
+
+Then we calculate the electrostatic potential file of perfect hBN without defect
+using the input file,
+
+Saving the following to stoich.in:
+
+    include common.in
+    latt-scale 3 3 1          #3×3×1 supercell of perfect hBN without defect
+    ion  B   0.1111110000000000   0.2222223333333331   0.4999999999999992 1
+    ion  B   0.4444443333333331   0.2222223333333331   0.4999999999999992 1
+    ion  B   0.7777776666666663   0.2222223333333331   0.4999999999999992 1
+    ion  B   0.1111110000000000   0.5555556666666665   0.4999999999999992 1
+    ion  B   0.4444443333333331   0.5555556666666663   0.4999999999999992 1
+    ion  B   0.7777776666666663   0.5555556666666663   0.4999999999999992 1
+    ion  B   0.1111110000000000   0.8888889999999996   0.4999999999999992 1
+    ion  B   0.4444443333333331   0.8888889999999996   0.4999999999999992 1
+    ion  B   0.7777776666666663   0.8888889999999995   0.4999999999999992 1
+    ion  N   0.2222223333333332   0.1111109999999999   0.4999999999999992 1
+    ion  N   0.5555556666666663   0.1111109999999999   0.4999999999999992 1
+    ion  N   0.8888889999999996   0.1111109999999999   0.4999999999999992 1
+    ion  N   0.2222223333333332   0.4444443333333331   0.4999999999999992 1
+    ion  N   0.5555556666666663   0.4444443333333330   0.4999999999999992 1
+    ion  N   0.8888889999999996   0.4444443333333331   0.4999999999999992 1
+    ion  N   0.2222223333333332   0.7777776666666665   0.4999999999999992 1
+    ion  N   0.5555556666666663   0.7777776666666665   0.4999999999999992 1
+    ion  N   0.8888889999999996   0.7777776666666663   0.4999999999999992 1
+    kpoint-folding 4 4 1
+    spintype z-spin
+    elec-smearing Fermi 0.001
+    dump-name stoich.$VAR
+    dump End Dtot EigStats
+
+Performing the calculation and get the output file stoich.d_tot.
+After getting the stoich.d_tot and anisotropic.slabEpsilon, then we can perform
+the total energy calculation using the input file:
+
+Saving the following to totalE.in:
+
+    include common.in
+    latt-scale 3 3 1           #3×3×1 supercell of hBN containing defect
+    ion B   0.112259499725690   0.220822273684806   0.499999999999999 1
+    ion B   0.441896107292449   0.220822273684806   0.499999999999999 1
+    ion B   0.777777777777777   0.222222222222222   0.499999999999999 1
+    ion B   0.112259499725690   0.558103892707551   0.499999999999999 1
+    ion B   0.779177726315193   0.558103892707551   0.499999999999999 1
+    ion B   0.111111111111111   0.888888888888889   0.499999999999999 1
+    ion B   0.441896107292449   0.887740500274309   0.499999999999999 1
+    ion B   0.779177726315193   0.887740500274309   0.499999999999999 1
+    ion C   0.444444444444444   0.555555555555555   0.499999999999999 1    #defect location
+    ion N   0.222150884006765   0.110968434680197   0.499999999999999 1
+    ion N   0.555165452470629   0.110916059568648   0.499999999999999 1
+    ion N   0.889083940431352   0.110916059568648   0.499999999999999 1
+    ion N   0.232507779554614   0.449587223110640   0.499999999999999 1
+    ion N   0.550412776889359   0.449587223110640   0.499999999999999 1
+    ion N   0.889083940431352   0.444834547529371   0.499999999999999 1
+    ion N   0.222150884006765   0.777849115993235   0.499999999999999 1
+    ion N   0.550412776889359   0.767492220445385   0.499999999999999 1
+    ion N   0.889031565319803   0.777849115993235   0.499999999999999 1
+    kpoint-folding 4 4 1
+    spintype z-spin
+    elec-smearing Fermi 0.001
+    elec-initial-charge -1                             #QNet, excess -1 electron compared to neutral system
+    charged-defect 0.44444444 0.55555555 0.5 -1 1      #Defect position, QNet, and gauss width
+    charged-defect-correction stoich.d_tot anisotropic.slabEpsilon 8. 1.     # DtotFile and slabEpsFile
+    dump-name totalE.$VAR
+    dump End None
+
+Examine the output file. Extract the energy “Etot” for final IonicMinize step
+and the “Net correction” (0.09125044 Hartree) for Calculating charged defect
+correction, which equals to (\f$E_{\text{isolated}} - E_{\text{periodic}} +
+qV\f$). Add these two terms together and that would give the converged total
+energy of the charged defects.
+
+Note: to achieve a fast speed, a relatively small 3x3x1 supercell is used here 
+and the error of the energy convergence with respect to the cell size is 0.29 eV when compared to that obtained with a 6x6x1 supercell. 
+*/

@@ -1,0 +1,298 @@
+/** \page BulkDefects Defects in 3D materials
+
+\image html tutorials/BulkDefect.png
+
+Our examples of periodic materials have so far dealt with perfect crystals.
+Defects in crystals that break this periodicity play a critical role in
+the behavior of real materials for several properties.
+DFT calculations approximate defects in a supercell containing several
+unit cells of the material, with the defect introduced in just one of those unit cells.
+This requires care to ensure that the interaction of defects with its periodic images
+(on the superlattice) is negligible, especially when the defect is charged.
+
+Bulk calculation
+----------------
+
+We will introduce defect calculation techniques in JDFTx here
+using the example of a C vacancy in diamond.
+First, we need to perform calculation of a perfect 'bulk' diamond crystal,
+which has a face-centered cubic lattice with a 2 atom basis:
+
+    #Save the following to bulk.in
+    lattice face-centered Cubic 6.74
+    
+    ion C 0.00 0.00 0.00 1
+    ion C 0.25 0.25 0.25 1
+    
+    ion-species GBRV/$ID_pbe.uspp
+    elec-cutoff 20 100
+    
+    kpoint-folding 4 4 4
+    elec-smearing Fermi 0.01
+    
+    electronic-SCF
+    converge-empty-states yes
+    dump End EigStats
+
+Run jdftx on bulk.in to get the total energy and the eigenvalue statistics for the perfect crystal.
+We will particularly require the HOMO (VBM) and LUMO (CBM) energies from the bulk.eigStats output.
+
+Perfect supercell
+-----------------
+
+Next, we need to construct a perfect supercell of the diamond crystal.
+Here, we will make a 2x2x2 supercell of the primitive unit cell calculated above.
+To do this, we will scale up the lattice vectors by a factor of 2 using \ref CommandLattScale.
+We will correspondingly reduce the \ref CommandKpointFolding by a factor of 2, so that the
+effective supercell sampled by the k-mesh remains the same as the unit cell calculation.
+We will also need to repeat the atoms to account for all the unit cells within the supercell.
+The net result of this is scaling down the lattice coordinates of the two atoms
+in the unit cell by a factor of 2 (since the lattice vectors have doubled),
+and then repeating them by adding all combinations of 0 and 1/2 in each of
+the three coordinates to fill up eight unit cells within the 2x2x2 supercell.
+(Note that this amounts to the transformation detailed in \ref Pt100 with matrix M = 2 x identity.)
+The resulting input file for the perfect supercell is:
+
+    #Save the following to supercell.in
+    lattice face-centered Cubic 6.74
+    latt-scale 2 2 2
+    
+    ion C 0.000 0.000 0.000 1
+    ion C 0.125 0.125 0.125 1
+    ion C 0.000 0.000 0.500 1
+    ion C 0.125 0.125 0.625 1
+    ion C 0.000 0.500 0.000 1
+    ion C 0.125 0.625 0.125 1
+    ion C 0.000 0.500 0.500 1
+    ion C 0.125 0.625 0.625 1
+    ion C 0.500 0.000 0.000 1
+    ion C 0.625 0.125 0.125 1
+    ion C 0.500 0.000 0.500 1
+    ion C 0.625 0.125 0.625 1
+    ion C 0.500 0.500 0.000 1
+    ion C 0.625 0.625 0.125 1
+    ion C 0.500 0.500 0.500 1
+    ion C 0.625 0.625 0.625 1
+    
+    ion-species GBRV/$ID_pbe.uspp
+    elec-cutoff 20 100
+    
+    kpoint-folding 2 2 2
+    elec-smearing Fermi 0.01
+    
+    electronic-SCF
+    converge-empty-states yes
+    dump End EigStats
+
+Run jdftx on supercell.in to get the energy and eigStats of the perfect supercell.
+Notice that the band edges (HOMO and LUMO) are identical within numerical error,
+and the total energy is exactly 8 times that of the bulk unit cell, as expected.
+
+Neutral defect
+--------------
+
+Now, let us introduce a C vacancy by deleting one of the carbon atoms,
+say the one at the origin without loss of generality.
+This gives us the input for the neutral vacancy:
+
+    #Save the following to vacancy-0.in
+    lattice face-centered Cubic 6.74
+    latt-scale 2 2 2
+
+    #Note C at 0.000 0.000 0.000 deleted
+    ion C 0.125 0.125 0.125 1
+    ion C 0.000 0.000 0.500 1
+    ion C 0.125 0.125 0.625 1
+    ion C 0.000 0.500 0.000 1
+    ion C 0.125 0.625 0.125 1
+    ion C 0.000 0.500 0.500 1
+    ion C 0.125 0.625 0.625 1
+    ion C 0.500 0.000 0.000 1
+    ion C 0.625 0.125 0.125 1
+    ion C 0.500 0.000 0.500 1
+    ion C 0.625 0.125 0.625 1
+    ion C 0.500 0.500 0.000 1
+    ion C 0.625 0.625 0.125 1
+    ion C 0.500 0.500 0.500 1
+    ion C 0.625 0.625 0.625 1
+    
+    ion-species GBRV/$ID_pbe.uspp
+    elec-cutoff 20 100
+    
+    kpoint-folding 2 2 2
+    elec-smearing Fermi 0.01
+    
+    electronic-SCF
+    converge-empty-states yes
+    dump End Dtot ElecDensity
+
+After running jdftx on vacancy-0.in, we will get the total energy of the neutral defect
+(in addition to the electrostatic potential and density which we will use below).
+From this, we can compute the formation energy of the neutral defect as
+
+\f[
+E_{\text{form}}^{(0)} = E(\text{vacancy-0}) - E(\text{supercell}) - (-1)\mu_C,
+\f]
+
+where \f$ E(\text{vacancy-0}) \f$  and \f$ E(\text{supercell}) \f$ are the total energies
+(F) obtained from the vacancy-0.in and supercell.in calculation output files respectively.
+Above, \f$ \mu_C \f$ is the chemical potential of the carbon atom, equal to the energy per
+atom in the reference state for carbon, which is just perfect diamond in this case.
+Therefore, \f$ \mu_C  = E(\text{bulk})/2 \f$ from the unit cell calculation above.
+This results in a formation energy of approximately 4.8 eV for the neutral defect.
+
+**Exercise**: converge the formation energy of the neutral C vacancy with respect to supercell size by performing
+3x3x3 and 4x4x4 supercell calculations. (These will be much slower than the 2x2x2 calculation above.)
+
+Charged defects
+---------------
+
+Let us now compute the energy of the C vacancy with one fewer or one
+extra electron i.e. in the +1 or -1 charge states respectively.
+Unlike the previous case, we cannot just take the energy of the supercell calculation
+because to compute the formation energy because charged defects will interact very
+strongly with their periodic images due by the long-range 1/r %Coulomb interaction.
+Consequently, we correct the energy of a defect with charge *q* by comparing the
+energy and electrostatic potential of a Gaussian charge distribution embedded
+in a uniform medium with the dielectric constant of our bulk material,
+each computed with isolated and periodic boundary conditions.
+This yields an energy correction \cite BulkDefect-VanDeWalle
+
+\f[
+E_{\text{corr}} = E_{\text{isolated}} - E_{\text{periodic}} + qV,
+\f]
+
+which we should add to the total energy in the DFT calculation.
+The last term is an alignment contribution accounting for the difference
+in the electrostatic potential of the model charge far from the defect,
+compared to that calculated by DFT.
+
+JDFTx implements this correction scheme controlled by \ref CommandChargedDefectCorrection
+and directly reports the net correction energy including all these terms
+(See \cite ElectrostaticPotential for implementation details.)
+Run jdftx on input files for the negative defect (one extra electron):
+
+    #Save the following to vacancy-1.in
+    include vacancy-0.in
+    
+    elec-initial-charge +1                 #One extra electron
+    charged-defect 0.00 0.00 0.00  +1  1   #Gaussian charge model
+    charged-defect-correction \
+        supercell.d_tot \   #reference potential for alignment
+        5.8    \            #bulk dielectric constant
+        4. \                #cutoff distance for alignment potential
+        1.                  #smoothness in alignment potential cutoff
+
+and the positive defect (one less electron):
+
+    #Save the following to vacancy+1.in
+    include vacancy-0.in
+    
+    elec-initial-charge -1                 #One less electron
+    charged-defect 0.00 0.00 0.00  -1  1   #Gaussian charge model
+    charged-defect-correction \
+        supercell.d_tot \   #reference potential for alignment
+        5.8    \            #bulk dielectric constant
+        4. \                #cutoff distance for alignment potential
+        1.                  #smoothness in alignment potential cutoff
+
+to get the total energy (F) from the corresponding output files,
+and the net energy correction reported at the end of each output file.
+In addition to setting the charge of the system using \ref CommandElecInitialCharge,
+these input files specify a Gaussian model charge using \ref CommandChargedDefect
+and parameters for the correction scheme using \ref CommandChargedDefectCorrection.
+The correction reads in the electrostatic potential of the neutral defect as a
+reference and takes the bulk dielectric constant of the material as an input.
+Note that this dielectric constant must be the static value \f$ \epsilon_0 \f$
+if atoms are relaxed self-consistently (skipped here for simplicity), but the
+high-frequency value \f$ \epsilon_\infty \f$ if the atoms are held fixed.
+For diamond, \f$ \epsilon_0 \approx \epsilon_\infty \f$ in any case.
+
+The final two parameters of \ref CommandChargedDefectCorrection specify the region
+of space used for determining the alignment offset between the DFT calculation
+and the model problem: the average is performed outside a cutoff radius
+with a smooth transition.
+The cutoff radius should exclude the location of the defect and neighboring atoms,
+but be smaller than the radius of the Wigner-Seitz unit cell of the superlattice.
+
+Using the corrected energies of the charged supercells \f$ E(\text{vacancy-}q) \f$,
+we can compute the formation energies of each charge state as:
+
+\f[
+E_{\text{form}}^{(q)} = E(\text{vacancy-}q) - E(\text{supercell}) - (-1)\mu_C - (q)(-\mu),
+\f]
+
+where the last term accounts for the different numbers of electrons based on the
+electron chemical potential \f$ \mu \f$.
+Therefore, the formation energies of the charged defect will depend on the position
+of the Fermi level, which in a semiconductor will depend on the net doping.
+We will therefore plot the formation energies as a function of the Fermi level,
+typically spanning the range from VBM (HOMO) to CBM (LUMO).
+
+The following python script uses the energies from all the calculations above
+to plot the formation energies of the neutral and both charged defects:
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    #Bulk properties:
+    muC = -11.408263/2 #energy per carbon atom in bulk
+    HOMO = 0.491719
+    LUMO = 0.655073
+    
+    #Supercell properties:
+    Esup  = -91.266105 #energy of perfect supercell
+    Evac0 = -85.386098 #energy of neutral vacancy
+    EvacM = -84.882626+0.070254 #energy of -1 vacancy (including correction)
+    EvacP = -85.822795-0.018257 #energy of +1 vacancy (including correction)
+    
+    #Compute defect formation energies:
+    mu = np.linspace(HOMO, LUMO) #range of electron chemical potentials
+    EfVac0 = Evac0 - Esup + muC + mu*( 0) #neutral formation energy
+    EfVacM = EvacM - Esup + muC + mu*(-1) #-1 formation energy
+    EfVacP = EvacP - Esup + muC + mu*(+1) #+1 formation energy
+    CTL_M = EvacM - Evac0  #-1|0 charge transition level
+    CTL_P = Evac0 - EvacP  #0|+1 charge transition level relative to VBM
+    
+    #Report and plot charge transition levels:
+    eV = 1/27.2114
+    print('Ef(0):', EfVac0[0]/eV, 'eV')
+    print('CTL -1|0:', (CTL_M-HOMO)/eV, 'eV wrt VBM')
+    print('CTL 0|+1:', (CTL_P-HOMO)/eV, 'eV wrt VBM')
+    plt.figure(1, figsize=(5,3))
+    plt.plot((mu-HOMO)/eV, EfVac0/eV, label='0')
+    plt.plot((mu-HOMO)/eV, EfVacM/eV, label='-1')
+    plt.plot((mu-HOMO)/eV, EfVacP/eV, label='+1')
+    plt.axvline((CTL_M-HOMO)/eV, color='k', ls='dotted')
+    plt.axvline((CTL_P-HOMO)/eV, color='k', ls='dotted')
+    plt.xlim(0., (LUMO-HOMO)/eV)
+    plt.xlabel(r'$\mu$ - VBM [eV]')
+    plt.ylabel('Formation energy [eV]')
+    plt.legend()
+    plt.show()
+
+Note that at each value of \f$ \mu \f$, a particular charge state will have
+the lowest energy and be the most stable configuration in equilibrium.
+The \f$ \mu \f$ values at which the charge state changes, given by the
+intersection of the lines corresponding to two adjacent charge states,
+are called the charge transition levels.
+In the present case, we find that the -1 to 0 transition occurs 2.2 eV above the HOMO:
+this is acceptor energy level with an ionization energy of 2.2 eV.
+The 0 to +1 transition is 1 eV below the HOMO: this is the donor energy level
+with an ionization energy (relative to the LUMO) of 5.4 eV.
+
+Exercise: converge the charged defect results with supercell size.
+Plot the results as a function of supercell size with and without the correction.
+How big of a supercell would you need for 0.1 eV accuracy with and without the correction?
+
+Exercise: use createXSF and VESTA to plot the charge distribution of the defect,
+the difference between electron density in the charged and neutral defect, as shown below.
+
+Note that the correction scheme works quite well even when the charge distribution of the
+defect is not just a simple Gaussian.
+In fact, the charge distribution of the C vacancy is mostly on the dangling bonds of
+the adjacent C atoms with a tetrahedral symmetry as seen in the below figure.
+
+\image html tutorials/BulkDefect.png
+
+*/
