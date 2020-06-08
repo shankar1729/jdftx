@@ -1,18 +1,41 @@
 /** \page ChangeLog Change log
 
-## Development version on git
+## 1.6.0 - 2020-06-05 ([Site archive](http://jdftx.org/1.6.0))
+
++ Complete rewrite of ionic-dynamics with full support for NVT and NPT using either Nose-Hoover or Berendsen thermostats/barostats
+
++ Revamped lattice minimization with analytical stress tensors, replacing previous finite difference implementation
+
++ Split and reorganized the BGW output code into manageable chunks divided by core, fluid and dense diagonalization functionality
+
++ New features:
+	- Methfessel-Paxton order 1 option in \ref CommandElecSmearing
+	- Fermi velocity and ballistic conductance dump options in \ref CommandDump
+	- Orbital-projected band weights output option in \ref CommandDump
+	- %Coulomb matrix elements output in FCIdump format in \ref CommandDump
+	- Support for multiple hyperplane constraints in ionic optimization
+	- Support for sequence / animated xyz files in \ref xyzToIonposOpt, generating several ionpos files with a common lattice
+	- Electric field matrix element output in \ref CommandWannier
+	- Electron-phonon matrix element acoustic sum-rule correction in the presence of external electric fields
+	- Long-range polar corrections for 2D phonons output by  \ref CommandWannier
+	- Option to bypass electronic DFT with an LJ-potential (\ref CommandLjOverride) for quickly testing ionic minimize / dynamics algorithms
 
 + Exact exchange enhancements:
-	- Added support for exact-exchange in fixed-Hamiltonian mode, including for SCF and \ref CommandConvergeEmptyStates
+	- Added support for exact-exchange in fixed-Hamiltonian mode, including for \ref CommandElectronicScf and \ref CommandConvergeEmptyStates
 	- Cached real space wavefunctions in blocks (size set by \ref CommandExchangeBlockSize) to asymptotically halve number of FFTs
 	- New symmetrization logic that globally minimizes the number of k-point pairs using a Metropolis algorithm during initialization
 	- Added exact-exchange support in dense diagonalization for BGW output
 
-+ Split and reorganized the BGW output code into manageable chunks divided by core, fluid and dense diagonalization functionality
++ Bug fixes:
+	- Fixed %Wannier finite-difference formula bug for highly anisotropic supercells (encountered primarily with large k-point sampling in 2D)
+	- Fixed LibXC support for range-separated hybrids
+	- Revamped dipole moments calculation to correctly account for embed center and periodicity
+	- Added separate coulomb object for tighter wavefunction grid if required for exact exchange or electron scattering.
+	- Check for dump-only issued without initial state in jdftx and phonon, with a graceful exit instead of a crash
 
-+ Added separate coulomb object for tighter wavefunction grid if required for exact exchange or electron scattering.
-
-+ Fixed Wannier finite-difference formula bug for highly anisotropic supercells (encountered primarily with large k-point sampling in 2D)
++ Documentation updates:
+	- Added tutorial demonstrating use of \ref EphMatrixElements
+	- Updated %Wannier tutorials to account for new MLWF format from 1.5 version
 
 
 ## 1.5.0 - 2019-07-28 ([Site archive](http://jdftx.org/1.5.0))
