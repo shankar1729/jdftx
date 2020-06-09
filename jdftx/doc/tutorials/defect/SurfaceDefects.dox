@@ -1,5 +1,269 @@
 /** \page SurfaceDefects Defects at surfaces
 
-TODO
+\image html tutorials/SurfaceDefect.png
+
+Surface unit cell
+-----------------
+
+TODO: discuss surface
+
+    #Save the following to surface.in
+    lattice Hexagonal 4.766 30
+    coulomb-interaction Slab 001
+    coulomb-truncation-embed 0 0 0
+    
+    ion F 0.333333 0.666667 -0.297367 1
+    ion C 0.333333 0.666667 -0.210755 1
+    ion C 0.666667 0.333333 -0.178332 1
+    ion C 0.666667 0.333333 -0.081060 1
+    ion C 0.000000 0.000000 -0.048636 1
+    ion C 0.000000 0.000000  0.048636 1
+    ion C 0.333333 0.666667  0.081060 1
+    ion C 0.333333 0.666667  0.178332 1
+    ion C 0.666667 0.333333  0.210755 1
+    ion F 0.666667 0.333333  0.297367 1
+    
+    ion-species GBRV/$ID_pbe.uspp
+    elec-cutoff 20 100
+    
+    kpoint-folding 4 4 1
+    elec-smearing Fermi 0.01
+    
+    electronic-SCF
+    dump End None
+
+TODO: discuss dielectric profile set up.
+
+    #Save the following to minus.in
+    include surface.in
+    
+    electric-field 0 0 -0.001
+    dump End Dtot
+
+TODO: continue dielectric profile discussion.
+
+    #Save the following to plus.in
+    include surface.in
+    
+    electric-field 0 0 +0.001
+    slab-epsilon minus.d_tot 2.  0 0 -0.001
+
+TODO: discuss dielectric profile plot
+
+\image html tutorials/SlabEpsilon.png
+
+Surface supercell
+-----------------
+
+TODO: discuss surface supercell construction
+
+    #Save the following to supercell.in
+    lattice Hexagonal 4.766 30
+    latt-scale 2 2 1
+    coulomb-interaction Slab 001
+    coulomb-truncation-embed 0 0 0
+    
+    ion F 0.166667 0.333333 -0.297367 1
+    ion C 0.166667 0.333333 -0.210755 1
+    ion C 0.333333 0.166667 -0.178332 1
+    ion C 0.333333 0.166667 -0.081060 1
+    ion C 0.000000 0.000000 -0.048636 1
+    ion C 0.000000 0.000000  0.048636 1
+    ion C 0.166667 0.333333  0.081060 1
+    ion C 0.166667 0.333333  0.178332 1
+    ion C 0.333333 0.166667  0.210755 1
+    ion F 0.333333 0.166667  0.297367 1
+    
+    ion F 0.166667 0.833333 -0.297367 1
+    ion C 0.166667 0.833333 -0.210755 1
+    ion C 0.333333 0.666667 -0.178332 1
+    ion C 0.333333 0.666667 -0.081060 1
+    ion C 0.000000 0.500000 -0.048636 1
+    ion C 0.000000 0.500000  0.048636 1
+    ion C 0.166667 0.833333  0.081060 1
+    ion C 0.166667 0.833333  0.178332 1
+    ion C 0.333333 0.666667  0.210755 1
+    ion F 0.333333 0.666667  0.297367 1
+    
+    ion F 0.666667 0.333333 -0.297367 1
+    ion C 0.666667 0.333333 -0.210755 1
+    ion C 0.833333 0.166667 -0.178332 1
+    ion C 0.833333 0.166667 -0.081060 1
+    ion C 0.500000 0.000000 -0.048636 1
+    ion C 0.500000 0.000000  0.048636 1
+    ion C 0.666667 0.333333  0.081060 1
+    ion C 0.666667 0.333333  0.178332 1
+    ion C 0.833333 0.166667  0.210755 1
+    ion F 0.833333 0.166667  0.297367 1
+    
+    ion F 0.666667 0.833333 -0.297367 1
+    ion C 0.666667 0.833333 -0.210755 1
+    ion C 0.833333 0.666667 -0.178332 1
+    ion C 0.833333 0.666667 -0.081060 1
+    ion C 0.500000 0.500000 -0.048636 1
+    ion C 0.500000 0.500000  0.048636 1
+    ion C 0.666667 0.833333  0.081060 1
+    ion C 0.666667 0.833333  0.178332 1
+    ion C 0.833333 0.666667  0.210755 1
+    ion F 0.833333 0.666667  0.297367 1
+    
+    ion-species GBRV/$ID_pbe.uspp
+    elec-cutoff 20 100
+    
+    kpoint-folding 2 2 1
+    elec-smearing Fermi 0.01
+    
+    electronic-SCF
+    converge-empty-states yes
+    dump End EigStats ElecDensity Dtot
+
+TODO: discuss surface supercell results
+
+
+Neutral defect
+--------------
+
+TODO: discuss neutral defect construction
+
+    #Save the following to N_C-0.in:
+    lattice Hexagonal 4.766 30
+    latt-scale 2 2 1
+    coulomb-interaction Slab 001
+    coulomb-truncation-embed 0 0 0
+    
+    ion F 0.166667 0.333333 -0.297367 1
+    ion C 0.166667 0.333333 -0.210755 1
+    ion C 0.333333 0.166667 -0.178332 1
+    ion C 0.333333 0.166667 -0.081060 1
+    ion C 0.000000 0.000000 -0.048636 1
+    ion C 0.000000 0.000000  0.048636 1
+    ion C 0.166667 0.333333  0.081060 1
+    ion C 0.166667 0.333333  0.178332 1
+    ion N 0.333333 0.166667  0.210755 1  #Note C replaced by N
+    ion F 0.333333 0.166667  0.297367 1
+    
+    ion F 0.166667 0.833333 -0.297367 1
+    ion C 0.166667 0.833333 -0.210755 1
+    ion C 0.333333 0.666667 -0.178332 1
+    ion C 0.333333 0.666667 -0.081060 1
+    ion C 0.000000 0.500000 -0.048636 1
+    ion C 0.000000 0.500000  0.048636 1
+    ion C 0.166667 0.833333  0.081060 1
+    ion C 0.166667 0.833333  0.178332 1
+    ion C 0.333333 0.666667  0.210755 1
+    ion F 0.333333 0.666667  0.297367 1
+    
+    ion F 0.666667 0.333333 -0.297367 1
+    ion C 0.666667 0.333333 -0.210755 1
+    ion C 0.833333 0.166667 -0.178332 1
+    ion C 0.833333 0.166667 -0.081060 1
+    ion C 0.500000 0.000000 -0.048636 1
+    ion C 0.500000 0.000000  0.048636 1
+    ion C 0.666667 0.333333  0.081060 1
+    ion C 0.666667 0.333333  0.178332 1
+    ion C 0.833333 0.166667  0.210755 1
+    ion F 0.833333 0.166667  0.297367 1
+    
+    ion F 0.666667 0.833333 -0.297367 1
+    ion C 0.666667 0.833333 -0.210755 1
+    ion C 0.833333 0.666667 -0.178332 1
+    ion C 0.833333 0.666667 -0.081060 1
+    ion C 0.500000 0.500000 -0.048636 1
+    ion C 0.500000 0.500000  0.048636 1
+    ion C 0.666667 0.833333  0.081060 1
+    ion C 0.666667 0.833333  0.178332 1
+    ion C 0.833333 0.666667  0.210755 1
+    ion F 0.833333 0.666667  0.297367 1
+    
+    ion-species GBRV/$ID_pbe.uspp
+    elec-cutoff 20 100
+    
+    kpoint-folding 2 2 1
+    elec-smearing Fermi 0.01
+    
+    electronic-SCF
+    dump End Dtot ElecDensity
+
+Neutral formation energy is approximately 5.5 eV.
+
+Charged defects
+---------------
+
+TODO: discuss charged defect construction -1
+
+    #Save the following to N_C-1.in
+    include N_C-0.in
+    
+    elec-initial-charge +1                             #One extra electron
+    charged-defect 0.333333 0.166667 0.210755  +1  1   #Gaussian charge model
+    charged-defect-correction \
+        supercell.d_tot  \  #reference potential for alignment
+        plus.slabEpsilon \  #slab dielectric profile
+        5.               \  #cutoff distance for alignment potential
+        1.                  #smoothness in alignment potential cutoff
+
+
+TODO: discuss charged defect construction +1
+
+    #Save the following to N_C+1.in
+    include N_C-0.in
+    
+    elec-initial-charge -1                             #One less electron
+    charged-defect 0.333333 0.166667 0.210755  -1  1   #Gaussian charge model
+    charged-defect-correction \
+        supercell.d_tot  \  #reference potential for alignment
+        plus.slabEpsilon \  #slab dielectric profile
+        5.               \  #cutoff distance for alignment potential
+        1.                  #smoothness in alignment potential cutoff
+
+
+TODO: discuss analysis script
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    #Bulk properties:
+    muC = -11.408263/2 #energy per carbon atom in bulk
+    muN = -19.962539/2 #energy per N atom in N2 molecule
+    HOMO = -0.289210
+    LUMO = -0.122029
+    
+    #Supercell properties:
+    Esup  = -376.910492 #energy of perfect supercell
+    EN_C0 = -380.986456 #energy of neutral N_Cancy
+    EN_CM = -381.617332+0.561685 #energy of -1 N_Cancy (including correction)
+    EN_CP = -381.169310+0.371130 #energy of +1 N_Cancy (including correction)
+    
+    #Compute defect formation energoes:
+    mu = np.linspace(HOMO, LUMO) #range of electron chemical potentials
+    EfN_C0 = EN_C0 - Esup - (muN - muC - mu*( 0)) #neutral formation energy
+    EfN_CM = EN_CM - Esup - (muN - muC - mu*(-1)) #-1 formation energy
+    EfN_CP = EN_CP - Esup - (muN - muC - mu*(+1)) #+1 formation energy
+    CTL_M = EN_CM - EN_C0  #-1|0 charge transition level
+    CTL_P = EN_C0 - EN_CP  #0|+1 charge transition level relative to VBM
+    
+    #Report and plot charge transition levels:
+    eV = 1/27.2114
+    print('Ef(0):', EfN_C0[0]/eV, 'eV')
+    print('CTL -1|0:', (CTL_M-HOMO)/eV, 'eV wrt VBM')
+    print('CTL 0|+1:', (CTL_P-HOMO)/eV, 'eV wrt VBM')
+    plt.figure(1, figsize=(5,3))
+    plt.plot((mu-HOMO)/eV, EfN_C0/eV, label='0')
+    plt.plot((mu-HOMO)/eV, EfN_CM/eV, label='-1')
+    plt.plot((mu-HOMO)/eV, EfN_CP/eV, label='+1')
+    plt.axvline((CTL_M-HOMO)/eV, color='k', ls='dotted')
+    plt.axvline((CTL_P-HOMO)/eV, color='k', ls='dotted')
+    plt.xlim(0., (LUMO-HOMO)/eV)
+    plt.xlabel(r'$\mu$ - VBM [eV]')
+    plt.ylabel('Formation energy [eV]')
+    plt.legend()
+    plt.savefig('CTL.png', bbox_inches='tight')
+    plt.show()
+
+CTL -1|0 is 6.0 eV wrt VBM corresponding to acceptor level with ionization energy 6.0 eV
+
+CTL 0|+1 is 2.7 eV wrt VBM corresponding to donor level with ionization energy 1.8 eV (below CBM).
+
+\image html tutorials/SurfaceDefect.png
 
 */

@@ -124,7 +124,7 @@ This gives us the input for the neutral N<sub>C</sub> defect:
     lattice face-centered Cubic 6.74
     latt-scale 2 2 2
 
-    ion N 0.000 0.000 0.000 1
+    ion N 0.000 0.000 0.000 1  #Note C replaced by N
     ion C 0.125 0.125 0.125 1
     ion C 0.000 0.000 0.500 1
     ion C 0.125 0.125 0.625 1
