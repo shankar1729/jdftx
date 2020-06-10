@@ -270,9 +270,9 @@ to plot the formation energies of the neutral and both charged defects:
     
     #Supercell properties:
     Esup  = -91.266105 #energy of perfect supercell
-    EN_C0 = -95.397922 #energy of neutral defect
-    EN_CM = -94.758574+0.016575 #energy of -1 defect (including correction)
-    EN_CP = -96.009777+0.031387 #energy of +1 defect (including correction)
+    EN_C0 = -95.397922 #energy of neutral N_C defect
+    EN_CM = -94.758574+0.016575 #energy of -1 N_C defect (including correction)
+    EN_CP = -96.009777+0.031387 #energy of +1 N_C defect (including correction)
     
     #Compute defect formation energies:
     mu = np.linspace(HOMO, LUMO) #range of electron chemical potentials
