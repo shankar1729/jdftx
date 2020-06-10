@@ -111,7 +111,7 @@ Instead, the integrals of \f$ \epsilon_\parallel(z)-1 \f$ and
 Therefore the script uses these invariants and the profile of \f$ \epsilon_\perp(z) \f$
 to construct \f$ \epsilon_\parallel(z) \f$ from the single (Lz-dependent) number
 \f$ \epsilon_\parallel(z) \f$ obtained from QE.
-See \cite and \cite for further details on this strategy.
+See \cite Defect2D and \cite Defect2D-Substrate for further details on this strategy.
 
 The resulting anisotropic profile is shown below.
 Note that, indeed, the in-plane response is much stronger than the out-of-plane one.
