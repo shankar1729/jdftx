@@ -177,7 +177,7 @@ Charged defects
 Let us now compute the energy of the N<sub>C</sub> defect with one fewer
 or one extra electron i.e. in the +1 or -1 charge states respectively.
 Unlike the previous case, we cannot just take the energy of the supercell calculation
-because to compute the formation energy because charged defects will interact very
+to compute the formation energy because charged defects will interact very
 strongly with their periodic images due by the long-range 1/r %Coulomb interaction.
 Consequently, we correct the energy of a defect with charge *q* by comparing the
 energy and electrostatic potential of a Gaussian charge distribution embedded
