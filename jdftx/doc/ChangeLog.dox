@@ -1,6 +1,6 @@
 /** \page ChangeLog Change log
 
-## 1.6.0 - 2020-06-05 ([Site archive](http://jdftx.org/1.6.0))
+## 1.6.0 - 2020-06-10 ([Site archive](http://jdftx.org/1.6.0))
 
 + Complete rewrite of ionic-dynamics with full support for NVT and NPT using either Nose-Hoover or Berendsen thermostats/barostats
 
@@ -29,6 +29,7 @@
 + Bug fixes:
 	- Fixed %Wannier finite-difference formula bug for highly anisotropic supercells (encountered primarily with large k-point sampling in 2D)
 	- Fixed LibXC support for range-separated hybrids
+	- Fixed DFT+U contribution to forces for cases with multiple atoms in species with U (introduced pre-1.0 when order of atomic orbitals was changed)
 	- Revamped dipole moments calculation to correctly account for embed center and periodicity
 	- Added separate coulomb object for tighter wavefunction grid if required for exact exchange or electron scattering.
 	- Check for dump-only issued without initial state in jdftx and phonon, with a graceful exit instead of a crash

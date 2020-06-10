@@ -115,7 +115,7 @@ double SpeciesInfo::rhoAtom_computeU(const matrix* rhoAtomPtr, matrix* U_rhoAtom
 	return Utot;
 }
 
-//Collect atomic contributions into a larger matrix in projector order:
+//Collect atomic contributions into a larger matrix (by atom and then atomic orbital):
 #define U_rho_PACK \
 	int matSize = orbCount * atpos.size(); \
 	std::vector<matrix> U_rho(nSpins); \
@@ -157,7 +157,7 @@ void SpeciesInfo::rhoAtom_forces(const std::vector<diagMatrix>& F, const std::ve
 				fCartMat[k] = (1./e->eInfo.spinWeight) * diag(U_rho[s] * psiOCdag * F[q] * (C[q]^D(Opsi,k)));
 			for(unsigned a=0; a<atpos.size(); a++)
 			{	vector3<> fCart; //proportional to Cartesian force
-				for(int k=0; k<3; k++) fCart[k] = trace(fCartMat[k](a,atpos.size(),fCartMat[k].nRows()));
+				for(int k=0; k<3; k++) fCart[k] = trace(fCartMat[k](a*orbCount,(a+1)*orbCount));
 				forces[a] += 2.*qnum.weight * (e->gInfo.RT * fCart);
 			}
 			if(EU_RRT)
