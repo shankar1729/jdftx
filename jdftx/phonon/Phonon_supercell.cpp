@@ -56,6 +56,8 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	eSup->scfParams.historyFilename.clear();
 	//ElecInfo:
 	eSup->eInfo.nBands = nBandsOpt * prodSup;
+	eSup->eInfo.Qinitial *= prodSup;
+	eSup->eInfo.Minitial *= prodSup;
 	//ElecVars:
 	eSup->eVars.initLCAO = false; //state will be initialized from unit cell anyway
 	eSup->cntrl.convergeEmptyStates = false; //has no effect on any phonon results, so force-disable to save time
