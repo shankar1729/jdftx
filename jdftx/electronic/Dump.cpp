@@ -580,11 +580,16 @@ void Dump::operator()(DumpFrequency freq, int iter)
 					-2.*eInfo.smearingWidth, +2.*eInfo.smearingWidth,
 					-3.*eInfo.smearingWidth, +3.*eInfo.smearingWidth };
 				std::vector<double> gEf(nMu); //density of states per unit volume at Fermi level with each dmu
+				std::vector<vector3<>> vFabsSum(nMu); //g(Ef)<|v_i|> for each Cartesian direction i at Fermi level with each dmu
 				std::vector<matrix3<>> vFsum(nMu), vFsqSum(nMu); //g(Ef)<(1/v)v.vT> and g(Ef)<v.vT> at Fermi level with each dmu
 				double BzUnused = 0.;
 				double mu = (!std::isnan(eInfo.mu))
 					? eInfo.mu
 					: eInfo.findMu(e->eVars.Hsub_eigs, eInfo.nElectrons, BzUnused);
+				//Get Cartesian symmetry matrices:
+				std::vector<matrix3<>> symCart;
+				for(const SpaceGroupOp& op: e->symm.getMatrices())
+					symCart.push_back(e->gInfo.R * op.rot * e->gInfo.invR);
 				//Compute sum:
 				for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 				{	double dosPrefac = eInfo.qnums[q].weight/e->gInfo.detR;
@@ -596,6 +601,13 @@ void Dump::operator()(DumpFrequency freq, int iter)
 						for(int iMu=0; iMu<nMu; iMu++)
 						{	double w = dosPrefac * (-eInfo.smearPrime(mu+dmu[iMu], Eqb));
 							gEf[iMu] += w;
+							//Landauer version based on |v| along each Cartesian axis:
+							for(const matrix3<>& rot: symCart)
+							{	vector3<> vRot = rot * vqb;
+								for(int iDir=0; iDir<3; iDir++)
+									vFabsSum[iMu][iDir] += w * fabs(vRot[iDir]);
+							}
+							//Tensorial versions:
 							if(vSq > symmThresholdSq)
 							{	vFsum[iMu] += (w/sqrt(vSq)) * vv;
 								vFsqSum[iMu] += w * vv;
@@ -604,8 +616,10 @@ void Dump::operator()(DumpFrequency freq, int iter)
 					}
 				}
 				mpiWorld->allReduceData(gEf, MPIUtil::ReduceSum);
+				mpiWorld->allReduceData(vFabsSum, MPIUtil::ReduceSum);
 				mpiWorld->allReduceData(vFsum, MPIUtil::ReduceSum);
 				mpiWorld->allReduceData(vFsqSum, MPIUtil::ReduceSum);
+				for(vector3<>& m: vFabsSum) m *= (0.5/symCart.size()); //all rotated versions accumulated above (0.5 from Landauer formula)
 				for(matrix3<>& m: vFsum) e->symm.symmetrize(m);
 				for(matrix3<>& m: vFsqSum) e->symm.symmetrize(m);
 				//Write from head:
@@ -617,6 +631,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 						fprintf(fp, "-----------------------------\n");
 						fprintf(fp, "\nvF [Eh-a0]: %12lg\n", sqrt(trace(vFsqSum[iMu])/gEf[iMu]));
 						fprintf(fp, "\ng(Ef) [1/(Eh-a0^3)]: %12lg\n", gEf[iMu]);
+						fprintf(fp, "\ng|v|(Ef) [1/a0^2]: "); vFabsSum[iMu].print(fp, "%12lg ");
 						fprintf(fp, "\ngv(Ef) [1/a0^2]: %12lg\n", trace(vFsum[iMu])/3); vFsum[iMu].print(fp, "%12lg ", true, 1e-12);
 						fprintf(fp, "\ngvv(Ef) [Eh/a0]: %12lg\n", trace(vFsqSum[iMu])/3); vFsqSum[iMu].print(fp, "%12lg ", true, 1e-12);
 						fprintf(fp, "\n\n");
