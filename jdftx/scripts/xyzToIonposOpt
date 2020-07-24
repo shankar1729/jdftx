@@ -69,7 +69,7 @@ function res = residual(params)
 endfunction
 
 initialVolume = residual([0 0 0])
-params = fminsearch("residual", [0 0 0]);
+params = fminsearch(@residual, [0 0 0]);
 [ionpos,rotationMatrix,offset,boxSize] = transformIonpos(ionpos, params);
 optimumVolume = prod(boxSize)
 rotationMatrix
