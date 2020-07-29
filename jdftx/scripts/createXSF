@@ -93,7 +93,7 @@ awk "
 	mode==3 && NR>refLine && NR<=refLine+nAtoms { print \$3, \$4, \$5 > fp }
 	mode==3 && NR==refLine+nAtoms { close(fp) }
 	#Lattice vectors
-	mode==3 && \$0~/R =/ { mode=4; refLine=NR; fp=(\"$tmpDir/lattice.\" nSteps) }
+	/# Lattice vectors/ { mode=4; refLine=NR+1; fp=(\"$tmpDir/lattice.\" nSteps+1) }
 	mode==4 && NR>refLine && NR<=refLine+3 { print \$2, \$3, \$4 > fp }
 	mode==4 && NR==refLine+3 { close(fp) }
 	#Supercell combinations:
