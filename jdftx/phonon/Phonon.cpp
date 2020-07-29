@@ -163,6 +163,16 @@ void Phonon::dump()
 			fclose(fp);
 			logPrintf("done.\n"); logFlush();
 		}
+		//Write list of commensurate k-points:
+		string fname = e.dump.getFilename("phononKpts");
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		fprintf(fp, "#K-pts commensure with phonon supercell:\n");
+		for(const StateMapEntry& sme: stateMap)
+			if(sme.qSup==0)
+				fprintf(fp, "%+.7f %+.7f %+.7f\n", sme.k[0], sme.k[1], sme.k[2]);
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
 	}
 
 	//Calculate free energy (properly handling singularities at Gamma point):
