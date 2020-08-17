@@ -61,10 +61,15 @@ int main(int argc, char** argv)
 			e.iInfo.rhoAtom_calc(e.eVars.F, e.eVars.C, e.eVars.rhoAtom);
 			e.iInfo.rhoAtom_computeU(e.eVars.rhoAtom, e.eVars.U_rhoAtom);
 		}
-		//Call augmentDensity*Grad needed for augmentation contribution to  the [r,H] momentum matrix elements:
-		e.eVars.n = e.eVars.calcDensity();
-		e.eVars.EdensityAndVscloc(e.ener);
-		e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc);
+		bool hasUltrasoft = false;
+		for(const auto& sp: e.iInfo.species) if(sp->isUltrasoft()) hasUltrasoft = true;
+		if(hasUltrasoft)
+		{	//Call augmentDensity*Grad needed for augmentation contribution to  the [r,H] momentum matrix elements:
+			e.eVars.n = e.eVars.calcDensity();
+			if(e.exCorr.needsKEdensity()) e.eVars.tau = e.eVars.KEdensity();
+			e.eVars.EdensityAndVscloc(e.ener);
+			e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc);
+		}
 	}
 	
 	e.wannier.saveMLWF();
