@@ -203,7 +203,7 @@ public:
 	bool hasExchange() const { return funcUnpolarized.info->kind == XC_EXCHANGE || funcUnpolarized.info->kind == XC_EXCHANGE_CORRELATION; }
 	bool hasCorrelation() const { return funcUnpolarized.info->kind == XC_CORRELATION || funcUnpolarized.info->kind == XC_EXCHANGE_CORRELATION; }
 	bool hasKinetic() const { return funcUnpolarized.info->kind == XC_KINETIC; }
-	bool hasEnergy() const { return true; }
+	bool hasEnergy() const { return (funcUnpolarized.info->flags & XC_FLAGS_HAVE_EXC); }
 	double exxScale() const { return funcUnpolarized.cam_omega>0 ? funcUnpolarized.cam_beta : funcUnpolarized.cam_alpha; }
 	double exxOmega() const { return funcUnpolarized.cam_omega; }
 	
@@ -238,7 +238,7 @@ public:
 		int Nn = N * nCount;
 		int Nsigma = N * sigmaCount;
 		//Alloctae temporaries:
-		std::vector<double> eTemp(N);
+		std::vector<double> eTemp(N, 0.);
 		std::vector<double> E_nTemp(E_n ? Nn : 0);
 		std::vector<double> E_sigmaTemp(E_n && needsSigma() ? Nsigma : 0);
 		std::vector<double> E_lapTemp(E_n && needsLap() ? Nn : 0);
@@ -276,17 +276,28 @@ public:
 				}
 			}
 			#endif
-			if(E_n) xc_mgga_exc_vxc(&func, N, n, sigma, lap, tau,
-				&eTemp[0], &E_nTemp[0], &E_sigmaTemp[0], &E_lapTemp[0], &E_tauTemp[0]);
-			else xc_mgga_exc(&func, N, n, sigma, lap, tau, &eTemp[0]);
+			if(E_n) //need gradient
+			{	if(hasEnergy())
+					xc_mgga_exc_vxc(&func, N, n, sigma, lap, tau,
+						&eTemp[0], &E_nTemp[0], &E_sigmaTemp[0], &E_lapTemp[0], &E_tauTemp[0]);
+				else
+					xc_mgga_vxc(&func, N, n, sigma, lap, tau, &E_nTemp[0], &E_sigmaTemp[0], &E_lapTemp[0], &E_tauTemp[0]);
+			}
+			else if(hasEnergy()) xc_mgga_exc(&func, N, n, sigma, lap, tau, &eTemp[0]);
 		}
 		else if(needsSigma())
-		{	if(E_n) xc_gga_exc_vxc(&func, N, n, sigma, &eTemp[0], &E_nTemp[0], &E_sigmaTemp[0]); //need gradient
-			else xc_gga_exc(&func, N, n, sigma, &eTemp[0]);
+		{	if(E_n) //need gradient
+			{	if(hasEnergy()) xc_gga_exc_vxc(&func, N, n, sigma, &eTemp[0], &E_nTemp[0], &E_sigmaTemp[0]);
+				else xc_gga_vxc(&func, N, n, sigma, &E_nTemp[0], &E_sigmaTemp[0]);
+			}
+			else if(hasEnergy()) xc_gga_exc(&func, N, n, sigma, &eTemp[0]);
 		}
 		else
-		{	if(E_n) xc_lda_exc_vxc(&func, N, n, &eTemp[0], &E_nTemp[0]); //need gradient
-			else xc_lda_exc(&func, N, n, &eTemp[0]);
+		{	if(E_n) //need gradient
+			{	if(hasEnergy()) xc_lda_exc_vxc(&func, N, n, &eTemp[0], &E_nTemp[0]);
+				else xc_lda_vxc(&func, N, n, &E_nTemp[0]);
+			}
+			else if(hasEnergy()) xc_lda_exc(&func, N, n, &eTemp[0]);
 		}
 		//Accumulate onto final results
 		eblas_daxpy(N, 1., &eTemp[0], 1, e, 1);
