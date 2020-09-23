@@ -62,6 +62,8 @@ void ElectronScattering::dump(const Everything& everything)
 	logFlush();
 	
 	//Update default parameters:
+	T = e.eInfo.smearingWidth;
+	assert(T > 0.);
 	assert(eta > 0.);
 	double etaInv = 1./eta;
 	if(!Ecut) Ecut = e.cntrl.Ecut;
@@ -89,6 +91,7 @@ void ElectronScattering::dump(const Everything& everything)
 	Emin = uMin - omegaMax;
 	Emax = oMax + omegaMax;
 	//--- print selected values after fixing defaults:
+	logPrintf("Electron temperature:    %lg\n", T);
 	logPrintf("Frequency resolution:    %lg\n", eta);
 	logPrintf("Dielectric matrix Ecut:  %lg\n", Ecut);
 	logPrintf("Maximum energy transfer: %lg\n", omegaMax);
@@ -340,17 +343,29 @@ void ElectronScattering::dump(const Everything& everything)
 			if(!events.size()) continue;
 			//Integrate over frequency for event contributions to linewidth:
 			diagMatrix eventContrib(events.size(), 0);
-			for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
-			{	//Construct energy conserving delta-function:
-				double omega = omegaGrid[iOmega];
-				complex omegaTilde(omega, 2*eta);
-				diagMatrix delta; delta.reserve(events.size());
-				for(const Event& event: events)
-					delta.push_back(e.gInfo.detR * event.fWeight * //overlap and sign for electron / hole
-						( regularizedDelta(omega, +event.Eji, etaInv)
-						- regularizedDelta(omega, -event.Eji, etaInv) ) ); //pick up correct omega
-				eventContrib += wOmega[iOmega] * delta * diagDot(nij, ImKscr[iOmega] * nij);
+			for(size_t iEvent=0; iEvent<events.size(); iEvent++)
+			{	const Event& event = events[iEvent];
+				//Get Im(<nij|W|nij>) at required frequency:
+				matrix nijCur = nij(0,nij.nRows(), iEvent, iEvent+1); //current pair density
+				double omega0byEta = etaInv * fabs(event.Eji);
+				int iOmega = int(floor(omega0byEta)); //index into frequency mesh
+				double tOmega = omega0byEta - iOmega; //weight for linear interpolation into adjacent frequency mesh points
+				if(iOmega+1 < omegaGrid.nRows()) //i.e. omega0 < omegaMax
+				{	//Compute ImW interpolated to the required frequency:
+					double ImWL = iOmega ? dot(nijCur, ImKscr[iOmega] * nijCur) : 0.; //enforce exact zero-ness of ImW(0)
+					double ImWR = dot(nijCur, ImKscr[iOmega+1] * nijCur);
+					double ImW = copysign(ImWL + tOmega * (ImWR -ImWL), event.Eji); //interpolate and get correct sign (ImW is odd in omega)
+					//Add occupation factors:
+					const double& fj = event.fWeight;
+					double omegaByT = event.Eji / T; //note: could be negative
+					double nomega = (omegaByT<-36 ? -1. : //avoid underflow in exp
+						(omegaByT>36. ? 0. : //avoid overflow in exp
+							(fabs(omegaByT)<1e-8 ? 0. : //avoid 0/0 between ImW and bose
+								1./(exp(omegaByT)-1.) )));
+					eventContrib[iEvent] = e.gInfo.detR * ImW * (fj + nomega);
+				}
 			}
+			
 			//Accumulate contributions to linewidth:
 			int iReduced = supercell->kmeshTransform[ik].iReduced; //directly collect to reduced k-point
 			double symFactor = e.eInfo.spinWeight / (supercell->kmesh.size() * e.eInfo.qnums[iReduced].weight); //symmetrization factor = 1 / |orbit of iReduced|
@@ -413,18 +428,24 @@ std::vector<ElectronScattering::Event> ElectronScattering::getEvents(bool chiMod
 	const diagMatrix &Ej = E[jReduced], &Fj = F[jReduced];
 	std::vector<Event> events; events.reserve((nBands*nBands)/2);
 	std::vector<bool> iUsed(nBands,false), jUsed(nBands,false); //sets of i and j actually referenced
+	double omegaCut = fCut ? T*log(1./fCut+1.) : DBL_MAX;
 	Event event;
 	for(event.i=0; event.i<nBands; event.i++)
 	for(event.j=0; event.j<nBands; event.j++)
-	{	event.fWeight = chiMode ? 0.5*(Fi[event.i] - Fj[event.j]) : (1. - Fi[event.i] - Fj[event.j]);
+	{	bool needEvent = true;
 		double Eii = Ei[event.i];
 		double Ejj = Ej[event.j];
 		event.Eji = Ejj - Eii;
-		if(!chiMode)
-		{	if(Eii<Emin || Eii>Emax) event.fWeight = 0.; //state out of relevant range
-			if(event.fWeight * (Eii-Ejj) <= 0) event.fWeight = 0; //wrong sign for energy transfer
+		if(chiMode)
+		{	event.fWeight = 0.5*(Fi[event.i] - Fj[event.j]);
+			needEvent = (fabs(event.fWeight) > fCut);
 		}
-		bool needEvent = (fabs(event.fWeight) > fCut);
+		else
+		{	event.fWeight = Fj[event.j];
+			if(Eii<Emin || Eii>Emax) needEvent = false; //state out of relevant range
+			if((fabs(event.fWeight-1.) < fCut) and (event.Eji < -omegaCut)) needEvent = false; //|n(omega)+fj| <~ fCut (electron case)
+			if(( fabs( event.fWeight ) < fCut) and (event.Eji > +omegaCut)) needEvent = false; //|n(omega)+fj| <~ fCut (hole case)
+		}
 		if(needEvent)
 		{	events.push_back(event);
 			iUsed[event.i] = true;

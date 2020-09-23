@@ -34,7 +34,8 @@ class QuantumNumber;
 //! Electron-electron scattering (ImSigma_ee) calculator
 struct ElectronScattering
 {
-	double eta; //!< frequency resolution and half the imaginary part ascribed to probe frequency (set to eInfo.kT if unspecified)
+	double T; //!< electron temperature (set to eInfo.smearingWidth)
+	double eta; //!< frequency resolution and half the imaginary part ascribed to probe frequency
 	double Ecut; //!< energy cut-off for dielectric matrices (set to cntrl.Ecut if unspecified)
 	double fCut; //!< threshold for considering states fully occupied / unoccupied (default: 1e-6)
 	double omegaMax; //!< maximum energy transfer to account for and hence maximum frequency in dielectric grid (if zero, autodetermine from available eigenvalues)
