@@ -63,7 +63,7 @@ else()
 endif()
 
 
-if(EnableScaLAPACK)
+if(EnableScaLAPACK AND (NOT ForceScaLAPACK))
 	#Find the ScaLAPACK library:
 	find_library(MKL_SCALAPACK_LIBRARY NAMES mkl_scalapack_lp64 PATHS ${MKL_LIB_PATH})
 	
@@ -96,4 +96,3 @@ if(EnableScaLAPACK)
 		endif()
 	endif()
 endif()
-
