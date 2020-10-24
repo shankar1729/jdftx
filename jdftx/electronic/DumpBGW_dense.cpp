@@ -199,13 +199,13 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		{	int nAtoms = sp->atpos.size();
 			int nProj = sp->MnlAll.nRows(); //number of projectors per atom
 			if(!nAtoms || !nProj) continue; //unused species or purely local psp
-			const ColumnBundle& Vrow = *(sp->getV(Crow));
-			const ColumnBundle& Vcol = *(sp->getV(Ccol));
-			matrix Vrow_a(Vrow.colLength(), nProj);
-			matrix Vcol_a(Vcol.colLength(), nProj);
+			const std::shared_ptr<ColumnBundle> Vrow = sp->getV(Crow);
+			const std::shared_ptr<ColumnBundle> Vcol = sp->getV(Ccol);
+			matrix Vrow_a(Vrow->colLength(), nProj);
+			matrix Vcol_a(Vcol->colLength(), nProj);
 			for(int a=0; a<nAtoms; a++)
-			{	callPref(eblas_copy)(Vrow_a.dataPref(), Vrow.dataPref() + a*Vrow_a.nData(), Vrow_a.nData());
-				callPref(eblas_copy)(Vcol_a.dataPref(), Vcol.dataPref() + a*Vcol_a.nData(), Vcol_a.nData());
+			{	callPref(eblas_copy)(Vrow_a.dataPref(), Vrow->dataPref() + a*Vrow_a.nData(), Vrow_a.nData());
+				callPref(eblas_copy)(Vcol_a.dataPref(), Vcol->dataPref() + a*Vcol_a.nData(), Vcol_a.nData());
 				H += (1./e.gInfo.detR) * Vrow_a * sp->MnlAll * dagger(Vcol_a);
 			}
 			sp->sync_atpos(); //free cached projectors
