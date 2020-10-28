@@ -365,6 +365,7 @@ enum ElectronScatteringMember
 	ESM_RPA,
 	ESM_slabResponse,
 	ESM_EcutTransverse,
+	ESM_computeRange,
 	ESM_delim
 };
 EnumStringMap<ElectronScatteringMember> esmMap
@@ -374,7 +375,8 @@ EnumStringMap<ElectronScatteringMember> esmMap
 	ESM_omegaMax, "omegaMax",
 	ESM_RPA, "RPA",
 	ESM_slabResponse, "slabResponse",
-	ESM_EcutTransverse, "EcutTransverse"
+	ESM_EcutTransverse, "EcutTransverse",
+	ESM_computeRange, "computeRange"
 );
 
 struct CommandElectronScattering : public Command
@@ -408,8 +410,13 @@ struct CommandElectronScattering : public Command
 			"\n+ EcutTransverse <EcutTransverse>\n\n"
 			"   <EcutTransverse> in Eh specifies energy cut-off for dielectric matrix in.\n"
 			"   directions trasverse to the slab normal; only valid when slabResponse = yes.\n"
-			"   (If zero, use the same value as Ecut above.)";
-		
+			"   (If zero, use the same value as Ecut above.)\n\n"
+			"\n+ computeRange <iqStart> <iqStop>\n\n"
+			"   If specified, only calculate momentum transfers in range [iqStart , iqStop] in\n"
+			"   the current run, in order to split the overall calculation into smaller jobs.\n"
+			"   Note that the indices are 1-based, and the range includes both end-points.\n"
+			"   To combine the final results, perform a final run without computeRange specified.";
+			
 		require("coulomb-interaction");
 		forbid("polarizability"); //both are major operations that are given permission to destroy Everything if necessary
 	}
@@ -430,6 +437,13 @@ struct CommandElectronScattering : public Command
 				case ESM_RPA: pl.get(es.RPA, false, boolMap, "RPA", true); break;
 				case ESM_slabResponse: pl.get(es.slabResponse, false, boolMap, "slabResponse", true); break;
 				case ESM_EcutTransverse: pl.get(es.EcutTransverse, 0., "EcutTransverse", true); break;
+				case ESM_computeRange:
+				{	es.computeRange = true; //Note that inputs are [start,stop] 1-based, while internally we have [start,stop) 0-based
+					pl.get(es.iqStart, size_t(0), "iqStart", true); if(es.iqStart < 1) throw string("Must have iqStart >= 1");
+					pl.get(es.iqStop, size_t(0), "iqStop", true); if(es.iqStop < es.iqStart) throw string("Must have iqStop >= iqStart");
+					es.iqStart -= 1; //convert to 0-based index. Note that iqStop becomes a non-included 0-based index without change
+					break;
+				}
 				case ESM_delim: break; //never encountered; to suppress compiler warning
 			}
 		}
@@ -452,6 +466,7 @@ struct CommandElectronScattering : public Command
 		logPrintf(" \\\n\tRPA      %s", boolMap.getString(es.RPA));
 		logPrintf(" \\\n\tslabResponse %s", boolMap.getString(es.slabResponse));
 		if(es.slabResponse) logPrintf(" \\\n\tEcutTransverse %lg", es.EcutTransverse);
+		if(es.computeRange)  logPrintf(" \\\n\tcomputeRange %lu %lu", es.iqStart+1, es.iqStop);
 	}
 }
 commandElectronScattering;

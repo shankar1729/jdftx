@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/SphericalHarmonics.h>
 #include <core/LatticeUtils.h>
 #include <core/Random.h>
+#include <commands/command.h>
 
 //Matrix imaginary part (in the operator sense; not elementwise):
 matrix Im(const matrix& m)
@@ -43,7 +44,8 @@ double regularizedDelta(double omega, double omega0, double etaInv)
 }
 
 ElectronScattering::ElectronScattering()
-: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), slabResponse(false), EcutTransverse(0.)
+: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), slabResponse(false), EcutTransverse(0.),
+	computeRange(false), iqStart(0), iqStop(0)
 {
 }
 
@@ -198,6 +200,13 @@ void ElectronScattering::dump(const Everything& everything)
 	qmesh = e.symm.reduceKmesh(qmesh);
 	logResume();
 	logPrintf("%d entries\n", int(qmesh.size())); logFlush();
+	if(computeRange)
+	{	iqStop = std::min(iqStop, qmesh.size());
+		if(iqStart < iqStop)
+			logPrintf("Computing subset of momentum transfers [%lu, %lu] in present run.\n", iqStart+1, iqStop);
+		else die("No momentum transfers in range selected for present run.\n\n");
+	}
+	else { iqStart = 0; iqStop = qmesh.size(); }
 	
 	//Initialize polarizability/dielectric bases corresponding to qmesh:
 	logPrintf("Setting up reduced polarizability bases at Ecut = %lg: ", Ecut); logFlush();
@@ -205,7 +214,7 @@ void ElectronScattering::dump(const Everything& everything)
 	double avg_nbasis = 0.;
 	const GridInfo& gInfoBasis = e.gInfoWfns ? *e.gInfoWfns : e.gInfo;
 	logSuspend();
-	for(size_t iq=0; iq<qmesh.size(); iq++)
+	for(size_t iq=iqStart; iq<iqStop; iq++)
 	{	basisChi[iq].setup(gInfoBasis, e.iInfo, Ecut, qmesh[iq].k);
 		avg_nbasis += qmesh[iq].weight * basisChi[iq].nbasis;
 	}
@@ -255,11 +264,28 @@ void ElectronScattering::dump(const Everything& everything)
 	logPrintf("done.\n"); logFlush();
 
 	//Main loop over momentum transfers:
-	diagMatrix ImKscrHead(omegaGrid.size(), 0.);
 	std::vector<diagMatrix> ImSigma(e.eInfo.nStates, diagMatrix(nBands,0.));
-	for(size_t iq=0; iq<qmesh.size(); iq++)
+	for(size_t iq=iqStart; iq<iqStop; iq++)
 	{	logPrintf("\nMomentum transfer %d of %d: q = ", int(iq+1), int(qmesh.size()));
 		qmesh[iq].k.print(globalLog, " %+.5lf ");
+		
+		//Check if momentum transfer computed previously:
+		ostringstream ossSuffix; ossSuffix << '.' << (iq+1);
+		string fnameImSigmaCur = e.dump.getFilename("ImSigma_ee"+ossSuffix.str());
+		if(isReadable(fnameImSigmaCur))
+		{	logPrintf("\tReading %s ... ", fnameImSigmaCur.c_str()); logFlush();
+			std::vector<diagMatrix> ImSigmaCur; 
+			e.eInfo.read(ImSigmaCur, fnameImSigmaCur.c_str());
+			for(int q=0; q<e.eInfo.nStates; q++) 
+			{	if(not e.eInfo.isMine(q)) ImSigmaCur[q].assign(nBands, 0.);
+				mpiWorld->allReduceData(ImSigmaCur[q], MPIUtil::ReduceSum);
+				ImSigma[q] += ImSigmaCur[q]; //accumulate pre-computed contributions for this iq
+			}
+			logPrintf("done.\n\n");
+			continue;
+		}
+		
+		//Initialize augmentation densities if needed:
 		int nbasis = basisChi[iq].nbasis;
 		nAugRhoAtomInit(iq);
 		
@@ -318,7 +344,6 @@ void ElectronScattering::dump(const Everything& everything)
 			chiKS[iOmega] = 0; //free to save memory
 			ImKscr[iOmega] = Im(inv(invKq - chi0));
 			chi0 = 0; //free to save memory
-			ImKscrHead[iOmega] += qmesh[iq].weight * ImKscr[iOmega](iHead,iHead).real(); //accumulate head of ImKscr
 		}
 		chiKS.clear(); //free memory; no longer needed
 		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
@@ -328,6 +353,7 @@ void ElectronScattering::dump(const Everything& everything)
 		logPrintf("done.\n"); logFlush();
 		
 		//Calculate ImSigma contributions:
+		std::vector<diagMatrix> ImSigmaCur(e.eInfo.nStates, diagMatrix(nBands, 0.)); //results from current momentum transfer
 		logPrintf("\tComputing ImSigma ... "); logFlush(); 
 		for(size_t ik=ikStart; ik<ikStop; ik++)
 		for(int iSpin=0; iSpin<nSpins; iSpin++)
@@ -372,16 +398,28 @@ void ElectronScattering::dump(const Everything& everything)
 			double qWeight = qmesh[iq].weight;
 			for(size_t iEvent=0; iEvent<events.size(); iEvent++)
 			{	const Event& event = events[iEvent];
-				ImSigma[iReduced+iSpin*qCount][event.i] += symFactor * qWeight * eventContrib[iEvent];
+				ImSigmaCur[iReduced+iSpin*qCount][event.i] += symFactor * qWeight * eventContrib[iEvent];
 			}
 		}
 		logPrintf("done.\n"); logFlush();
+
+		//Accumulate contributions from this momentum transfer and write them to a file (for check-pointing):
+		for(int q=0; q<e.eInfo.nStates; q++)
+		{	mpiWorld->allReduceData(ImSigmaCur[q], MPIUtil::ReduceSum);
+			ImSigma[q] += ImSigmaCur[q];
+		}
+		logPrintf("\tDumping %s ... ", fnameImSigmaCur.c_str()); logFlush();
+		e.eInfo.write(ImSigmaCur, fnameImSigmaCur.c_str());
+		logPrintf("done.\n");
 	}
 	logPrintf("\n");
 	
-	mpiWorld->allReduceData(ImKscrHead, MPIUtil::ReduceSum);
-	for(diagMatrix& IS: ImSigma)
-		mpiWorld->allReduceData(IS, MPIUtil::ReduceSum);
+	if(computeRange)
+	{	logPrintf("Perform a run without 'computeRange' to collect final results after calculating all momentum transfers.\n\n");
+		return;
+	}
+	
+	//Indicate invalid values of ImSigma for chosen omegaMax:
 	for(int q=0; q<e.eInfo.nStates; q++)
 		for(int b=0; b<nBands; b++)
 		{	double Eqb = E[q][b];
@@ -393,17 +431,7 @@ void ElectronScattering::dump(const Everything& everything)
 	logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
 	e.eInfo.write(ImSigma, fname.c_str());
 	logPrintf("done.\n");
-
-	fname = e.dump.getFilename("ImKscrHead");
-	logPrintf("Dumping %s ... ", fname.c_str()); logFlush();
-	if(mpiWorld->isHead())
-	{	FILE* fp = fopen(fname.c_str(), "w");
-		for(int iOmega=0; iOmega<omegaGrid.nRows(); iOmega++)
-			fprintf(fp, "%lf %le\n", omegaGrid[iOmega], ImKscrHead[iOmega]);
-		fclose(fp);
-	}
-	logPrintf("done.\n");
-
+	
 	logPrintf("\n"); logFlush();
 }
 

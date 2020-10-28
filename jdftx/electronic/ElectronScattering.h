@@ -44,6 +44,9 @@ struct ElectronScattering
 	bool slabResponse; //!< whether to work in slab response output mode
 	double EcutTransverse; //!< energy cutoff in directions transverse to slab normal (same as Ecut above if unspecified)
 	
+	bool computeRange; //!< only compute a subset of momentum transfers
+	size_t iqStart, iqStop; //!< range of q to compute in the current run
+	
 	ElectronScattering();
 	void dump(const Everything& e); //!< compute and dump Im(Sigma_ee) for each eigenstate
 
