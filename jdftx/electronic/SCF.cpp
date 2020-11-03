@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SCF.h>
 #include <electronic/ElecMinimizer.h>
 #include <electronic/Everything.h>
+#include <electronic/ExactExchange.h>
 #include <core/ScalarFieldIO.h>
 #include <fluid/FluidSolver.h>
 #include <queue>
@@ -91,14 +92,36 @@ void SCF::minimize()
 	//Backup electronic minimize params that are modified below:
 	double eMinThreshold = e.elecMinParams.energyDiffThreshold;
 	int eMinIterations = e.elecMinParams.nIterations;
-
-	//Compute energy for the initial guess
-	double E = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiWorld->bcast(E); //Compute energy (and ensure consistency to machine precision)
-	
-	//Optimize using Pulay mixer:
 	std::vector<string> extraNames(1, "deigs");
 	std::vector<double> extraThresh(1, sp.eigDiffThreshold);
-	Pulay<SCFvariable>::minimize(E, extraNames, extraThresh);
+
+	//Single or multi Pulay loop depending on exact exchange:
+	if(e.exCorr.exxFactor())
+	{	//Outer loop over orbitals, inner Pulay loop over densities:
+		double outerThreshold = sp.energyDiffThreshold;
+		if(outerThreshold <= 0.)
+			die("Convergence parameter energyDiffThreshold must be > 0 in exact exchange calculations.\n");
+		e.exx->prepareHamiltonian(e.exCorr.exxRange(), e.eVars.F, e.eVars.C); logPrintf("\n");
+		double Eprev = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiWorld->bcast(Eprev); //Initial energy
+		for(int iOuter=0; iOuter<e.cntrl.nOuterVxx; iOuter++)
+		{	Pulay<SCFvariable>::minimize(Eprev, extraNames, extraThresh); //Optimize using Pulay mixer
+			double E = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiWorld->bcast(E); //update energy
+			double dE = E - Eprev;
+			logPrintf("VxxLoop: Iter: %2i   %s: %+.15lf   d%s: %+.3e\n",
+				iOuter, sp.energyLabel, E, sp.energyLabel, dE);
+			if(fabs(dE) < outerThreshold) break;
+			//Update orbitals for next outer loop iteration:
+			e.exx->prepareHamiltonian(e.exCorr.exxRange(), e.eVars.F, e.eVars.C); logPrintf("\n");
+			Eprev = E;
+		}
+	}
+	else
+	{	//Single Pulay loop:
+		double E = eVars.elecEnergyAndGrad(e.ener, 0, 0, true); mpiWorld->bcast(E); //Compute energy (and ensure consistency to machine precision)
+		Pulay<SCFvariable>::minimize(E, extraNames, extraThresh); //Optimize using Pulay mixer
+	}
+	
+	//Compute energy for the initial guess
 	e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc); //to make sure grid projections are compatible with final Vscloc
 	
 	//Restore electronic minimize params that were modified above:
@@ -124,7 +147,7 @@ double SCF::cycle(double dEprev, std::vector<double>& extraValues)
 	if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
 	e.elecMinParams.energyDiffThreshold = std::min(1e-6, 0.1*fabs(dEprev));
 	if(sp.nEigSteps) e.elecMinParams.nIterations = sp.nEigSteps;
-	bandMinimize(e);
+	bandMinimize(e, false);
 	if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
 
 	//Compute new density and energy

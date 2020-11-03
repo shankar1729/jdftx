@@ -21,8 +21,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/BandMinimizer.h>
 #include <electronic/BandDavidson.h>
 #include <electronic/ColumnBundle.h>
-#include <electronic/ExactExchange.h>
 #include <electronic/Everything.h>
+#include <electronic/ExactExchange.h>
 #include <electronic/Dump.h>
 #include <fluid/FluidSolver.h>
 #include <core/Random.h>
@@ -271,21 +271,39 @@ double ElecMinimizer::sync(double x) const
 	return x;
 }
 
-void bandMinimize(Everything& e)
+void bandMinimize(Everything& e, bool updateVxx)
 {	bool fixed_H = true; std::swap(fixed_H, e.cntrl.fixed_H); //remember fixed_H flag and temporarily set it to true
-	if(e.exCorr.exxFactor())
-		e.exx->setOccupied(e.eVars.F, e.eVars.C);
+	bool loopOuter = updateVxx and e.exCorr.exxFactor(); //whether an outer loop to converge VXX is required
+	int nOuter = loopOuter ? e.cntrl.nOuterVxx : 1;
+	double outerThreshold = e.elecMinParams.energyDiffThreshold;
+	if(loopOuter and (outerThreshold <= 0.))
+		die("Convergence parameter energyDiffThreshold must be > 0 in exact exchange calculations.\n");
 	logPrintf("Minimization will be done independently for each quantum number.\n");
-	e.ener.Eband = 0.;
-	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{	logPrintf("\n---- Minimization of quantum number: "); e.eInfo.kpointPrint(globalLog, q, true); logPrintf(" ----\n");
-		switch(e.cntrl.elecEigenAlgo)
-		{	case ElecEigenCG: { BandMinimizer(e, q).minimize(e.elecMinParams); break; }
-			case ElecEigenDavidson: { BandDavidson(e, q).minimize(); break; }
+	double EbandPrev = 0.;
+	for(int iOuter=0; iOuter<nOuter; iOuter++)
+	{	if(loopOuter) e.exx->prepareHamiltonian(e.exCorr.exxRange(), e.eVars.F, e.eVars.C);
+		e.ener.Eband = 0.;
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{	logPrintf("\n---- Minimization of quantum number: "); e.eInfo.kpointPrint(globalLog, q, true); logPrintf(" ----\n");
+			switch(e.cntrl.elecEigenAlgo)
+			{	case ElecEigenCG: { BandMinimizer(e, q).minimize(e.elecMinParams); break; }
+				case ElecEigenDavidson: { BandDavidson(e, q).minimize(); break; }
+			}
+			e.ener.Eband += e.eInfo.qnums[q].weight * trace(e.eVars.Hsub_eigs[q]);
 		}
-		e.ener.Eband += e.eInfo.qnums[q].weight * trace(e.eVars.Hsub_eigs[q]);
+		mpiWorld->allReduce(e.ener.Eband, MPIUtil::ReduceSum);
+		//Check convergence of outer loop:
+		if(loopOuter)
+		{	logPrintf("\nVxxLoop: Iter: %2i   EbandTot: %+.15lf", iOuter, e.ener.Eband);
+			if(iOuter)
+			{	double dEband = e.ener.Eband - EbandPrev;
+				logPrintf("   dEbandTot: %+.3e\n", dEband);
+				if(fabs(dEband) < outerThreshold) break;
+			}
+			else logPrintf("\n");
+			EbandPrev = e.ener.Eband;
+		}
 	}
-	mpiWorld->allReduce(e.ener.Eband, MPIUtil::ReduceSum);
 	if(e.cntrl.shouldPrintEigsFillings)
 	{	//Print the eigenvalues if requested
 		print_Hsub_eigs(e);

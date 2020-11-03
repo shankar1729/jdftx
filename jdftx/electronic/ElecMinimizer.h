@@ -74,7 +74,7 @@ private:
 	std::shared_ptr<struct SubspaceRotationAdjust> sra; //!< Subspace rotation adjustment helper
 };
 
-void bandMinimize(Everything& e); //!< band structure minimization
+void bandMinimize(Everything& e, bool updateVxx=true); //!< band structure minimization. Update ACE representation of exact exchange operator Vxx if updateVxx = true.
 void elecMinimize(Everything& e); //!< minimize electonic system
 void elecFluidMinimize(Everything& e); //!< minimize electrons and fluid in a gummel loop if necessary
 void convergeEmptyStates(Everything& e); //!< run bandMinimize to converge empty states (usually called from SCF / total energy calculations)

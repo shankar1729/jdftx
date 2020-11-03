@@ -345,3 +345,24 @@ struct CommandExchangeBlockSize : public Command
 	}
 }
 commandExchangeBlockSize;
+
+
+struct CommandExchangeOuterLoop : public Command
+{
+	CommandExchangeOuterLoop() : Command("exchange-outer-loop", "jdftx/Electronic/Functional")
+	{
+		format = "<nOuterVxx>";
+		comments =
+			"";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.cntrl.nOuterVxx, 0, "nOuterVxx", true);
+		if(e.cntrl.nOuterVxx < 1) throw string("<nOuterVxx> must be >= 1");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf(" %d", e.cntrl.nOuterVxx);
+	}
+}
+commandExchangeOuterLoop;

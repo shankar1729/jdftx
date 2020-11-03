@@ -36,24 +36,34 @@ public:
 	~ExactExchange();
 	
 	//! Compute scaled exact exchange energy with scale aXX and range omega
-	//! (and optionally accumulate gradients) given fillings and wavefunctions
+	//! (and optionally accumulate gradients) given fillings and wavefunctions.
+	//! If prepareHamiltonian has been called with the same omega already,
+	//! then the ACE representation is used to compute the energy and HC instead,
+	//! except when a lattice gradient is requested which requires full computation.
 	double operator()(double aXX, double omega,
 		const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
 		std::vector<ColumnBundle>* HC=0, matrix3<>* EXX_RRT=0) const;
 	
-	//! Set the occupied wavefunctions and occupation factors in preparation for applyHamiltonian
-	void setOccupied(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C);
+	//! Initialize the ACE (Adiabatic Compression of Exchange) representation in preparation for applyHamiltonian
+	void prepareHamiltonian(double omega, const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C);
 	
-	//! Apply Hamiltonian:
-	void applyHamiltonian(double aXX, double omega, int q, const ColumnBundle& Cq, ColumnBundle& HCq);
+	//! Apply Hamiltonian using ACE representation initialized previously, and return the exchange energy contribution from current q.
+	//! Note that fillings Fq are only used for computing the energy, and do not impact the Hamiltonian which only depends on F used in prepareHamiltonian().
+	//! HCq must be allocated (non-null) in order to collect the Hamiltonian contribution, else only energy is returned.
+	double applyHamiltonian(double aXX, double omega, int q, const diagMatrix& Fq,  const ColumnBundle& Cq, ColumnBundle& HCq) const;
 
 	//! Add Hamiltonian in plane-wave basis (used for dense diagonalization for BGW):
 	void addHamiltonian(double aXX, double omega, int q, matrix& H,
-		const std::vector<int>& iRowsMine, const std::vector<int>& iColsMine);
+		const std::vector<int>& iRowsMine, const std::vector<int>& iColsMine) const;
 
 private:
 	const Everything& e;
 	class ExactExchangeEval* eval; //!< opaque pointer to an internal computation class
+	
+	//!Internal implementation of operator() that always computes full exchange operator (regardless of whether ACE is ready)
+	double compute(double aXX, double omega,
+		const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
+		std::vector<ColumnBundle>* HC=0, matrix3<>* EXX_RRT=0) const;
 };
 
 //! @}

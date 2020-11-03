@@ -660,11 +660,11 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 			e->iInfo.rhoAtom_grad(C[q], U_rhoAtom, HCq);
 		
 		//Exact exchange in fixed H mode (totalE mode handled above):
-		//--- note exx->setOccupied() must be set beforehand
+		//--- note exx->prepareHamiltonian() must be called beforehand
 		if(e->exCorr.exxFactor() and e->cntrl.fixed_H)
 		{	double aXX = e->exCorr.exxFactor();
 			double omega = e->exCorr.exxRange();
-			e->exx->applyHamiltonian(aXX, omega, q, C[q], HCq);
+			e->exx->applyHamiltonian(aXX, omega, q, Fq, C[q], HCq);
 		}
 	}
 

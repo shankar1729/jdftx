@@ -166,7 +166,7 @@ void BGW::writeVxc() const
 	
 	//Calculate X-C matrix elements:
 	std::vector<matrix>& VxcSub = ((BGW*)this)->VxcSub;
-	if(e.exCorr.exxFactor()) e.exx->setOccupied(e.eVars.F, e.eVars.C);
+	if(e.exCorr.exxFactor()) e.exx->prepareHamiltonian(e.exCorr.exxRange(), e.eVars.F, e.eVars.C);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	if(VxcSub[q]) continue; //already calculated (dense version)
 		ColumnBundle HCq = gInfo.dV * Idag_DiagV_I(eVars.C[q], eVars.Vxc);
@@ -177,7 +177,7 @@ void BGW::writeVxc() const
 		if(e.eInfo.hasU) //Contribution via atomic density matrix projections (DFT+U)
 			e.iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HCq);
 		if(e.exCorr.exxFactor()) //Exact-exchange contributions:
-			e.exx->applyHamiltonian(e.exCorr.exxFactor(), e.exCorr.exxRange(), q, eVars.C[q], HCq);
+			e.exx->applyHamiltonian(e.exCorr.exxFactor(), e.exCorr.exxRange(), q, eVars.F[q], eVars.C[q], HCq);
 		VxcSub[q] = eVars.C[q] ^ HCq;
 	}
 	

@@ -65,10 +65,8 @@ private:
 	const std::vector<int>& invertList; //!< whether to add inversion explicitly over the symmetry group
 	const int nSpins, nSpinor, qCount; //!< number of spin channels, spinor components and states per spin channel
 	const int blockSize; //!< number of bands FFT'd together
-	
-	//Occupied state properties for fixed-H mode:
-	std::vector<diagMatrix> Focc;
-	std::vector<ColumnBundle> Cocc;
+	double omegaACE; //!< omega for which ACE has been initialized (NAN if none)
+	std::vector<ColumnBundle> psiACE; //!< projectors for ACE representation of exchange Hamiltonian
 };
 
 
@@ -84,6 +82,27 @@ ExactExchange::~ExactExchange()
 }
 
 double ExactExchange::operator()(double aXX, double omega, 
+	const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
+	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr) const
+{
+	if((omega == eval->omegaACE) and (not EXX_RRTptr))
+	{	//Use previously initialized ACE representation
+		double EXX = 0.;
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{	ColumnBundle HCtmp; 
+			ColumnBundle& HCq = HC ? HC->at(q) : HCtmp;
+			EXX += applyHamiltonian(aXX, omega, q, F[q], C[q], HCq);
+		}
+		mpiWorld->allReduce(EXX, MPIUtil::ReduceSum);
+		return EXX;
+	}
+	else
+	{	//Compute full operator (if no ACE ready, or need lattice gradient):
+		return compute(aXX, omega, F, C, HC, EXX_RRTptr);
+	}
+}
+
+double ExactExchange::compute(double aXX, double omega, 
 	const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
 	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr) const
 {	static StopWatch watch("ExactExchange"); watch.start();
@@ -136,46 +155,38 @@ double ExactExchange::operator()(double aXX, double omega,
 	return EXX;
 }
 
-
-void ExactExchange::setOccupied(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C)
-{	const double Fcut = 1e-8; //threshold for determining occupied states
-	eval->Focc.resize(e.eInfo.nStates);
-	eval->Cocc.resize(e.eInfo.nStates);
-	
-	//Make occupied fillings and wavefunctions available on all processes:
-	for(int q=0; q<e.eInfo.nStates; q++)
-	{	//Determine number of occupied bands:
-		int nOccupied = 0;
-		if(e.eInfo.isMine(q))
-		{	nOccupied = F[q].nRows();
-			while(nOccupied>1 and F[q][nOccupied-1]<Fcut)
-				nOccupied--;
-		}
-		mpiWorld->bcast(nOccupied, e.eInfo.whose(q));
-		//Broadcast F and C:
-		if(e.eInfo.isMine(q))
-		{	eval->Cocc[q] = C[q].getSub(0,nOccupied);
-			eval->Focc[q] = F[q](0,nOccupied);
-		}
-		else
-		{	eval->Cocc[q].init(nOccupied, e.basis[q].nbasis*eval->nSpinor, &(e.basis[q]), &(e.eInfo.qnums[q]), isGpuEnabled());
-			eval->Focc[q].resize(nOccupied);
-		}
-		mpiWorld->bcastData(eval->Cocc[q], e.eInfo.whose(q));
-		mpiWorld->bcastData(eval->Focc[q], e.eInfo.whose(q));
+//Initialize the ACE (Adiabatic Compression of Exchange) representation in preparation for applyHamiltonian
+void ExactExchange::prepareHamiltonian(double omega, const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C)
+{	//Compute the full exchange operator evaluated on each orbital of C in W
+	std::vector<ColumnBundle> W(e.eInfo.nStates);
+	compute(-1., omega, F, C, &W); //compute with aXX = 1; applyHamiltonian handles the overall scale factor aXX
+	//Construct ACE representation:
+	eval->psiACE.assign(e.eInfo.nStates, ColumnBundle()); //clear any previous results
+	logPrintf("Constructing ACE exchange operator ... "); logFlush();
+	bool isSingularAny = false;
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{	matrix M = C[q] ^ W[q]; //positive semi-definite matrix = dagger(C) * (-Vxx) * C (because aXX = -1 used above)
+		bool isSingular = false;
+		eval->psiACE[q] = W[q] * invsqrt(M, 0, 0, &isSingular); //Same effect as Cholesky factorization, but done via diagonalization
+		W[q].free(); //clear memory
+		isSingularAny = isSingularAny or isSingular;
 	}
+	logPrintf("done.\n");
+	//Check and report any singular inversions:
+	mpiWorld->allReduce(isSingularAny, MPIUtil::ReduceLOr);
+	if(isSingularAny)
+		logPrintf("WARNING: singularity encountered in constructing ACE representation.\n");
+	//Mark ACE ready at specified omega:
+	eval->omegaACE = omega;
 }
 
-
-void ExactExchange::applyHamiltonian(double aXX, double omega, int q, const ColumnBundle& Cq, ColumnBundle& HCq)
-{	int iSpin = q / eval->qCount;
-	diagMatrix Fq = eval->Focc[q]; Fq.resize(Cq.nCols());
-	for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
-	{	int ikSrc = ikReduced + iSpin*eval->qCount;
-		eval->calc(ikReduced, q-iSpin*eval->qCount, 2.*aXX, omega, //factor of 2 to account for k <-> q symmetry
-				eval->Focc[ikSrc], eval->Cocc[ikSrc], 0,
-				Fq, Cq, &HCq);
-	}
+//Apply Hamiltonian using ACE representation initialized previously
+double ExactExchange::applyHamiltonian(double aXX, double omega, int q, const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle& HCq) const
+{	assert(omega == eval->omegaACE); //Confirm that ACE representation is ready at required omega
+	const ColumnBundle& psi = eval->psiACE[q]; //ACE projectors for current q
+	matrix psiDagC = psi ^ Cq;
+	if(HCq) HCq -= aXX * (psi * psiDagC);
+	return (-0.5 * aXX * e.eInfo.qnums[q].weight) * trace(psiDagC * Fq * dagger(psiDagC)).real();
 }
 
 
@@ -189,7 +200,8 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 	nSpins(e.eInfo.nSpins()),
 	nSpinor(e.eInfo.spinorLength()),
 	qCount(e.eInfo.nStates/nSpins),
-	blockSize(e.cntrl.exxBlockSize)
+	blockSize(e.cntrl.exxBlockSize),
+	omegaACE(NAN)
 {
 	//Find all symmtries relating each kmesh point to corresponding reduced point:
 	const Supercell& supercell = *(e.coulombParams.supercell);
@@ -396,7 +408,7 @@ double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double 
 }
 
 void ExactExchange::addHamiltonian(double aXX, double omega, int q, matrix& H,
-	const std::vector<int>& iRowsMine, const std::vector<int>& iColsMine)
+	const std::vector<int>& iRowsMine, const std::vector<int>& iColsMine) const
 {
 	logPrintf("\t\tInitializing EXX:"); logFlush();
 	assert(eval->nSpinor == 1); //currently implemented only for non-spinorial calculations

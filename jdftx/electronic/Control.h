@@ -42,6 +42,7 @@ public:
 	bool cacheProjectors; //!< whether to cache nonlocal projectors
 	double davidsonBandRatio; //!< ratio of number of Davidson working bands to actual bands in system (>= 1)
 	int exxBlockSize; //!< number of bands per FFT block used in exact exchange
+	int nOuterVxx; //!< number of outer loop iterations used to converge ACE representation of exact exchange operator
 	
 	ElecEigenAlgo elecEigenAlgo; //!< Eigenvalue algorithm
 	BasisKdep basisKdep; //!< k-dependence of basis
@@ -67,7 +68,7 @@ public:
 	
 	Control()
 	:	fixed_H(false),
-		cacheProjectors(true), davidsonBandRatio(1.1), exxBlockSize(16),
+		cacheProjectors(true), davidsonBandRatio(1.1), exxBlockSize(16), nOuterVxx(20),
 		elecEigenAlgo(ElecEigenDavidson), basisKdep(BasisKpointDep), Ecut(0), EcutRho(0), dragWavefunctions(true),
 		fluidGummel_nIterations(10), fluidGummel_Atol(1e-5),
 		shouldPrintEigsFillings(false), shouldPrintEcomponents(false), shouldPrintMuSearch(false), shouldPrintKpointsBasis(false),

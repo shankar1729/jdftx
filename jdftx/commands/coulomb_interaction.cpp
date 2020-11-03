@@ -234,4 +234,56 @@ struct CommandExchangeRegularization : public Command
 	{	logPrintf("%s", exRegMethodMap.getString(e.coulombParams.exchangeRegularization));
 	}
 }
-commandCoulombParams;
+commandExchangeRegularization;
+
+
+enum ExchangeParamsMember
+{	EPM_blockSize,
+	EPM_nOuterVxx,
+	EPM_Delim
+};
+EnumStringMap<ExchangeParamsMember> epmMap
+(	EPM_blockSize, "blockSize",
+	EPM_nOuterVxx, "nOuterVxx"
+);
+EnumStringMap<ExchangeParamsMember> epmDescMap
+(	EPM_blockSize, "Number of bands in blocks of FFTs used in exact-exchange calculation. Larger values are faster, but need more memory. (Default: 16)",
+	EPM_nOuterVxx, "Maximum number of outer loop iterations to converge ACE exchange operator in SCF and band structure calculations. (Default: 20)"
+);
+struct CommandExchangeParams : public Command
+{
+	CommandExchangeParams() : Command("exchange-params", "jdftx/Coulomb interactions")
+	{	
+		format = "<key1> <value1> <key2> <value2> ...";
+		comments = "Control exact exchange calculations. Possible keys and value types are:"
+			+ addDescriptions(epmMap.optionList(), linkDescription(epmMap, epmDescMap))
+			+ "\n\nAny number of these key-value pairs may be specified in any order.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	while(true)
+		{	ExchangeParamsMember key;
+			pl.get(key, EPM_Delim, epmMap, "key");
+			#define READ_AND_CHECK(param, target, op, val) \
+				case EPM_##param: \
+					pl.get(target, val, #param, true); \
+					if(!(target op val)) throw string(#param " must be " #op " " #val); \
+					break;
+			switch(key)
+			{	READ_AND_CHECK(blockSize, e.cntrl.exxBlockSize, >, 0)
+				READ_AND_CHECK(nOuterVxx, e.cntrl.nOuterVxx, >, 0)
+				case EPM_Delim: return; //end of input
+			}
+			#undef READ_AND_CHECK
+		}
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{
+		#define PRINT(param, target, format) logPrintf(" \\\n\t" #param " " format, target);
+		PRINT(blockSize, e.cntrl.exxBlockSize, "%d")
+		PRINT(nOuterVxx, e.cntrl.nOuterVxx, "%d")
+		#undef PRINT
+	}
+}
+commandExchangeParams;
