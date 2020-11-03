@@ -157,12 +157,12 @@ double ExactExchange::compute(double aXX, double omega,
 
 //Initialize the ACE (Adiabatic Compression of Exchange) representation in preparation for applyHamiltonian
 void ExactExchange::prepareHamiltonian(double omega, const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C)
-{	//Compute the full exchange operator evaluated on each orbital of C in W
+{	logPrintf("Constructing ACE exchange operator ... "); logFlush();
+	//Compute the full exchange operator evaluated on each orbital of C in W
 	std::vector<ColumnBundle> W(e.eInfo.nStates);
 	compute(-1., omega, F, C, &W); //compute with aXX = 1; applyHamiltonian handles the overall scale factor aXX
 	//Construct ACE representation:
 	eval->psiACE.assign(e.eInfo.nStates, ColumnBundle()); //clear any previous results
-	logPrintf("Constructing ACE exchange operator ... "); logFlush();
 	bool isSingularAny = false;
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	matrix M = C[q] ^ W[q]; //positive semi-definite matrix = dagger(C) * (-Vxx) * C (because aXX = -1 used above)
@@ -174,8 +174,7 @@ void ExactExchange::prepareHamiltonian(double omega, const std::vector<diagMatri
 	logPrintf("done.\n");
 	//Check and report any singular inversions:
 	mpiWorld->allReduce(isSingularAny, MPIUtil::ReduceLOr);
-	if(isSingularAny)
-		logPrintf("WARNING: singularity encountered in constructing ACE representation.\n");
+	if(isSingularAny) logPrintf("WARNING: singularity encountered in constructing ACE representation.\n");
 	//Mark ACE ready at specified omega:
 	eval->omegaACE = omega;
 }
