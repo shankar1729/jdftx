@@ -300,9 +300,10 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 	
 	//Set up selected transforms:
 	kpairs.assign(qCount, std::vector<std::vector<KpairEntry>>(qCount));
+	size_t nTransformsMin = transforms[0][0].size(), nTransformsMax = 0;
 	for(int iq=0; iq<qCount; iq++)
 	for(int jq=0; jq<qCount; jq++)
-		for(const Ktransform& kt: transforms[iq][jq])
+	{	for(const Ktransform& kt: transforms[iq][jq])
 		{	KpairEntry kpair;
 			kpair.sym = kt.sym;
 			kpair.invert = kt.invert;
@@ -312,10 +313,14 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 				kpair.setup(e, iq);
 			kpairs[iq][jq].push_back(kpair);
 		}
-	
+		nTransformsMin = std::min(nTransformsMin, transforms[iq][jq].size());
+		nTransformsMax = std::max(nTransformsMax, transforms[iq][jq].size());
+	}
 	//Print cost estimate to give the user some idea of how long it might take!
 	size_t nkPairs = bestScore;
 	logPrintf("Reduced %lu k-pairs to %lu under symmetries.\n", kmesh.size()*kmesh.size(), nkPairs);
+	logPrintf("Transforms per reduced k-pair: %lu min, %lu max, %.1lf mean.\n",
+		nTransformsMin, nTransformsMax, double(nkPairs)/(qCount*qCount));
 	double costFFT = e.eInfo.nStates * e.eInfo.nBands * 9.*e.gInfo.nr*log(e.gInfo.nr);
 	double costBLAS3 = e.eInfo.nStates * pow(e.eInfo.nBands,2) * e.basis[0].nbasis;
 	double costSemiLocal = (8 * costBLAS3 + 3 * costFFT) * (qCount * e.eInfo.nBands); //rough estimate
