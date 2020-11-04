@@ -349,34 +349,34 @@ double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double 
 	if(CkRed.qnum->spin != qnum_q.spin) return 0.;
 	int nBlocks = ceildiv(Cq.nCols(), blockSize);
 	double EXX = 0.;
-	for(const KpairEntry& kpair: kpairs[ikReduced][iqReduced])
-	{	//Prepare ik state and gradient:
-		const Basis& basis_k = *(kpair.basis);
-		QuantumNumber qnum_k = *(CkRed.qnum); qnum_k.k =  kpair.k;
-		ColumnBundle Ck(CkRed.nCols(), basis_k.nbasis*nSpinor, &basis_k, &qnum_k, isGpuEnabled()), HCk;
-		if(HCkRed) { HCk = Ck.similar(); HCk.zero(); }
-		Ck.zero();
-		kpair.transform->scatterAxpy(1., CkRed, Ck,0,1);
-		const double prefac = -0.5*aXX * kpair.weight / (qnum_k.weight * qnum_q.weight);
-		
-		//Loop over blocks:
-		int bqStart = 0;
-		for(int iBlock=0; iBlock<nBlocks; iBlock++)
-		{	int bqStop = std::min(bqStart+blockSize, Cq.nCols());
-			//Prepare q-states in real space:
-			std::vector<std::vector<complexScalarField>> Ipsiq(bqStop-bqStart), grad_Ipsiq;
-			if(HCq) grad_Ipsiq.assign(bqStop-bqStart, std::vector<complexScalarField>(nSpinor));
-			for(int bq=bqStart; bq<bqStop; bq++)
-			{	Ipsiq[bq-bqStart].resize(nSpinor);
-				for(int s=0; s<nSpinor; s++)
-					Ipsiq[bq-bqStart][s] = I(Cq.getColumn(bq,s));
-			}
-			//Loop over k-states:
-			for(int bk=0; bk<Ck.nCols(); bk++)
-			{	//Put this state in real space:
+	//Loop over blocks:
+	int bqStart = 0;
+	for(int iBlock=0; iBlock<nBlocks; iBlock++)
+	{	int bqStop = std::min(bqStart+blockSize, Cq.nCols());
+		//Prepare q-states in real space:
+		std::vector<std::vector<complexScalarField>> Ipsiq(bqStop-bqStart), grad_Ipsiq;
+		if(HCq) grad_Ipsiq.assign(bqStop-bqStart, std::vector<complexScalarField>(nSpinor));
+		for(int bq=bqStart; bq<bqStop; bq++)
+		{	Ipsiq[bq-bqStart].resize(nSpinor);
+			for(int s=0; s<nSpinor; s++)
+				Ipsiq[bq-bqStart][s] = I(Cq.getColumn(bq,s));
+		}
+		//Loop over k-states:
+		for(int bk=0; bk<CkRed.nCols(); bk++)
+		{	//Loop over symmetry transformations of this k-state:
+			for(const KpairEntry& kpair: kpairs[ikReduced][iqReduced])
+			{	//Prepare transformed k-state and gradient in reciprocal space:
+				const Basis& basis_k = *(kpair.basis);
+				QuantumNumber qnum_k = *(CkRed.qnum); qnum_k.k =  kpair.k;
+				ColumnBundle Ck(1, basis_k.nbasis*nSpinor, &basis_k, &qnum_k, isGpuEnabled()), HCk;
+				if(HCkRed) { HCk = Ck.similar(); HCk.zero(); }
+				Ck.zero();
+				kpair.transform->scatterAxpy(1., CkRed,bk, Ck,0);
+				const double prefac = -0.5*aXX * kpair.weight / (qnum_k.weight * qnum_q.weight);
+				//Put this state in real space:
 				std::vector<complexScalarField> Ipsik(nSpinor), grad_Ipsik(nSpinor);
 				for(int s=0; s<nSpinor; s++)
-					Ipsik[s] = I(Ck.getColumn(bk,s));
+					Ipsik[s] = I(Ck.getColumn(0,s));
 				double wFk = qnum_k.weight * Fk[bk];
 				//Loop over q-bands within block:
 				for(int bq=bqStart; bq<bqStop; bq++)
@@ -397,25 +397,23 @@ double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double 
 					}
 					if(EXX_RRT) *EXX_RRT += (prefac*wFk*wFq) * e.coulombWfns->latticeGradient(n, qnum_q.k-qnum_k.k, omega); //Stress contribution
 				}
-				//Convert k-state gradients back to reciprocal space (if needed):
+				//Convert k-state gradients back to reciprocal space and transform back (if needed):
 				if(HCk)
 				{	for(int s=0; s<nSpinor; s++)
 						if(grad_Ipsik[s])
-							HCk.accumColumn(bk,s, Idag(grad_Ipsik[s]));
+							HCk.accumColumn(0,s, Idag(grad_Ipsik[s]));
+					kpair.transform->gatherAxpy(1., HCk,0, *HCkRed,bk);
 				}
 			}
-			//Convert q-state gradients back to reciprocal space (if needed):
-			if(HCq)
-			{	for(int bq=bqStart; bq<bqStop; bq++)
-					for(int s=0; s<nSpinor; s++)
-						if(grad_Ipsiq[bq-bqStart][s])
-							HCq->accumColumn(bq,s, Idag(grad_Ipsiq[bq-bqStart][s]));
-			}
-			bqStart = bqStop;
 		}
-		
-		//Transform HCk to HCkRed (if needed)
-		if(HCk) kpair.transform->gatherAxpy(1., HCk,0,1, *HCkRed);
+		//Convert q-state gradients back to reciprocal space (if needed):
+		if(HCq)
+		{	for(int bq=bqStart; bq<bqStop; bq++)
+				for(int s=0; s<nSpinor; s++)
+					if(grad_Ipsiq[bq-bqStart][s])
+						HCq->accumColumn(bq,s, Idag(grad_Ipsiq[bq-bqStart][s]));
+		}
+		bqStart = bqStop;
 	}
 	return EXX;
 }
