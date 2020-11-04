@@ -98,7 +98,10 @@ double ExactExchange::operator()(double aXX, double omega,
 	}
 	else
 	{	//Compute full operator (if no ACE ready, or need lattice gradient):
-		return compute(aXX, omega, F, C, HC, EXX_RRTptr);
+		logPrintf("Computing exact exchange ... "); logFlush();
+		double EXX = compute(aXX, omega, F, C, HC, EXX_RRTptr);
+		logPrintf("done.\n");
+		return EXX;
 	}
 }
 
@@ -118,6 +121,7 @@ double ExactExchange::compute(double aXX, double omega,
 	//Calculate:
 	double EXX = 0.;
 	matrix3<> EXX_RRT; //computed only if EXX_RRTptr is non-null
+	int ikSrcInterval = std::max(1, int(round(e.eInfo.nStates/20.))); //interval for reporting progress
 	for(int iSpin=0; iSpin<eval->nSpins; iSpin++)
 		for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
 		{
@@ -145,6 +149,12 @@ double ExactExchange::compute(double aXX, double omega,
 			
 			//Move ik state gradient back to host process (if necessary):
 			if(HC) mpiWorld->reduceData(HCkRed, MPIUtil::ReduceSum, e.eInfo.whose(ikSrc));
+			
+			//Report progress:
+			if((ikSrc+1) % ikSrcInterval == 0)
+			{	logPrintf("%d%% ", int(round((ikSrc+1)*100./e.eInfo.nStates)));
+				logFlush();
+			}
 		}
 	mpiWorld->allReduce(EXX, MPIUtil::ReduceSum, true);
 	if(EXX_RRTptr)
