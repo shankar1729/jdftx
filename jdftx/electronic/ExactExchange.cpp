@@ -52,9 +52,16 @@ public:
 		}
 	};
 	std::vector<std::vector<std::vector<KpairEntry>>> kpairs; //list of transformations (inner index) for each pair of untransformed q (middle index) and transformed k (outer index)
+	std::vector<int> iqStartProc, bStartProc; //start iqReduced and band indices on each process for best load balancing
 	
-	//! Calculate for one pair of transformed ik and untransformed iq
-	double calc(int ikReduced, int iqReduced, double aXX, double omega,
+	//! Calculate exchange operator and return energy
+	double compute(double aXX, double omega,
+		const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
+		std::vector<ColumnBundle>* HC=0, matrix3<>* EXX_RRT=0) const;
+	
+	//! Calculate exchange contributions for one pair of transformed ik and untransformed iq.
+	//! Gradients are only accumulated to untransformed iq, taking advantage of Hermitian symmetry of exchange operator.
+	double computePair(int ikReduced, int iqReduced, double aXX, double omega,
 		const diagMatrix& Fk, const ColumnBundle& CkRed, const diagMatrix& Fq, const ColumnBundle& Cq,
 		ColumnBundle* HCq, matrix3<>* EXX_RRT=0) const;
 	
@@ -99,64 +106,10 @@ double ExactExchange::operator()(double aXX, double omega,
 	else
 	{	//Compute full operator (if no ACE ready, or need lattice gradient):
 		logPrintf("Computing exact exchange ... "); logFlush();
-		double EXX = compute(aXX, omega, F, C, HC, EXX_RRTptr);
+		double EXX = eval->compute(aXX, omega, F, C, HC, EXX_RRTptr);
 		logPrintf("done.\n");
 		return EXX;
 	}
-}
-
-double ExactExchange::compute(double aXX, double omega, 
-	const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr) const
-{	static StopWatch watch("ExactExchange"); watch.start();
-
-	//Prepare outputs:
-	if(HC)
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			if(!(*HC)[q])
-			{	(*HC)[q] = C[q].similar();
-				(*HC)[q].zero();
-			}
-	
-	//Calculate:
-	double EXX = 0.;
-	matrix3<> EXX_RRT; //computed only if EXX_RRTptr is non-null
-	int ikSrcInterval = std::max(1, int(round(e.eInfo.nStates/20.))); //interval for reporting progress
-	for(int iSpin=0; iSpin<eval->nSpins; iSpin++)
-		for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
-		{
-			//Prepare (reduced) ik state on all processes:
-			int ikSrc = ikReduced + iSpin*eval->qCount; //source state number
-			ColumnBundle CkTmp;
-			diagMatrix Fk(e.eInfo.nBands);
-			if(e.eInfo.isMine(ikSrc))
-				Fk = F[ikSrc];
-			else
-				CkTmp.init(e.eInfo.nBands, e.basis[ikSrc].nbasis*eval->nSpinor, &(e.basis[ikSrc]), &(e.eInfo.qnums[ikSrc]), isGpuEnabled());
-			ColumnBundle& CkRed = e.eInfo.isMine(ikSrc) ? (ColumnBundle&)(C[ikSrc]) : CkTmp; 
-			mpiWorld->bcastData(CkRed, e.eInfo.whose(ikSrc));
-			mpiWorld->bcastData(Fk, e.eInfo.whose(ikSrc));
-			
-			//Calculate energy (and gradient):
-			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-				EXX += eval->calc(ikReduced, q-iSpin*eval->qCount, aXX, omega,
-					Fk, CkRed, F[q], C[q],
-					HC ? &(HC->at(q)) : 0,
-					EXX_RRTptr ? &EXX_RRT : 0);
-			
-			//Report progress:
-			if((ikSrc+1) % ikSrcInterval == 0)
-			{	logPrintf("%d%% ", int(round((ikSrc+1)*100./e.eInfo.nStates)));
-				logFlush();
-			}
-		}
-	mpiWorld->allReduce(EXX, MPIUtil::ReduceSum, true);
-	if(EXX_RRTptr)
-	{	mpiWorld->allReduce(EXX_RRT, MPIUtil::ReduceSum, true);
-		*EXX_RRTptr += EXX_RRT;
-	}
-	watch.stop();
-	return EXX;
 }
 
 //Initialize the ACE (Adiabatic Compression of Exchange) representation in preparation for applyHamiltonian
@@ -164,7 +117,7 @@ void ExactExchange::prepareHamiltonian(double omega, const std::vector<diagMatri
 {	logPrintf("Constructing ACE exchange operator ... "); logFlush();
 	//Compute the full exchange operator evaluated on each orbital of C in W
 	std::vector<ColumnBundle> W(e.eInfo.nStates);
-	compute(-1., omega, F, C, &W); //compute with aXX = 1; applyHamiltonian handles the overall scale factor aXX
+	eval->compute(-1., omega, F, C, &W); //compute with aXX = 1; applyHamiltonian handles the overall scale factor aXX
 	//Construct ACE representation:
 	eval->psiACE.assign(e.eInfo.nStates, ColumnBundle()); //clear any previous results
 	bool isSingularAny = false;
@@ -192,6 +145,93 @@ double ExactExchange::applyHamiltonian(double aXX, double omega, int q, const di
 	return (-0.5 * aXX * e.eInfo.qnums[q].weight) * trace(psiDagC * Fq * dagger(psiDagC)).real();
 }
 
+//Construct dense version of EXX Hamiltonian
+void ExactExchange::addHamiltonian(double aXX, double omega, int q, matrix& H,
+	const std::vector<int>& iRowsMine, const std::vector<int>& iColsMine) const
+{
+	logPrintf("\t\tInitializing EXX:"); logFlush();
+	assert(eval->nSpinor == 1); //currently implemented only for non-spinorial calculations
+	
+	//Setup:
+	int iSpin = q / eval->qCount;
+	int iqReduced = q - iSpin*eval->qCount;
+	int nColOrbitals = 0;
+	for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
+		nColOrbitals += eval->kpairs[ikReduced][iqReduced].size() * e.eInfo.nBands * iColsMine.size();
+	int iColOrbInterval = std::max(1, int(round(nColOrbitals/20.))); //interval for reporting progress
+	const double Fcut = 1e-8; //threshold for determining occupied states
+	const QuantumNumber& qnum_q = e.eInfo.qnums[q];
+	const Basis& basis_q = e.basis[q];
+	const vector3<int>* iGqArr = basis_q.iGarr.data();
+	const GridInfo& gInfoWfns = e.gInfoWfns ? *(e.gInfoWfns) : e.gInfo;
+	
+	//Loop over k orbitals:
+	int iColOrbital = 0;
+	for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
+	{	int ikSrc = ikReduced + iSpin*eval->qCount;
+		for(ExactExchangeEval::KpairEntry kpair: eval->kpairs[ikReduced][iqReduced])
+		{	//Set up qnum and basis on all processes (and column transform on ikSrc owner):
+			QuantumNumber qnum_k = e.eInfo.qnums[ikSrc]; qnum_k.k =  kpair.k;
+			kpair.setup(e, ikReduced, e.eInfo.isMine(ikSrc));
+			const Basis& basis_k = *(kpair.basis);
+			const vector3<int>* iGkArr = basis_k.iGarr.data();
+			ColumnBundle Ckb(1, basis_k.nbasis, &basis_k, &qnum_k, isGpuEnabled());
+			//Broadcast fillings:
+			diagMatrix Fk(e.eInfo.nBands);
+			if(e.eInfo.isMine(ikSrc))
+				Fk = e.eVars.F[ikSrc];
+			mpiWorld->bcastData(Fk, e.eInfo.whose(ikSrc));
+			//Loop over occupied k bands:
+			for(int b=0; b<e.eInfo.nBands; b++) 
+			{	if(Fk[b] > Fcut)
+				{
+					//Broadcast k orbital:
+					if(e.eInfo.isMine(ikSrc))
+					{	Ckb.zero();
+						kpair.transform->scatterAxpy(1., e.eVars.C[ikSrc],b, Ckb,0);
+					}
+					mpiWorld->bcastData(Ckb, e.eInfo.whose(ikSrc));
+					const complex* CkbData = Ckb.data();
+					const double prefac = -aXX * Fk[b] * kpair.weight / qnum_q.weight;
+					
+					//Loop over local columns of iG:
+					complexScalarFieldTilde psi_kbConj;
+					nullToZero(psi_kbConj, gInfoWfns);
+					complex* Hdata = H.data();
+					for(int j: iColsMine)
+					{
+						//Expand psi_kb with Gj offset:
+						psi_kbConj->zero();
+						complex* psiData = psi_kbConj->data();
+						for(size_t n=0; n<basis_k.nbasis; n++)
+							psiData[gInfoWfns.fullGindex(iGqArr[j] - iGkArr[n])] = CkbData[n].conj();
+						
+						//Apply Coulomb operator:
+						complexScalarFieldTilde Kpsi = (*e.coulombWfns)(psi_kbConj, qnum_q.k-qnum_k.k, omega);
+						const complex* KpsiData = Kpsi->data();
+						
+						//Collect results for each row:
+						for(int i: iRowsMine)
+						{	complex result;
+							for(size_t n=0; n<basis_k.nbasis; n++)
+								result += CkbData[n] * KpsiData[gInfoWfns.fullGindex(iGqArr[i] - iGkArr[n])];
+							*(Hdata++) += prefac * result;
+						}
+						
+						//Report progress:
+						iColOrbital++;
+						if(iColOrbital % iColOrbInterval == 0)
+						{	logPrintf(" %d%%", int(round(iColOrbital*100./nColOrbitals)));
+							logFlush();
+						}
+					}
+				}
+				else iColOrbital += iColsMine.size();
+			}
+		}
+	}
+	logPrintf(" done.\n"); logFlush();
+}
 
 //--------------- class ExactExchangeEval implementation ----------------------
 
@@ -305,7 +345,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 	//Set up selected transforms:
 	kpairs.assign(qCount, std::vector<std::vector<KpairEntry>>(qCount));
 	size_t nTransformsMin = transforms[0][0].size(), nTransformsMax = 0;
-	std::vector<size_t> nTransformsSum(qCount); //total nTransforms for each iq, initially on jq of this process
+	std::vector<size_t> jCost(qCount); //estimated relative cost of a band in each jq
 	for(int iq=0; iq<qCount; iq++)
 	for(int jq=0; jq<qCount; jq++)
 	{	for(const Ktransform& kt: transforms[iq][jq])
@@ -320,24 +360,42 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 		}
 		nTransformsMin = std::min(nTransformsMin, transforms[iq][jq].size());
 		nTransformsMax = std::max(nTransformsMax, transforms[iq][jq].size());
-		if(e.eInfo.isMine(jq)) nTransformsSum[iq] += transforms[iq][jq].size();
+		jCost[jq] += transforms[iq][jq].size();
 	}
-	//Estimate load imbalance due to mismatch in number of transforms:
-	double costMine = 0; for(size_t c: nTransformsSum) costMine += c; //evaluate actual nTransforms computed
-	mpiWorld->allReduce(costMine, MPIUtil::ReduceSum);
-	double costMineAvg = costMine/mpiWorld->nProcesses();
-	mpiWorld->allReduceData(nTransformsSum, MPIUtil::ReduceMax); //max per iq to account for synchronization in compute()
-	double costWait = 0; for(size_t c: nTransformsSum) costWait += c; //evaluate effective nTransforms computed accounting for waiting on other processes
-	double imbalance = costWait / costMineAvg;
-	//Print cost estimate to give the user some idea of how long it might take!
 	size_t nkPairs = bestScore;
 	logPrintf("Reduced %lu k-pairs to %lu under symmetries.\n", kmesh.size()*kmesh.size(), nkPairs);
-	logPrintf("Transforms per reduced k-pair: %lu min, %lu max, %.1lf mean. Load imbalance slowdown: %.1lf\n",
-		nTransformsMin, nTransformsMax, double(nkPairs)/(qCount*qCount), imbalance);
+	logPrintf("Transforms per reduced k-pair: %lu min, %lu max, %.1lf mean.\n",
+		nTransformsMin, nTransformsMax, double(nkPairs)/(qCount*qCount));
+	
+	//Determine band/state division for load balancing:
+	iqStartProc.resize(mpiWorld->nProcesses()+1);
+	bStartProc.resize(mpiWorld->nProcesses()+1);
+	if(mpiWorld->isHead())
+	{	//Determine cumulative cost estimate before a given band
+		std::vector<size_t> jCostPrev(qCount*e.eInfo.nBands+1);
+		int jIndex = 0;
+		for(int jq=0; jq<qCount; jq++)
+			for(int bq=0; bq<e.eInfo.nBands; bq++)
+			{	jCostPrev[jIndex+1] = jCostPrev[jIndex] + jCost[jq];
+				jIndex++;
+			}
+		//Determine start jIndex for each process:
+		for(int jProc=0; jProc<=mpiWorld->nProcesses(); jProc++)
+		{	size_t costTarget = (jProc * jCostPrev.back())/mpiWorld->nProcesses(); //for equal distribution
+			jIndex = std::lower_bound(jCostPrev.begin(), jCostPrev.end(), costTarget) - jCostPrev.begin();
+			//Split to reduced-state and band indices:
+			iqStartProc[jProc] = jIndex / e.eInfo.nBands;
+			bStartProc[jProc] = jIndex - iqStartProc[jProc] * e.eInfo.nBands;
+		}
+	}
+	mpiWorld->bcastData(iqStartProc);
+	mpiWorld->bcastData(bStartProc);
+	
+	//Print cost estimate to give the user some idea of how long it might take!
 	double costFFT = e.eInfo.nStates * e.eInfo.nBands * 9.*e.gInfo.nr*log(e.gInfo.nr);
 	double costBLAS3 = e.eInfo.nStates * pow(e.eInfo.nBands,2) * e.basis[0].nbasis;
 	double costSemiLocal = (8 * costBLAS3 + 3 * costFFT) * (qCount * e.eInfo.nBands); //rough estimate
-	double costEXX = costFFT * ( nkPairs * imbalance * std::pow(e.eInfo.nBands,2) );
+	double costEXX = costFFT * ( nkPairs * std::pow(e.eInfo.nBands,2) );
 	double relativeCost = 1+costEXX/costSemiLocal;
 	double relativeCostOrder = pow(10, floor(log(relativeCost)/log(10)));
 	relativeCost = round(relativeCost/relativeCostOrder) * relativeCostOrder; //eliminate extra sigfigs
@@ -345,7 +403,61 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 }
 
 
-double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double omega,
+double ExactExchangeEval::compute(double aXX, double omega, 
+	const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
+	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr) const
+{	static StopWatch watch("ExactExchange"); watch.start();
+
+	//Prepare outputs:
+	if(HC)
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+			if(!(*HC)[q])
+			{	(*HC)[q] = C[q].similar();
+				(*HC)[q].zero();
+			}
+	
+	//Calculate:
+	double EXX = 0.;
+	matrix3<> EXX_RRT; //computed only if EXX_RRTptr is non-null
+	int ikSrcInterval = std::max(1, int(round(e.eInfo.nStates/20.))); //interval for reporting progress
+	for(int iSpin=0; iSpin<nSpins; iSpin++)
+		for(int ikReduced=0; ikReduced<qCount; ikReduced++)
+		{
+			//Prepare (reduced) ik state on all processes:
+			int ikSrc = ikReduced + iSpin*qCount; //source state number
+			ColumnBundle CkTmp;
+			diagMatrix Fk(e.eInfo.nBands);
+			if(e.eInfo.isMine(ikSrc))
+				Fk = F[ikSrc];
+			else
+				CkTmp.init(e.eInfo.nBands, e.basis[ikSrc].nbasis*nSpinor, &(e.basis[ikSrc]), &(e.eInfo.qnums[ikSrc]), isGpuEnabled());
+			ColumnBundle& CkRed = e.eInfo.isMine(ikSrc) ? (ColumnBundle&)(C[ikSrc]) : CkTmp; 
+			mpiWorld->bcastData(CkRed, e.eInfo.whose(ikSrc));
+			mpiWorld->bcastData(Fk, e.eInfo.whose(ikSrc));
+			
+			//Calculate energy (and gradient):
+			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+				EXX += computePair(ikReduced, q-iSpin*qCount, aXX, omega,
+					Fk, CkRed, F[q], C[q],
+					HC ? &(HC->at(q)) : 0,
+					EXX_RRTptr ? &EXX_RRT : 0);
+			
+			//Report progress:
+			if((ikSrc+1) % ikSrcInterval == 0)
+			{	logPrintf("%d%% ", int(round((ikSrc+1)*100./e.eInfo.nStates)));
+				logFlush();
+			}
+		}
+	mpiWorld->allReduce(EXX, MPIUtil::ReduceSum, true);
+	if(EXX_RRTptr)
+	{	mpiWorld->allReduce(EXX_RRT, MPIUtil::ReduceSum, true);
+		*EXX_RRTptr += EXX_RRT;
+	}
+	watch.stop();
+	return EXX;
+}
+
+double ExactExchangeEval::computePair(int ikReduced, int iqReduced, double aXX, double omega,
 	const diagMatrix& Fk, const ColumnBundle& CkRed, const diagMatrix& Fq, const ColumnBundle& Cq,
 	ColumnBundle* HCq, matrix3<>* EXX_RRT) const
 {
@@ -410,92 +522,4 @@ double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double 
 		bqStart = bqStop;
 	}
 	return EXX;
-}
-
-void ExactExchange::addHamiltonian(double aXX, double omega, int q, matrix& H,
-	const std::vector<int>& iRowsMine, const std::vector<int>& iColsMine) const
-{
-	logPrintf("\t\tInitializing EXX:"); logFlush();
-	assert(eval->nSpinor == 1); //currently implemented only for non-spinorial calculations
-	
-	//Setup:
-	int iSpin = q / eval->qCount;
-	int iqReduced = q - iSpin*eval->qCount;
-	int nColOrbitals = 0;
-	for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
-		nColOrbitals += eval->kpairs[ikReduced][iqReduced].size() * e.eInfo.nBands * iColsMine.size();
-	int iColOrbInterval = std::max(1, int(round(nColOrbitals/20.))); //interval for reporting progress
-	const double Fcut = 1e-8; //threshold for determining occupied states
-	const QuantumNumber& qnum_q = e.eInfo.qnums[q];
-	const Basis& basis_q = e.basis[q];
-	const vector3<int>* iGqArr = basis_q.iGarr.data();
-	const GridInfo& gInfoWfns = e.gInfoWfns ? *(e.gInfoWfns) : e.gInfo;
-	
-	//Loop over k orbitals:
-	int iColOrbital = 0;
-	for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
-	{	int ikSrc = ikReduced + iSpin*eval->qCount;
-		for(ExactExchangeEval::KpairEntry kpair: eval->kpairs[ikReduced][iqReduced])
-		{	//Set up qnum and basis on all processes (and column transform on ikSrc owner):
-			QuantumNumber qnum_k = e.eInfo.qnums[ikSrc]; qnum_k.k =  kpair.k;
-			kpair.setup(e, ikReduced, e.eInfo.isMine(ikSrc));
-			const Basis& basis_k = *(kpair.basis);
-			const vector3<int>* iGkArr = basis_k.iGarr.data();
-			ColumnBundle Ckb(1, basis_k.nbasis, &basis_k, &qnum_k, isGpuEnabled());
-			//Broadcast fillings:
-			diagMatrix Fk(e.eInfo.nBands);
-			if(e.eInfo.isMine(ikSrc))
-				Fk = e.eVars.F[ikSrc];
-			mpiWorld->bcastData(Fk, e.eInfo.whose(ikSrc));
-			//Loop over occupied k bands:
-			for(int b=0; b<e.eInfo.nBands; b++) 
-			{	if(Fk[b] > Fcut)
-				{
-					//Broadcast k orbital:
-					if(e.eInfo.isMine(ikSrc))
-					{	Ckb.zero();
-						kpair.transform->scatterAxpy(1., e.eVars.C[ikSrc],b, Ckb,0);
-					}
-					mpiWorld->bcastData(Ckb, e.eInfo.whose(ikSrc));
-					const complex* CkbData = Ckb.data();
-					const double prefac = -aXX * Fk[b] * kpair.weight / qnum_q.weight;
-					
-					//Loop over local columns of iG:
-					complexScalarFieldTilde psi_kbConj;
-					nullToZero(psi_kbConj, gInfoWfns);
-					complex* Hdata = H.data();
-					for(int j: iColsMine)
-					{
-						//Expand psi_kb with Gj offset:
-						psi_kbConj->zero();
-						complex* psiData = psi_kbConj->data();
-						for(size_t n=0; n<basis_k.nbasis; n++)
-							psiData[gInfoWfns.fullGindex(iGqArr[j] - iGkArr[n])] = CkbData[n].conj();
-						
-						//Apply Coulomb operator:
-						complexScalarFieldTilde Kpsi = (*e.coulombWfns)(psi_kbConj, qnum_q.k-qnum_k.k, omega);
-						const complex* KpsiData = Kpsi->data();
-						
-						//Collect results for each row:
-						for(int i: iRowsMine)
-						{	complex result;
-							for(size_t n=0; n<basis_k.nbasis; n++)
-								result += CkbData[n] * KpsiData[gInfoWfns.fullGindex(iGqArr[i] - iGkArr[n])];
-							*(Hdata++) += prefac * result;
-						}
-						
-						//Report progress:
-						iColOrbital++;
-						if(iColOrbital % iColOrbInterval == 0)
-						{	logPrintf(" %d%%", int(round(iColOrbital*100./nColOrbitals)));
-							logFlush();
-						}
-					}
-				}
-				else iColOrbital += iColsMine.size();
-			}
-		}
-	}
-	
-	logPrintf(" done.\n"); logFlush();
 }

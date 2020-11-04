@@ -59,11 +59,6 @@ public:
 private:
 	const Everything& e;
 	class ExactExchangeEval* eval; //!< opaque pointer to an internal computation class
-	
-	//!Internal implementation of operator() that always computes full exchange operator (regardless of whether ACE is ready)
-	double compute(double aXX, double omega,
-		const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-		std::vector<ColumnBundle>* HC=0, matrix3<>* EXX_RRT=0) const;
 };
 
 //! @}
