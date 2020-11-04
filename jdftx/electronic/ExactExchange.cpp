@@ -208,7 +208,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 		inline bool operator==(const Ktransform& kt) const
 		{	if(invert != kt.invert) return false;
 			if(sym.rot != kt.sym.rot) return false;
-			return (sym.a - kt.sym.a).length_squared() < symmThresholdSq;
+			return circDistanceSquared(sym.a, kt.sym.a) < symmThresholdSq;
 		}
 	};
 	struct KmeshEntry { int iReduced; std::vector<Ktransform> transform; };
@@ -301,6 +301,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 	//Set up selected transforms:
 	kpairs.assign(qCount, std::vector<std::vector<KpairEntry>>(qCount));
 	size_t nTransformsMin = transforms[0][0].size(), nTransformsMax = 0;
+	std::vector<size_t> nTransformsSum(qCount); //total nTransforms for each iq, initially on jq of this process
 	for(int iq=0; iq<qCount; iq++)
 	for(int jq=0; jq<qCount; jq++)
 	{	for(const Ktransform& kt: transforms[iq][jq])
@@ -315,16 +316,24 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 		}
 		nTransformsMin = std::min(nTransformsMin, transforms[iq][jq].size());
 		nTransformsMax = std::max(nTransformsMax, transforms[iq][jq].size());
+		if(e.eInfo.isMine(jq)) nTransformsSum[iq] += transforms[iq][jq].size();
 	}
+	//Estimate load imbalance due to mismatch in number of transforms:
+	double costMine = 0; for(size_t c: nTransformsSum) costMine += c; //evaluate actual nTransforms computed
+	mpiWorld->allReduce(costMine, MPIUtil::ReduceSum);
+	double costMineAvg = costMine/mpiWorld->nProcesses();
+	mpiWorld->allReduceData(nTransformsSum, MPIUtil::ReduceMax); //max per iq to account for synchronization in compute()
+	double costWait = 0; for(size_t c: nTransformsSum) costWait += c; //evaluate effective nTransforms computed accounting for waiting on other processes
+	double imbalance = costWait / costMineAvg;
 	//Print cost estimate to give the user some idea of how long it might take!
 	size_t nkPairs = bestScore;
 	logPrintf("Reduced %lu k-pairs to %lu under symmetries.\n", kmesh.size()*kmesh.size(), nkPairs);
-	logPrintf("Transforms per reduced k-pair: %lu min, %lu max, %.1lf mean.\n",
-		nTransformsMin, nTransformsMax, double(nkPairs)/(qCount*qCount));
+	logPrintf("Transforms per reduced k-pair: %lu min, %lu max, %.1lf mean. Load imbalance slowdown: %.1lf\n",
+		nTransformsMin, nTransformsMax, double(nkPairs)/(qCount*qCount), imbalance);
 	double costFFT = e.eInfo.nStates * e.eInfo.nBands * 9.*e.gInfo.nr*log(e.gInfo.nr);
 	double costBLAS3 = e.eInfo.nStates * pow(e.eInfo.nBands,2) * e.basis[0].nbasis;
 	double costSemiLocal = (8 * costBLAS3 + 3 * costFFT) * (qCount * e.eInfo.nBands); //rough estimate
-	double costEXX = costFFT * ( nkPairs * std::pow(e.eInfo.nBands,2) );
+	double costEXX = costFFT * ( nkPairs * imbalance * std::pow(e.eInfo.nBands,2) );
 	double relativeCost = 1+costEXX/costSemiLocal;
 	double relativeCostOrder = pow(10, floor(log(relativeCost)/log(10)));
 	relativeCost = round(relativeCost/relativeCostOrder) * relativeCostOrder; //eliminate extra sigfigs
