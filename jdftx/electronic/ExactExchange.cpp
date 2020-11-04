@@ -55,8 +55,8 @@ public:
 	
 	//! Calculate for one pair of transformed ik and untransformed iq
 	double calc(int ikReduced, int iqReduced, double aXX, double omega,
-		const diagMatrix& Fk, const ColumnBundle& CkRed, ColumnBundle* HCkRed,
-		const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle* HCq, matrix3<>* EXX_RRT=0) const;
+		const diagMatrix& Fk, const ColumnBundle& CkRed, const diagMatrix& Fq, const ColumnBundle& Cq,
+		ColumnBundle* HCq, matrix3<>* EXX_RRT=0) const;
 	
 private:
 	friend class ExactExchange;
@@ -125,30 +125,24 @@ double ExactExchange::compute(double aXX, double omega,
 	for(int iSpin=0; iSpin<eval->nSpins; iSpin++)
 		for(int ikReduced=0; ikReduced<eval->qCount; ikReduced++)
 		{
-			//Prepare (reduced) ik state and gradient on all processes:
+			//Prepare (reduced) ik state on all processes:
 			int ikSrc = ikReduced + iSpin*eval->qCount; //source state number
-			ColumnBundle CkTmp, HCkTmp;
+			ColumnBundle CkTmp;
 			diagMatrix Fk(e.eInfo.nBands);
 			if(e.eInfo.isMine(ikSrc))
 				Fk = F[ikSrc];
 			else
-			{	CkTmp.init(e.eInfo.nBands, e.basis[ikSrc].nbasis*eval->nSpinor, &(e.basis[ikSrc]), &(e.eInfo.qnums[ikSrc]), isGpuEnabled());
-				if(HC) { HCkTmp = CkTmp.similar(); HCkTmp.zero(); }
-			}
+				CkTmp.init(e.eInfo.nBands, e.basis[ikSrc].nbasis*eval->nSpinor, &(e.basis[ikSrc]), &(e.eInfo.qnums[ikSrc]), isGpuEnabled());
 			ColumnBundle& CkRed = e.eInfo.isMine(ikSrc) ? (ColumnBundle&)(C[ikSrc]) : CkTmp; 
 			mpiWorld->bcastData(CkRed, e.eInfo.whose(ikSrc));
 			mpiWorld->bcastData(Fk, e.eInfo.whose(ikSrc));
-			ColumnBundle& HCkRed = (HC && e.eInfo.isMine(ikSrc)) ? (*HC)[ikSrc] : HCkTmp;
 			
 			//Calculate energy (and gradient):
 			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 				EXX += eval->calc(ikReduced, q-iSpin*eval->qCount, aXX, omega,
-					Fk, CkRed, HC ? &HCkRed : 0,
-					F[q], C[q], HC ? &(HC->at(q)) : 0,
+					Fk, CkRed, F[q], C[q],
+					HC ? &(HC->at(q)) : 0,
 					EXX_RRTptr ? &EXX_RRT : 0);
-			
-			//Move ik state gradient back to host process (if necessary):
-			if(HC) mpiWorld->reduceData(HCkRed, MPIUtil::ReduceSum, e.eInfo.whose(ikSrc));
 			
 			//Report progress:
 			if((ikSrc+1) % ikSrcInterval == 0)
@@ -352,8 +346,8 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 
 
 double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double omega,
-	const diagMatrix& Fk, const ColumnBundle& CkRed, ColumnBundle* HCkRed,
-	const diagMatrix& Fq, const ColumnBundle& Cq, ColumnBundle* HCq, matrix3<>* EXX_RRT) const
+	const diagMatrix& Fk, const ColumnBundle& CkRed, const diagMatrix& Fq, const ColumnBundle& Cq,
+	ColumnBundle* HCq, matrix3<>* EXX_RRT) const
 {
 	const QuantumNumber& qnum_q = *(Cq.qnum);
 	if(CkRed.qnum->spin != qnum_q.spin) return 0.;
@@ -375,16 +369,15 @@ double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double 
 		for(int bk=0; bk<CkRed.nCols(); bk++)
 		{	//Loop over symmetry transformations of this k-state:
 			for(const KpairEntry& kpair: kpairs[ikReduced][iqReduced])
-			{	//Prepare transformed k-state and gradient in reciprocal space:
+			{	//Prepare transformed k-state in reciprocal space:
 				const Basis& basis_k = *(kpair.basis);
 				QuantumNumber qnum_k = *(CkRed.qnum); qnum_k.k =  kpair.k;
-				ColumnBundle Ck(1, basis_k.nbasis*nSpinor, &basis_k, &qnum_k, isGpuEnabled()), HCk;
-				if(HCkRed) { HCk = Ck.similar(); HCk.zero(); }
+				ColumnBundle Ck(1, basis_k.nbasis*nSpinor, &basis_k, &qnum_k, isGpuEnabled());
 				Ck.zero();
 				kpair.transform->scatterAxpy(1., CkRed,bk, Ck,0);
 				const double prefac = -0.5*aXX * kpair.weight / (qnum_k.weight * qnum_q.weight);
 				//Put this state in real space:
-				std::vector<complexScalarField> Ipsik(nSpinor), grad_Ipsik(nSpinor);
+				std::vector<complexScalarField> Ipsik(nSpinor);
 				for(int s=0; s<nSpinor; s++)
 					Ipsik[s] = I(Ck.getColumn(0,s));
 				double wFk = qnum_k.weight * Fk[bk];
@@ -398,21 +391,12 @@ double ExactExchangeEval::calc(int ikReduced, int iqReduced, double aXX, double 
 					complexScalarFieldTilde n = J(In);
 					complexScalarFieldTilde Kn = O((*e.coulombWfns)(n, qnum_q.k-qnum_k.k, omega)); //Electrostatic potential due to n
 					EXX += (prefac*wFk*wFq) * dot(n,Kn).real();
-					if(HCq or HCk)
+					if(HCq)
 					{	complexScalarField E_In = Jdag(Kn);
 						for(int s=0; s<nSpinor; s++)
-						{	if(HCk) grad_Ipsik[s] += (prefac*wFq) * conj(E_In) * Ipsiq[bq-bqStart][s];
-							if(HCq) grad_Ipsiq[bq-bqStart][s] += (prefac*wFk) * E_In * Ipsik[s];
-						}
+							grad_Ipsiq[bq-bqStart][s] += (2.*prefac*wFk) * E_In * Ipsik[s]; //factor of 2 to count grad_Ipsik using Hermitian symmetry
 					}
 					if(EXX_RRT) *EXX_RRT += (prefac*wFk*wFq) * e.coulombWfns->latticeGradient(n, qnum_q.k-qnum_k.k, omega); //Stress contribution
-				}
-				//Convert k-state gradients back to reciprocal space and transform back (if needed):
-				if(HCk)
-				{	for(int s=0; s<nSpinor; s++)
-						if(grad_Ipsik[s])
-							HCk.accumColumn(0,s, Idag(grad_Ipsik[s]));
-					kpair.transform->gatherAxpy(1., HCk,0, *HCkRed,bk);
 				}
 			}
 		}
