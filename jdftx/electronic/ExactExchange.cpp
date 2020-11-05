@@ -60,7 +60,7 @@ public:
 	
 	//! Calculate exchange contributions for one pair of transformed ik and untransformed iq.
 	//! Gradients are only accumulated to untransformed iq, taking advantage of Hermitian symmetry of exchange operator.
-	double computePair(int ikReduced, int iqReduced, double aXX, double omega,
+	double computePair(int ikReduced, int iqReduced, size_t& progress, size_t& progressTarget, double aXX, double omega,
 		const diagMatrix& Fk, const ColumnBundle& CkRed, const diagMatrix& Fq, const ColumnBundle& Cq,
 		ColumnBundle* HCq, matrix3<>* EXX_RRT=0) const;
 	
@@ -83,6 +83,7 @@ private:
 	};
 	std::vector<std::vector<LocalState>> localStates; //local state descriptions on each process
 	std::vector<LocalState>& localStatesMine; //reference to local state on this process
+	size_t progressMax, progressInterval; //for progress reporting in compute / computePair
 };
 
 
@@ -410,11 +411,15 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 		}
 		if(localStates[jProc][0].bStart == localStates[jProc][0].bStop) localStates[jProc].clear(); //no chunk on this process
 	}
+	progressMax = 0;
 	for(const LocalState& ls: localStatesMine)
 	{	for(int iq=0; iq<qCount; iq++)
 			for(KpairEntry& kpair: kpairs[iq][ls.iqReduced])
-				kpair.setup(e, iq);
+			{	kpair.setup(e, iq);
+				progressMax += nSpins*(ls.bStop-ls.bStart);
+			}
 	}
+	progressInterval = std::max(1, int(round(progressMax/50.))); //interval for reporting progress
 	
 	//Print cost estimate to give the user some idea of how long it might take!
 	double costFFT = e.eInfo.nStates * e.eInfo.nBands * 9.*e.gInfo.nr*log(e.gInfo.nr);
@@ -436,7 +441,8 @@ double ExactExchangeEval::compute(double aXX, double omega,
 	
 	double EXX = 0.;
 	matrix3<> EXX_RRT; //computed only if EXX_RRTptr is non-null
-	int ikSrcInterval = std::max(1, int(round(e.eInfo.nStates/20.))); //interval for reporting progress
+	size_t progress=0, progressTarget = progressInterval; //Current progress and next threshold before reporting
+	
 	for(int iSpin=0; iSpin<nSpins; iSpin++)
 	{
 		//Redistribute chunks of q-state wavefunctions:
@@ -493,16 +499,8 @@ double ExactExchangeEval::compute(double aXX, double omega,
 			
 			//Calculate energy (and gradient):
 			for(LocalState& ls: localStatesMine)
-				EXX += computePair(ikReduced, ls.iqReduced, aXX, omega,
-					Fk, CkRed, ls.Fq, ls.Cq,
-					HC ? &(ls.HCq) : 0,
-					EXX_RRTptr ? &EXX_RRT : 0);
-			
-			//Report progress:
-			if((ikSrc+1) % ikSrcInterval == 0)
-			{	logPrintf("%d%% ", int(round((ikSrc+1)*100./e.eInfo.nStates)));
-				logFlush();
-			}
+				EXX += computePair(ikReduced, ls.iqReduced, progress, progressTarget, aXX, omega,
+					Fk, CkRed, ls.Fq, ls.Cq, HC ? &(ls.HCq) : 0, EXX_RRTptr ? &EXX_RRT : 0);
 		}
 		
 		//Free local wavefunction chunks:
@@ -553,7 +551,7 @@ double ExactExchangeEval::compute(double aXX, double omega,
 	return EXX;
 }
 
-double ExactExchangeEval::computePair(int ikReduced, int iqReduced, double aXX, double omega,
+double ExactExchangeEval::computePair(int ikReduced, int iqReduced, size_t& progress, size_t& progressTarget, double aXX, double omega,
 	const diagMatrix& Fk, const ColumnBundle& CkRed, const diagMatrix& Fq, const ColumnBundle& Cq,
 	ColumnBundle* HCq, matrix3<>* EXX_RRT) const
 {
@@ -614,6 +612,12 @@ double ExactExchangeEval::computePair(int ikReduced, int iqReduced, double aXX, 
 				for(int s=0; s<nSpinor; s++)
 					if(grad_Ipsiq[bq-bqStart][s])
 						HCq->accumColumn(bq,s, Idag(grad_Ipsiq[bq-bqStart][s]));
+		}
+		//Report progress:
+		progress += (bqStop-bqStart)*kpairs[ikReduced][iqReduced].size();
+		if(progress >= progressTarget)
+		{	logPrintf("%d%% ", int(round(progress*100./progressMax))); logFlush();
+			progressTarget = std::min(progressTarget+progressInterval, progressMax); //next target for reporting
 		}
 		bqStart = bqStop;
 	}
