@@ -438,7 +438,6 @@ void elecFluidMinimize(Everything &e)
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 			eVars.Haux_eigs[q] += eye(eInfo.nBands)*(eInfo.mu-mu);
 	}
-	eVars.elecEnergyAndGrad(ener);
 	
 	//First electronic minimization (with fluid if present) in most cases
 	if(!( eVars.fluidParams.fluidType!=FluidNone
