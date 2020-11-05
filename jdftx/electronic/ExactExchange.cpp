@@ -409,7 +409,6 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 			ls.bStart = (ls.iqReduced==iqStartProc[jProc]) ? bStartProc[jProc] : 0;
 			ls.bStop = (ls.iqReduced==iqStartProc[jProc+1]) ? bStartProc[jProc+1] : e.eInfo.nBands;
 		}
-		if(localStates[jProc][0].bStart == localStates[jProc][0].bStop) localStates[jProc].clear(); //no chunk on this process
 	}
 	progressMax = 0;
 	for(const LocalState& ls: localStatesMine)
