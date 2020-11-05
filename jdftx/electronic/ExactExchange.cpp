@@ -52,7 +52,6 @@ public:
 		}
 	};
 	std::vector<std::vector<std::vector<KpairEntry>>> kpairs; //list of transformations (inner index) for each pair of untransformed q (middle index) and transformed k (outer index)
-	std::vector<int> iqStartProc, bStartProc; //start iqReduced and band indices on each process for best load balancing
 	
 	//! Calculate exchange operator and return energy
 	double compute(double aXX, double omega,
@@ -74,6 +73,16 @@ private:
 	const int blockSize; //!< number of bands FFT'd together
 	double omegaACE; //!< omega for which ACE has been initialized (NAN if none)
 	std::vector<ColumnBundle> psiACE; //!< projectors for ACE representation of exchange Hamiltonian
+
+	//Local chunks of untransformed q-state wavefunctions used for re-organizing q-states for load balancing
+	struct LocalState
+	{	int iqReduced; //index into reduced q mesh (without spin)
+		int bStart, bStop; //start and stop indices of current chunk within original wavefunctions
+		ColumnBundle Cq, HCq; //chunk of wavefunctions and gradients to be processed
+		diagMatrix Fq; //corresponding occupations
+	};
+	std::vector<std::vector<LocalState>> localStates; //local state descriptions on each process
+	std::vector<LocalState>& localStatesMine; //reference to local state on this process
 };
 
 
@@ -244,7 +253,9 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 	nSpinor(e.eInfo.spinorLength()),
 	qCount(e.eInfo.nStates/nSpins),
 	blockSize(e.cntrl.exxBlockSize),
-	omegaACE(NAN)
+	omegaACE(NAN),
+	localStates(mpiWorld->nProcesses()),
+	localStatesMine(localStates[mpiWorld->iProcess()])
 {
 	//Find all symmtries relating each kmesh point to corresponding reduced point:
 	const Supercell& supercell = *(e.coulombParams.supercell);
@@ -354,9 +365,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 			kpair.invert = kt.invert;
 			kpair.k = kpair.sym.applyRecip(e.eInfo.qnums[iq].k) * kpair.invert; 
 			kpair.weight = e.eInfo.spinWeight * pow(kmesh.size(),-2) * kt.multiplicity;
-			if(e.eInfo.isMine(jq) || e.eInfo.isMine(jq + qCount))
-				kpair.setup(e, iq);
-			kpairs[iq][jq].push_back(kpair);
+			kpairs[iq][jq].push_back(kpair); //note that kpair setup is run below after determining load balancing
 		}
 		nTransformsMin = std::min(nTransformsMin, transforms[iq][jq].size());
 		nTransformsMax = std::max(nTransformsMax, transforms[iq][jq].size());
@@ -368,8 +377,8 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 		nTransformsMin, nTransformsMax, double(nkPairs)/(qCount*qCount));
 	
 	//Determine band/state division for load balancing:
-	iqStartProc.resize(mpiWorld->nProcesses()+1);
-	bStartProc.resize(mpiWorld->nProcesses()+1);
+	std::vector<int> iqStartProc(mpiWorld->nProcesses()+1, 0);
+	std::vector<int> bStartProc(mpiWorld->nProcesses()+1, 0);
 	if(mpiWorld->isHead())
 	{	//Determine cumulative cost estimate before a given band
 		std::vector<size_t> jCostPrev(qCount*e.eInfo.nBands+1);
@@ -390,6 +399,22 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 	}
 	mpiWorld->bcastData(iqStartProc);
 	mpiWorld->bcastData(bStartProc);
+	for(int jProc=0; jProc<mpiWorld->nProcesses(); jProc++)
+	{	int nLocal = iqStartProc[jProc+1] - iqStartProc[jProc] + (bStartProc[jProc+1] ? 1 : 0);
+		localStates[jProc].resize(nLocal);
+		for(int iLocal=0; iLocal<nLocal; iLocal++)
+		{	LocalState& ls = localStates[jProc][iLocal];
+			ls.iqReduced = iqStartProc[jProc] + iLocal;
+			ls.bStart = (ls.iqReduced==iqStartProc[jProc]) ? bStartProc[jProc] : 0;
+			ls.bStop = (ls.iqReduced==iqStartProc[jProc+1]) ? bStartProc[jProc+1] : e.eInfo.nBands;
+		}
+		if(localStates[jProc][0].bStart == localStates[jProc][0].bStop) localStates[jProc].clear(); //no chunk on this process
+	}
+	for(const LocalState& ls: localStatesMine)
+	{	for(int iq=0; iq<qCount; iq++)
+			for(KpairEntry& kpair: kpairs[iq][ls.iqReduced])
+				kpair.setup(e, iq);
+	}
 	
 	//Print cost estimate to give the user some idea of how long it might take!
 	double costFFT = e.eInfo.nStates * e.eInfo.nBands * 9.*e.gInfo.nr*log(e.gInfo.nr);
@@ -406,21 +431,52 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 double ExactExchangeEval::compute(double aXX, double omega, 
 	const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
 	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr) const
-{	static StopWatch watch("ExactExchange"); watch.start();
-
-	//Prepare outputs:
-	if(HC)
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			if(!(*HC)[q])
-			{	(*HC)[q] = C[q].similar();
-				(*HC)[q].zero();
-			}
+{
+	static StopWatch watch("ExactExchange"); watch.start();
 	
-	//Calculate:
 	double EXX = 0.;
 	matrix3<> EXX_RRT; //computed only if EXX_RRTptr is non-null
 	int ikSrcInterval = std::max(1, int(round(e.eInfo.nStates/20.))); //interval for reporting progress
 	for(int iSpin=0; iSpin<nSpins; iSpin++)
+	{
+		//Redistribute chunks of q-state wavefunctions:
+		std::vector<MPIUtil::Request> requests; requests.reserve(2*(localStates.size()+mpiWorld->nProcesses()));
+		for(int jProc=0; jProc<mpiWorld->nProcesses(); jProc++)
+		{	for(LocalState& ls: (std::vector<LocalState>&)localStates[jProc])
+			{	int iqSrc = ls.iqReduced + iSpin*qCount; //source state number
+				if(jProc == mpiWorld->iProcess())
+				{	//Allocate:
+					ls.Cq.init(ls.bStop-ls.bStart, e.basis[iqSrc].nbasis*nSpinor, &(e.basis[iqSrc]), &(e.eInfo.qnums[iqSrc]), isGpuEnabled());
+					if(HC) { ls.HCq = ls.Cq.similar(); ls.HCq.zero(); }
+					//Post async recv's or copy local data:
+					if(e.eInfo.isMine(iqSrc))
+					{	callPref(eblas_copy)(ls.Cq.dataPref(), e.eVars.C[iqSrc].dataPref() + ls.Cq.colLength()*ls.bStart, ls.Cq.nData());
+						ls.Fq = e.eVars.F[iqSrc](ls.bStart, ls.bStop);
+					}
+					else
+					{	//Recv wavefunctions:
+						int tagC = iqSrc*e.eInfo.nBands+ls.bStart; requests.push_back(MPIUtil::Request());
+						mpiWorld->recvData(ls.Cq, e.eInfo.whose(iqSrc), tagC, &requests.back());
+						//Recv occupations:
+						ls.Fq.resize(ls.bStop-ls.bStart);
+						int tagF = tagC + e.eInfo.nBands*e.eInfo.nStates; requests.push_back(MPIUtil::Request());
+						mpiWorld->recvData(ls.Fq, e.eInfo.whose(iqSrc), tagF, &requests.back());
+					}
+				}
+				else if(e.eInfo.isMine(iqSrc))
+				{	//Send wavefunctions:
+					const ColumnBundle& Cq = e.eVars.C[iqSrc];
+					int tagC = iqSrc*e.eInfo.nBands+ls.bStart; requests.push_back(MPIUtil::Request());
+					mpiWorld->send(Cq.data()+Cq.index(ls.bStart,0), Cq.colLength()*(ls.bStop-ls.bStart), jProc, tagC, &requests.back());
+					//Send occupations:
+					int tagF = tagC + e.eInfo.nBands*e.eInfo.nStates;
+					mpiWorld->send(e.eVars.F[iqSrc].data()+ls.bStart, ls.bStop-ls.bStart, jProc, tagF, &requests.back());
+				}
+			}
+		}
+		mpiWorld->waitAll(requests); requests.clear();
+		
+		//Compute exchange for this spin channel:
 		for(int ikReduced=0; ikReduced<qCount; ikReduced++)
 		{
 			//Prepare (reduced) ik state on all processes:
@@ -436,10 +492,10 @@ double ExactExchangeEval::compute(double aXX, double omega,
 			mpiWorld->bcastData(Fk, e.eInfo.whose(ikSrc));
 			
 			//Calculate energy (and gradient):
-			for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-				EXX += computePair(ikReduced, q-iSpin*qCount, aXX, omega,
-					Fk, CkRed, F[q], C[q],
-					HC ? &(HC->at(q)) : 0,
+			for(LocalState& ls: localStatesMine)
+				EXX += computePair(ikReduced, ls.iqReduced, aXX, omega,
+					Fk, CkRed, ls.Fq, ls.Cq,
+					HC ? &(ls.HCq) : 0,
 					EXX_RRTptr ? &EXX_RRT : 0);
 			
 			//Report progress:
@@ -448,6 +504,46 @@ double ExactExchangeEval::compute(double aXX, double omega,
 				logFlush();
 			}
 		}
+		
+		//Free local wavefunction chunks:
+		for(LocalState& ls: localStatesMine) ls.Cq.free();
+		
+		//Send back gradient chunks if needed:
+		if(HC)
+		{	//Move ls.HCq to process where HC[q] is local:
+			std::vector<MPIUtil::Request> requests; requests.reserve(localStates.size()+mpiWorld->nProcesses());
+			for(int jProc=0; jProc<mpiWorld->nProcesses(); jProc++)
+			{	for(LocalState& ls: (std::vector<LocalState>&)localStates[jProc])
+				{	int iqSrc = ls.iqReduced + iSpin*qCount; //source state number
+					if(jProc == mpiWorld->iProcess())
+					{	//Post async sends (local accumulate dealt with below):
+						if(not e.eInfo.isMine(iqSrc))
+						{	int tagC = iqSrc*e.eInfo.nBands+ls.bStart; requests.push_back(MPIUtil::Request());
+							mpiWorld->sendData(ls.HCq, e.eInfo.whose(iqSrc), tagC, &requests.back());
+						}
+					}
+					else if(e.eInfo.isMine(iqSrc))
+					{	//Post async recv to temporary buffer in ls.HCq:
+						ls.HCq.init(ls.bStop-ls.bStart, e.basis[iqSrc].nbasis*nSpinor, &(e.basis[iqSrc]), &(e.eInfo.qnums[iqSrc]), isGpuEnabled());
+						int tagC = iqSrc*e.eInfo.nBands+ls.bStart; requests.push_back(MPIUtil::Request());
+						mpiWorld->recvData(ls.HCq, jProc, tagC, &requests.back());
+					}
+				}
+			}
+			mpiWorld->waitAll(requests);
+			//Accumulate HC contributions from ls.HCq to HC:
+			for(int jProc=0; jProc<mpiWorld->nProcesses(); jProc++)
+				for(LocalState& ls: (std::vector<LocalState>&)localStates[jProc])
+				{	int iqSrc = ls.iqReduced + iSpin*qCount; //source state number
+					ColumnBundle& HCq = (*HC)[iqSrc];
+					if(e.eInfo.isMine(iqSrc))
+					{	if(!HCq) { HCq = C[iqSrc].similar(); HCq.zero(); } //Allocate to zero if null
+						callPref(eblas_zaxpy)(ls.HCq.nData(), 1., ls.HCq.dataPref(),1, HCq.dataPref()+HCq.index(ls.bStart,0),1);
+						ls.HCq.free();
+					}
+				}
+		}
+	}
 	mpiWorld->allReduce(EXX, MPIUtil::ReduceSum, true);
 	if(EXX_RRTptr)
 	{	mpiWorld->allReduce(EXX_RRT, MPIUtil::ReduceSum, true);
