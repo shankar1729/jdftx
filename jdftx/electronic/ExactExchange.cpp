@@ -455,8 +455,8 @@ double ExactExchangeEval::compute(double aXX, double omega,
 					if(HC) { ls.HCq = ls.Cq.similar(); ls.HCq.zero(); }
 					//Post async recv's or copy local data:
 					if(e.eInfo.isMine(iqSrc))
-					{	callPref(eblas_copy)(ls.Cq.dataPref(), e.eVars.C[iqSrc].dataPref() + ls.Cq.colLength()*ls.bStart, ls.Cq.nData());
-						ls.Fq = e.eVars.F[iqSrc](ls.bStart, ls.bStop);
+					{	callPref(eblas_copy)(ls.Cq.dataPref(), C[iqSrc].dataPref() + ls.Cq.colLength()*ls.bStart, ls.Cq.nData());
+						ls.Fq = F[iqSrc](ls.bStart, ls.bStop);
 					}
 					else
 					{	//Recv wavefunctions:
@@ -470,12 +470,12 @@ double ExactExchangeEval::compute(double aXX, double omega,
 				}
 				else if(e.eInfo.isMine(iqSrc))
 				{	//Send wavefunctions:
-					const ColumnBundle& Cq = e.eVars.C[iqSrc];
+					const ColumnBundle& Cq = C[iqSrc];
 					int tagC = iqSrc*e.eInfo.nBands+ls.bStart; requests.push_back(MPIUtil::Request());
-					mpiWorld->send(Cq.data()+Cq.index(ls.bStart,0), Cq.colLength()*(ls.bStop-ls.bStart), jProc, tagC, &requests.back());
+					mpiWorld->send(Cq.dataMPI()+Cq.index(ls.bStart,0), Cq.colLength()*(ls.bStop-ls.bStart), jProc, tagC, &requests.back());
 					//Send occupations:
 					int tagF = tagC + e.eInfo.nBands*e.eInfo.nStates;
-					mpiWorld->send(e.eVars.F[iqSrc].data()+ls.bStart, ls.bStop-ls.bStart, jProc, tagF, &requests.back());
+					mpiWorld->send(&F[iqSrc][ls.bStart], ls.bStop-ls.bStart, jProc, tagF, &requests.back());
 				}
 			}
 		}
@@ -536,8 +536,8 @@ double ExactExchangeEval::compute(double aXX, double omega,
 					if(e.eInfo.isMine(iqSrc))
 					{	if(!HCq) { HCq = C[iqSrc].similar(); HCq.zero(); } //Allocate to zero if null
 						callPref(eblas_zaxpy)(ls.HCq.nData(), 1., ls.HCq.dataPref(),1, HCq.dataPref()+HCq.index(ls.bStart,0),1);
-						ls.HCq.free();
 					}
+					ls.HCq.free();
 				}
 		}
 	}

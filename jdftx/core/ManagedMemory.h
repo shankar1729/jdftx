@@ -282,7 +282,6 @@ template<typename T> void MPIUtil::allReduceData(ManagedMemory<T>& v, MPIUtil::R
 template<typename T> void MPIUtil::reduceData(ManagedMemory<T>& v, MPIUtil::ReduceOp op, int root, Request* request) const
 {	reduce(v.dataMPI(), v.nData(), op, root, request);
 }
-#undef dataMPI
 template<typename T> void MPIUtil::freadData(ManagedMemory<T>& v, File fp) const
 {	fread(v.data(), sizeof(T), v.nData(), fp);
 }
