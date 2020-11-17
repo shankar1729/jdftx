@@ -34,8 +34,12 @@ inline void printUsageExit(const char* errP=0)
 	exit(0);
 }
 
-inline void setHarmonicPotential(int i, vector3<> r, vector3<> r0, double* V)
-{	V[i] = 0.5 * (r-r0).length_squared();
+//Harmonic oscillator potential, smoothed at boundaries to be PW-basis suitable
+inline void setHarmonicPotential(int i, vector3<> r, vector3<> r0, double hlfL, double* V)
+{	static const double alpha = 7.; //parameter controlling boundary smoothing (this leads to <0.1% difference from exact harmonic at about 0.75 L/2)
+	double x = std::min((r-r0).length()/hlfL, 1.);
+	double xReg = x - erfc(alpha*(1.-x))*sqrt(M_PI)/(2*alpha); //Same as x for x far from boundary, but flattens out at x=1
+	V[i] = 0.5 * std::pow(xReg*hlfL,2);
 }
 
 int main(int argc, char** argv)
@@ -55,6 +59,7 @@ int main(int argc, char** argv)
 	input.push_back(stringPair("elec-n-bands", nBandsStr));
 	input.push_back(stringPair("dump", "End None"));
 	input.push_back(stringPair("wavefunction", "random"));
+	input.push_back(stringPair("electronic-minimize", "nIterations 500 energyDiffThreshold 1e-9"));
 
 	//Initialize:
 	Everything e;
@@ -65,7 +70,7 @@ int main(int argc, char** argv)
 	//Set the harmonic oscillator potential (r^2/2):
 	nullToZero(e.eVars.Vscloc[0], e.gInfo);
 	vector3<> r0 = e.gInfo.R * vector3<>(0.5,0.5,0.5); //box center
-	applyFunc_r(e.gInfo, setHarmonicPotential, r0, e.eVars.Vscloc[0]->data());
+	applyFunc_r(e.gInfo, setHarmonicPotential, r0, 0.5*L, e.eVars.Vscloc[0]->data());
 	e.eVars.Vscloc[0] *= e.gInfo.dV; //internal convention for Vscloc includes grid integration factor
 	logPrintf("Initialization completed successfully at t[s]: %9.2lf\n\n", clock_sec());
 	
@@ -73,7 +78,7 @@ int main(int argc, char** argv)
 	logPrintf("\n----------- Band structure minimization -------------\n"); logFlush();
 	bandMinimize(e); // Do the band-structure minimization
 	logPrintf("\nConverged band energies:\n");
-	e.eVars.Hsub_eigs[0].print(globalLog, "BandEig: %19.15lf\n");
+	e.eVars.Hsub_eigs[0].print(globalLog, "BandEig: %13.9lf\n");
 	
 	//Cleanup:
 	finalizeSystem();
