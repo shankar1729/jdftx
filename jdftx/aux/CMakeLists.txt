@@ -13,6 +13,7 @@ set(targetNameList
 	SphericalChi        #Compute spherical decomposition of non-local susceptibility
 	ElectrostaticRadius #Estimate electrostatic radius of solvent molecule
 	SlaterDetOverlap    #Estimate the dipole matrix element of two column bundles
+	TestSchrodinger     #Davidson solution of Schrodinger equation as a performance benchmark
 )
 
 foreach(targetName ${targetNameList})
