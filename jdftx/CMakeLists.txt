@@ -247,7 +247,7 @@ if(EnableCUDA)
 	set(CUDA_ARCH "compute_35" CACHE STRING "CUDA virtual architecture to compile for")
 	set(CUDA_CODE "sm_35" CACHE STRING "CUDA gpu feature set version (sm_*) to compile for")
 	set(CUDA_AUX_LIBRARIES ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES})
-	
+		
 	#remove libcuda.so from CUDA_LIBRARIES and save to CUDART_LIBRARY
 	foreach(lib IN LISTS CUDA_LIBRARIES)
 		if("${lib}" MATCHES "libcuda.so")
@@ -255,6 +255,12 @@ if(EnableCUDA)
 		endif("${lib}" MATCHES "libcuda.so")
 	endforeach(lib)
 	include_directories(${CUDA_INCLUDE_DIRS})
+
+	#Check for cublasLt in newer cuda versions:
+	find_library(CUBLASLT_LIBRARY NAMES cublasLt PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+	if(CUBLASLT_LIBRARY)
+		set(CUDA_AUX_LIBRARIES ${CUDA_AUX_LIBRARIES} ${CUBLASLT_LIBRARY})
+	endif()
 
 	#Check for cuSolver:
 	if(EnableCuSolver)
