@@ -116,7 +116,7 @@ public:
 		}
 		else //get second state from current system's kmesh as well
 		{	bool foundk2 = false;
-			Supercell::KmeshTransform kTransform2;
+			Supercell::KmeshTransform kTransform2 = {0, 0, 0, vector3<int>()};
 			for(unsigned ik2=0; ik2<kmesh.size(); ik2++)
 				if(circDistanceSquared(kmesh[ik2],k2) < symmThresholdSq)
 				{	double offsetErr;

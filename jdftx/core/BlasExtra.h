@@ -264,7 +264,7 @@ template<typename T> void eblas_copy(T* dest, const T* src, int N) { memcpy(dest
 //! @tparam T Data type of the array
 //! @param N Number of elements to zero
 //! @param x Data pointer
-template<typename T> void eblas_zero(int N, T* x) { memset(x, 0, N*sizeof(T)); }
+template<typename T> void eblas_zero(int N, T* x) { memset((void*)x, 0, N*sizeof(T)); }
 //! @brief Scale a real array: threaded wrapper to the cblas_dscal BLAS1 function
 void eblas_dscal(int N, double a, double* x, int incx);
 //! @brief Scale a complex array by a real scale factor: threaded wrapper to the cblas_zdscal BLAS1 function

@@ -218,9 +218,8 @@ double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >&
 		ScalarFieldTilde ccgrad_SG; //set grad wrt structure factor
 		int nAtoms = atpos[i].size(); //number of atoms of ith species
 		
-		matrix atposTemp(3, ceildiv(nAtoms,2));
-		memcpy(atposTemp.data(), atpos[i].data(), sizeof(vector3<>)*nAtoms);
-		callPref(getSG)(gInfo.S, nAtoms, (const vector3<>*)atposTemp.dataPref(), 1./gInfo.detR, SG->dataPref()); //get structure factor SG for atom type i
+		const ManagedArray<vector3<>> atposTemp(atpos[i]);
+		callPref(getSG)(gInfo.S, nAtoms, atposTemp.dataPref(), 1./gInfo.detR, SG->dataPref()); //get structure factor SG for atom type i
 		
 		for(unsigned j=0; j<atomicNumber.size(); j++) //Loop over sites in the fluid
 			if(atomicNumber[j]) //Check to make sure fluid site should include van der Waals corrections
