@@ -99,6 +99,21 @@ void Phonon::setup(bool printDefaults)
 	mpiWorld->allReduce(nBandsOpt, MPIUtil::ReduceMax);
 	logPrintf("Fcut=%lg reduced nBands from %d to %d per unit cell.\n", Fcut, e.eInfo.nBands, nBandsOpt);
 
+	//Write list of commensurate k-points:
+	if(saveHsub and (iPerturbation<0) and mpiWorld->isHead())
+	{	string fname = e.dump.getFilename("phononKpts");
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		fprintf(fp, "#K-pts commensure with phonon supercell:\n");
+		for(const vector3<> k: e.coulombParams.supercell->kmesh)
+		{	double roundErr; round(k * Diag(sup), &roundErr);
+			if(roundErr < symmThreshold) //integral => commensurate with supercell
+				fprintf(fp, "%+.7f %+.7f %+.7f\n", k[0], k[1], k[2]);
+		}
+		fclose(fp);
+		logPrintf("done.\n"); logFlush();
+	}
+
 	//Make unit cell state available on all processes 
 	//(since MPI division of qSup and q are different and independent of the map)
 	for(int q=0; q<e.eInfo.nStates; q++)
