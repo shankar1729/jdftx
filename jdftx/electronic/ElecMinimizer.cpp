@@ -440,13 +440,8 @@ void elecFluidMinimize(Everything &e)
 	}
 	
 	//First electronic minimization (with fluid if present) in most cases
-	if(!( eVars.fluidParams.fluidType!=FluidNone
-		&& eVars.fluidSolver->useGummel()
-		&& (fabs(eInfo.nElectrons-iInfo.getZtot())>=1e-12) )) //skip only if non-neutral Gummel-requiring fluid
-	{
-		logPrintf("\n-------- Electronic minimization -----------\n"); logFlush();
-		elecMinimize(e); //non-gummel fluid will be minimized each EdensityAndVscloc() [see ElecVars.cpp]
-	}
+	logPrintf("\n-------- Electronic minimization -----------\n"); logFlush();
+	elecMinimize(e); //non-gummel fluid will be minimized each EdensityAndVscloc() [see ElecVars.cpp]
 	
 	if(eVars.fluidParams.fluidType!=FluidNone && eVars.fluidSolver->useGummel())
 	{	//gummel loop
