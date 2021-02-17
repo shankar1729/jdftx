@@ -393,7 +393,6 @@ void elecFluidMinimize(Everything &e)
 {	Control &cntrl = e.cntrl;
 	ElecVars &eVars = e.eVars;
 	ElecInfo& eInfo = e.eInfo;
-	IonInfo& iInfo = e.iInfo;
 	Energies &ener = e.ener;
 	
 	if(!eVars.HauxInitialized && eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
