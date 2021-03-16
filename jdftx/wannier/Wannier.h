@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/MinimizeParams.h>
 #include <electronic/Everything.h>
 #include <electronic/DOS.h>
+#include <wannier/DefectSupercell.h>
 #include <memory>
 
 //! @addtogroup Output
@@ -95,7 +96,9 @@ public:
 	}
 	spinMode; //!< which spin(s) to generate Wannier functions for
 	std::vector<int> iSpinArr; //!< set of spin indices corresponding to spinMode
-	bool polar; //whether to subtract long-range contributions in e-ph matrix elements
+	bool polar; //!< whether to subtract long-range contributions in e-ph matrix elements
+	
+	std::vector<DefectSupercell> defects; //!< List of defect supercells to compute Wannierized matrix elements for
 	
 	void saveMLWF(); //!< Output the Maximally-Localized Wannier Functions from current wavefunctions
 	
@@ -112,6 +115,7 @@ private:
 	MinimizeParams minParams;
 	std::shared_ptr<class WannierMinimizer> wmin; //!< opaque struct to minimizer
 	friend class WannierMinimizer;
+	friend class DefectSupercell;
 	friend struct CommandWannierMinimize;
 };
 

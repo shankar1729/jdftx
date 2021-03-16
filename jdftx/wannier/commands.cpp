@@ -543,3 +543,61 @@ struct CommandWannierDumpName : public CommandWannierFilenames
 }
 commandWannierDumpName;
 
+
+
+
+struct CommandDefectSupercell : public Command
+{
+	CommandDefectSupercell() : Command("defect-supercell", "wannier")
+	{
+		format = "<name>  <inFile>  <sup0> <sup1> <sup2>  <center0> <center1> <center2>  <q>";
+		comments =
+			"Export wannierized matrix elements to mlwfHd_<name> for a defect specified\n"
+			"by calculation <inFile> in supercell <sup0> x <sup1> x <sup2> of present cell.\n"
+			"The defect is assumed to be centered on location <center0> <center1> <center2>\n"
+			"in the coordinate system specified by command coords-type in the present calculation.\n"
+			"(For coords-type lattice, these coordinates are fratcional with respect to the supercell.)\n"
+			"The defect charge <q> (specified as excess electrons, similar to command charged-defect)\n"
+			"is used to correct for long-ranged potential behavior as appropriate.\n"
+			"\n"
+			"Note that the reference supercell calculation must export Vscloc.\n"
+			"Only norm-conserving pseudopotentials are supported for defect matrix-element evaluation.\n"
+			"\n"
+			"This command may be specified multiple times to calculate elements for several defects.";
+		
+		require("coords-type");
+		require("latt-scale");
+		allowMultiple = true;
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	Wannier& wannier = ((WannierEverything&)e).wannier;
+		DefectSupercell ds;
+		pl.get(ds.name, string(), "name", true);
+		pl.get(ds.inFile, string(), "inFile", true);
+		for(int dir=0; dir<3; dir++) pl.get(ds.sup[dir], 0, "sup"+string(1,"012"[dir]), true);
+		for(int dir=0; dir<3; dir++) pl.get(ds.xCenter[dir], 0., "center"+string(1,"012"[dir]), true);
+		pl.get(ds.q, 0., "q", true);
+		//Convert xCenter to supercell lattice coordinates if needed:
+		if(e.iInfo.coordsType == CoordsCartesian)
+		{	matrix3<> Rsup = e.gInfo.R * Diag(ds.sup);
+			ds.xCenter = inv(Rsup) * ds.xCenter;
+		}
+		wannier.defects.push_back(ds);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const Wannier& wannier = ((const WannierEverything&)e).wannier;
+		const DefectSupercell& ds = wannier.defects[iRep];
+		vector3<> x = ds.xCenter;
+		if(e.iInfo.coordsType == CoordsCartesian)
+		{	matrix3<> Rsup = e.gInfo.R * Diag(ds.sup);
+			x = Rsup * x;
+		}
+		logPrintf("%s %s  %d %d %d  %lg %lg %lg  %lg",
+			ds.name.c_str(), ds.inFile.c_str(),
+			ds.sup[0], ds.sup[1], ds.sup[2],
+			x[0], x[1], x[2], ds.q);
+	}
+}
+commandDefectSupercell;

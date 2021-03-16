@@ -83,6 +83,10 @@ void Wannier::setup(const Everything& everything)
 	wmin->initTransformDependent();
 	Citations::add("Maximally-localized Wannier functions",
 		"N. Marzari and D. Vanderbilt, Phys. Rev. B 56, 12847 (1997)");
+	
+	//Initialize defects:
+	for(DefectSupercell& ds: defects)
+		ds.initialize(this);
 }
 
 void Wannier::saveMLWF()
