@@ -173,6 +173,7 @@ private:
 	friend struct CommandKpointFolding;
 	friend class Everything;
 	friend class Phonon;
+	friend class DefectSupercell;
 	void kpointsFold(); //!< Fold k-points by kfold
 	void kpointsReduce(); //!< Reduce folded k-points under symmetries
 };
