@@ -43,6 +43,10 @@ int main(int argc, char** argv)
 	e.eVars.VFilenamePattern.clear();
 	e.eVars.fluidParams.fluidType = FluidNone;
 	if(ip.dryRun) e.eVars.skipWfnsInit = true;
+	//--- fillings (if available)
+	e.eInfo.initialFillingsFilename = e.wannier.getFilename(Wannier::FilenameInit, "fillings");
+	if(fileSize(e.eInfo.initialFillingsFilename.c_str()) <= 0)
+		e.eInfo.initialFillingsFilename.clear();
 	
 	//Setup:
 	e.setup();
@@ -51,25 +55,6 @@ int main(int argc, char** argv)
 	{	logPrintf("Dry run successful: commands are valid and initialization succeeded.\n");
 		finalizeSystem();
 		return 0;
-	}
-	
-	if(e.wannier.saveMomenta)
-	{	if(e.eInfo.hasU)
-		{	//Calculate U_rho needed for the DFT+U correction to the [r,H] momentum matrix elements:
-			e.iInfo.rhoAtom_initZero(e.eVars.rhoAtom);
-			e.iInfo.rhoAtom_initZero(e.eVars.U_rhoAtom);
-			e.iInfo.rhoAtom_calc(e.eVars.F, e.eVars.C, e.eVars.rhoAtom);
-			e.iInfo.rhoAtom_computeU(e.eVars.rhoAtom, e.eVars.U_rhoAtom);
-		}
-		bool hasUltrasoft = false;
-		for(const auto& sp: e.iInfo.species) if(sp->isUltrasoft()) hasUltrasoft = true;
-		if(hasUltrasoft)
-		{	//Call augmentDensity*Grad needed for augmentation contribution to  the [r,H] momentum matrix elements:
-			e.eVars.n = e.eVars.calcDensity();
-			if(e.exCorr.needsKEdensity()) e.eVars.tau = e.eVars.KEdensity();
-			e.eVars.EdensityAndVscloc(e.ener);
-			e.iInfo.augmentDensityGridGrad(e.eVars.Vscloc);
-		}
 	}
 	
 	e.wannier.saveMLWF();

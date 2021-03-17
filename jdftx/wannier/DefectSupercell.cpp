@@ -93,7 +93,8 @@ void DefectSupercell::initialize(const Wannier* wannier)
 		{	die("kpoint folding %d is not a multiple of output supercell count %d for lattice direction %d.\n",
 				e->eInfo.kfold[j], supOut[j], j);
 		}
-	//--- map atom differences
+	
+	//Map atom differences
 	if(eSup->iInfo.coordsType == CoordsCartesian)
 		xCenter = eSup->gInfo.invR * xCenter; //ensure lattice coordinates
 	logPrintf("Center fractional coordinates: "); xCenter.print(globalLog, " %lf ");
@@ -101,14 +102,13 @@ void DefectSupercell::initialize(const Wannier* wannier)
 	logSuspend();
 	WignerSeitz ws(eSup->gInfo.R);
 	logResume();
-	atposDefect.assign(eSup->iInfo.species.size(), std::vector<vector3<>>());
-	atposRef = atposDefect;
+	atposRef.assign(eSup->iInfo.species.size(), std::vector<vector3<>>());
 	std::vector<bool> unitSpeciesFound(e->iInfo.species.size(), false);
-	for(unsigned iSp=0; iSp<atposDefect.size(); iSp++)
-	{	const SpeciesInfo& sp = *(eSup->iInfo.species[iSp]);
+	for(unsigned iSp=0; iSp<atposRef.size(); iSp++)
+	{	SpeciesInfo& sp = *(eSup->iInfo.species[iSp]);
 		//Map defect supercell atoms to Wigner-Seitz cell:
-		for(vector3<> x: sp.atpos)
-			atposDefect[iSp].push_back(xCenter + ws.restrict(x - xCenter));
+		for(vector3<>& x: sp.atpos)
+			x = xCenter + ws.restrict(x - xCenter);
 		//Find corresponding unit cell species and atoms:
 		unsigned nAdded = sp.atpos.size(); //number of atoms of this species added relative to perfect supercell
 		unsigned nMoved = 0; //number of atoms of this species moved from perfect supercell
@@ -129,7 +129,7 @@ void DefectSupercell::initialize(const Wannier* wannier)
 						//Find corresponding closest atom in defect supercell:
 						double rSqSmallest = DBL_MAX; unsigned iClosest = -1;
 						for(unsigned iAtom=0; iAtom<sp.atpos.size(); iAtom++)
-						{	vector3<> dx = x - atposDefect[iSp][iAtom];
+						{	vector3<> dx = x - sp.atpos[iAtom];
 							for(int dir=0; dir<3; dir++) dx[dir] -= floor(0.5 + dx[dir]); //minimum-image convention
 							double rSq = eSup->gInfo.RTR.metric_length_squared(dx);
 							if(rSq < rSqSmallest)
@@ -142,7 +142,7 @@ void DefectSupercell::initialize(const Wannier* wannier)
 						{	nAdded--;
 							nMoved++;
 							rSqMoved += rSqSmallest;
-							const vector3<>& xRef = atposDefect[iSp][iClosest];
+							const vector3<>& xRef = sp.atpos[iClosest];
 							x = xRef + ws.restrict(x - xRef);
 						}
 						else x = xCenter + ws.restrict(x - xCenter);
@@ -158,7 +158,7 @@ void DefectSupercell::initialize(const Wannier* wannier)
 		logPrintf("\n");
 		//Convert atoms to unit cell fratcional coordinates:
 		matrix3<> DiagSupIn = Diag(vector3<>(supIn));
-		for(vector3<>& x: atposDefect[iSp]) x = DiagSupIn * x;
+		for(vector3<>& x: sp.atpos) x = DiagSupIn * x;
 		for(vector3<>& x: atposRef[iSp]) x = DiagSupIn * x;
 	}
 	for(unsigned iSpUnit=0; iSpUnit<e->iInfo.species.size(); iSpUnit++)
@@ -166,6 +166,32 @@ void DefectSupercell::initialize(const Wannier* wannier)
 			logPrintf("WARNING: unit cell species %s not present in defect supercell.\n",
 				e->iInfo.species[iSpUnit]->name.c_str());
 		
-	//TODO
+	//Map Vscloc differences:
+	vector3<int> Ssup = Diag(supIn) * e->gInfo.S; //expected supercell grid
+	if(not (eSup->gInfo.S == Ssup))
+		die("Supercell grid is not commensurate with unit cell.\n"
+			"Specify fftbox explicitly in defect calculation.\n\n");
+	//--- subtract unit cell potential:
+	for(unsigned s=0; s<e->eVars.Vscloc.size(); s++)
+	{	const vector3<int>& S = e->gInfo.S;
+		size_t iStart=0, iStop=e->gInfo.nr;
+		const double* Vunit = e->eVars.Vscloc[s]->data();
+		double* Vsup = eSup->eVars.Vscloc[s]->data();
+		THREAD_rLoop(
+			vector3<int> ivSup;
+			for(ivSup[0]=iv[0]; ivSup[0]<Ssup[0]; ivSup[0]+=S[0])
+			for(ivSup[1]=iv[1]; ivSup[1]<Ssup[1]; ivSup[1]+=S[1])
+			for(ivSup[2]=iv[2]; ivSup[2]<Ssup[2]; ivSup[2]+=S[2])
+			{	size_t iSup = (ivSup[0]*Ssup[1] + ivSup[1])*Ssup[2] + ivSup[2];
+				Vsup[iSup] -= Vunit[i];
+			}
+		)
+	}
+	//--- write difference potential for manual verification:
+	eSup->dump.format = wannier->getFilename(Wannier::FilenameDump, "d$VAR_"+name);
+	eSup->dump.clear();
+	eSup->dump.insert(std::make_pair(DumpFreq_End, DumpVscloc));
+	eSup->dump(DumpFreq_End, 0);
+	logPrintf("Note: dVscloc written on supercell grid: "); Ssup.print(globalLog, " %d ");
 }
 

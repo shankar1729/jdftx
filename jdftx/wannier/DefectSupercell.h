@@ -40,8 +40,7 @@ private:
 	const class Wannier* wannier;
 	const class Everything* e; //unit cell calculation
 	std::shared_ptr<struct WannierEverything> eSup; //defect calculation
-	std::vector<std::vector<vector3<>>> atposDefect; //atomic positions in eSup Wigner-Seitz cell in unit cell coordinates 
-	std::vector<std::vector<vector3<>>> atposRef; //same as atposDefect, but for perfect supercell and indexed by eSup species
+	std::vector<std::vector<vector3<>>> atposRef; //unit cell atomic positions by eSup species in eSup Wigner-Seitz cell
 };
 
 #endif //JDFTX_WANNIER_DEFECT_SUPERCELL_H
