@@ -195,8 +195,9 @@ vector3<matrix> spinOverlap(const scaled<ColumnBundle> &sY)
 
 //------------------------------ Other operators ---------------------------------
 
-void Idag_DiagV_I_sub(int colStart, int colEnd, const ColumnBundle* C, const ScalarFieldArray* V, ColumnBundle* VC)
-{	const ScalarField& Vs = V->at(V->size()==1 ? 0 : C->qnum->index());
+template<typename ScalarFieldType> //templated over ScalarField and complexScalarField
+void Idag_DiagV_I_sub(int colStart, int colEnd, const ColumnBundle* C, const std::vector<ScalarFieldType>* V, ColumnBundle* VC)
+{	const ScalarFieldType& Vs = V->at(V->size()==1 ? 0 : C->qnum->index());
 	int nSpinor = VC->spinorLength();
 	for(int col=colStart; col<colEnd; col++)
 		for(int s=0; s<nSpinor; s++)
@@ -204,40 +205,62 @@ void Idag_DiagV_I_sub(int colStart, int colEnd, const ColumnBundle* C, const Sca
 }
 
 //Noncollinear version of above (with the preprocessing of complex off-diagonal potentials done in calling function)
-void Idag_DiagVmat_I_sub(int colStart, int colEnd, const ColumnBundle* C, const ScalarField* Vup, const ScalarField* Vdn,
-	const complexScalarField* VupDn, const complexScalarField* VdnUp, ColumnBundle* VC)
+template<typename ScalarFieldType> //templated over ScalarField and complexScalarField
+void Idag_DiagVmat_I_sub(int colStart, int colEnd, const ColumnBundle* C,
+	const ScalarFieldType* Vup, const ScalarFieldType* Vdn, //typically real, complex only for finite q uses
+	const complexScalarField* VupDn, const complexScalarField* VdnUp, //always complex
+	ColumnBundle* VC)
 {	for(int col=colStart; col<colEnd; col++)
 	{	complexScalarField ICup = I(C->getColumn(col,0));
 		complexScalarField ICdn = I(C->getColumn(col,1));
 		VC->accumColumn(col,0, Idag((*Vup)*ICup + (*VupDn)*ICdn));
 		VC->accumColumn(col,1, Idag((*Vdn)*ICdn + (*VdnUp)*ICup));
 	}
-	
 }
 
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V)
+//Helper functions to create complex conjugate potentials for real and complex cases:
+inline void getVupDn(const ScalarField& Vre, const ScalarField& Vim, complexScalarField& VupDn, complexScalarField& VdnUp)
+{	VupDn = 0.5*Complex(Vre, Vim);
+	VdnUp = conj(VupDn);
+}
+inline void getVupDn(const complexScalarField& Vre, const complexScalarField& Vim, complexScalarField& VupDn, complexScalarField& VdnUp)
+{	ScalarField reVre = Real(Vre), imVre = Imag(Vre);
+	ScalarField reVim = Real(Vim), imVim = Imag(Vim);
+	VupDn = 0.5*Complex(reVre-imVim, imVre+reVim);
+	VdnUp = 0.5*Complex(reVre+imVim, imVre-reVim); //note not conj(VupDn) because Vre and Vim are each complex
+}
+
+template<typename ScalarFieldType> //templated over ScalarField and complexScalarField
+ColumnBundle Idag_DiagV_I_apply(const ColumnBundle& C, const std::vector<ScalarFieldType>& V)
 {	static StopWatch watch("Idag_DiagV_I"); watch.start();
 	ColumnBundle VC = C.similar(); VC.zero();
 	//Convert V to wfns grid if necessary:
 	const GridInfo& gInfoWfns = *(C.basis->gInfo);
-	ScalarFieldArray Vtmp;
+	std::vector<ScalarFieldType> Vtmp;
 	if(&(V[0]->gInfo) != &gInfoWfns)
-		for(const ScalarField& Vs: V)
+		for(const ScalarFieldType& Vs: V)
 			Vtmp.push_back(Jdag(changeGrid(Idag(Vs), gInfoWfns), true));
-	const ScalarFieldArray& Vwfns = Vtmp.size() ? Vtmp : V;
+	const std::vector<ScalarFieldType>& Vwfns = Vtmp.size() ? Vtmp : V;
 	assert(Vwfns.size()==1 || Vwfns.size()==2 || Vwfns.size()==4);
 	if(Vwfns.size()==2) assert(!C.isSpinor());
 	if(Vwfns.size()==1 || Vwfns.size()==2)
-	{	threadLaunch(isGpuEnabled()?1:0, Idag_DiagV_I_sub, C.nCols(), &C, &Vwfns, &VC);
+	{	threadLaunch(isGpuEnabled()?1:0, Idag_DiagV_I_sub<ScalarFieldType>, C.nCols(), &C, &Vwfns, &VC);
 	}
 	else //Vwfns.size()==4
 	{	assert(C.isSpinor());
-		complexScalarField VupDn = 0.5*Complex(Vwfns[2], Vwfns[3]);
-		complexScalarField VdnUp = conj(VupDn);
-		threadLaunch(isGpuEnabled()?1:0, Idag_DiagVmat_I_sub, C.nCols(), &C, &Vwfns[0], &Vwfns[1], &VupDn, &VdnUp, &VC);
+		complexScalarField VupDn, VdnUp;
+		getVupDn(Vwfns[2], Vwfns[3], VupDn, VdnUp);
+		threadLaunch(isGpuEnabled()?1:0, Idag_DiagVmat_I_sub<ScalarFieldType>, C.nCols(), &C, &Vwfns[0], &Vwfns[1], &VupDn, &VdnUp, &VC);
 	}
 	watch.stop();
 	return VC;
+}
+//Specialize template above for the two allowed cases:
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V)
+{	return Idag_DiagV_I_apply<ScalarField>(C, V); 
+}
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V)
+{	return Idag_DiagV_I_apply<complexScalarField>(C, V);
 }
 
 
