@@ -23,57 +23,20 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Output electron-phonon related quantities in Wannier basis:
 void WannierMinimizer::saveMLWF_phonon(int iSpin)
 {
-	//Generate list of commensurate k-points in order present in the unit cell calculation
-	prodPhononSup = wannier.phononSup[0] * wannier.phononSup[1] * wannier.phononSup[2];
-	std::vector<int> ikArr; ikArr.reserve(prodPhononSup);
-	for(unsigned ik=0; ik<kMesh.size(); ik++)
-	{	vector3<> kSup = kMesh[ik].point.k * Diag(wannier.phononSup);
-		double roundErr; round(kSup, &roundErr);
-		if(roundErr < symmThreshold) //integral => commensurate with supercell
-			ikArr.push_back(ik);
-	}
-	assert(int(ikArr.size()) == prodPhononSup);
-	
-	//Generate and write electron-phonon cell map:
-	xAtoms.clear();
+	//Get commensurate k-points, cell map and unqiue cells for defect:
+	std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
 	for(const auto& sp: e.iInfo.species)
 		xAtoms.insert(xAtoms.end(), sp->atpos.begin(), sp->atpos.end());
 	assert(3*int(xAtoms.size()) == nPhononModes);
-	ePhCellMap = getCellMap(
-		e.gInfo.R, e.gInfo.R * Diag(wannier.phononSup),
-		e.coulombParams.isTruncated(), xAtoms, xExpect, wannier.rSmooth,
-		wannier.getFilename(Wannier::FilenameDump, "mlwfCellMapPh", &iSpin));
-	//--- Corresponding cell map:
-	if(mpiWorld->isHead())
-	{	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfCellWeightsPh", &iSpin);
-		logPrintf("Dumping '%s'... ", fname.c_str()); logFlush();
-		FILE* fp = fopen(fname.c_str(), "w");
-		if(!fp) die_alone("could not open file for writing.\n");
-		for(const auto& entry: ePhCellMap)
-			entry.second.write_real(fp);
-		fclose(fp);
-		logPrintf("done.\n"); logFlush();
-	}
-	//--- Re-organize by unique cells in supercell:
-	struct UniqueCell
-	{	vector3<int> iR; //unique cell in supercell
-		std::vector<std::pair<vector3<int>,matrix>> cells; //equivalent ones with weights
-	};
-	std::vector<UniqueCell> uniqueCells(prodPhononSup);
-	vector3<int> stride(wannier.phononSup[1]*wannier.phononSup[2], wannier.phononSup[2], 1);
-	for(const auto& entry: ePhCellMap)
-	{	//Compute unique index:
-		vector3<int> iR = entry.first;
-		for(int iDir=0; iDir<3; iDir++)
-			iR[iDir] = positiveRemainder(iR[iDir], wannier.phononSup[iDir]);
-		int uniqIndex = dot(iR, stride);
-		//Set/collect unique cell properties:
-		uniqueCells[uniqIndex].iR = iR;
-		uniqueCells[uniqIndex].cells.push_back(entry);
-	}
+	int prodPhononSup;
+	std::vector<int> ikArr;
+	std::map<vector3<int>,matrix> ePhCellMap;
+	std::vector<UniqueCell> uniqueCells;
+	initializeCommensurate(wannier.phononSup, xAtoms, "Ph", iSpin, prodPhononSup, ikArr, ePhCellMap, uniqueCells);
 	
 	//Generate pairs of commensurate k-points along with pointer to Wannier rotation
-	kpointPairs.clear();
+	struct KpointPair { vector3<> k1, k2; int ik1, ik2; };
+	std::vector<KpointPair> kpointPairs; //pairs of k-points in the same order as matrices in phononHsub
 	for(int ik1: ikArr)
 	for(int ik2: ikArr)
 	{	KpointPair kPair;
@@ -83,6 +46,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 		kPair.ik2 = ik2;
 		kpointPairs.push_back(kPair);
 	}
+	int iPairStart, iPairStop; //MPI division for working on kpoint pairs during phonon processing
 	TaskDivision(kpointPairs.size(), mpiWorld).myRange(iPairStart, iPairStop);
 	
 	//Read Bloch electron - nuclear displacement matrix elements

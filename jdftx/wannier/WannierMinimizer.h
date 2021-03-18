@@ -124,14 +124,8 @@ protected:
 	QuantumNumber qnumSuper; //!< supercell k-point
 	
 	//Phonon related:
-	std::vector<vector3<>> xAtoms;  //lattice coordinates of all atoms in order
-	std::map<vector3<int>,matrix> ePhCellMap; //cell map for e-ph matrix elements
 	int nPhononModes; //!< number of phonon modes
 	diagMatrix invsqrtM; //!< 1/sqrt(M) per nuclear displacement mode
-	int prodPhononSup; //number of unit cells in phonon supercell
-	struct KpointPair { vector3<> k1, k2; int ik1, ik2; };
-	std::vector<KpointPair> kpointPairs; //pairs of k-points in the same order as matrices in phononHsub
-	int iPairStart, iPairStop; //MPI division for working on kpoint pairs during phonon processing
 	
 	std::vector<KmeshEntry> kMesh; //!< k-point mesh with FD formula
 	std::set<Kpoint> kpoints; //!< list of all k-points that will be in use (including those in FD formulae)
@@ -200,6 +194,15 @@ private:
 	void saveMLWF_ImSigma_ee(int iSpin, const matrix& phase); //e-e linewidths
 	void saveMLWF_phonon(int iSpin); //e-ph matrix elements and related
 	void saveMLWF_defect(int iSpin, DefectSupercell& ds); //defect matrix elements
+	
+	//! Helper function to initialize commensurate k-points and corresponding cell map for phonons and defects
+	struct UniqueCell
+	{	vector3<int> iR; //unique cell in supercell
+		std::vector<std::pair<vector3<int>,matrix>> cells; //equivalent ones with weights
+	};
+	void initializeCommensurate(const vector3<int>& sup,
+		const std::vector<vector3<>>& xCenters, string suffix, int iSpin, int& prodSup,
+		std::vector<int>& ikArr, std::map<vector3<int>,matrix>& cellMap, std::vector<UniqueCell>& uniqueCells);
 };
 
 
