@@ -20,8 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_WANNIER_DEFECT_SUPERCELL_H
 #define JDFTX_WANNIER_DEFECT_SUPERCELL_H
 
-#include <core/vector3.h>
-#include <core/string.h>
+#include <electronic/ColumnBundle.h>
 #include <memory>
 
 class DefectSupercell
@@ -35,6 +34,7 @@ public:
 	double q; //net electron count of defect
 	
 	void initialize(const class Wannier*);
+	matrix compute(const ColumnBundle& C1, const ColumnBundle& C2); //return defect matrix elements between C1 and C2 (at different k)
 	
 private:
 	const class Wannier* wannier;

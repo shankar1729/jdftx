@@ -22,7 +22,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/parser.h>
 #include <core/LatticeUtils.h>
 #include <core/WignerSeitz.h>
-#include <electronic/ColumnBundle.h>
 #include <libgen.h>
 
 void DefectSupercell::initialize(const Wannier* wannier)
@@ -195,3 +194,24 @@ void DefectSupercell::initialize(const Wannier* wannier)
 	logPrintf("Note: dVscloc written on supercell grid: "); Ssup.print(globalLog, " %d ");
 }
 
+
+matrix DefectSupercell::compute(const ColumnBundle& C1, const ColumnBundle& C2)
+{
+	//Get relevant k-points and wavefunction bases:
+	const Basis& basis1=*(C1.basis); const vector3<>& k1 = C1.qnum->k;
+	const Basis& basis2=*(C2.basis); const vector3<>& k2 = C2.qnum->k;
+	vector3<> q = k1 - k2;
+	
+	//Local potential contributions:
+	//--- collect effective dVscloc(q) on unit cell grid
+	std::vector<complexScalarField> dVsclocq(eSup->eVars.Vscloc.size());
+	nullToZero(dVsclocq, e->gInfo);
+	//TODO
+	//--- compute matrix element
+	matrix result = C1 ^ Idag_DiagV_I(C2, dVsclocq);
+	
+	//Nonlocal potential contributions:
+	//TODO
+	
+	return result;
+}

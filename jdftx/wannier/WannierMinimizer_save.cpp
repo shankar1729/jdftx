@@ -190,6 +190,9 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	bool savePhonon = wannier.phononSup.length_squared();
 	if(savePhonon) saveMLWF_D(iSpin, phase); //Gradient (for phonon sum rule)
 	if(savePhonon) saveMLWF_phonon(iSpin);
+	
+	//Defect outputs:
+	if(wannier.defects.size()) saveMLWF_defect(iSpin);
 	suspendOperatorThreading();
 }
 
