@@ -92,13 +92,67 @@ void WannierMinimizer::saveMLWF_defect(int iSpin, DefectSupercell& ds)
 		kpointPairs.push_back(kPair);
 	}
 	int ikArrStart, ikArrStop; //MPI division for working on commensurate k-points
-	TaskDivision(prodSup, mpiWorld).myRange(ikArrStart, ikArrStop);
+	TaskDivision ikArrDiv(prodSup, mpiWorld);
+	ikArrDiv.myRange(ikArrStart, ikArrStop);
 	int iPairStart=ikArrStart*prodSup, iPairStop=ikArrStop*prodSup; //Divide by ik1 and handle all ik2 for each
 	
 	//Compute defect matrix elements in reciprocal space:
 	int nPairsMine = std::max(1, iPairStop-iPairStart); //avoid zero size matrices below
 	matrix HDtilde = zeroes(nCenters*nCenters, nPairsMine);
-	//TODO
+	//--- get wavefunctions for each commensurate k (split by ikArr as above):
+	std::vector<ColumnBundle> C(prodSup);
+	std::vector<MPIUtil::Request> requests;
+	for(int ikIndex=0; ikIndex<prodSup; ikIndex++)
+	{	int ik = ikArr[ikIndex];
+		ColumnBundle& Ck = C[ikIndex];
+		if(isMine_q(ik, iSpin))
+		{	Ck = getWfns(kMesh[ik].point, iSpin);
+			int dest = ikArrDiv.whose(ikIndex);
+			if(dest != mpiWorld->iProcess())
+			{	requests.push_back(MPIUtil::Request());
+				mpiWorld->sendData(Ck, dest, ikIndex, &requests.back());
+			}
+		}
+		else if(ikArrDiv.isMine(ikIndex))
+		{	int src = whose_q(ik, iSpin);
+			Ck.init(nBands, basis.nbasis*nSpinor, &basis, &kMesh[ik].point, isGpuEnabled());
+			requests.push_back(MPIUtil::Request());
+			mpiWorld->recvData(Ck, src, ikIndex, &requests.back());
+		}
+	}
+	mpiWorld->waitAll(requests);
+	for(int ikIndex=0; ikIndex<prodSup; ikIndex++)
+		if(not ikArrDiv.isMine(ikIndex))
+			C[ikIndex] = 0; //clean up un-needed
+	//--- loop over all ikIndex2
+	logPrintf("Computing matrix elements for defect '%s' ...  ", ds.name.c_str()); logFlush(); 
+	int nPairsInterval = std::max(1, int(round(nPairsMine/20.))); //interval for reporting progress
+	int nPairsDone = 0;
+	for(int ikIndex2=0; ikIndex2<prodSup; ikIndex2++)
+	{	int ik2 = ikArr[ikIndex2];
+		//Make C2 available on all processes:
+		ColumnBundle C2 = ikArrDiv.isMine(ikIndex2)
+			? C[ikIndex2]
+			: ColumnBundle(nBands, basis.nbasis*nSpinor, &basis, &kMesh[ik2].point, isGpuEnabled());
+		mpiWorld->bcastData(C2, ikArrDiv.whose(ikIndex2));
+		//Compute matrix element with all local C1:
+		for(int ikIndex1=ikArrStart; ikIndex1<ikArrStop; ikIndex1++)
+		{	int ik1 = ikArr[ikIndex1];
+			//Compute matrix elements in eigenbasis and apply Wannier rotations:
+			const ColumnBundle& C1 = C[ikIndex1];
+			matrix HDcur = dagger(kMesh[ik1].U) * ds.compute(C1, C2) * kMesh[ik2].U;
+			//Store at appropriate location in global array:
+			int iPairMine = (ikIndex1-ikArrStart)*prodSup + ikIndex2;
+			callPref(eblas_copy)(HDtilde.dataPref() + HDtilde.index(0,iPairMine), HDcur.dataPref(), HDcur.nData());
+			//Print progress:
+			nPairsDone++;
+			if(nPairsDone % nPairsInterval == 0)
+			{	logPrintf("%d%% ", int(round(nPairsDone*100./nPairsMine)));
+				logFlush();
+			};
+		}
+	}
+	logPrintf("done.\n"); logFlush();
 	
 	//Wannierize and output one cell fixed at a time to minimize memory usage:
 	string fname = wannier.getFilename(Wannier::FilenameDump, "mlwfHD_"+ds.name, &iSpin);

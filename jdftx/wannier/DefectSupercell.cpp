@@ -225,7 +225,7 @@ matrix DefectSupercell::compute(const ColumnBundle& C1, const ColumnBundle& C2)
 		)
 	}
 	//--- compute corresponding matrix elements:
-	matrix result = C1 ^ Idag_DiagV_I(C2, dVsclocq);
+	matrix result = C1 ^ Idag_DiagV_I(C2, dVsclocq); 
 	
 	//Nonlocal potential contributions:
 	for(unsigned iSp=0; iSp<atposRef.size(); iSp++)
