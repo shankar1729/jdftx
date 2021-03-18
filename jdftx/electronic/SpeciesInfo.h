@@ -253,6 +253,7 @@ private:
 	friend class PCM;
 	friend class Phonon;
 	friend class VanDerWaals;
+	friend class DefectSupercell;
 	friend class WannierMinimizer;
 };
 

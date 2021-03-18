@@ -198,8 +198,8 @@ void DefectSupercell::initialize(const Wannier* wannier)
 matrix DefectSupercell::compute(const ColumnBundle& C1, const ColumnBundle& C2)
 {
 	//Get relevant k-points and wavefunction bases:
-	const Basis& basis1=*(C1.basis); const vector3<>& k1 = C1.qnum->k;
-	const Basis& basis2=*(C2.basis); const vector3<>& k2 = C2.qnum->k;
+	const vector3<>& k1 = C1.qnum->k;
+	const vector3<>& k2 = C2.qnum->k;
 	vector3<> q = k1 - k2;
 	
 	//Local potential contributions:
@@ -211,7 +211,19 @@ matrix DefectSupercell::compute(const ColumnBundle& C1, const ColumnBundle& C2)
 	matrix result = C1 ^ Idag_DiagV_I(C2, dVsclocq);
 	
 	//Nonlocal potential contributions:
-	//TODO
+	for(unsigned iSp=0; iSp<atposRef.size(); iSp++)
+	{	SpeciesInfo& sp = *(eSup->iInfo.species[iSp]);
+		for(int iSign=-1; iSign<=+1; iSign+=2)
+		{	std::swap(atposRef[iSp], sp.atpos);
+			sp.sync_atpos();
+			//--- First pass: iSign=-1, atpos contains unit cell positions from atposRef
+			//--- Second pass: iSign=+1, atpos contains defect-supercell positions from eSup
+			if(!sp.atpos.size()) continue; //may not have any atoms for some eSup species when using unit cell atpos
+			matrix VdagC1 = (*sp.getV(C1)) ^ C1;
+			matrix VdagC2 = (*sp.getV(C2)) ^ C2;
+			axpy(iSign, dagger(VdagC1) * (tiledBlockMatrix(sp.MnlAll, sp.atpos.size()) * VdagC2), result);
+		}
+	}
 	
 	return result;
 }
