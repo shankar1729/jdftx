@@ -171,7 +171,8 @@ void DefectSupercell::initialize(const Wannier* wannier)
 		die("Supercell grid is not commensurate with unit cell.\n"
 			"Specify fftbox explicitly in defect calculation.\n\n");
 	//--- subtract unit cell potential:
-	for(unsigned s=0; s<e->eVars.Vscloc.size(); s++)
+	assert(e->eInfo.nDensities == eSup->eInfo.nDensities);
+	for(int s=0; s<e->eInfo.nDensities; s++)
 	{	const vector3<int>& S = e->gInfo.S;
 		size_t iStart=0, iStop=e->gInfo.nr;
 		const double* Vunit = e->eVars.Vscloc[s]->data();
@@ -197,17 +198,33 @@ void DefectSupercell::initialize(const Wannier* wannier)
 
 matrix DefectSupercell::compute(const ColumnBundle& C1, const ColumnBundle& C2)
 {
-	//Get relevant k-points and wavefunction bases:
-	const vector3<>& k1 = C1.qnum->k;
-	const vector3<>& k2 = C2.qnum->k;
-	vector3<> q = k1 - k2;
-	
 	//Local potential contributions:
 	//--- collect effective dVscloc(q) on unit cell grid
-	std::vector<complexScalarField> dVsclocq(eSup->eVars.Vscloc.size());
-	nullToZero(dVsclocq, e->gInfo);
-	//TODO
-	//--- compute matrix element
+	vector3<> q = C1.qnum->k - C2.qnum->k;
+	vector3<> qSup2pi = (2*M_PI) * (Diag(vector3<>(supIn)) * q); //q in supercell recip. coords (and a factor of 2*pi)
+	int nDensities = e->eInfo.nDensities;
+	std::vector<complexScalarField> dVsclocq; nullToZero(dVsclocq, e->gInfo, nDensities);
+	std::vector<complex*> dVq; for(complexScalarField& Vs: dVsclocq) dVq.push_back(Vs->data());
+	std::vector<const double*> dVsup; for(const ScalarField& Vs: eSup->eVars.Vscloc) dVsup.push_back(Vs->data());
+	{	const vector3<int>& S = e->gInfo.S;
+		const vector3<int>& Ssup = eSup->gInfo.S;
+		vector3<int> SsupInv(1./Ssup[0], 1./Ssup[1], 1./Ssup[2]);
+		size_t iStart=0, iStop=e->gInfo.nr;
+		THREAD_rLoop(
+			vector3<int> ivSup;
+			for(ivSup[0]=iv[0]; ivSup[0]<Ssup[0]; ivSup[0]+=S[0])
+			for(ivSup[1]=iv[1]; ivSup[1]<Ssup[1]; ivSup[1]+=S[1])
+			for(ivSup[2]=iv[2]; ivSup[2]<Ssup[2]; ivSup[2]+=S[2])
+			{	size_t iSup = (ivSup[0]*Ssup[1] + ivSup[1])*Ssup[2] + ivSup[2];
+				vector3<> xSup(ivSup[0]*SsupInv[0], ivSup[1]*SsupInv[1], ivSup[2]*SsupInv[2]); //supercell lattice coordinates
+				xSup = xCenter + wsSup->restrict(xSup - xCenter); //wrap to WS supercell 
+				complex phase = cis(dot(qSup2pi, xSup)); //Bloch phase
+				for(int s=0; s<nDensities; s++)
+					dVq[s][i] += phase * dVsup[s][iSup];
+			}
+		)
+	}
+	//--- compute corresponding matrix elements:
 	matrix result = C1 ^ Idag_DiagV_I(C2, dVsclocq);
 	
 	//Nonlocal potential contributions:
