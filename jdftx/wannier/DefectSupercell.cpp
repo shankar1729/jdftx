@@ -100,7 +100,7 @@ void DefectSupercell::initialize(const Wannier* wannier)
 	logPrintf("Center fractional coordinates: "); xCenter.print(globalLog, " %lf ");
 	logPrintf("Atom changes from perfect to defective supercell:\n");
 	logSuspend();
-	WignerSeitz ws(eSup->gInfo.R);
+	wsSup = std::make_shared<WignerSeitz>(eSup->gInfo.R);
 	logResume();
 	atposRef.assign(eSup->iInfo.species.size(), std::vector<vector3<>>());
 	std::vector<bool> unitSpeciesFound(e->iInfo.species.size(), false);
@@ -108,7 +108,7 @@ void DefectSupercell::initialize(const Wannier* wannier)
 	{	SpeciesInfo& sp = *(eSup->iInfo.species[iSp]);
 		//Map defect supercell atoms to Wigner-Seitz cell:
 		for(vector3<>& x: sp.atpos)
-			x = xCenter + ws.restrict(x - xCenter);
+			x = xCenter + wsSup->restrict(x - xCenter);
 		//Find corresponding unit cell species and atoms:
 		unsigned nAdded = sp.atpos.size(); //number of atoms of this species added relative to perfect supercell
 		unsigned nMoved = 0; //number of atoms of this species moved from perfect supercell
@@ -143,9 +143,9 @@ void DefectSupercell::initialize(const Wannier* wannier)
 							nMoved++;
 							rSqMoved += rSqSmallest;
 							const vector3<>& xRef = sp.atpos[iClosest];
-							x = xRef + ws.restrict(x - xRef);
+							x = xRef + wsSup->restrict(x - xRef);
 						}
-						else x = xCenter + ws.restrict(x - xCenter);
+						else x = xCenter + wsSup->restrict(x - xCenter);
 						atposRef[iSp].push_back(x);
 					}
 				}

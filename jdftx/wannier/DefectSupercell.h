@@ -40,6 +40,7 @@ private:
 	const class Wannier* wannier;
 	const class Everything* e; //unit cell calculation
 	std::shared_ptr<struct WannierEverything> eSup; //defect calculation
+	std::shared_ptr<class WignerSeitz> wsSup; //Wigner-Seitz cell of supercell
 	std::vector<std::vector<vector3<>>> atposRef; //unit cell atomic positions by eSup species in eSup Wigner-Seitz cell
 };
 
