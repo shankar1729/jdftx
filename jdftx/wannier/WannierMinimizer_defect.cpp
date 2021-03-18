@@ -121,8 +121,11 @@ void WannierMinimizer::saveMLWF_defect(int iSpin, DefectSupercell& ds)
 		}
 	}
 	mpiWorld->waitAll(requests);
+	std::vector<DefectSupercell::CachedProjections> proj(prodSup);
 	for(int ikIndex=0; ikIndex<prodSup; ikIndex++)
-		if(not ikArrDiv.isMine(ikIndex))
+		if(ikArrDiv.isMine(ikIndex))
+			ds.project(C[ikIndex], proj[ikIndex]); //cache projections
+		else
 			C[ikIndex] = 0; //clean up un-needed
 	//--- loop over all ikIndex2
 	logPrintf("Computing matrix elements for defect '%s' ...  ", ds.name.c_str()); logFlush(); 
@@ -131,16 +134,21 @@ void WannierMinimizer::saveMLWF_defect(int iSpin, DefectSupercell& ds)
 	for(int ikIndex2=0; ikIndex2<prodSup; ikIndex2++)
 	{	int ik2 = ikArr[ikIndex2];
 		//Make C2 available on all processes:
-		ColumnBundle C2 = ikArrDiv.isMine(ikIndex2)
-			? C[ikIndex2]
-			: ColumnBundle(nBands, basis.nbasis*nSpinor, &basis, &kMesh[ik2].point, isGpuEnabled());
+		ColumnBundle C2; DefectSupercell::CachedProjections proj2;
+		if(ikArrDiv.isMine(ikIndex2))
+		{	C2 = C[ikIndex2];
+			proj2 = proj[ikIndex2];
+		}
+		else C2.init(nBands, basis.nbasis*nSpinor, &basis, &kMesh[ik2].point, isGpuEnabled());
 		mpiWorld->bcastData(C2, ikArrDiv.whose(ikIndex2));
+		ds.bcast(proj2, ikArrDiv.whose(ikIndex2));
 		//Compute matrix element with all local C1:
 		for(int ikIndex1=ikArrStart; ikIndex1<ikArrStop; ikIndex1++)
 		{	int ik1 = ikArr[ikIndex1];
 			//Compute matrix elements in eigenbasis and apply Wannier rotations:
 			const ColumnBundle& C1 = C[ikIndex1];
-			matrix HDcur = dagger(kMesh[ik1].U) * ds.compute(C1, C2) * kMesh[ik2].U;
+			const DefectSupercell::CachedProjections& proj1 = proj[ikIndex1];
+			matrix HDcur = dagger(kMesh[ik1].U) * ds.compute(C1, C2, proj1, proj2) * kMesh[ik2].U;
 			//Store at appropriate location in global array:
 			int iPairMine = (ikIndex1-ikArrStart)*prodSup + ikIndex2;
 			callPref(eblas_copy)(HDtilde.dataPref() + HDtilde.index(0,iPairMine), HDcur.dataPref(), HDcur.nData());

@@ -195,8 +195,40 @@ void DefectSupercell::initialize(const Wannier* wannier)
 	logPrintf("Note: dVscloc written on supercell grid: "); Ssup.print(globalLog, " %d ");
 }
 
+void DefectSupercell::project(const ColumnBundle& C, CachedProjections& proj)
+{	for(int i=0; i<2; i++)
+		proj.VdagC[i].assign(atposRef.size(), matrix());
+	for(unsigned iSp=0; iSp<atposRef.size(); iSp++)
+	{	SpeciesInfo& sp = *(eSup->iInfo.species[iSp]);
+		for(int i=0; i<2; i++)
+		{	std::swap(atposRef[iSp], sp.atpos);
+			sp.sync_atpos();
+			//--- First pass: atpos contains unit cell positions from atposRef
+			//--- Second pass: atpos contains defect-supercell positions from eSup
+			if(sp.atpos.size()) proj.VdagC[i][iSp] = (*sp.getV(C)) ^ C;
+		}
+	}
+}
 
-matrix DefectSupercell::compute(const ColumnBundle& C1, const ColumnBundle& C2)
+void DefectSupercell::bcast(CachedProjections& proj, int src) const
+{	const int nBands = e->eInfo.nBands;
+	for(int i=0; i<2; i++)
+	{	proj.VdagC[i].resize(atposRef.size());
+		for(unsigned iSp=0; iSp<atposRef.size(); iSp++)
+		{	const SpeciesInfo& sp = *(eSup->iInfo.species[iSp]);
+			const int nAtoms = (i ? sp.atpos.size() : atposRef[iSp].size());
+			const int nProj = sp.MnlAll.nRows() * nAtoms;
+			matrix& m = proj.VdagC[i][iSp];
+			if(nProj)
+			{	if(not m) m.init(nProj, nBands);
+				mpiWorld->bcastData(m, src);
+			}
+		}
+	}
+}
+
+matrix DefectSupercell::compute(const ColumnBundle& C1, const ColumnBundle& C2,
+	const CachedProjections& proj1, const CachedProjections& proj2)
 {
 	//Local potential contributions:
 	//--- collect effective dVscloc(q) on unit cell grid
@@ -208,7 +240,7 @@ matrix DefectSupercell::compute(const ColumnBundle& C1, const ColumnBundle& C2)
 	std::vector<const double*> dVsup; for(const ScalarField& Vs: eSup->eVars.Vscloc) dVsup.push_back(Vs->data());
 	{	const vector3<int>& S = e->gInfo.S;
 		const vector3<int>& Ssup = eSup->gInfo.S;
-		vector3<int> SsupInv(1./Ssup[0], 1./Ssup[1], 1./Ssup[2]);
+		vector3<> SsupInv(1./Ssup[0], 1./Ssup[1], 1./Ssup[2]);
 		size_t iStart=0, iStop=e->gInfo.nr;
 		THREAD_rLoop(
 			vector3<int> ivSup;
@@ -218,27 +250,23 @@ matrix DefectSupercell::compute(const ColumnBundle& C1, const ColumnBundle& C2)
 			{	size_t iSup = (ivSup[0]*Ssup[1] + ivSup[1])*Ssup[2] + ivSup[2];
 				vector3<> xSup(ivSup[0]*SsupInv[0], ivSup[1]*SsupInv[1], ivSup[2]*SsupInv[2]); //supercell lattice coordinates
 				xSup = xCenter + wsSup->restrict(xSup - xCenter); //wrap to WS supercell 
-				complex phase = cis(dot(qSup2pi, xSup)); //Bloch phase
+				complex phase = cis(-dot(qSup2pi, xSup)); //Bloch phase
 				for(int s=0; s<nDensities; s++)
 					dVq[s][i] += phase * dVsup[s][iSup];
 			}
 		)
 	}
 	//--- compute corresponding matrix elements:
-	matrix result = C1 ^ Idag_DiagV_I(C2, dVsclocq); 
+	matrix result = C1 ^ Idag_DiagV_I(C2, dVsclocq);
 	
 	//Nonlocal potential contributions:
+	double projSign[2] = { -1., +1. }; //sign of the projector contribution (-1 for reference, +1 for defect)
 	for(unsigned iSp=0; iSp<atposRef.size(); iSp++)
 	{	SpeciesInfo& sp = *(eSup->iInfo.species[iSp]);
-		for(int iSign=-1; iSign<=+1; iSign+=2)
-		{	std::swap(atposRef[iSp], sp.atpos);
-			sp.sync_atpos();
-			//--- First pass: iSign=-1, atpos contains unit cell positions from atposRef
-			//--- Second pass: iSign=+1, atpos contains defect-supercell positions from eSup
-			if(!sp.atpos.size()) continue; //may not have any atoms for some eSup species when using unit cell atpos
-			matrix VdagC1 = (*sp.getV(C1)) ^ C1;
-			matrix VdagC2 = (*sp.getV(C2)) ^ C2;
-			axpy(iSign, dagger(VdagC1) * (tiledBlockMatrix(sp.MnlAll, sp.atpos.size()) * VdagC2), result);
+		for(int i=0; i<2; i++)
+		{	if(not proj1.VdagC[i][iSp]) continue; //may not have any atoms for some eSup species when using unit cell atpos
+			const int nAtoms = (i ? sp.atpos.size() : atposRef[iSp].size());
+			axpy(projSign[i], dagger(proj1.VdagC[i][iSp]) * (tiledBlockMatrix(sp.MnlAll, nAtoms) * proj2.VdagC[i][iSp]), result);
 		}
 	}
 	

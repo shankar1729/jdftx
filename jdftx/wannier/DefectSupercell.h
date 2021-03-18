@@ -34,8 +34,17 @@ public:
 	double q; //net electron count of defect
 	
 	void initialize(const class Wannier*);
-	matrix compute(const ColumnBundle& C1, const ColumnBundle& C2); //return defect matrix elements between C1 and C2 (at different k)
 	
+	struct CachedProjections
+	{	std::vector<matrix> VdagC[2]; //projections for reference and defect supercell positions
+	};
+	void project(const ColumnBundle& C, CachedProjections& proj); //compute projections for given wavefunctions
+	void bcast(CachedProjections& proj, int src) const; //make projections available on all processes
+	
+	//Return defect matrix elements between C1 and C2 (at different k)
+	matrix compute(const ColumnBundle& C1, const ColumnBundle& C2,
+		const CachedProjections& proj1, const CachedProjections& proj); //corresponding  projections
+
 private:
 	const class Wannier* wannier;
 	const class Everything* e; //unit cell calculation
