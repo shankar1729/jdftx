@@ -199,7 +199,7 @@ private:
 	void saveMLWF(int iSpin, const matrix& phase, const ScalarFieldArray& w, string varName, bool suppressUnbound); //helper function for scalar field matrix elements (eg. slab and z)
 	void saveMLWF_ImSigma_ee(int iSpin, const matrix& phase); //e-e linewidths
 	void saveMLWF_phonon(int iSpin); //e-ph matrix elements and related
-	void saveMLWF_defect(int iSpin); //defect matrix elements
+	void saveMLWF_defect(int iSpin, DefectSupercell& ds); //defect matrix elements
 };
 
 

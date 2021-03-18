@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/WignerSeitz.h>
 
 //Output defect-related quantities in Wannier basis:
-void WannierMinimizer::saveMLWF_defect(int iSpin)
+void WannierMinimizer::saveMLWF_defect(int iSpin, DefectSupercell& ds)
 {
 	
 }

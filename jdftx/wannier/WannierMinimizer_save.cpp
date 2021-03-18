@@ -192,7 +192,8 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	if(savePhonon) saveMLWF_phonon(iSpin);
 	
 	//Defect outputs:
-	if(wannier.defects.size()) saveMLWF_defect(iSpin);
+	for(const DefectSupercell& ds: wannier.defects)
+		saveMLWF_defect(iSpin, (DefectSupercell&)ds);
 	suspendOperatorThreading();
 }
 
