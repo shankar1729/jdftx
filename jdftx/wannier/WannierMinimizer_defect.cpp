@@ -171,7 +171,7 @@ void WannierMinimizer::saveMLWF_defect(int iSpin, DefectSupercell& ds)
 		if(!fp) die_alone("Error opening %s for writing.\n", fname.c_str());
 	}
 	matrix phase = zeroes(HDtilde.nCols(), prodSup);
-	double kPairWeight = 1./prodSup;
+	double kPairWeight = 1./(prodSup*prodSup);
 	double nrm2totSq = 0., nrm2imSq = 0.;
 	std::map<vector3<int>, matrix> Hsum;
 	for(const UniqueCell& cell1: uniqueCells)
