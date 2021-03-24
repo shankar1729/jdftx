@@ -37,6 +37,7 @@ public:
 	
 	struct CachedProjections
 	{	std::vector<matrix> VdagC[2]; //projections for reference and defect supercell positions
+		std::vector<matrix> psiDagC[2]; //corresponding atomic-orbital projections for DFT+U, if needed
 	};
 	void project(const ColumnBundle& C, CachedProjections& proj); //compute projections for given wavefunctions
 	void bcast(CachedProjections& proj, int src) const; //make projections available on all processes
@@ -51,6 +52,8 @@ private:
 	std::shared_ptr<struct WannierEverything> eSup; //defect calculation
 	std::shared_ptr<class WignerSeitz> wsSup; //Wigner-Seitz cell of supercell
 	std::vector<std::vector<vector3<>>> atposRef; //unit cell atomic positions by eSup species in eSup Wigner-Seitz cell
+	std::vector<matrix> U_rhoAtomRef; //e.eVars.U_rhoAtom repeated appropriately for perfect supercell
+	std::vector<matrix> Urho[2]; //DFT+U potentials by species for reference and defect supercells
 };
 
 #endif //JDFTX_WANNIER_DEFECT_SUPERCELL_H

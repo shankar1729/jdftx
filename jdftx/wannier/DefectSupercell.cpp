@@ -102,6 +102,7 @@ void DefectSupercell::initialize(const Wannier* wannier)
 	wsSup = std::make_shared<WignerSeitz>(eSup->gInfo.R);
 	logResume();
 	atposRef.assign(eSup->iInfo.species.size(), std::vector<vector3<>>());
+	U_rhoAtomRef.clear(); const matrix* U_rhoAtomUnit = e->eVars.U_rhoAtom.data();
 	std::vector<bool> unitSpeciesFound(e->iInfo.species.size(), false);
 	for(unsigned iSp=0; iSp<atposRef.size(); iSp++)
 	{	SpeciesInfo& sp = *(eSup->iInfo.species[iSp]);
@@ -147,6 +148,14 @@ void DefectSupercell::initialize(const Wannier* wannier)
 						else x = xCenter + wsSup->restrict(x - xCenter);
 						atposRef[iSp].push_back(x);
 					}
+				}
+				//Repeat DFT+U matrices for unit cell repetitions, if needed:
+				int nAtomsUnit = spUnit.atpos.size();
+				int nMatricesPerAtom = spUnit.rhoAtom_nMatrices() / nAtomsUnit;
+				for(int iMatrix=0; iMatrix<nMatricesPerAtom; iMatrix++)
+				{	for(int iRep=0; iRep<supIn[0]*supIn[1]*supIn[2]; iRep++)
+						U_rhoAtomRef.insert(U_rhoAtomRef.end(), U_rhoAtomUnit, U_rhoAtomUnit+nAtomsUnit);
+					U_rhoAtomUnit += nAtomsUnit;
 				}
 				break;
 			}
@@ -197,7 +206,16 @@ void DefectSupercell::initialize(const Wannier* wannier)
 
 void DefectSupercell::project(const ColumnBundle& C, CachedProjections& proj)
 {	for(int i=0; i<2; i++)
-		proj.VdagC[i].assign(atposRef.size(), matrix());
+		proj.VdagC[i].resize(atposRef.size());
+	const matrix* U_rhoAtomPtr[2] = { NULL, NULL };
+	if(eSup->eInfo.hasU)
+	{	for(int i=0; i<2; i++)
+		{	proj.psiDagC[i].resize(atposRef.size());
+			Urho[i].resize(atposRef.size());
+		}
+		U_rhoAtomPtr[0] = U_rhoAtomRef.data();
+		U_rhoAtomPtr[1] = eSup->eVars.U_rhoAtom.data();
+	}
 	for(unsigned iSp=0; iSp<atposRef.size(); iSp++)
 	{	SpeciesInfo& sp = *(eSup->iInfo.species[iSp]);
 		for(int i=0; i<2; i++)
@@ -205,7 +223,15 @@ void DefectSupercell::project(const ColumnBundle& C, CachedProjections& proj)
 			sp.sync_atpos();
 			//--- First pass: atpos contains unit cell positions from atposRef
 			//--- Second pass: atpos contains defect-supercell positions from eSup
-			if(sp.atpos.size()) proj.VdagC[i][iSp] = (*sp.getV(C)) ^ C;
+			if(sp.atpos.size())
+			{	proj.VdagC[i][iSp] = (*sp.getV(C)) ^ C;
+				if(sp.rhoAtom_nMatrices())
+				{	ColumnBundle psi;
+					sp.rhoAtom_getV(C, U_rhoAtomPtr[i], psi, Urho[i][iSp]);
+					proj.psiDagC[i][iSp] = psi ^ C;
+					U_rhoAtomPtr[i] += sp.rhoAtom_nMatrices();
+				}
+			}
 		}
 	}
 }
@@ -214,14 +240,27 @@ void DefectSupercell::bcast(CachedProjections& proj, int src) const
 {	const int nBands = e->eInfo.nBands;
 	for(int i=0; i<2; i++)
 	{	proj.VdagC[i].resize(atposRef.size());
+		if(eSup->eInfo.hasU)
+			proj.psiDagC[i].resize(atposRef.size());
 		for(unsigned iSp=0; iSp<atposRef.size(); iSp++)
 		{	const SpeciesInfo& sp = *(eSup->iInfo.species[iSp]);
 			const int nAtoms = (i ? sp.atpos.size() : atposRef[iSp].size());
+			//Nonlocal PS projectors:
 			const int nProj = sp.MnlAll.nRows() * nAtoms;
 			matrix& m = proj.VdagC[i][iSp];
 			if(nProj)
 			{	if(not m) m.init(nProj, nBands);
 				mpiWorld->bcastData(m, src);
+			}
+			//DFT+U atomic orbitals:
+			if(eSup->eInfo.hasU)
+			{	matrix& m = proj.psiDagC[i][iSp];
+				int nOrbitals = m.nRows();
+				mpiWorld->bcast(nOrbitals, src);
+				if(nOrbitals)
+				{	if(not m) m.init(nOrbitals, nBands);
+					mpiWorld->bcastData(m, src);
+				}
 			}
 		}
 	}
@@ -267,6 +306,9 @@ matrix DefectSupercell::compute(const ColumnBundle& C1, const ColumnBundle& C2,
 		{	if(not proj1.VdagC[i][iSp]) continue; //may not have any atoms for some eSup species when using unit cell atpos
 			const int nAtoms = (i ? sp.atpos.size() : atposRef[iSp].size());
 			axpy(projSign[i], dagger(proj1.VdagC[i][iSp]) * (tiledBlockMatrix(sp.MnlAll, nAtoms) * proj2.VdagC[i][iSp]), result);
+			//DFT+U:
+			if(eSup->eInfo.hasU and Urho[i][iSp])
+				axpy(projSign[i], dagger(proj1.psiDagC[i][iSp]) * Urho[i][iSp] * proj2.psiDagC[i][iSp], result);
 		}
 	}
 	
