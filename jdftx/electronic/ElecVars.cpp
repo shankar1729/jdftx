@@ -527,7 +527,7 @@ matrix3<> ElecVars::latticeGrad() const
 
 //Make phase (and degenerate-subspace rotations) of wavefunctions reproducible 
 void fixPhase(matrix& evecs, const diagMatrix& eigs, const ColumnBundle& C)
-{	const double tol = 1e-7;
+{	const double tol = 1e-10;
 	//Pick out the head elements:
 	const std::vector<int>& head = C.basis->head;
 	int nSpinor = C.spinorLength();
