@@ -550,7 +550,7 @@ struct CommandDefectSupercell : public Command
 {
 	CommandDefectSupercell() : Command("defect-supercell", "wannier")
 	{
-		format = "<name> <sup0> <sup1> <sup2> <inFile> <center0> <center1> <center2>  <q>";
+		format = "<name> <sup0> <sup1> <sup2> <inFile> <center0> <center1> <center2>  <q> [<alignWidth>=5. <alignSmooth>=1.]";
 		comments =
 			"Export wannierized matrix elements to mlwfHd_<name> using a <sup0> x <sup1> x <sup2>\n"
 			"supercell (must evenly divide the corresponding k-point sampling in each direction)\n"
@@ -565,6 +565,10 @@ struct CommandDefectSupercell : public Command
 			"\n"
 			"Note that the reference supercell calculation must export Vscloc.\n"
 			"Only norm-conserving pseudopotentials are supported for defect matrix-element evaluation.\n"
+			"\n"
+			"Optional <alignWidth> and <alignSmooth> control the width and smoothness (in bohrs) of\n"
+			"the region used for electrostatic potential alignment between the supercell and unit cell.\n"
+			"The region is specified relative to the boundary of the supercell Wigner-Seitz cell.\n"
 			"\n"
 			"This command may be specified multiple times to calculate elements for several defects.";
 		
@@ -581,15 +585,18 @@ struct CommandDefectSupercell : public Command
 		pl.get(ds.inFile, string(), "inFile", true);
 		for(int dir=0; dir<3; dir++) pl.get(ds.xCenter[dir], 0., "center"+string(1,"012"[dir]), true);
 		pl.get(ds.q, 0., "q", true);
+		pl.get(ds.alignWidth, 5., "alignWidth");
+		pl.get(ds.alignSmooth, 1., "alignSmooth");
 		wannier.defects.push_back(ds);
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const Wannier& wannier = ((const WannierEverything&)e).wannier;
 		const DefectSupercell& ds = wannier.defects[iRep];
-		logPrintf("%s  %d %d %d  %s  %lg %lg %lg  %lg", ds.name.c_str(),
+		logPrintf("%s  %d %d %d  %s  %lg %lg %lg  %lg  %lg %lg", ds.name.c_str(),
 			ds.supOut[0], ds.supOut[1], ds.supOut[2], ds.inFile.c_str(),
-			ds.xCenter[0], ds.xCenter[1], ds.xCenter[2], ds.q);
+			ds.xCenter[0], ds.xCenter[1], ds.xCenter[2], ds.q,
+			ds.alignWidth, ds.alignSmooth);
 	}
 }
 commandDefectSupercell;

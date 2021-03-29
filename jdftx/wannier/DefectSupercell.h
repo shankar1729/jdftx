@@ -32,6 +32,8 @@ public:
 	vector3<int> supOut; //supercell for Wannierized matrix element output (must be commensurate with k-point supercell)
 	vector3<> xCenter; //lattice coordinates of supercell where defect is centered
 	double q; //net electron count of defect
+	double alignWidth; //width of region near Wigner-Seitz supercell boundary used for alignment
+	double alignSmooth; //smoothness of region near Wigner-Seitz supercell boundary used for alignment
 	
 	void initialize(const class Wannier*);
 	

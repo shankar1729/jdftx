@@ -181,11 +181,15 @@ void DefectSupercell::initialize(const Wannier* wannier)
 			"Specify fftbox explicitly in defect calculation.\n\n");
 	//--- subtract unit cell potential:
 	assert(e->eInfo.nDensities == eSup->eInfo.nDensities);
+	int truncDir = e->coulombParams.geometry==CoulombParams::Slab ? e->coulombParams.iDir : -1;
+	double Valign = 0., wAlign = 0.;
 	for(int s=0; s<e->eInfo.nDensities; s++)
 	{	const vector3<int>& S = e->gInfo.S;
 		size_t iStart=0, iStop=e->gInfo.nr;
+		vector3<> SsupInv(1./Ssup[0], 1./Ssup[1], 1./Ssup[2]);
 		const double* Vunit = e->eVars.Vscloc[s]->data();
 		double* Vsup = eSup->eVars.Vscloc[s]->data();
+		double* nUnit = e->eVars.n[s]->data();
 		THREAD_rLoop(
 			vector3<int> ivSup;
 			for(ivSup[0]=iv[0]; ivSup[0]<Ssup[0]; ivSup[0]+=S[0])
@@ -193,9 +197,19 @@ void DefectSupercell::initialize(const Wannier* wannier)
 			for(ivSup[2]=iv[2]; ivSup[2]<Ssup[2]; ivSup[2]+=S[2])
 			{	size_t iSup = (ivSup[0]*Ssup[1] + ivSup[1])*Ssup[2] + ivSup[2];
 				Vsup[iSup] -= Vunit[i];
+				//Contribution to alignment potential:
+				vector3<> xSup(ivSup[0]*SsupInv[0], ivSup[1]*SsupInv[1], ivSup[2]*SsupInv[2]); //supercell lattice coordinates
+				double bDist = wsSup->boundaryDistance(wsSup->restrict(xSup - xCenter), truncDir);
+				double w = 0.5*erfc((bDist - alignWidth)/alignSmooth) * nUnit[i]; //weight for potential alignment
+				Valign -= w * Vsup[iSup]; //note: alignment correction is unit cell - supercell
+				wAlign += w;
 			}
 		)
 	}
+	Valign /= wAlign;
+	for(ScalarField& V: eSup->eVars.Vscloc)
+		V += Valign; //apply alignment correction
+	logPrintf("Long-range potential alignment correction: %lg Eh", Valign/e->gInfo.dV); //report without dV factor of Vscloc
 	//--- write difference potential for manual verification:
 	eSup->dump.format = wannier->getFilename(Wannier::FilenameDump, "d$VAR_"+name);
 	eSup->dump.clear();

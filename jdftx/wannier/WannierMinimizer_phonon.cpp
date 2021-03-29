@@ -66,6 +66,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 			mpiWorld->freadData(phononHsubCur, fpIn); //read from file
 		}
 	}
+	mpiWorld->fclose(fpIn);
 	
 	//Apply translational invariance correction:
 	std::vector<diagMatrix> Hsub_eigs = e.eVars.Hsub_eigs; //make available on all processes
