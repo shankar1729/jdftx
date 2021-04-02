@@ -425,7 +425,8 @@ ScalarFieldTilde DD(const ScalarFieldTilde& in, int iDir, int jDir)
 
 
 template<int l> void lGradient_sub(size_t iStart, size_t iStop, const vector3<int>& S, const complex* in, const array<complex*, 2*l+1>& out, const matrix3<>& G)
-{	THREAD_halfGspaceLoop( lGradient_calc<l>(i, iG, IS_NYQUIST, in, out, G); )
+{	const complex lPhase = cis(l*0.5*M_PI);
+	THREAD_halfGspaceLoop( lGradient_calc<l>(i, iG, IS_NYQUIST, lPhase, in, out, G); )
 }
 template<int l> void lGradient(const vector3<int>& S, const complex* in, array<complex*, 2*l+1> out, const matrix3<>& G)
 {	threadLaunch(lGradient_sub<l>, S[0]*S[1]*(S[2]/2+1), S, in, out, G);
@@ -444,7 +445,8 @@ ScalarFieldTildeArray lGradient(const ScalarFieldTilde& in, int l)
 }
 
 template<int l> void lDivergence_sub(size_t iStart, size_t iStop, const vector3<int>& S, const array<const complex*,2*l+1>& in, complex* out, const matrix3<>& G)
-{	THREAD_halfGspaceLoop( lDivergence_calc<l>(i, iG, IS_NYQUIST, in, out, G); )
+{	const complex lPhase = cis(l*0.5*M_PI);
+	THREAD_halfGspaceLoop( lDivergence_calc<l>(i, iG, IS_NYQUIST, lPhase, in, out, G); )
 }
 template<int l> void lDivergence(const vector3<int>& S, array<const complex*,2*l+1> in, complex* out, const matrix3<>& G)
 {	threadLaunch(lDivergence_sub<l>, S[0]*S[1]*(S[2]/2+1), S, in, out, G);

@@ -161,14 +161,15 @@ void DD_gpu(const vector3<int> S, const complex* in, complex* out, vector3<> Ge1
 }
 
 template<int l> __global__
-void lGradient_kernel(int zBlock, const vector3<int> S, const complex* in, array<complex*, 2*l+1> out, const matrix3<> G)
+void lGradient_kernel(int zBlock, const vector3<int> S, const complex lPhase, const complex* in, array<complex*, 2*l+1> out, const matrix3<> G)
 {	COMPUTE_halfGindices
-	lGradient_calc<l>(i, iG, IS_NYQUIST, in, out, G);
+	lGradient_calc<l>(i, iG, IS_NYQUIST, lPhase, in, out, G);
 }
 template<int l> void lGradient_gpu(const vector3<int>& S, const complex* in, array<complex*, 2*l+1> out, const matrix3<>& G)
-{	GpuLaunchConfigHalf3D glc(lGradient_kernel<l>, S);
+{	const complex lPhase = cis(l*0.5*M_PI);
+	GpuLaunchConfigHalf3D glc(lGradient_kernel<l>, S);
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-		lGradient_kernel<l><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, in, out, G);
+		lGradient_kernel<l><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, lPhase, in, out, G);
 	gpuErrorCheck();
 }
 void lGradient_gpu(const vector3<int>& S, const complex* in, std::vector<complex*> out, int l, const matrix3<>& G)
@@ -176,14 +177,15 @@ void lGradient_gpu(const vector3<int>& S, const complex* in, std::vector<complex
 }
 
 template<int l> __global__
-void lDivergence_kernel(int zBlock, const vector3<int> S, const array<const complex*,2*l+1> in, complex* out, const matrix3<> G)
+void lDivergence_kernel(int zBlock, const vector3<int> S, const complex lPhase, const array<const complex*,2*l+1> in, complex* out, const matrix3<> G)
 {	COMPUTE_halfGindices
-	lDivergence_calc<l>(i, iG, IS_NYQUIST, in, out, G);
+	lDivergence_calc<l>(i, iG, IS_NYQUIST, lPhase, in, out, G);
 }
 template<int l> void lDivergence_gpu(const vector3<int>& S, array<const complex*,2*l+1> in, complex* out, const matrix3<>& G)
-{	GpuLaunchConfigHalf3D glc(lDivergence_kernel<l>, S);
+{	const complex lPhase = cis(l*0.5*M_PI);
+	GpuLaunchConfigHalf3D glc(lDivergence_kernel<l>, S);
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-		lDivergence_kernel<l><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, in, out, G);
+		lDivergence_kernel<l><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, lPhase, in, out, G);
 	gpuErrorCheck();
 }
 void lDivergence_gpu(const vector3<int>& S, const std::vector<const complex*>& in, complex* out, int l, const matrix3<>& G)

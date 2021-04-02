@@ -124,11 +124,14 @@ template<int l, int lpm> struct lGradient_staticLoop
 		lGradient_staticLoop<l,lpm-1>::set(i, g, phasedIn, out);
 	}
 };
-template<int l> struct lGradient_staticLoop<l,-1> { static __hostanddev__ void set(int i, const vector3<>& g, const complex& phasedIn, const array<complex*,2*l+1>& out) {} }; //end recursion
-
-template<int l> __hostanddev__ void lGradient_calc(int i, const vector3<int>& iG, bool isNyq, const complex* in, const array<complex*,2*l+1>& out, const matrix3<>& G)
-{	const complex phase = cis(l*0.5*M_PI); // iota^l (computable at compile time)
-	lGradient_staticLoop<l,l+l>::set(i, iG*G, isNyq ? 0. : phase * in[i], out);
+template<int l> struct lGradient_staticLoop<l,-1>
+{	static __hostanddev__ void set(int i, const vector3<>& g, const complex& phasedIn, const array<complex*,2*l+1>& out)
+	{} //end recursion
+};
+template<int l> __hostanddev__ void lGradient_calc(int i, const vector3<int>& iG, bool isNyq, const complex lPhase,
+	const complex* in, const array<complex*,2*l+1>& out, const matrix3<>& G)
+{
+	lGradient_staticLoop<l,l+l>::set(i, iG*G, isNyq ? 0. : lPhase * in[i], out);
 }
 
 template<int l, int lpm> struct lDivergence_staticLoop
@@ -136,11 +139,14 @@ template<int l, int lpm> struct lDivergence_staticLoop
 	{	return in[lpm][i] * Ylm<l,lpm-l>(g) +  lDivergence_staticLoop<l,lpm-1>::get(i, g, in);
 	}
 };
-template<int l> struct lDivergence_staticLoop<l,-1> { static __hostanddev__ complex get(int i, const vector3<>& g, const array<const complex*,2*l+1>& in) { return complex(); } }; //end recursion
-
-template<int l> __hostanddev__ void lDivergence_calc(int i, const vector3<int>& iG, bool isNyq, const array<const complex*,2*l+1>& in, complex* out, const matrix3<>& G)
-{	const complex phase = cis(l*0.5*M_PI); // iota^l (computable at compile time)
-	out[i] = (isNyq ? 0. : phase) * lDivergence_staticLoop<l,l+l>::get(i, iG*G, in);
+template<int l> struct lDivergence_staticLoop<l,-1>
+{	static __hostanddev__ complex get(int i, const vector3<>& g, const array<const complex*,2*l+1>& in)
+	 { return complex(); } //end recursion
+};
+template<int l> __hostanddev__ void lDivergence_calc(int i, const vector3<int>& iG, bool isNyq, const complex lPhase,
+	const array<const complex*,2*l+1>& in, complex* out, const matrix3<>& G)
+{
+	out[i] = (isNyq ? 0. : lPhase) * lDivergence_staticLoop<l,l+l>::get(i, iG*G, in);
 }
 
 
