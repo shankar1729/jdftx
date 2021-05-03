@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/parser.h>
 #include <core/LatticeUtils.h>
 #include <core/WignerSeitz.h>
+#include <core/ScalarFieldIO.h>
 #include <libgen.h>
 
 void DefectSupercell::initialize(const Wannier* wannier)
@@ -181,13 +182,29 @@ void DefectSupercell::initialize(const Wannier* wannier)
 			"Specify fftbox explicitly in defect calculation.\n\n");
 	//--- subtract unit cell potential:
 	assert(e->eInfo.nDensities == eSup->eInfo.nDensities);
+	bool potentialSubtraction = e->dump.potentialSubtraction;
+	ScalarField dAtomic, dAtomicSup;
+	#define PREPARE_dAtomic(target, e) \
+		{	ScalarFieldTilde target##Tilde; \
+			initZero(target##Tilde, e->gInfo); \
+			for(auto sp: e->iInfo.species) \
+				if(sp->atpos.size()) \
+					sp->accumulateAtomicPotential(target##Tilde); \
+			target = I(target##Tilde); \
+		}
+	if(potentialSubtraction)
+	{	PREPARE_dAtomic(dAtomic, e) //Prepare atomic potential for unit cell
+		PREPARE_dAtomic(dAtomicSup, eSup) //Prepare atomic potential for unit cell
+	}
 	int truncDir = e->coulombParams.geometry==CoulombParams::Slab ? e->coulombParams.iDir : -1;
 	double Valign = 0., wAlign = 0.;
 	for(int s=0; s<e->eInfo.nDensities; s++)
 	{	const vector3<int>& S = e->gInfo.S;
 		size_t iStart=0, iStop=e->gInfo.nr;
 		vector3<> SsupInv(1./Ssup[0], 1./Ssup[1], 1./Ssup[2]);
+		const double* dUnit = potentialSubtraction ? dAtomic->data() : NULL;
 		const double* Vunit = e->eVars.Vscloc[s]->data();
+		double* dSup = potentialSubtraction ? dAtomicSup->data() : NULL;
 		double* Vsup = eSup->eVars.Vscloc[s]->data();
 		double* nUnit = e->eVars.n[s]->data();
 		THREAD_rLoop(
@@ -197,25 +214,32 @@ void DefectSupercell::initialize(const Wannier* wannier)
 			for(ivSup[2]=iv[2]; ivSup[2]<Ssup[2]; ivSup[2]+=S[2])
 			{	size_t iSup = (ivSup[0]*Ssup[1] + ivSup[1])*Ssup[2] + ivSup[2];
 				Vsup[iSup] -= Vunit[i];
+				//Atomic corrections for alignment potential:
+				if(potentialSubtraction and (s == 0)) //only subtract once (dAtomic is spin-independent)
+					dSup[iSup] -= dUnit[i];
+				double dVatom = potentialSubtraction ? (dSup[iSup] * e->gInfo.dV) : 0.; //Note: does not change Vscloc, only Valign
 				//Contribution to alignment potential:
 				vector3<> xSup(ivSup[0]*SsupInv[0], ivSup[1]*SsupInv[1], ivSup[2]*SsupInv[2]); //supercell lattice coordinates
 				double bDist = wsSup->boundaryDistance(wsSup->restrict(xSup - xCenter), truncDir);
 				double w = 0.5*erfc((bDist - alignWidth)/alignSmooth) * nUnit[i]; //weight for potential alignment
-				Valign -= w * Vsup[iSup]; //note: alignment correction is unit cell - supercell
+				Valign -= w * (Vsup[iSup] - dVatom); //note: alignment correction is unit cell - supercell
 				wAlign += w;
 			}
 		)
 	}
 	Valign /= wAlign;
+	ScalarField dV = potentialSubtraction ? (-dAtomicSup) : 0; //for output / debugging alignment only
 	for(ScalarField& V: eSup->eVars.Vscloc)
-		V += Valign; //apply alignment correction
-	logPrintf("Long-range potential alignment correction: %lg Eh", Valign/e->gInfo.dV); //report without dV factor of Vscloc
+	{	V += Valign; //apply alignment correction
+		//Spin-averaged V difference (without dV factor):
+		dV += V * (1./(eSup->eInfo.nDensities * e->gInfo.dV));
+	}
+	logPrintf("Long-range potential alignment correction: %lg Eh\n", Valign/e->gInfo.dV); //report without dV factor of Vscloc
 	//--- write difference potential for manual verification:
-	eSup->dump.format = wannier->getFilename(Wannier::FilenameDump, "d$VAR_"+name);
-	eSup->dump.clear();
-	eSup->dump.insert(std::make_pair(DumpFreq_End, DumpVscloc));
-	eSup->dump(DumpFreq_End, 0);
-	logPrintf("Note: dVscloc written on supercell grid: "); Ssup.print(globalLog, " %d ");
+	string fname = wannier->getFilename(Wannier::FilenameDump, "dV_"+name);
+	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+	saveRawBinary(dV, fname.c_str());
+	logPrintf("done; written on supercell grid: "); Ssup.print(globalLog, " %d ");
 }
 
 void DefectSupercell::project(const ColumnBundle& C, CachedProjections& proj)
