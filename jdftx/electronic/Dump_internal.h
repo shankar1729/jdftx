@@ -36,14 +36,12 @@ class ColumnBundle;
 class DumpSelfInteractionCorrection
 {
 public:
-	DumpSelfInteractionCorrection(const Everything& everything);
-	~DumpSelfInteractionCorrection();
+	DumpSelfInteractionCorrection(const Everything& e);
 	double operator()(std::vector<diagMatrix>* correctedEigenvalues); //!< Evaluates the self interaction energy and (optionally) returns the corrected band eigenvalues
-	double coulombExciton(int q1, int n1, int q2, int n2);  //!< Approximates the coulomb excitonic contribution between two states
 	void dump(const char* filenamePattern);
 	bool needsTau;  //!< The kinetic energy density is needed for meta-gga functionals.
 private:
-	const Everything* e;
+	const Everything& e;
 	double calcSelfInteractionError(int q, int n); //!< Calculates the self-interaction error of the KS orbital atthe n'th band at q'th quantum number
 	std::vector<ColumnBundle> DC; //!< ColumnBundle for the derivative of the wavefunctions in each cartesian direction
 };
