@@ -524,5 +524,6 @@ void SpeciesInfo::readUPF(istream& is)
 		}
 	}
 	
-	coreRadius = *coreRadii.rbegin(); //max of all core radii above (used for overlap checks during geometry opt)
+	if(coreRadii.size())
+		coreRadius = *coreRadii.rbegin(); //max of all core radii above (used for overlap checks during geometry opt)
 }
