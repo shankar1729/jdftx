@@ -63,7 +63,7 @@ double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 		ColumnBundle Cqn = e.eVars.C[q].getSub(n,n+1);
 		std::vector<matrix> VdagCqn;
 		for(const matrix& m: e.eVars.VdagC[q])
-			VdagCqn.push_back(m(0, m.nRows(), n, n+1));
+			VdagCqn.push_back(m ? matrix(m(0, m.nRows(), n, n+1)) : m);
 		orbitalDensity[0] = diagouterI(Fqn, Cqn, 1, &e.gInfo)[0];
 		e.iInfo.augmentDensityInit();
 		e.iInfo.augmentDensitySpherical(qnum, Fqn, VdagCqn); //pseudopotential contribution
