@@ -56,7 +56,7 @@ double DumpSelfInteractionCorrection::operator()(std::vector<diagMatrix>* correc
 double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 {
 	// Get the real-space orbital density
-	ScalarFieldArray orbitalDensity; nullToZero(orbitalDensity, e.gInfo, e.eInfo.nDensities);
+	ScalarFieldArray orbitalDensity; nullToZero(orbitalDensity, e.gInfo, 2);
 	if(e.eInfo.isMine(q))
 	{	QuantumNumber qnum; qnum.weight = 1.;
 		diagMatrix Fqn = eye(1);
@@ -77,7 +77,7 @@ double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 	double coulombEnergy = 0.5*dot(orbitalDensityTilde, O(VorbitalTilde));
 	
 	// Calculate the orbital KE if needed
-	ScalarFieldArray KEdensity(e.eInfo.nDensities);
+	ScalarFieldArray KEdensity(2);
 	if(e.exCorr.needsKEdensity())
 	{	nullToZero(KEdensity, e.gInfo);
 		if(e.eInfo.isMine(q))
