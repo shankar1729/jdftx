@@ -433,6 +433,11 @@ void DOS::dump()
 					{	sStart=oDesc.s;
 						sStop=oDesc.s+1;
 					}
+					int aStart = weight.atomIndex, aStop = weight.atomIndex+1;
+					if(weight.atomIndex == (size_t)(-1))
+					{	aStart = 0;
+						aStop = e->iInfo.species[weight.specieIndex]->atpos.size();
+					}
 					for(int s=sStart; s<sStop; s++)
 					{	std::vector<int> mArr; //set of m to include
 						if(oDesc.m==l+1) //all orbitals
@@ -456,9 +461,11 @@ void DOS::dump()
 						{	mArr.push_back(oDesc.m);
 						}
 						for(int m: mArr)
-						{	int iCol = spOffset[weight.specieIndex] + e->iInfo.species[weight.specieIndex]->atomicOrbitalOffset(weight.atomIndex, oDesc.n, l, m, s);
-							for(int iBand=0; iBand<eInfo.nBands; iBand++)
-								eval.w(iWeight, iState, iBand) += (CdagOpsiRel.data()[CdagOpsiRel.index(iBand, iCol)]).norm();
+						{	for(int a=aStart; a<aStop; a++)
+							{	int iCol = spOffset[weight.specieIndex] + e->iInfo.species[weight.specieIndex]->atomicOrbitalOffset(a, oDesc.n, l, m, s);
+								for(int iBand=0; iBand<eInfo.nBands; iBand++)
+									eval.w(iWeight, iState, iBand) += (CdagOpsiRel.data()[CdagOpsiRel.index(iBand, iCol)]).norm();
+							}
 						}
 					}
 				}

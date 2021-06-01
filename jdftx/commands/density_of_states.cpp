@@ -73,7 +73,8 @@ struct CommandDensityOfStates : public Command
 			"   A file with all 1.0's would yield the same result as mode Total.\n"
 			"\n+ Orbital  <species> <atomIndex>   <orbDesc>\n\n"
 			"   Atomic-orbital projected density of states. The target atom is\n"
-			"   selected as in AtomSphere mode. <orbDesc> selects the atomic orbital\n"
+			"   selected as in AtomSphere mode, but additionally can be set to 0\n"
+			"   to sum over atoms of that type. <orbDesc> selects the atomic orbital\n"
 			"   used for projection, from those available in the pseudopotential.\n"
 			"   s, p, d or f select the total projection in that angular momentum,\n"
 			"   and px, py, pz, dxy, dyz, dz2, dxz, dx2-y2, d, fy(3x2-y2) fxyz, fyz2,\n"
@@ -194,8 +195,8 @@ struct CommandDensityOfStates : public Command
 					throw "Could not find species with name '" + spName + "'";
 				//Get atom index:
 				pl.get(weight.atomIndex, size_t(0), "atomIndex", true);
-				if(!weight.atomIndex)
-					throw string("Atom index should be a positive integer");
+				if((not weight.atomIndex) and (weight.type==DOS::Weight::AtomSlice or weight.type==DOS::Weight::AtomSphere))
+					throw string("Atom index should be a positive integer for atom slice/sphere modes");
 				if(weight.atomIndex > e.iInfo.species[weight.specieIndex]->atpos.size())
 					throw "Atom index exceeds number of atoms for species '" + spName + "'";
 				weight.atomIndex--; //store 0-based index internally
