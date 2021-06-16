@@ -91,14 +91,11 @@ inline int get_icutv(CoulombParams::Geometry geom)
 	}
 }
 
-
-//Write fluid polarizability
-void BGW::writeChiFluid(bool write_q0) const
-{	assert(eVars.fluidSolver); //should only be called in solvated cases
-	if((not write_q0) and k.size()==1) return; //only q0 present, so nothing to do
-	
-	//Open file and write common header:
-	hid_t fid = openHDF5(e.dump.getFilename(write_q0 ? "bgw.chi0Fluid.h5" : "bgw.chiFluid.h5"));
+void BGW::writeHeaderEps(hid_t fid, bool write_q0, string mode,
+	std::vector<vector3<>>& q, std::vector<complex>& freq,
+	std::vector<std::vector<vector3<int>>>& iGarr,
+	std::vector<int>& nBasis, int& nBasisMax) const
+{
 	writeHeaderMF(fid);
 	logPrintf("\n");
 	
@@ -108,24 +105,25 @@ void BGW::writeChiFluid(bool write_q0) const
 	h5writeScalar(gidHeader, "flavor", 2);  //=> complex wavefunctions
 	
 	//--- Params group:
+	double Ecut = (mode=="fluid" ? bgwp.EcutChiFluid : bgwp.Ecut_rALDA);
 	hid_t gidParams = h5createGroup(gidHeader, "params");
 	h5writeScalar(gidParams, "matrix_type", 2); //=> chi
 	h5writeScalar(gidParams, "has_advanced", 0); //=> retarded response only
 	h5writeScalar(gidParams, "nmatrix", nSpins); //=> polarizability per spin
 	h5writeScalar(gidParams, "matrix_flavor", 2); //=> complex matrices
 	h5writeScalar(gidParams, "icutv", get_icutv(e.coulombParams.geometry)); //truncation geometry
-	h5writeScalar(gidParams, "ecuts", bgwp.EcutChiFluid/Ryd); //output cutoff for polarizability
+	h5writeScalar(gidParams, "ecuts", Ecut/Ryd); //output cutoff for polarizability
 	h5writeScalar(gidParams, "nband", 0); //No bands used for fluid polarizability
 	h5writeScalar(gidParams, "efermi", 0.); //Not meaningful for fluid polarizability
 	H5Gclose(gidParams);
 	
 	//--- q-points group:
 	hid_t gidQpoints = h5createGroup(gidHeader, "qpoints");
-	std::vector<vector3<>> q;
 	if(write_q0)
 		q.assign(1, bgwp.q0); //only q0
 	else
 	{	//same as k-mesh except Gamma-point removed (since separate q0):
+		q.clear();
 		bool foundGamma = false;
 		for(const vector3<>& qCur: k)
 			if(qCur.length_squared() < symmThresholdSq)
@@ -133,7 +131,7 @@ void BGW::writeChiFluid(bool write_q0) const
 			else
 				q.push_back(qCur);
 		if(not foundGamma)
-			die("Fluid polarizability output for BGW only supported for Gamma-centered mesh.\n");
+			die("%s output for BGW only supported for Gamma-centered mesh.\n", mode.c_str());
 	}
 	int nq = q.size();
 	h5writeScalar(gidQpoints, "nq", nq);
@@ -142,28 +140,36 @@ void BGW::writeChiFluid(bool write_q0) const
 	h5writeVector(gidQpoints, "qgrid", &eInfo.kFoldingCount()[0], 3);
 	h5writeVector(gidQpoints, "qpt_done", std::vector<int>(nq, 1));
 	H5Gclose(gidQpoints);
-	
+
 	//--- freq group:
 	//------ Create frequency grid in eV:
-	std::vector<complex> freq;
-	for(double freqRe=0.; freqRe<bgwp.freqReMax_eV+symmThreshold; freqRe+=bgwp.freqReStep_eV)
-		freq.push_back(complex(freqRe, bgwp.freqBroaden_eV));
-	if(bgwp.freqPlasma)
-	{	//GW imaginary freq. grid
-		double freqPlasma_eV = bgwp.freqPlasma/eV;
-		for(int i=0; i<bgwp.freqNimag; i++)
-			freq.push_back(complex(0., i*freqPlasma_eV/(bgwp.freqNimag-i)));
+	freq.clear();
+	int freqNimag = 0;
+	if(mode == "rALDA")
+	{	//Static only:
+		freq.push_back(0.);
 	}
 	else
-	{	//RPA imaginary freq. grid
-		for(int i=0; i<bgwp.freqNimag; i++)
-			freq.push_back(complex(0., (1./eV)*tan(0.5*M_PI*(1.-(i+1)*1./bgwp.freqNimag))));
+	{	for(double freqRe=0.; freqRe<bgwp.freqReMax_eV+symmThreshold; freqRe+=bgwp.freqReStep_eV)
+			freq.push_back(complex(freqRe, bgwp.freqBroaden_eV));
+		if(bgwp.freqPlasma)
+		{	//GW imaginary freq. grid
+			double freqPlasma_eV = bgwp.freqPlasma/eV;
+			for(int i=0; i<bgwp.freqNimag; i++)
+				freq.push_back(complex(0., i*freqPlasma_eV/(bgwp.freqNimag-i)));
+		}
+		else
+		{	//RPA imaginary freq. grid
+			for(int i=0; i<bgwp.freqNimag; i++)
+				freq.push_back(complex(0., (1./eV)*tan(0.5*M_PI*(1.-(i+1)*1./bgwp.freqNimag))));
+		}
+		freqNimag = bgwp.freqNimag;
 	}
 	//------ Output frequency grid in eV:
 	hid_t gidFreq = h5createGroup(gidHeader, "freqs");
 	h5writeScalar(gidFreq, "freq_dep", 2); //=> full-frequency
 	h5writeScalar(gidFreq, "nfreq", int(freq.size())); //number of frequencies
-	h5writeScalar(gidFreq, "nfreq_imag", bgwp.freqNimag); //number of imaginary frequencies
+	h5writeScalar(gidFreq, "nfreq_imag", freqNimag); //number of imaginary frequencies
 	hsize_t dimsFreq[2] = { hsize_t(freq.size()), 2 };
 	h5writeVector(gidFreq, "freqs", &(freq[0].real()), dimsFreq, 2);
 	H5Gclose(gidFreq);
@@ -171,16 +177,16 @@ void BGW::writeChiFluid(bool write_q0) const
 	for(complex& f: freq)
 		f *= eV;
 	logPrintf("\tInitialized frequency grid of size %d.\n", int(freq.size()));
-	
-	//--- gspace group:
-	//------ initialize list of G vectors for each q:
+
+	//--- G-space group:
+	//------ Initialize list of G vectors for each q:
 	int nG = iGrho.size();
 	std::vector<double> KE(nq * nG); //in Ryd, in rho order
 	std::vector<int> indEpsToRho(nq * nG);
 	std::vector<int> indRhoToEps(nq * nG);
-	std::vector<std::vector<vector3<int>>> iGarr(nq);
-	std::vector<int> nBasis(nq);
-	int nBasisMax = 0;
+	iGarr.assign(nq, std::vector<vector3<int>>());
+	nBasis.resize(nq);
+	nBasisMax = 0;
 	{	//Grid index used for tie-breaking
 		vector3<int> iGstride(e.gInfo.S[1]*e.gInfo.S[2], e.gInfo.S[2], 1);
 		std::vector<int> gridInd(nG); 
@@ -198,7 +204,7 @@ void BGW::writeChiFluid(bool write_q0) const
 			}
 			std::sort(sortIndex, sortIndex+nG, IndexedComparator(KEcur, gridInd.data()));
 			//Collect basis functions within G-sphere in KE order:
-			double EcutRy = 2.*bgwp.EcutChiFluid;
+			double EcutRy = 2.*Ecut;
 			for(int g=0; (g<nG && KEcur[sortIndex[g]]<=EcutRy); g++)
 				iGarr[iq].push_back(iGrho[sortIndex[g]]);
 			nBasis[iq] = iGarr[iq].size();
@@ -217,10 +223,22 @@ void BGW::writeChiFluid(bool write_q0) const
 	h5writeVector(gidGspace, "gind_eps2rho", indEpsToRho.data(), dimsInd, 2);
 	h5writeVector(gidGspace, "gind_rho2eps", indRhoToEps.data(), dimsInd, 2);
 	H5Gclose(gidGspace);
-	KE.clear();
-	indEpsToRho.clear();
-	indRhoToEps.clear();
 	H5Gclose(gidHeader); //end eps header
+}
+
+//Write fluid polarizability
+void BGW::writeChiFluid(bool write_q0) const
+{	assert(eVars.fluidSolver); //should only be called in solvated cases
+	if((not write_q0) and k.size()==1) return; //only q0 present, so nothing to do
+	
+	//Open file and write common header:
+	hid_t fid = openHDF5(e.dump.getFilename(write_q0 ? "bgw.chi0Fluid.h5" : "bgw.chiFluid.h5"));
+	std::vector<vector3<>> q;
+	std::vector<complex> freq;
+	std::vector<std::vector<vector3<int>>> iGarr;
+	std::vector<int> nBasis;
+	int nBasisMax = 0;
+	writeHeaderEps(fid, write_q0, "fluid", q, freq, iGarr, nBasis, nBasisMax);
 	
 	//------------ Calculate and write matrices --------------
 	//--- Process grid:

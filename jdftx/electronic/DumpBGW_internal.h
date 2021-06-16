@@ -41,10 +41,12 @@ struct BGWparams
 	int freqNimag; //!< number of imaginary frequencies
 	double freqPlasma; //!< plasma frequency in Hartrees used in GW imaginary frequency grid, set to zero for RPA frequency grid
 	
+	double Ecut_rALDA; //!< KE cutoff (in Eh) for rALDA output (enabled if non-zero)
+	
 	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10),
 		EcutChiFluid(0.), elecOnly(true),
 		freqReMax_eV(30.), freqReStep_eV(1.), freqBroaden_eV(0.1),
-		freqNimag(25), freqPlasma(1.)
+		freqNimag(25), freqPlasma(1.), Ecut_rALDA(0.)
 	{}
 };
 
@@ -80,6 +82,10 @@ class BGW
 	
 	hid_t openHDF5(string fname) const; //!< Open HDF5 file for collective access
 	void writeHeaderMF(hid_t fid) const; //!< Write common HDF5 header specifying the mean-field claculation for BGW outputs
+	void writeHeaderEps(hid_t gidHeader, bool write_q0, string mode,
+		std::vector<vector3<>>& q, std::vector<complex>& freq,
+		std::vector<std::vector<vector3<int>>>& iGarr,
+		std::vector<int>& nBasis, int& nBasisMax) const; //!< Initialize header for polarizabilities, along with q and G-space quantities
 
 public:
 	BGW(const Everything& e, const BGWparams& bgwp);
@@ -91,6 +97,9 @@ public:
 	
 	//Implemented in DumpBGW_fluid.cpp
 	void writeChiFluid(bool write_q0) const; //!< Write fluid polarizability (for q0 or for q != q0 depending on write_q0)
+	
+	//Implemented in DumpBGW.cpp
+	void write_rALDA(bool write_q0) const; //!< Write rALDA kernel (for q0 or for q != q0 depending on write_q0)
 };
 
 #endif //HDF5_ENABLED

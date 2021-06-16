@@ -37,6 +37,10 @@ void Dump::dumpBGW()
 	{	bgw.writeChiFluid(true); //write q0
 		bgw.writeChiFluid(false); //write q != q0
 	}
+	if(bgwParams->Ecut_rALDA)
+	{	bgw.write_rALDA(true); //write q0
+		bgw.write_rALDA(false); //write q != q0
+	}
 }
 
 
@@ -341,6 +345,120 @@ void BGW::writeHeaderMF(hid_t fid) const
 	H5Gclose(gidCrystal);
 
 	H5Gclose(gidHeader);
+}
+
+
+void BGW::write_rALDA(bool write_q0) const
+{
+	if((not write_q0) and k.size()==1) return; //only q0 present, so nothing to do
+	if(nSpinor != 1) die("rALDA not supported for spinorial calculations");
+
+	//Open file and write common header:
+	hid_t fid = openHDF5(e.dump.getFilename(write_q0 ? "bgw.fxc0_rALDA.h5" : "bgw.fxc_rALDA.h5"));
+	std::vector<vector3<>> q;
+	std::vector<complex> freq;
+	std::vector<std::vector<vector3<int>>> iGarr;
+	std::vector<int> nBasis;
+	int nBasisMax = 0;
+	writeHeaderEps(fid, write_q0, "rALDA", q, freq, iGarr, nBasis, nBasisMax);
+	
+	//Prepare q-cutoff and XC contribution at each point on the grid:
+	const double nCut = 1e-12; //regularize n below this value
+	ScalarField nTot = eVars.get_nTot(); //spin-summed
+	ScalarFieldArray xcData(2);
+	nullToZero(xcData, gInfo);
+	const double* n = nTot->data();
+	double* qSqCut = xcData[0]->data();
+	double* fxLDA = xcData[1]->data();
+	for(int i=0; i<gInfo.nr; i++)
+	{	double n_i = std::max(n[i], nCut); //regularized density
+		double kFsq = std::pow((3*M_PI*M_PI)*n_i, 2./3); //Fermi wave-vector squared
+		qSqCut[i] = 4*kFsq;
+		fxLDA[i] = -M_PI/kFsq;
+	}
+	
+	//------------ Calculate and write matrices --------------
+	//--- Process grid:
+	int nProcesses = mpiWorld->nProcesses();
+	int nProcsRow = int(round(sqrt(nProcesses)));
+	while(nProcesses % nProcsRow) nProcsRow--;
+	int nProcsCol = nProcesses / nProcsRow;
+	int iProcRow = mpiWorld->iProcess() / nProcsCol;
+	int iProcCol = mpiWorld->iProcess() % nProcsCol;
+	logPrintf("\tInitialized %d x %d process grid.\n", nProcsRow, nProcsCol);
+	//--- Determine matrix division:
+	int rowStart = (nBasisMax * iProcRow) / nProcsRow;
+	int rowStop = (nBasisMax * (iProcRow+1)) / nProcsRow;
+	int nRowsMine = rowStop - rowStart;
+	int colStart = (nBasisMax * iProcCol) / nProcsCol;
+	int colStop = (nBasisMax * (iProcCol+1)) / nProcsCol;
+	int nColsMine = colStop - colStart;
+	if(std::max(nProcsRow, nProcsCol) > nBasisMax)
+		die("\tNo data on some processes: reduce # processes.\n");
+	//--- create dataset:
+	hid_t gidMats = h5createGroup(fid, "mats");
+	hsize_t dims[6] = { hsize_t(q.size()), hsize_t(nSpins), hsize_t(freq.size()),
+		hsize_t(nBasisMax), hsize_t(nBasisMax), 2 };
+	hid_t sid = H5Screate_simple(6, dims, NULL);
+	hid_t did = H5Dcreate(gidMats, "matrix", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	hid_t plid = H5Pcreate(H5P_DATASET_XFER);
+	H5Sclose(sid);
+	//--- loop over q:
+	logPrintf("\tState:"); logFlush();
+	for(int iq=0; iq<int(q.size()); iq++)
+	{	std::vector<matrix> buf(nSpins, zeroes(nRowsMine, nColsMine));
+		for(int iColMine=0; iColMine<nColsMine; iColMine++)
+		{	int iCol = colStart + iColMine;
+			if(iCol >= nBasis[iq]) continue;
+			for(int iRowMine=0; iRowMine<nRowsMine; iRowMine++)
+			{	int iRow = rowStart + iRowMine;
+				if(iRow >= nBasis[iq]) continue;
+				//Current wave vectors:
+				vector3<int> iGdiff = iGarr[iq][iCol] - iGarr[iq][iRow]; //(G'-G) in recip coords for G in row, G' in col
+				double qSqSym = (q[iq] + iGarr[iq][iCol]).length() *
+								(q[iq] + iGarr[iq][iRow]).length();
+				//Collect contributions to XC and short-ranged coulomb-screening parts separately:
+				complex fxc, coulombS;
+				//--- loop over grid points
+				const vector3<int>& S = gInfo.S;
+				vector3<> iGdiffByS = inv(Diag(vector3<>(S))) * iGdiff; //elementwise iGdiff / S
+				size_t iStart=0, iStop=0;
+				THREAD_rLoop(
+					complex phase = cis(2*M_PI*dot(iGdiffByS, iv)); //exp(-i(G-G').r) for G in row, G' in col
+					if(qSqSym < qSqCut[i])
+						fxc += phase * fxLDA[i];
+					else
+						coulombS += phase * (4*M_PI/qSqSym);
+				)
+				//Set spin diagonal and off-diagonal components:
+				double prefac = 1./gInfo.nr; //scale factor to convert above sum to unit cell average
+				for(int iSpin=0; iSpin<nSpins; iSpin++)
+					buf[iSpin].set(iRowMine, iColMine, prefac*(
+						coulombS //coulomb in both diagonal and off-diagonal
+						+ (iSpin==0 ? nSpins*fxc : 0))); //fxc only in spin-diagonal part
+			}
+		}
+		for(int iSpin=0; iSpin<nSpins; iSpin++)
+		{	//Write results:
+			hsize_t offset[6] = { hsize_t(iq), hsize_t(iSpin), hsize_t(0), hsize_t(colStart), hsize_t(rowStart), 0 };
+			hsize_t count[6] = { 1, 1, 1, hsize_t(nColsMine), hsize_t(nRowsMine), 2 };
+			sid = H5Dget_space(did);
+			H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
+			hid_t sidMem = H5Screate_simple(6, count, NULL);
+			H5Dwrite(did, H5T_NATIVE_DOUBLE, sidMem, sid, plid, buf[iSpin].data());
+			H5Sclose(sidMem);
+		}
+		logPrintf(" %d", iq+1); logFlush();
+	}
+	logPrintf("\n"); logFlush();
+	//--- close dataset:
+	H5Pclose(plid);
+	H5Dclose(did);
+	H5Gclose(gidMats);
+	
+	//Close file:
+	H5Fclose(fid);
+	logPrintf("\tDone.\n"); logFlush();
 }
 
 #endif //HDF5_ENABLED

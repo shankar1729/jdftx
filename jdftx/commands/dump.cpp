@@ -948,6 +948,7 @@ enum BGWparamsMember
 	BGWpm_freqBroaden_eV,
 	BGWpm_freqNimag,
 	BGWpm_freqPlasma,
+	BGWpm_Ecut_rALDA,
 	BGWpm_Delim
 };
 EnumStringMap<BGWparamsMember> bgwpmMap
@@ -961,7 +962,8 @@ EnumStringMap<BGWparamsMember> bgwpmMap
 	BGWpm_freqReStep_eV, "freqReStep_eV",
 	BGWpm_freqBroaden_eV, "freqBroaden_eV",
 	BGWpm_freqNimag, "freqNimag",
-	BGWpm_freqPlasma, "freqPlasma"
+	BGWpm_freqPlasma, "freqPlasma",
+	BGWpm_Ecut_rALDA, "Ecut_rALDA"
 );
 EnumStringMap<BGWparamsMember> bgwpmDescMap
 (	BGWpm_nBandsDense, "If non-zero, use a dense ScaLAPACK solver to calculate more bands",
@@ -974,7 +976,8 @@ EnumStringMap<BGWparamsMember> bgwpmDescMap
 	BGWpm_freqReStep_eV, "Real frequency grid spacing in eV (default: 1.)",
 	BGWpm_freqBroaden_eV, "Broadening (imaginary part) of real frequency grid in eV (default: 0.1)",
 	BGWpm_freqNimag, "Number of imaginary frequencies (default: 25)",
-	BGWpm_freqPlasma, "Plasma frequency in Hartrees used in GW imaginary frequency grid (default: 1.), set to zero for RPA frequency grid"
+	BGWpm_freqPlasma, "Plasma frequency in Hartrees used in GW imaginary frequency grid (default: 1.), set to zero for RPA frequency grid",
+	BGWpm_Ecut_rALDA, "KE cutoff in hartrees for rALDA polarizability output (default: 0; set non-zero to enable)"
 );
 
 struct CommandBGWparams : public Command
@@ -1015,6 +1018,7 @@ struct CommandBGWparams : public Command
 				READ_AND_CHECK(freqBroaden_eV, >, 0.)
 				READ_AND_CHECK(freqNimag, >, 0)
 				READ_AND_CHECK(freqPlasma, >=, 0.)
+				READ_AND_CHECK(Ecut_rALDA, >=, 0.)
 				case BGWpm_Delim: return; //end of input
 			}
 			#undef READ_AND_CHECK
@@ -1036,6 +1040,7 @@ struct CommandBGWparams : public Command
 		PRINT(freqBroaden_eV, "%lg")
 		PRINT(freqNimag, "%d")
 		PRINT(freqPlasma, "%lg")
+		PRINT(Ecut_rALDA, "%lg")
 		#undef PRINT
 	}
 }
