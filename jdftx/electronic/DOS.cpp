@@ -412,13 +412,11 @@ void DOS::dump()
 					const matrix& CdagOpsiRel = weight.type==Weight::Orbital ? CdagOpsi : CdagOpsiOrtho;
 					int l = oDesc.l;
 					//Check relativistic psp compatibility:
-					if(e->iInfo.species[weight.specieIndex]->isRelativistic() && oDesc.l)
-					{	if(!(oDesc.spinType==SpinOrbit || (oDesc.spinType==SpinNone && oDesc.m==l+1)))
-							die("Individual orbital projections for l>0 in relativsitic pseudopotentials must use the j,mj specification (eg. 'p+(+1/2)').\n");
-					}
-					else
-					{	if(oDesc.spinType==SpinOrbit)
-							die("Only l>0 projections in relativistic pseudopotentials may use the j,mj specification.\n");
+					bool sSumRel = false; //whether sum over s(-1/2) and s(+1/2) in relativistic pseudopotential (needs special handling)
+					if(e->iInfo.species[weight.specieIndex]->isRelativistic())
+					{	if(!(oDesc.spinType==SpinOrbit || (oDesc.spinType==SpinNone && (oDesc.m==l+1 || oDesc.l==0))))
+							die("Individual orbital projections in relativsitic pseudopotentials must use the j,mj specification (eg. 'p+(+1/2)').\n");
+						sSumRel = (oDesc.spinType==SpinNone and oDesc.l==0);
 					}
 					//Initialize to zero (eval has 1 by default):
 					for(int iBand=0; iBand<eInfo.nBands; iBand++)
@@ -427,7 +425,7 @@ void DOS::dump()
 					int sStart, sStop;
 					if(oDesc.spinType==SpinNone)
 					{	sStart=0;
-						sStop=eInfo.spinorLength();
+						sStop=(sSumRel ? 1 : eInfo.spinorLength());
 					}
 					else
 					{	sStart=oDesc.s;
@@ -459,6 +457,7 @@ void DOS::dump()
 						}
 						else //single orbital mode
 						{	mArr.push_back(oDesc.m);
+							if(sSumRel) mArr.push_back(-1);
 						}
 						for(int m: mArr)
 						{	for(int a=aStart; a<aStop; a++)
