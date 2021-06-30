@@ -119,6 +119,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 	hid_t did = H5Dcreate(gidWfns, "coeffs", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	hid_t plid = H5Pcreate(H5P_DATASET_XFER);
 	H5Sclose(sid);
+	H5Fflush(gidWfns, H5F_SCOPE_GLOBAL);
 	
 	//Loop over states:
 	for(int iSpin=0; iSpin<nSpins; iSpin++)
@@ -326,6 +327,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 				H5Sclose(sidMem);
 			}
 		}
+		H5Fflush(gidWfns, H5F_SCOPE_GLOBAL);
 		
 		//Transform Vxc to eigenbasis:
 		watchVxc.start();
