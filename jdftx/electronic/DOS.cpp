@@ -36,18 +36,18 @@ void DOS::setup(const Everything& everything)
 		weights.push_back(Weight());
 	//Check compatibility of orbital modes with pseudopotentials:
 	for(const Weight& weight: weights)
-		if(weight.type == Weight::Orbital)
+		if((weight.type == Weight::Orbital) or (weight.type == Weight::OrthoOrbital))
 		{	const SpeciesInfo& sp = *(e->iInfo.species[weight.specieIndex]);
 			const Weight::OrbitalDesc& oDesc = weight.orbitalDesc;
 			int lMax = sp.lMaxAtomicOrbitals();
 			if(lMax < 0)
-				die("Species %s has no atomic orbitals and cannot be used for orbital-projected density of states.\n", sp.name.c_str());
+				die("\nSpecies %s has no atomic orbitals and cannot be used for orbital-projected density of states.\n\n", sp.name.c_str());
 			if(oDesc.l > lMax)
-				die("Angular momentum of density-of-states projection orbital %s exceeds lMax=%d of species %s.\n",
+				die("\nAngular momentum of density-of-states projection orbital %s exceeds lMax=%d of species %s.\n\n",
 					string(oDesc).c_str(), lMax, sp.name.c_str());
 			int nAOl = sp.nAtomicOrbitals(oDesc.l);
 			if(oDesc.n >= unsigned(nAOl))
-				die("Principal quantum number (%d) of density-of-states projection orbital %s exceeds maximum value (%d) for l=%d of species %s.\n",
+				die("\nPrincipal quantum number (%d) of density-of-states projection orbital %s exceeds maximum value (%d) for l=%d of species %s.\n\n",
 					oDesc.n+1, string(oDesc).c_str(), nAOl, oDesc.l, sp.name.c_str());
 		}
 	Citations::add("Linear-tetrahedron sampling for density of states",
