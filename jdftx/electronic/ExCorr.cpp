@@ -374,7 +374,9 @@ struct FunctionalList
 	#ifdef LIBXC_ENABLED
 	std::vector<std::shared_ptr<FunctionalLibXC> > libXC; //!<Functionals which use LibXC for evaluation
 	void add(int xcCode, const char* name)
-	{	libXC.push_back(std::make_shared<FunctionalLibXC>(xcCode, name));
+	{	if(xcCode == -2) { logPrintf("No exchange.\n"); return; }
+		if(xcCode == -1) { logPrintf("No correlation.\n"); return; }
+		libXC.push_back(std::make_shared<FunctionalLibXC>(xcCode, name));
 	}
 	#endif
 };
@@ -409,8 +411,10 @@ void ExCorr::setup(const Everything& everything)
 			}
 			else
 			{	functionals->add(xcExchange, "exchange");
-				exxScale = functionals->libXC.back()->exxScale(); //set exact exchange factor
-				exxOmega = functionals->libXC.back()->exxOmega(); //set exact exchange screening parameter
+				if(xcExchange > 0)
+				{	exxScale = functionals->libXC.back()->exxScale(); //set exact exchange factor
+					exxOmega = functionals->libXC.back()->exxOmega(); //set exact exchange screening parameter
+				}
 				functionals->add(xcCorr, "correlation");
 			}
 			break;

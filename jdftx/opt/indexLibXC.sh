@@ -5,7 +5,12 @@ xcHeader="$1"
 echo "#ifndef JDFTX_XCMAP_H"
 echo "#define JDFTX_XCMAP_H"
 
-awk '$1=="#define" && $2~/XC_/ {
+awk 'BEGIN {
+		names["-2"] = "x-none"; types["-2"] = "X";
+		names["-1"] = "c-none"; types["-1"] = "C";
+	}
+	
+	$1=="#define" && $2~/XC_/ {
 		id = $2;
 		#Construct names:
 		name = tolower(id);

@@ -83,6 +83,8 @@ string getLibXCdescription(const string& name, const EnumStringMap<int>& map)
 {	int xcCode = 0;
 	bool xcFound = map.getEnum(name.c_str(), xcCode);
 	assert(xcFound && xcCode);
+	if(xcCode == -2) return "no exchange";
+	if(xcCode == -1) return "no correlation";
 	xc_func_type func;
 	if(xc_func_init(&func, xcCode, XC_UNPOLARIZED) != 0)
 		die("Error obtaining description for LibXC functional %s.\n", name.c_str());
