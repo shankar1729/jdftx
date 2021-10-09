@@ -333,8 +333,8 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	const ExCorr& exCorr = alternateExCorr ? *alternateExCorr : e->exCorr;
 	ener.E["Exc"] = exCorr(get_nXC(), &Vxc, false, &tau, &Vtau);
 	
-	if(!exCorr.hasEnergy() && !e->cntrl.scf)
-		die("Potential functionals do not support total-energy minimization; use SCF instead.\n")
+	if(not (exCorr.hasEnergy() or e->cntrl.scf or e->cntrl.fixed_H))
+		die("Potential functionals do not support total-energy minimization; use SCF or fixed-H calculations instead.\n")
 	if(exCorr.orbitalDep)
 	{	if(!e->cntrl.scf)
 		{	if(e->cntrl.fixed_H) die("Orbital-dependent potential functionals do not support fix-density; use fix-potential instead.\n")
