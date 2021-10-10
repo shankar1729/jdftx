@@ -23,7 +23,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fluid/Fmix.h>
 
-class VanDerWaals;
+struct IonicGradient;
+class VanDerWaalsD2;
 
 //! @addtogroup ClassicalDFT
 //! @{
@@ -32,7 +33,8 @@ class VanDerWaals;
 class VDWCoupling : public Fmix
 {	
 public:
-	VDWCoupling(FluidMixture* fluidMixture, const std::vector< std::vector< vector3<> > >& atpos, const std::shared_ptr<VanDerWaals>& vdW, double vdwScale); 
+	VDWCoupling(FluidMixture* fluidMixture, const std::vector<std::vector<vector3<>>>& atpos,
+		const std::shared_ptr<VanDerWaalsD2>& vdW, double vdwScale); 
 	
 	//! Main energy and gradients function
 	double energyAndGrad(const ScalarFieldTildeArray& Ntilde, ScalarFieldTildeArray* Phi_Ntilde=0, IonicGradient* forces=0) const;
@@ -44,7 +46,7 @@ public:
 
 private:
 	const std::vector< std::vector< vector3<> > >& atpos;
-	const std::shared_ptr<VanDerWaals>& vdW;
+	const std::shared_ptr<VanDerWaalsD2>& vdW;
 	double vdwScale;
 	std::vector<int> atomicNumber; 
 };

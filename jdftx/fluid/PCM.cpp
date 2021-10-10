@@ -20,7 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/PCM.h>
 #include <fluid/PCM_internal.h>
 #include <electronic/Everything.h>
-#include <electronic/VanDerWaals.h>
+#include <electronic/VanDerWaalsD2.h>
 #include <electronic/SpeciesInfo_internal.h>
 #include <core/SphericalHarmonics.h>
 #include <core/VectorField.h>
@@ -228,7 +228,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	{	logPrintf("   Weighted density dispersion model using vdW pair potentials with single solvent site with sqrtC6eff: %lg SI.\n", fsp.sqrtC6eff);
 		Sf.resize(1);  //simplified model: use single site rather than explicit molecule geometry
 		Sf[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, RadialFunctionG::gaussTilde, 1., sigmaVdw); //CANDLE also uses this for vdW cavity
-		atomicNumbers.assign(1, VanDerWaals::unitParticle); //signals point-particle with unit C6 to class VanDerWaals
+		atomicNumbers.assign(1, VanDerWaalsD2::unitParticle); //signals point-particle with unit C6 to class VanDerWaals
 	}
 	
 	//Optional cavity masks:
@@ -351,7 +351,7 @@ void PCM::updateCavity()
 			for(unsigned i=0; i<Sf.size(); i++)
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
 			const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
-			Adiel["Dispersion"] = e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde,
+			Adiel["Dispersion"] = e.vanDerWaalsFluid->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde,
 				0, e.iInfo.computeStress ? &Acavity_RRT : 0);
 			A_vdwScale = Adiel["Dispersion"]/vdwScaleEff;
 			for(unsigned i=0; i<Sf.size(); i++)
@@ -508,7 +508,7 @@ void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCav
 			for(unsigned i=0; i<Sf.size(); i++)
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
 			const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
-			e.vanDerWaals->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
+			e.vanDerWaalsFluid->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
 			break;
 		}
 		default: break; //no VDW contribution

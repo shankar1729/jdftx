@@ -18,13 +18,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/ExCorr.h>
-#include <electronic/VanDerWaals.h>
+#include <electronic/VanDerWaalsD2.h>
 #include <core/ScalarFieldIO.h>
 #include <fluid/FluidMixture.h>
 #include <fluid/Molecule.h>
 #include <fluid/VDWCoupling.h>
 
-VDWCoupling::VDWCoupling(FluidMixture* fluidMixture, const std::vector< std::vector< vector3<> > >& atpos, const std::shared_ptr<VanDerWaals>& vdW, double vdwScale)
+
+VDWCoupling::VDWCoupling(FluidMixture* fluidMixture, const std::vector< std::vector< vector3<> > >& atpos, const std::shared_ptr<VanDerWaalsD2>& vdW, double vdwScale)
 : Fmix(fluidMixture), atpos(atpos), vdW(vdW), vdwScale(vdwScale)
 {
 	//create a list of fluid atomic numbers to calculate vdW interactions

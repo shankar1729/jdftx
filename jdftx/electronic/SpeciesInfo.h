@@ -21,8 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef JDFTX_ELECTRONIC_SPECIESINFO_H
 #define JDFTX_ELECTRONIC_SPECIESINFO_H
 
-#include <electronic/VanDerWaals.h>
-#include <core/RadialFunction.h>
+#include <electronic/VanDerWaalsD2.h>
 #include <core/matrix.h>
 #include <core/ScalarFieldArray.h>
 #include <core/vector3.h>
@@ -210,7 +209,7 @@ private:
 	};
 	std::vector<PlusU> plusU; //!< list of +U corrections
 	
-	std::shared_ptr<VanDerWaals::AtomParams> vdwOverride; //!< optional override of vdW parameters for this species
+	std::shared_ptr<VanDerWaalsD2::AtomParams> vdwOverride; //!< optional override of vdW parameters for this species
 	std::shared_ptr<double> atomicRadiusOverride; //!< optional override of atomic radius (used for some solvation models) for this species
 	
 	PseudopotentialFormat pspFormat;
@@ -252,7 +251,7 @@ private:
 	friend class IonInfo;
 	friend class PCM;
 	friend class Phonon;
-	friend class VanDerWaals;
+	friend class VanDerWaalsD2;
 	friend class DefectSupercell;
 	friend class WannierMinimizer;
 };

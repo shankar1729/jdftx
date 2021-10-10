@@ -32,6 +32,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElecVars.h>
 #include <electronic/Energies.h>
 #include <electronic/ExCorr.h>
+#include <electronic/VanDerWaalsD2.h>
 #include <electronic/Dump.h>
 #include <electronic/SCFparams.h>
 #include <electronic/IonicDynamicsParams.h>
@@ -71,7 +72,8 @@ public:
 	std::shared_ptr<Coulomb> coulomb; //!< Coulomb interaction (optionally truncated)
 	std::shared_ptr<Coulomb> coulombWfns; //!< Coulomb interaction (optionally truncated) on wave-function grid
 
-	std::shared_ptr<VanDerWaals> vanDerWaals; //! Pair potential for vdw correction
+	std::shared_ptr<VanDerWaals> vanDerWaals; //! vdw correction calculator for electronic system
+	std::shared_ptr<VanDerWaalsD2> vanDerWaalsFluid; //!< vdW correction calculation for fluid coupling / solvation
 	std::shared_ptr<class Vibrations> vibrations; //! Vibrational mode calculator
 
 	//! Call the setup/initialize routines of all the above in the necessray order

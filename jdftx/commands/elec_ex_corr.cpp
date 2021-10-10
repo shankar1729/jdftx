@@ -277,23 +277,43 @@ struct CommandVanDerWaals : public Command
 {
 	CommandVanDerWaals() : Command("van-der-waals", "jdftx/Electronic/Functional")
 	{
-		format = "[<scaleOverride>=0]";
+		format = "[<scaleOverride>=0] | D3";
 		comments =
-			"DFT+D2 pair-potential corrections for the long range Van der Waals\n"
-			"interaction [S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)].\n"
-			"\n"
+			"Pair-potential corrections for the long range Van der Waals\n"
+			"interaction using either the DFT-D2 or DFT-D3 schemes.\n"
+			"\n [S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)]"
+			"Defaults to DFT-D2 [S. Grimme, J. Comput. Chem. 27: 1787–1799 (2006)]\n"
+			"if specified with a scale override or without any arguments.\n"
 			"Default scale factors are available for the gga-PBE, hyb-gga-xc-b3lyp\n"
 			"and mgga-TPSS exchange-correlation functionals (see elec-ex-corr).\n"
-			"Manually specify <scaleOverride> to use with other functionals";
+			"Manually specify <scaleOverride> to use DFT-D2 with other functionals.\n"
+			"\n"
+			"If specified with argument 'D3', use DFT-D3 pair-potential corrections DFT-D3\n"
+			"[S. Grimme, J. Antony, S. Ehrlich, H. Krieg, J. Chem. Phys. 132, 154104 (2010)]\n"
+			"instead. Note that this form does not scale the C6 parameters.";
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	e.iInfo.vdWenable = true;
-		pl.get(e.iInfo.vdWscale, 0., "scaleOverride");
+		//Check for style specification:
+		string key;
+		pl.get(key, string(), "style|scale");
+		if(key == "D3")
+		{	e.iInfo.vdWstyle = VDW_D3;
+			e.iInfo.vdWscale = 0.; //not used for D3
+		}
+		else
+		{	e.iInfo.vdWstyle = VDW_D2;
+			pl.rewind(); //so that scale can be read instead of key above
+			pl.get(e.iInfo.vdWscale, 0., "scaleOverride");
+		}
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	if(e.iInfo.vdWscale) logPrintf("%lg", e.iInfo.vdWscale);
+	{	if(e.iInfo.vdWstyle == VDW_D3)
+			logPrintf("D3");
+		else if(e.iInfo.vdWscale)
+			logPrintf("%lg", e.iInfo.vdWscale);
 	}
 }
 commandVanDerWaals;

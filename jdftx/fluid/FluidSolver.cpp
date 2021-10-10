@@ -116,7 +116,7 @@ public:
 
 		//Create van der Waals mixing functional
 		assert(e.vanDerWaals);
-		vdwCoupling = std::make_shared<VDWCoupling>(fluidMixture, atpos, e.vanDerWaals,
+		vdwCoupling = std::make_shared<VDWCoupling>(fluidMixture, atpos, e.vanDerWaalsFluid,
 			e.vanDerWaals->getScaleFactor(fsp.exCorr.getName(), fsp.vdwScale));
 
 		//---- G=0 constraints -----

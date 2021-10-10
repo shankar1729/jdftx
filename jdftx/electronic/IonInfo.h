@@ -45,6 +45,10 @@ static EnumStringMap<ForcesOutputCoords> forcesOutputCoordsMap(
 //! Check method used for determining whether pseudopotential cores overlap
 enum coreOverlapCheck { additive, vector, none };
 
+//! Style of vdW correction
+enum VDWstyle { VDW_D2, VDW_D3 };
+
+
 //! Container class for ionic system: collection of species, each with several atoms
 class IonInfo
 {
@@ -56,6 +60,7 @@ public:
 	ForcesOutputCoords forcesOutputCoords; //!< coordinate system to print forces in
 	coreOverlapCheck coreOverlapCondition; //! Check method used for determining whether pseudopotential cores overlap
 	bool vdWenable; //!< whether vdW pair-potential corrections are enabled
+	VDWstyle vdWstyle; //!< style of vdW correction for ions in electronic system (not used for fluid coupling)
 	double vdWscale; //!< If non-zero, override the default scale parameter
 	double ljOverride; //!< If non-zero, replace electronic DFT with LJ pair potential with rCut=ljOverride (for testing geometry optimization and dynamics algorithms only)
 	

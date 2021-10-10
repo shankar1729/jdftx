@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 const static int atomicNumberMaxGrimme = 54;
 const static int atomicNumberMax = 118;
-const int VanDerWaals::unitParticle;
+const int VanDerWaalsD2::unitParticle;
 
 //vdW correction energy upto a factor of -s6 (where s6 is the ExCorr dependnet scale)
 //for a pair of atoms separated by r, given the C6 and R0 parameters for pair.
@@ -67,10 +67,10 @@ inline double vdwPairEnergyAndGrad(double r, double C6, double R0, double& E_r, 
 	return C6invr6 * fdamp;
 }
 
-VanDerWaals::VanDerWaals(const Everything& everything)
+VanDerWaalsD2::VanDerWaalsD2(const Everything& e, string reason) : VanDerWaals(e)
 {
-	logPrintf("\nInitializing van der Waals corrections\n");
-	e = &everything;
+	logPrintf("\nInitializing DFT-D2 calculator%s:\n",
+		reason.length() ? (" for " + reason).c_str() : "");
 	
 	// Constructs the EXCorr -> scaling factor map
 	scalingFactor["gga-PBE"] = 0.75;
@@ -134,13 +134,11 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 	for(int Z=89; Z<=atomicNumberMax; Z++)
 		atomParams[Z] = AtomParams(55 , 1.75);
 	
-	Citations::add("Van der Waals correction pair-potentials", "S. Grimme, J. Comput. Chem. 27, 1787 (2006)");
+	Citations::add("DFT-D2 dispersion correction", "S. Grimme, J. Comput. Chem. 27, 1787 (2006)");
 	
 	//Print vdw parameter info and check atomic numbers:
-	if(!e->iInfo.vdWenable and e->eVars.fluidSolver)
-		logPrintf("\tNOTE: vdW corrections apply only for interactions with fluid.\n");
-	for(size_t spIndex=0; spIndex<e->iInfo.species.size(); spIndex++)
-	{	const auto& sp = e->iInfo.species[spIndex];
+	for(size_t spIndex=0; spIndex<e.iInfo.species.size(); spIndex++)
+	{	const auto& sp = e.iInfo.species[spIndex];
 		assert(sp->atomicNumber);
 		if(sp->atomicNumber > atomicNumberMax) die("\tAtomic numbers > %i not supported!\n", atomicNumberMax);
 		const AtomParams& p = getParams(sp->atomicNumber, spIndex);
@@ -150,15 +148,33 @@ VanDerWaals::VanDerWaals(const Everything& everything)
 	}
 }
 
-double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr) const
-{	static StopWatch watch("VanDerWaals::energyAndGrad"); watch.start();
+
+VanDerWaalsD2::~VanDerWaalsD2()
+{
+	for(auto& iter: radialFunctions) iter.second.free(); //Cleanup cached RadialFunctionG's if any
+}
+
+
+double VanDerWaalsD2::getScaleFactor(string exCorrName, double scaleOverride) const
+{	if(scaleOverride) return scaleOverride;
+	if(e.iInfo.ljOverride) return 1.;
+	auto iter = scalingFactor.find(exCorrName);
+	if(iter == scalingFactor.end())
+		die("\nGrimme vdW scale factor not known for functional %s.\n"
+			"   HINT: manually override with a scale factor, if known.\n", exCorrName.c_str());
+	return iter->second;
+}
+
+
+double VanDerWaalsD2::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr) const
+{	static StopWatch watch("VanDerWaalsD2::energyAndGrad"); watch.start();
 
 	//Truncate summation at 1/r^6 < 10^-16 => r ~ 100 bohrs
-	const double rCut = e->iInfo.ljOverride ? e->iInfo.ljOverride : 200.;
-	vector3<bool> isTruncated = e->coulombParams.isTruncated();
+	const double rCut = e.iInfo.ljOverride ? e.iInfo.ljOverride : 200.;
+	vector3<bool> isTruncated = e.coulombParams.isTruncated();
 	vector3<int> S; //number of unit cells sampled in each direction
 	for(int k=0; k<3; k++)
-		S[k] = 1 + 2*(isTruncated[k] ? 0 : (int)ceil(rCut/e->gInfo.R.column(k).length()));
+		S[k] = 1 + 2*(isTruncated[k] ? 0 : (int)ceil(rCut/e.gInfo.R.column(k).length()));
 	size_t nCellsHlf = S[0] * S[1] * (S[2]/2+1);; //similar to the half-G-space used for FFTs
 	size_t iStart, iStop; TaskDivision(nCellsHlf, mpiWorld).myRange(iStart, iStop);
 	
@@ -174,16 +190,16 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 			THREAD_halfGspaceLoop(
 				const vector3<int>& iR = iG;
 				vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
-				double rSq = e->gInfo.RTR.metric_length_squared(x);
+				double rSq = e.gInfo.RTR.metric_length_squared(x);
 				if(rSq)
 				{	double r = sqrt(rSq); double E_r = 0.;
 					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
-					Etot -= cellWeight * scaleFac * vdwPairEnergyAndGrad(r, C6, R0, E_r, e->iInfo.ljOverride);
-					vector3<> E_x = (cellWeight * scaleFac * E_r/r) * (e->gInfo.RTR * x); 
+					Etot -= cellWeight * scaleFac * vdwPairEnergyAndGrad(r, C6, R0, E_r, e.iInfo.ljOverride);
+					vector3<> E_x = (cellWeight * scaleFac * E_r/r) * (e.gInfo.RTR * x); 
 					forces[c1] += E_x;
 					forces[c2] -= E_x;
 					if(E_RRTptr)
-					{	const vector3<> rVec = e->gInfo.R * x;
+					{	const vector3<> rVec = e.gInfo.R * x;
 						E_RRT -= (cellWeight * scaleFac * E_r/r) * outer(rVec, rVec);
 					}
 				}
@@ -204,12 +220,12 @@ double VanDerWaals::energyAndGrad(std::vector<Atom>& atoms, const double scaleFa
 }
 
 
-double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >& atpos, const ScalarFieldTildeArray& Ntilde, const std::vector< int >& atomicNumber,
+double VanDerWaalsD2::energyAndGrad(const std::vector< std::vector< vector3<> > >& atpos, const ScalarFieldTildeArray& Ntilde, const std::vector< int >& atomicNumber,
 	const double scaleFac, ScalarFieldTildeArray* grad_Ntilde, IonicGradient* forces, matrix3<>* E_RRT) const
 {
 	double Etot = 0.;
 	const GridInfo& gInfo = Ntilde[0]->gInfo;
-	const std::vector< std::shared_ptr<SpeciesInfo> >& species = e->iInfo.species;
+	const std::vector< std::shared_ptr<SpeciesInfo> >& species = e.iInfo.species;
 	
 	for(unsigned i=0; i<species.size(); i++) //Loop over species of explicit system
 	{	
@@ -248,38 +264,25 @@ double VanDerWaals::energyAndGrad(const std::vector< std::vector< vector3<> > >&
 	return Etot;
 }
 
-double VanDerWaals::getScaleFactor(string exCorrName, double scaleOverride) const
-{	if(scaleOverride) return scaleOverride;
-	if(e->iInfo.ljOverride) return 1.;
-	auto iter = scalingFactor.find(exCorrName);
-	if(iter == scalingFactor.end())
-		die("\nGrimme vdW scale factor not known for functional %s.\n"
-			"   HINT: manually override with a scale factor, if known.\n", exCorrName.c_str());
-	return iter->second;
-}
 
-VanDerWaals::AtomParams::AtomParams(double SI_C6, double SI_R0)
+VanDerWaalsD2::AtomParams::AtomParams(double SI_C6, double SI_R0)
 : C6(SI_C6 * Joule*pow(1e-9*meter,6)/mol), R0(SI_R0 * Angstrom)
 {
 }
 
-VanDerWaals::AtomParams VanDerWaals::getParams(int atomicNumber, int sp) const
+
+VanDerWaalsD2::AtomParams VanDerWaalsD2::getParams(int atomicNumber, int sp) const
 {	if(atomicNumber==unitParticle)
 		return AtomParams(1.,0.);
-	if(sp>=0 && e->iInfo.species[sp]->vdwOverride)
-		return *(e->iInfo.species[sp]->vdwOverride); //override from species if necessary
+	if(sp>=0 && e.iInfo.species[sp]->vdwOverride)
+		return *(e.iInfo.species[sp]->vdwOverride); //override from species if necessary
 	assert(atomicNumber>0);
 	assert(atomicNumber<=atomicNumberMax);
 	return atomParams[atomicNumber];
 }
 
 
-VanDerWaals::~VanDerWaals()
-{
-	for(auto& iter: radialFunctions) iter.second.free(); //Cleanup cached RadialFunctionG's if any
-}
-
-const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int atomicNumber2, int sp1, int sp2) const
+const RadialFunctionG& VanDerWaalsD2::getRadialFunction(int atomicNumber1, int atomicNumber2, int sp1, int sp2) const
 {
 	//Check for precomputed radial function:
 	std::pair<int,int> atomicNumberPair(
@@ -305,14 +308,14 @@ const RadialFunctionG& VanDerWaals::getRadialFunction(int atomicNumber1, int ato
 	for(size_t i=0; i<nSamples; i++)
 	{	func.r[i] = r; //radial position
 		func.dr[i] = r * dlogr; //integration weight
-		func.f[i] = vdwPairEnergyAndGrad(r, C6, R0, E_r, e->iInfo.ljOverride); //sample value
+		func.f[i] = vdwPairEnergyAndGrad(r, C6, R0, E_r, e.iInfo.ljOverride); //sample value
 		r *= rRatio;
 	}
 	
 	//Transform to reciprocal space, cache and return:
-	RadialFunctionG& funcTilde = ((VanDerWaals*)this)->radialFunctions[atomicNumberPair];
+	RadialFunctionG& funcTilde = ((VanDerWaalsD2*)this)->radialFunctions[atomicNumberPair];
 	const double dGloc = 0.02; //same as the default for SpeciesInfo
-	int nGridLoc = int(ceil(e->gInfo.GmaxGrid/dGloc))+5;
+	int nGridLoc = int(ceil(e.gInfo.GmaxGrid/dGloc))+5;
 	func.transform(0, dGloc, nGridLoc, funcTilde);
 	return funcTilde;
 }

@@ -517,8 +517,9 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces, matri
 	//Compute optional pair-potential terms:
 	double EvdW = 0.;
 	if(vdWenable or ljOverride)
-	{	double scaleFac = e->vanDerWaals->getScaleFactor(e->exCorr.getName(), vdWscale);
-		EvdW = e->vanDerWaals->energyAndGrad(atoms, scaleFac, E_RRT); //vanDerWaals energy+force
+	{	std::shared_ptr<VanDerWaals> vdW = ljOverride ? e->vanDerWaalsFluid : e->vanDerWaals; //use D2 for LJ override
+		double scaleFac =vdW->getScaleFactor(e->exCorr.getName(), vdWscale);
+		EvdW = vdW->energyAndGrad(atoms, scaleFac, E_RRT); //vanDerWaals energy, force and/or stress
 	}
 	//Store energies and/or forces if requested:
 	if(ener)

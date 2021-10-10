@@ -282,7 +282,7 @@ struct CommandSetVDW : public Command
 			{	double C6; double R0;
 				pl.get(C6, 0.0, "C6", true);
 				pl.get(R0, 0.0, "R0", true);
-				sp->vdwOverride = std::make_shared<VanDerWaals::AtomParams>(C6,R0); //note constructor does conversions to a.u
+				sp->vdwOverride = std::make_shared<VanDerWaalsD2::AtomParams>(C6, R0); //note constructor does conversions to a.u
 			}
 			else throw string("Species "+id+" has not been defined");
 			//Check for additional species:
