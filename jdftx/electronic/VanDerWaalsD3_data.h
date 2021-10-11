@@ -35,7 +35,7 @@ namespace D3
 	const int alpha8 = 16; //!< exponent in damping function of r^-8 term
 	const double k1 = 16.; //!< damping factor in coordination number calculation
 	const double k2 = 4./3.; //!< covalent radius scale factor in coordination number calculation
-	const double k3 = -4.; //!< exponential factor in coordination number interpolation of C6
+	const double k3 = 4.; //!< exponential factor in coordination number interpolation of C6
 	
 	//! sqrt(Q) for each element, involved in computing C8 from C6
 	const double sqrtQ[Zmax] = {

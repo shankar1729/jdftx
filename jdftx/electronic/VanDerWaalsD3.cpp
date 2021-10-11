@@ -38,6 +38,18 @@ namespace D3
 		return ap;
 	}
 	
+	matrix AtomParams::getL(double observedCN) const
+	{	matrix L(CN.size(), 1);
+		complex* Ldata = L.data();
+		double Lsum = 0.;
+		for(double CNi: CN)
+		{	double Li = exp(-D3::k3 * std::pow(observedCN - CNi, 2));
+			Lsum += Li;
+			*(Ldata++) = Li;
+		}
+		return L * (1./Lsum); //normalize weights
+	}
+	
 	PairParams getPairParams(const AtomParams& ap1, const AtomParams& ap2)
 	{	PairParams pp;
 		//Radius:
@@ -114,10 +126,22 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 	
 	//Compute energy:
 	double Etot = 0.; //!< Total 
+	std::vector<double> diagC6(atoms.size()); //diagonal C6 for reporting
 	for(int c1=0; c1<int(atoms.size()); c1++)
 	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
+		matrix L1 = ap1.getL(CN[c1]); //C6 interpolation weights for atom 1
+
 		for(int c2=0; c2<int(atoms.size()); c2++)
 		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
+			matrix L2 = ap2.getL(CN[c2]); //C6 interpolation weights for atom 2
+
+			//Compute C6 for this pair:
+			const D3::PairParams& pp = pairParams[atoms[c1].sp][atoms[c2].sp];
+			double ratio8by6 = 3. * ap1.sqrtQ * ap2.sqrtQ;
+			double C6 = trace(transpose(L1) * pp.C6 * L2).real();
+			double C8 = C6 * ratio8by6;
+			if(c1 == c2) diagC6[c1] = C6; //only for reporting
+			
 			THREAD_halfGspaceLoop(
 				const vector3<int>& iR = iG;
 				vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
@@ -125,15 +149,12 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 				if(rSq and rSq<=rCutSq)
 				{	double r = sqrt(rSq);
 					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
-					double CNterm = cellWeight/(1. + exp(-D3::k1*((ap1.k2Rcov + ap2.k2Rcov)/r - 1.)));
-					CN[c1] += CNterm;
-					CN[c2] += CNterm;
+					
 				}
 			)
 		}
 	}
-
-	//TODO
+	report(diagC6, "diagonal-C6", atoms);
 
 	//Propagate gradients w.r.t CN
 	//TODO
@@ -168,13 +189,15 @@ void VanDerWaalsD3::computeCN(const std::vector<Atom>& atoms, std::vector<double
 		}
 	}
 	mpiWorld->allReduceData(CN, MPIUtil::ReduceSum);
+	report(CN, "coordination-number", atoms);
+}
 
-	//Report:
-	size_t c = 0;
-	for(size_t sp=0; sp<atomParams.size(); sp++)
-	{	logPrintf("# coordination-number %s", e.iInfo.species[sp]->name.c_str());
+void VanDerWaalsD3::report(const std::vector<double>& result, string name, const std::vector<Atom>& atoms) const
+{	size_t c = 0;
+	for(int sp=0; sp<int(atomParams.size()); sp++)
+	{	logPrintf("# %s %s", name.c_str(), e.iInfo.species[sp]->name.c_str());
 		while((c < atoms.size()) and (atoms[c].sp == sp))
-		{	logPrintf(" %.3f", CN[c]);
+		{	logPrintf(" %.3f", result[c]);
 			c++;
 		}
 		logPrintf("\n");
