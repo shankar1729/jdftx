@@ -18,7 +18,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/Everything.h>
-#include <electronic/VanDerWaals.h>
 #include <core/ScalarFieldIO.h>
 #include <core/VectorField.h>
 #include <core/SphericalHarmonics.h>

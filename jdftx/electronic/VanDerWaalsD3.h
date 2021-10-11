@@ -36,6 +36,10 @@ public:
 	//Implement virtual functions of VanDerWaals abstract base class
 	virtual double getScaleFactor(string exCorrName, double scaleOverride=0.) const;
 	virtual double energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRT=0) const;
+
+private:
+	double s6, s8; //scale factors for r^-6 and r^-8 terms corresponding to e.exCorr
+	double sr6, sr8; //factors in damping of r^-6 and r^-8 terms corresponding to e.exCorr
 };
 
 //! @}
