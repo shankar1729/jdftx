@@ -1,3 +1,25 @@
+/*-------------------------------------------------------------------
+Copyright 2021 Ravishankar Sundararaman.
+
+This file is part of JDFTx.
+
+JDFTx is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+JDFTx is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
+-------------------------------------------------------------------*/
+
+#ifndef JDFTX_ELECTRONIC_VANDERWAALSD3_DATA_H
+#define JDFTX_ELECTRONIC_VANDERWAALSD3_DATA_H
+
 #include <core/Util.h>
 
 //! DFT-D3 parameters for all elements.
@@ -6,6 +28,8 @@
 // All parameters are extracted from the dft-d3 reference code by Grimme et al.
 namespace D3
 {
+	#include <electronic/VanDerWaalsD3_data_C6.h>
+
 	const int Zmax = 94; //!< maximum parameterized atomic number
 	const int alpha6 = 14; //!< exponent in damping function of r^-6 term
 	const int alpha8 = 16; //!< exponent in damping function of r^-8 term
@@ -468,3 +492,5 @@ namespace D3
 		4.3407, 4.3281, 4.3174, 4.1499, 4.3940, 4.3895, 4.3260, 4.2725, 4.1961, 3.7361, 3.6193, 3.4916, 3.9115, 3.9914,
 		3.9809, 3.9866, 4.3329, 4.1276, 3.9782, 4.5097, 4.6769, 4.5158, 4.3291, 4.3609, 4.3462, 4.3265, 4.4341};
 }
+
+#endif // JDFTX_ELECTRONIC_VANDERWAALSD3_DATA_H

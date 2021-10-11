@@ -26,12 +26,30 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @addtogroup LongRange
 //! @{
 
+
+namespace D3
+{	//! Parameter set per atom type
+	struct AtomParams
+	{	int Z; //!< atomic number
+		double sqrtQ; //!< sqrt(Q) involved in computing C8 from C6
+		double k2Rcov; //!< Covalent radius in bohrs, scaled by k2 = 4/3
+		std::vector<double> CN; //!< reference coordination numbers
+		std::vector<int> iCN; //!< index of each CN term in coefficient array
+	};
+	
+	//! Parameter set per pair of atom types
+	struct PairParams
+	{	double R0; //!< sum of cutoff radii for pair of atoms (in bohrs)
+		matrix C6; //!< C6 coefficients at all pairs of reference CN's of the two atom types
+	};
+}
+
+
 //! DFT-D3 pair potential dispersion correction \cite Dispersion-D3
 class VanDerWaalsD3 : public VanDerWaals
 {
 public:
 	VanDerWaalsD3(const Everything &e);
-	~VanDerWaalsD3();
 	
 	//Implement virtual functions of VanDerWaals abstract base class
 	virtual double getScaleFactor(string exCorrName, double scaleOverride=0.) const;
@@ -40,6 +58,8 @@ public:
 private:
 	double s6, s8; //scale factors for r^-6 and r^-8 terms corresponding to e.exCorr
 	double sr6, sr8; //factors in damping of r^-6 and r^-8 terms corresponding to e.exCorr
+	std::vector<D3::AtomParams> atomParams; //!< parameters per atom type
+	std::vector<std::vector<D3::PairParams>> pairParams; //!< parameters per pair of atom types
 };
 
 //! @}
