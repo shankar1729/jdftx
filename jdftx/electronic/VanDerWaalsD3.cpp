@@ -114,6 +114,24 @@ double VanDerWaalsD3::getScaleFactor(string exCorrName, double scaleOverride) co
 }
 
 
+//! Return r^-n pair-potential energy and set its derivative E_r.
+//! The potential is damped at length scale R0 and exponent alpha_n.
+template<int n, int alpha_n> double vdWpotential(double invr, double R0, double& E_r)
+{	//Main r^-n potential (and r derivative):
+	double pot = std::pow(invr, n); 
+	double pot_r = (-n) * pot * invr;
+	//Exponent in denominator of damping factor (and r derivative):
+	double damp_term = 6 * std::pow(R0 * invr, alpha_n);
+	double damp_term_r = (-alpha_n) * damp_term * invr;
+	//Overall damping factor (and r derivative):
+	double damp = 1./(1. + damp_term);
+	double damp_r = -damp_term_r * damp * damp;
+	//Combine to get final energy and derivative:
+	E_r = pot_r * damp + pot * damp_r;
+	return pot * damp;
+}
+
+
 double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRT) const
 {	const double rCut = 200., rCutSq=rCut*rCut; //Truncate summation at 1/r^6 < 10^-16 => r ~ 100 bohrs
 	vector3<int> S; size_t iStart, iStop; //Number of unit cells in supercell to reach rCut and MPI division
@@ -124,8 +142,8 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 	std::vector<double> CN;
 	computeCN(atoms, CN);
 	
-	//Compute energy:
-	double Etot = 0.; //!< Total 
+	//Compute energy and direct force/stress contributions :
+	double E6 = 0., E8 = 0.; //!< r^-6 and r^-8 energies
 	std::vector<double> diagC6(atoms.size()); //diagonal C6 for reporting
 	for(int c1=0; c1<int(atoms.size()); c1++)
 	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
@@ -135,32 +153,48 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
 			matrix L2 = ap2.getL(CN[c2]); //C6 interpolation weights for atom 2
 
-			//Compute C6 for this pair:
+			//Compute C6 and C8 for this pair:
 			const D3::PairParams& pp = pairParams[atoms[c1].sp][atoms[c2].sp];
 			double ratio8by6 = 3. * ap1.sqrtQ * ap2.sqrtQ;
 			double C6 = trace(transpose(L1) * pp.C6 * L2).real();
 			double C8 = C6 * ratio8by6;
 			if(c1 == c2) diagC6[c1] = C6; //only for reporting
 			
+			//Sum energy, force and stress contributions over periodic images:
+			double E12_C6 = 0., E12_C8 = 0.; //energy contributions upto C6 and C8 prefactors
 			THREAD_halfGspaceLoop(
 				const vector3<int>& iR = iG;
 				vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
 				double rSq = e.gInfo.RTR.metric_length_squared(x);
 				if(rSq and rSq<=rCutSq)
 				{	double r = sqrt(rSq);
+					double invr = 1./r;
 					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
-					
+					double term6_r; double term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * pp.R0, term6_r));
+					double term8_r; double term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * pp.R0, term8_r));
+					E12_C6 -= cellWeight * s6 * term6;
+					E12_C8 -= cellWeight * s8 * term8;
+					//TODO: forces and stresses
 				}
 			)
+			E6 += E12_C6 * C6;
+			E8 += E12_C8 * C8;
+			
+			//Propagate gradients to CN:
+			//TODO
 		}
 	}
 	report(diagC6, "diagonal-C6", atoms);
+	mpiWorld->allReduce(E6, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(E8, MPIUtil::ReduceSum);
+	logPrintf("EvdW_6 = %11.6lf\n", E6);
+	logPrintf("EvdW_8 = %11.6lf\n", E8);
 
-	//Propagate gradients w.r.t CN
+	//Propagate gradients w.r.t CN to forces/stresses
 	//TODO
 
 	die("Not yet implemented.\n");
-	return 0.;
+	return E6 + E8;
 }
 
 
