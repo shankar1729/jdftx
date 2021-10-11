@@ -103,9 +103,92 @@ double VanDerWaalsD3::getScaleFactor(string exCorrName, double scaleOverride) co
 
 
 double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRT) const
-{	die("Not yet implemented.\n");
+{	const double rCut = 200., rCutSq=rCut*rCut; //Truncate summation at 1/r^6 < 10^-16 => r ~ 100 bohrs
+	vector3<int> S; size_t iStart, iStop; //Number of unit cells in supercell to reach rCut and MPI division
+	setNeighborSampling(rCut, S, iStart, iStop);
+	logPrintf("\nComputing DFT-D3 correction:\n");
+
+	//Get coordination numbers:
+	std::vector<double> CN;
+	computeCN(atoms, CN);
+	
+	//Compute energy:
+	double Etot = 0.; //!< Total 
+	for(int c1=0; c1<int(atoms.size()); c1++)
+	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
+		for(int c2=0; c2<int(atoms.size()); c2++)
+		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
+			THREAD_halfGspaceLoop(
+				const vector3<int>& iR = iG;
+				vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
+				double rSq = e.gInfo.RTR.metric_length_squared(x);
+				if(rSq and rSq<=rCutSq)
+				{	double r = sqrt(rSq);
+					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
+					double CNterm = cellWeight/(1. + exp(-D3::k1*((ap1.k2Rcov + ap2.k2Rcov)/r - 1.)));
+					CN[c1] += CNterm;
+					CN[c2] += CNterm;
+				}
+			)
+		}
+	}
+
+	//TODO
+
+	//Propagate gradients w.r.t CN
+	//TODO
+
+	die("Not yet implemented.\n");
 	return 0.;
 }
 
+
+//Compute local coordination number
+void VanDerWaalsD3::computeCN(const std::vector<Atom>& atoms, std::vector<double>& CN) const
+{	const double rCut = 50., rCutSq=rCut*rCut; //Damping factor in CN calculation drops off more quickly than dispersion term
+	vector3<int> S; size_t iStart, iStop; //Number of unit cells in supercell to reach rCut and MPI division
+	setNeighborSampling(rCut, S, iStart, iStop);
+	CN.assign(atoms.size(), 0.);
+	for(int c1=0; c1<int(atoms.size()); c1++)
+	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
+		for(int c2=0; c2<int(atoms.size()); c2++)
+		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
+			THREAD_halfGspaceLoop(
+				const vector3<int>& iR = iG;
+				vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
+				double rSq = e.gInfo.RTR.metric_length_squared(x);
+				if(rSq and rSq<=rCutSq)
+				{	double r = sqrt(rSq);
+					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
+					double CNterm = cellWeight/(1. + exp(-D3::k1*((ap1.k2Rcov + ap2.k2Rcov)/r - 1.)));
+					CN[c1] += CNterm;
+					CN[c2] += CNterm;
+				}
+			)
+		}
+	}
+	mpiWorld->allReduceData(CN, MPIUtil::ReduceSum);
+
+	//Report:
+	size_t c = 0;
+	for(size_t sp=0; sp<atomParams.size(); sp++)
+	{	logPrintf("# coordination-number %s", e.iInfo.species[sp]->name.c_str());
+		while((c < atoms.size()) and (atoms[c].sp == sp))
+		{	logPrintf(" %.3f", CN[c]);
+			c++;
+		}
+		logPrintf("\n");
+	}
+	logFlush();
+}
+
+
+void VanDerWaalsD3::setNeighborSampling(double rCut, vector3<int>& S, size_t& iStart, size_t& iStop) const
+{	vector3<bool> isTruncated = e.coulombParams.isTruncated();
+	for(int k=0; k<3; k++)
+		S[k] = 1 + 2*(isTruncated[k] ? 0 : (int)ceil(rCut/e.gInfo.R.column(k).length()));
+	size_t nCellsHlf = S[0] * S[1] * (S[2]/2+1);; //similar to the half-G-space used for FFTs
+	TaskDivision(nCellsHlf, mpiWorld).myRange(iStart, iStop);
+}
 
 

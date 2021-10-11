@@ -60,6 +60,12 @@ private:
 	double sr6, sr8; //factors in damping of r^-6 and r^-8 terms corresponding to e.exCorr
 	std::vector<D3::AtomParams> atomParams; //!< parameters per atom type
 	std::vector<std::vector<D3::PairParams>> pairParams; //!< parameters per pair of atom types
+	
+	void computeCN(const std::vector<Atom>& atoms, std::vector<double>& CN) const; //!< compute coordination numbers
+	void propagateCNgradient(const std::vector<double>& E_CN,
+		std::vector<Atom>& atoms, matrix3<>* E_RRT) const; //!< propagate CN gradient to forces and stresses
+
+	void setNeighborSampling(double rCut, vector3<int>& S, size_t& iStart, size_t& iStop) const; //!< get neighbor cells within rCut
 };
 
 //! @}
