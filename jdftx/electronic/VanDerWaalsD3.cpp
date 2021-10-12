@@ -141,7 +141,8 @@ template<int n, int alpha_n> double vdWpotential(double invr, double R0, double&
 
 
 double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr) const
-{	const double rCut = e.iInfo.ljOverride ? e.iInfo.ljOverride : 200.; //Truncate summation at 1/r^6 ~ 10^-16
+{	static StopWatch watch("VanDerWaalsD3::energyAndGrad"); watch.start();
+	const double rCut = e.iInfo.ljOverride ? e.iInfo.ljOverride : 200.; //Truncate summation at 1/r^6 ~ 10^-16
 	const double rCutSq = rCut*rCut;
 	vector3<int> S; size_t iStart, iStop; //Number of unit cells in supercell to reach rCut and MPI division
 	setNeighborSampling(rCut, S, iStart, iStop);
@@ -224,6 +225,7 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 	{	mpiWorld->allReduce(E_RRT, MPIUtil::ReduceSum, true);
 		*E_RRTptr += E_RRT;
 	}
+	watch.stop();
 	return E6 + E8;
 }
 
