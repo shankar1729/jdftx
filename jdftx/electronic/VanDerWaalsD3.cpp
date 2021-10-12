@@ -38,16 +38,24 @@ namespace D3
 		return ap;
 	}
 	
-	matrix AtomParams::getL(double observedCN) const
+	matrix AtomParams::getL(double observedCN, matrix& Lprime) const
 	{	matrix L(CN.size(), 1);
+		Lprime.init(CN.size(), 1);
 		complex* Ldata = L.data();
-		double Lsum = 0.;
+		complex* LprimeData = Lprime.data();
+		double Lsum = 0., LprimeSum = 0.;
 		for(double CNi: CN)
 		{	double Li = exp(-D3::k3 * std::pow(observedCN - CNi, 2));
+			double LiPrime = (-2. * D3::k3) * (observedCN - CNi) * Li;
 			Lsum += Li;
+			LprimeSum += LiPrime;
 			*(Ldata++) = Li;
+			*(LprimeData++) = LiPrime;
 		}
-		return L * (1./Lsum); //normalize weights
+		//Normalize:
+		double invLsum = 1./Lsum;
+		Lprime = invLsum*(Lprime - (invLsum*LprimeSum) * L);
+		return L * invLsum;
 	}
 	
 	PairParams getPairParams(const AtomParams& ap1, const AtomParams& ap2)
@@ -132,7 +140,7 @@ template<int n, int alpha_n> double vdWpotential(double invr, double R0, double&
 }
 
 
-double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRT) const
+double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr) const
 {	const double rCut = 200., rCutSq=rCut*rCut; //Truncate summation at 1/r^6 < 10^-16 => r ~ 100 bohrs
 	vector3<int> S; size_t iStart, iStop; //Number of unit cells in supercell to reach rCut and MPI division
 	setNeighborSampling(rCut, S, iStart, iStop);
@@ -144,14 +152,17 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 	
 	//Compute energy and direct force/stress contributions :
 	double E6 = 0., E8 = 0.; //!< r^-6 and r^-8 energies
+	std::vector<double> E_CN(atoms.size()); //coordination number gradients
+	std::vector<vector3<>> forces(atoms.size()); //VDW forces per atom
+	matrix3<> E_RRT; //Stress * volume (updated only if E_RRTptr is non-null)
 	std::vector<double> diagC6(atoms.size()); //diagonal C6 for reporting
 	for(int c1=0; c1<int(atoms.size()); c1++)
 	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
-		matrix L1 = ap1.getL(CN[c1]); //C6 interpolation weights for atom 1
+		matrix L1prime, L1 = ap1.getL(CN[c1], L1prime); //C6 interpolation weights for atom 1
 
 		for(int c2=0; c2<int(atoms.size()); c2++)
 		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
-			matrix L2 = ap2.getL(CN[c2]); //C6 interpolation weights for atom 2
+			matrix L2prime, L2 = ap2.getL(CN[c2], L2prime); //C6 interpolation weights for atom 2
 
 			//Compute C6 and C8 for this pair:
 			const D3::PairParams& pp = pairParams[atoms[c1].sp][atoms[c2].sp];
@@ -174,26 +185,44 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 					double term8_r; double term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * pp.R0, term8_r));
 					E12_C6 -= cellWeight * s6 * term6;
 					E12_C8 -= cellWeight * s8 * term8;
-					//TODO: forces and stresses
+					//Colect forces and/or stresses:
+					double E_r_by_r = (-invr * cellWeight) * (C6*s6*term6_r + C8*s8*term8_r);
+					vector3<> E_x = E_r_by_r * (e.gInfo.RTR * x); 
+					forces[c1] -= E_x;
+					forces[c2] += E_x;
+					if(E_RRTptr)
+					{	const vector3<> rVec = e.gInfo.R * x;
+						E_RRT += E_r_by_r * outer(rVec, rVec);
+					}
 				}
 			)
 			E6 += E12_C6 * C6;
 			E8 += E12_C8 * C8;
 			
 			//Propagate gradients to CN:
-			//TODO
+			double E12_C6_tot = E12_C6 + E12_C8 * ratio8by6; //total derivative w.r.t C6
+			E_CN[c1] += E12_C6_tot * trace(transpose(L1prime) * pp.C6 * L2).real();
+			E_CN[c2] += E12_C6_tot * trace(transpose(L1) * pp.C6 * L2prime).real();
 		}
 	}
-	report(diagC6, "diagonal-C6", atoms);
+	report(diagC6, "diagonal-C6", atoms, " %.2f");
 	mpiWorld->allReduce(E6, MPIUtil::ReduceSum);
 	mpiWorld->allReduce(E8, MPIUtil::ReduceSum);
+	mpiWorld->allReduceData(E_CN, MPIUtil::ReduceSum);
 	logPrintf("EvdW_6 = %11.6lf\n", E6);
 	logPrintf("EvdW_8 = %11.6lf\n", E8);
-
+	
 	//Propagate gradients w.r.t CN to forces/stresses
-	//TODO
+	propagateCNgradient(atoms, E_CN, forces, E_RRTptr ? &E_RRT : NULL);
 
-	die("Not yet implemented.\n");
+	//Collect forces and stresses:
+	mpiWorld->allReduceData(forces, MPIUtil::ReduceSum, true);
+	for(int c=0; c<int(atoms.size()); c++)
+		atoms[c].force += forces[c];
+	if(E_RRTptr)
+	{	mpiWorld->allReduce(E_RRT, MPIUtil::ReduceSum, true);
+		*E_RRTptr += E_RRT;
+	}
 	return E6 + E8;
 }
 
@@ -208,6 +237,7 @@ void VanDerWaalsD3::computeCN(const std::vector<Atom>& atoms, std::vector<double
 	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
 		for(int c2=0; c2<int(atoms.size()); c2++)
 		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
+			double k2RcovSum = ap1.k2Rcov + ap2.k2Rcov;
 			THREAD_halfGspaceLoop(
 				const vector3<int>& iR = iG;
 				vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
@@ -215,7 +245,7 @@ void VanDerWaalsD3::computeCN(const std::vector<Atom>& atoms, std::vector<double
 				if(rSq and rSq<=rCutSq)
 				{	double r = sqrt(rSq);
 					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
-					double CNterm = cellWeight/(1. + exp(-D3::k1*((ap1.k2Rcov + ap2.k2Rcov)/r - 1.)));
+					double CNterm = cellWeight/(1. + exp(-D3::k1*(k2RcovSum/r - 1.)));
 					CN[c1] += CNterm;
 					CN[c2] += CNterm;
 				}
@@ -226,12 +256,53 @@ void VanDerWaalsD3::computeCN(const std::vector<Atom>& atoms, std::vector<double
 	report(CN, "coordination-number", atoms);
 }
 
-void VanDerWaalsD3::report(const std::vector<double>& result, string name, const std::vector<Atom>& atoms) const
+
+//Propagate coordination-number gradient to forces, and optionally, stresses:
+void VanDerWaalsD3::propagateCNgradient(const std::vector<Atom>& atoms, const std::vector<double>& E_CN,
+	std::vector<vector3<>>& forces, matrix3<>* E_RRT) const
+{	//Set up same neighbor cells as used in computeCN()
+	const double rCut = 50., rCutSq=rCut*rCut;
+	vector3<int> S; size_t iStart, iStop;
+	setNeighborSampling(rCut, S, iStart, iStop);
+	//Propagate gradients corresponding to computeCN()
+	for(int c1=0; c1<int(atoms.size()); c1++)
+	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
+		for(int c2=0; c2<int(atoms.size()); c2++)
+		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
+			double k2RcovSum = ap1.k2Rcov + ap2.k2Rcov;
+			THREAD_halfGspaceLoop(
+				const vector3<int>& iR = iG;
+				vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
+				double rSq = e.gInfo.RTR.metric_length_squared(x);
+				if(rSq and rSq<=rCutSq)
+				{	double r = sqrt(rSq);
+					double invr = 1./r;
+					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
+					double E_CNterm = E_CN[c1] + E_CN[c2];
+					double expTerm = exp(-D3::k1*(k2RcovSum*invr - 1.));
+					double expTerm_r = expTerm * D3::k1 * (k2RcovSum * invr * invr);
+					double E_r_by_r = (-invr * E_CNterm * cellWeight * expTerm_r) / std::pow(1+expTerm, 2);
+					//Colect forces and/or stresses:
+					vector3<> E_x = E_r_by_r * (e.gInfo.RTR * x); 
+					forces[c1] -= E_x;
+					forces[c2] += E_x;
+					if(E_RRT)
+					{	const vector3<> rVec = e.gInfo.R * x;
+						*E_RRT += E_r_by_r * outer(rVec, rVec);
+					}
+				}
+			)
+		}
+	}
+}
+
+
+void VanDerWaalsD3::report(const std::vector<double>& result, string name, const std::vector<Atom>& atoms, const char* fmt) const
 {	size_t c = 0;
 	for(int sp=0; sp<int(atomParams.size()); sp++)
 	{	logPrintf("# %s %s", name.c_str(), e.iInfo.species[sp]->name.c_str());
 		while((c < atoms.size()) and (atoms[c].sp == sp))
-		{	logPrintf(" %.3f", result[c]);
+		{	logPrintf(fmt, result[c]);
 			c++;
 		}
 		logPrintf("\n");
@@ -247,5 +318,3 @@ void VanDerWaalsD3::setNeighborSampling(double rCut, vector3<int>& S, size_t& iS
 	size_t nCellsHlf = S[0] * S[1] * (S[2]/2+1);; //similar to the half-G-space used for FFTs
 	TaskDivision(nCellsHlf, mpiWorld).myRange(iStart, iStop);
 }
-
-
