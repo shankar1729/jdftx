@@ -124,10 +124,17 @@ double VanDerWaalsD3::getScaleFactor(string exCorrName, double scaleOverride) co
 
 //! Return r^-n pair-potential energy and set its derivative E_r.
 //! The potential is damped at length scale R0 and exponent alpha_n.
-template<int n, int alpha_n> double vdWpotential(double invr, double R0, double& E_r)
+//! If ljOverride, return a standard LJ form for n=6, but keep the DFT-D3 damping form for all other n.
+template<int n, int alpha_n> double vdWpotential(double invr, double R0, double& E_r, bool ljOverride)
 {	//Main r^-n potential (and r derivative):
 	double pot = std::pow(invr, n); 
 	double pot_r = (-n) * pot * invr;
+	//Optional LJ override for MD/relaxation testing:
+	if(ljOverride and (n == 6))
+	{	double R06 = std::pow(R0, 6);
+		E_r = (1. - R06*pot) * pot_r;
+		return pot * (1. - 0.5*R06*pot);
+	}
 	//Exponent in denominator of damping factor (and r derivative):
 	double damp_term = 6 * std::pow(R0 * invr, alpha_n);
 	double damp_term_r = (-alpha_n) * damp_term * invr;
@@ -141,7 +148,8 @@ template<int n, int alpha_n> double vdWpotential(double invr, double R0, double&
 
 
 double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr) const
-{	const double rCut = 200., rCutSq=rCut*rCut; //Truncate summation at 1/r^6 < 10^-16 => r ~ 100 bohrs
+{	const double rCut = e.iInfo.ljOverride ? e.iInfo.ljOverride : 200.; //Truncate summation at 1/r^6 ~ 10^-16
+	const double rCutSq = rCut*rCut;
 	vector3<int> S; size_t iStart, iStop; //Number of unit cells in supercell to reach rCut and MPI division
 	setNeighborSampling(rCut, S, iStart, iStop);
 	logPrintf("\nComputing DFT-D3 correction:\n");
@@ -181,8 +189,8 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 				{	double r = sqrt(rSq);
 					double invr = 1./r;
 					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
-					double term6_r; double term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * pp.R0, term6_r));
-					double term8_r; double term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * pp.R0, term8_r));
+					double term6_r; double term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * pp.R0, term6_r, e.iInfo.ljOverride));
+					double term8_r; double term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * pp.R0, term8_r, e.iInfo.ljOverride));
 					E12_C6 -= cellWeight * s6 * term6;
 					E12_C8 -= cellWeight * s8 * term8;
 					//Colect forces and/or stresses:

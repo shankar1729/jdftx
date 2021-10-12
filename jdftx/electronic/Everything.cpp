@@ -123,19 +123,18 @@ void Everything::setup()
 
 	//Setup VanDerWaals corrections
 	//--- for electronic system:
-	if(iInfo.vdWenable)
+	if(iInfo.vdWenable or iInfo.ljOverride)
 	{	switch(iInfo.vdWstyle)
 		{	case VDW_D2: { vanDerWaals = std::make_shared<VanDerWaalsD2>(*this); break; }
 			case VDW_D3: { vanDerWaals = std::make_shared<VanDerWaalsD3>(*this); break; }
 		}
 	}
-	//--- for fluid / lj-override:
-	if(eVars.fluidParams.needsVDW() or iInfo.ljOverride)
+	//--- for fluid (must be D2):
+	if(eVars.fluidParams.needsVDW())
 	{	if(iInfo.vdWenable and (iInfo.vdWstyle == VDW_D2))
 			vanDerWaalsFluid = std::static_pointer_cast<VanDerWaalsD2>(vanDerWaals); //reuse D2 created above
 		else
-			vanDerWaalsFluid = std::make_shared<VanDerWaalsD2>(*this,
-				iInfo.ljOverride ? "LJ override" : "fluid / solvation");
+			vanDerWaalsFluid = std::make_shared<VanDerWaalsD2>(*this, "fluid / solvation");
 	}
 	if(iInfo.ljOverride) eVars.skipWfnsInit = true; //don't need electronic degrees of freedom
 	
