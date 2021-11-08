@@ -160,8 +160,8 @@ void BGW::writeHeaderEps(hid_t fid, bool write_q0, string mode,
 		}
 		else
 		{	//RPA imaginary freq. grid
-			for(int i=0; i<bgwp.freqNimag; i++)
-				freq.push_back(complex(0., (1./eV)*tan(0.5*M_PI*(1.-(i+1)*1./bgwp.freqNimag))));
+			for(int i=bgwp.freqNimag; i>0; i--)
+				freq.push_back(complex(0., (0.5/eV)*tan(0.5*M_PI*(1.-i*1./bgwp.freqNimag)) + bgwp.freqBroaden_eV));
 		}
 		freqNimag = bgwp.freqNimag;
 	}
