@@ -52,6 +52,16 @@ namespace D3
 			*(Ldata++) = Li;
 			*(LprimeData++) = LiPrime;
 		}
+		//Check for underflow issues:
+		if(Lsum < 1E-40)
+		{	//Only happens when observedCN > max(CN) + 5.6
+			//If this is the case, contributions other than from max(CN) negligible at 1E-16 level
+			int iCNmax = std::max_element(CN.begin(), CN.end()) - CN.begin();
+			Lprime.zero();
+			L.zero();
+			L.set(iCNmax, 0, 1.);
+			return L;
+		}
 		//Normalize:
 		double invLsum = 1./Lsum;
 		Lprime = invLsum*(Lprime - (invLsum*LprimeSum) * L);
