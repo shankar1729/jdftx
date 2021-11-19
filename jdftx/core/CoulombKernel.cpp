@@ -77,7 +77,7 @@ namespace CoulombKernelIsolated
 		THREAD_rLoop
 		(	if(iv[2]<Sdense[2]) 
 			{	vector3<> x; for(int k=0; k<3; k++) x[k] = invSdense[k] * iv[k]; //lattice coordinates
-				x = ws->restrict(x); //minimum image convention
+				x = ws->reduce(x); //minimum image convention
 				double r = sqrt(RTR.metric_length_squared(x)); //minimum image distance
 				data[i] = dV * screenedPotential(r, a, omega);
 				if(computeStress)
@@ -224,7 +224,7 @@ struct CoulombKernelWire
 				x[iDir] = 0.;
 				x[jDir] = invSjDense * ij;
 				x[kDir] = invSkDense * ik;
-				x = ws->restrict(x);
+				x = ws->reduce(x);
 				double rho = sqrt(RTR.metric_length_squared(x)); //minimum image distance in 2D
 				int iDense = ik + jPitchDense * ij; //index into dense array (in the fftw in-place r2c layout)
 				double term = dA * (cbar_k_sigma.value(rho) - (omega ? cbar_k_screen->value(rho) : 0.));

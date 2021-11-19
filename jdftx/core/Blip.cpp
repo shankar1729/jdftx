@@ -92,7 +92,7 @@ namespace BlipPrivate
 		vector3<> invS(1./S[0], 1./S[1], 1./S[2]);
 		THREAD_rLoop
 		(	vector3<> x; for(int k=0; k<3; k++) x[k] = invS[k] * iv[k];//output lattice coordinates
-			x = invRinRout * wsOut->restrict(x); // ... wrapped to output WS, and converted to input lattice coords
+			x = invRinRout * wsOut->reduce(x); // ... wrapped to output WS, and converted to input lattice coords
 			if(wsIn->boundaryDistance(x) == 0.)
 				out[i] = 0.; //outside input WS cell
 			else

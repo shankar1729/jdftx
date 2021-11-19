@@ -109,7 +109,7 @@ std::vector< std::vector<double> > sphericalize(const ScalarField* dataR, int nC
 	matrix3<> invS = inv(Diag(vector3<>(S)));
 	THREAD_rLoop
 	(	 //not actually threaded, but works just as well for MPI division
-		double rRel = (gInfo.R * ws.restrict(invS * iv - xCenter)).length() * drInv;
+		double rRel = (gInfo.R * ws.reduce(invS * iv - xCenter)).length() * drInv;
 		int iRadial = int(floor(rRel));
 		double wRight = (pow(rRel,2) - pow(iRadial,2))/(2*iRadial+1);
 		double wLeft = 1.0 - wRight;

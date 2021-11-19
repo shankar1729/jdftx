@@ -109,7 +109,7 @@ void DefectSupercell::initialize(const Wannier* wannier)
 	{	SpeciesInfo& sp = *(eSup->iInfo.species[iSp]);
 		//Map defect supercell atoms to Wigner-Seitz cell:
 		for(vector3<>& x: sp.atpos)
-			x = xCenter + wsSup->restrict(x - xCenter);
+			x = xCenter + wsSup->reduce(x - xCenter);
 		//Find corresponding unit cell species and atoms:
 		unsigned nAdded = sp.atpos.size(); //number of atoms of this species added relative to perfect supercell
 		unsigned nMoved = 0; //number of atoms of this species moved from perfect supercell
@@ -144,9 +144,9 @@ void DefectSupercell::initialize(const Wannier* wannier)
 							nMoved++;
 							rSqMoved += rSqSmallest;
 							const vector3<>& xRef = sp.atpos[iClosest];
-							x = xRef + wsSup->restrict(x - xRef);
+							x = xRef + wsSup->reduce(x - xRef);
 						}
-						else x = xCenter + wsSup->restrict(x - xCenter);
+						else x = xCenter + wsSup->reduce(x - xCenter);
 						atposRef[iSp].push_back(x);
 					}
 				}
@@ -220,7 +220,7 @@ void DefectSupercell::initialize(const Wannier* wannier)
 				double dVatom = potentialSubtraction ? (dSup[iSup] * e->gInfo.dV) : 0.; //Note: does not change Vscloc, only Valign
 				//Contribution to alignment potential:
 				vector3<> xSup(ivSup[0]*SsupInv[0], ivSup[1]*SsupInv[1], ivSup[2]*SsupInv[2]); //supercell lattice coordinates
-				double bDist = wsSup->boundaryDistance(wsSup->restrict(xSup - xCenter), truncDir);
+				double bDist = wsSup->boundaryDistance(wsSup->reduce(xSup - xCenter), truncDir);
 				double w = 0.5*erfc((bDist - alignWidth)/alignSmooth) * nUnit[i]; //weight for potential alignment
 				Valign -= w * (Vsup[iSup] - dVatom); //note: alignment correction is unit cell - supercell
 				wAlign += w;
@@ -326,7 +326,7 @@ matrix DefectSupercell::compute(const ColumnBundle& C1, const ColumnBundle& C2,
 			for(ivSup[2]=iv[2]; ivSup[2]<Ssup[2]; ivSup[2]+=S[2])
 			{	size_t iSup = (ivSup[0]*Ssup[1] + ivSup[1])*Ssup[2] + ivSup[2];
 				vector3<> xSup(ivSup[0]*SsupInv[0], ivSup[1]*SsupInv[1], ivSup[2]*SsupInv[2]); //supercell lattice coordinates
-				xSup = xCenter + wsSup->restrict(xSup - xCenter); //wrap to WS supercell 
+				xSup = xCenter + wsSup->reduce(xSup - xCenter); //wrap to WS supercell 
 				complex phase = cis(-dot(qSup2pi, xSup)); //Bloch phase
 				for(int s=0; s<nDensities; s++)
 					dVq[s][i] += phase * dVsup[s][iSup];

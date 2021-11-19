@@ -37,7 +37,7 @@ public:
 	~WignerSeitz();
 
 	//! Find the point within the Wigner-Seitz cell equivalent to x (lattice coordinates)
-	inline vector3<> restrict(const vector3<>& x) const
+	inline vector3<> reduce(const vector3<>& x) const
 	{	static const double tol = 1e-8;
 		vector3<> xWS = x;
 		bool changed = true;
@@ -55,7 +55,7 @@ public:
 	}
 	
 	//! Find the point within the Wigner-Seitz cell equivalent to iv (mesh coordinates with sample count S)
-	inline vector3<int> restrict(const vector3<int>& iv, const vector3<int>& S, const vector3<>& invS) const
+	inline vector3<int> reduce(const vector3<int>& iv, const vector3<int>& S, const vector3<>& invS) const
 	{	static const double tol = 1e-8;
 		vector3<int> ivWS = iv;
 		bool changed = true;

@@ -24,7 +24,7 @@ inline void setRealSpaceMeasures(size_t iStart, size_t iStop, const vector3<int>
 {	vector3<> invS(1./S[0], 1./S[1], 1./S[2]);
 	THREAD_rLoop
 	(	vector3<> x; for(int k=0; k<3; k++) x[k] = iv[k] * invS[k]; //lattice coordinates
-		x = ws->restrict(x); //wrap to Wigner-Seitz cell
+		x = ws->reduce(x); //wrap to Wigner-Seitz cell
 		vector3<> rVec = ws->boundaryDistance(x) ? R * x : vector3<>(); //convert to Cartesian (and zero boundaries)
 		storeVector(rVec, r, i);
 		rSq[i] = rVec.length_squared();

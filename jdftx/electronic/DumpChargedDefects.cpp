@@ -302,7 +302,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 	vector3<> pos0 = geometry==CoulombParams::Periodic ? center[0].pos : e.coulomb->xCenter;
 	vector3<> posMean = pos0;
 	for(const Center& cdc: center)
-		posMean += (1./center.size()) * ws.restrict(cdc.pos - pos0);
+		posMean += (1./center.size()) * ws.reduce(cdc.pos - pos0);
 	
 	//Read reference Dtot and calculate electrostatic potential difference within DFT:
 	ScalarField d_totRef(ScalarFieldData::alloc(e.gInfo));
@@ -433,7 +433,7 @@ void ChargedDefect::dump(const Everything& e, ScalarField d_tot) const
 			}
 			CylindricalPoisson cp(iDir, epsSlab[0], epsSlab[1], kappaSqSlab);
 			for(const Center& cdc: center)
-			{	double zCenter = e.gInfo.R.column(iDir).length() * ws.restrict(cdc.pos - e.coulomb->xCenter)[iDir]; //Cartesian axial coordinate of center in embedding grid
+			{	double zCenter = e.gInfo.R.column(iDir).length() * ws.reduce(cdc.pos - e.coulomb->xCenter)[iDir]; //Cartesian axial coordinate of center in embedding grid
 				EmodelIsolated += cp.getEnergy(cdc.q, cdc.sigma, zCenter); //self energy of Gaussian (accounting for dielectric screening)
 			}
 			break;

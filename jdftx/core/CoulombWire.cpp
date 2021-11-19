@@ -189,7 +189,7 @@ public:
 		//lies in the WS cell of the other with a consistent translation:
 		vector3<> pos0 = atoms[0].pos;
 		for(Atom& a: atoms)
-			a.pos = pos0 + ws.restrict(a.pos - pos0);
+			a.pos = pos0 + ws.reduce(a.pos - pos0);
 		if(not ZsqTot) return 0.;
 		
 		//Real space sum:

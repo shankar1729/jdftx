@@ -45,7 +45,7 @@ struct EwaldIsolated : public Ewald
 		//is irrelevant if every atom lies in the WS cell of the other with a consistent translation:
 		vector3<> pos0 = atoms[0].pos;
 		for(Atom& a: atoms)
-			a.pos = pos0 + ws.restrict(a.pos - pos0);
+			a.pos = pos0 + ws.reduce(a.pos - pos0);
 		//Loop over all pairs of atoms:
 		for(unsigned i=0; i<atoms.size(); i++)
 		{	Atom& a1 = atoms[i];

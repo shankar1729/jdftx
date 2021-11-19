@@ -258,7 +258,7 @@ double Coulomb::energyAndGrad(std::vector<Atom>& atoms, matrix3<>* E_RRT) const
 		for(unsigned i=0; i<atoms.size(); i++)
 		{	Atom& a = atoms[i];
 			//Center, restrict to WS-cell and check margins:
-			a.pos = wsOrig->restrict(a.pos - xCenter);
+			a.pos = wsOrig->reduce(a.pos - xCenter);
 			bool posValid = true;
 			switch(params.geometry)
 			{	case CoulombParams::Periodic:
@@ -316,7 +316,7 @@ void getEfieldPotential_sub(size_t iStart, size_t iStop, const vector3<int>& S, 
 	const vector3<>& xCenter, const vector3<>& RT_Efield_ramp, const vector3<>& RT_Efield_wave, double* V)
 {	matrix3<> invS = inv(Diag(vector3<>(S)));
 	THREAD_rLoop
-	(	vector3<> x = ws->restrict(invS * iv - xCenter);
+	(	vector3<> x = ws->reduce(invS * iv - xCenter);
 		double Vcur = 0.;
 		for(int k=0; k<3; k++)
 			Vcur -= (RT_Efield_ramp[k]*x[k] + RT_Efield_wave[k]*sin(2*M_PI*x[k])/(2*M_PI));
@@ -337,7 +337,7 @@ ScalarField Coulomb::getEfieldPotential() const
 void setEmbedIndex_sub(size_t iStart, size_t iStop, const vector3<int>& S, const vector3<int>& Sembed, const WignerSeitz* ws, int* embedIndex)
 {	vector3<> invS; for(int k=0; k<3; k++) invS[k] = 1./S[k];
 	THREAD_rLoop
-	(	vector3<int> ivEmbed = ws->restrict(iv, S, invS); //wrapped coordinates within WS cell of original mesh
+	(	vector3<int> ivEmbed = ws->reduce(iv, S, invS); //wrapped coordinates within WS cell of original mesh
 		for(int k=0; k<3; k++) //wrapped embedding mesh cooridnates within first fundamental domain:
 		{	ivEmbed[k] = ivEmbed[k] % Sembed[k];
 			if(ivEmbed[k]<0) ivEmbed[k] += Sembed[k];
@@ -355,7 +355,7 @@ void setEmbedBoundarySymm_sub(size_t iStart, size_t iStop, const vector3<int>& S
 	vector3<> invS; for(int k=0; k<3; k++) invS[k] = 1./S[k];
 	vector3<> invSorig; for(int k=0; k<3; k++) invSorig[k] = 1./Sorig[k];
 	THREAD_rLoop
-	(	vector3<int> ivWS = wsOrig->restrict(iv, S, invS); //this is a double-sized Wigner-Seitz cell restriction
+	(	vector3<int> ivWS = wsOrig->reduce(iv, S, invS); //this is a double-sized Wigner-Seitz cell restriction
 		vector3<> xOrig; for(int k=0; k<3; k++) xOrig[k] = ivWS[k] * invSorig[k]; //original lattice coordinates
 		if(wsOrig->onBoundary(xOrig))
 		{	for(int k=0; k<3; k++)

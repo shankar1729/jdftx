@@ -77,7 +77,7 @@ void dumpExcitations(const Everything& e, const char* filename)
 		for(iv[0]=0; iv[0]<e.gInfo.S[0]; iv[0]++)
 		for(iv[1]=0; iv[1]<e.gInfo.S[1]; iv[1]++)
 		for(iv[2]=0; iv[2]<e.gInfo.S[2]; iv[2]++)
-		{	vector3<> x = x0 + ws.restrict(invS*iv - x0); //lattice coordinates wrapped to WS centered on x0
+		{	vector3<> x = x0 + ws.reduce(invS*iv - x0); //lattice coordinates wrapped to WS centered on x0
 			storeVector(e.gInfo.R*x, rData, i++);
 		}
 	}
@@ -413,7 +413,7 @@ void dumpMoment(const Everything& e, const char* filename)
 	for(iv[0]=0; iv[0]<e.gInfo.S[0]; iv[0]++)
 	for(iv[1]=0; iv[1]<e.gInfo.S[1]; iv[1]++)
 	for(iv[2]=0; iv[2]<e.gInfo.S[2]; iv[2]++)
-	{	vector3<> x = x0 + ws.restrict(invS*iv - x0); //lattice coordinates wrapped to WS centered on x0
+	{	vector3<> x = x0 + ws.reduce(invS*iv - x0); //lattice coordinates wrapped to WS centered on x0
 		elecMoment += x * (*(nData)++); //collect in lattice coordinates
 	}
 	elecMoment *= e.gInfo.dV; //integration weight
@@ -422,7 +422,7 @@ void dumpMoment(const Everything& e, const char* filename)
 	vector3<> ionMoment;
 	for(auto sp: e.iInfo.species)
 		for(vector3<> pos: sp->atpos)
-		{	vector3<> x = x0 + ws.restrict(pos - x0); //wrap atom position to WS centered on x0
+		{	vector3<> x = x0 + ws.reduce(pos - x0); //wrap atom position to WS centered on x0
 			ionMoment -= sp->Z * x;
 		}
 	
@@ -504,7 +504,7 @@ inline void set_rInv(size_t iStart, size_t iStop, const vector3<int>& S, const m
 	matrix3<> meshMetric = Diag(invS) * RTR * Diag(invS);
 	const double rWidth = 1.;
 	THREAD_rLoop( 
-		double r = sqrt(meshMetric.metric_length_squared(ws->restrict(iv, S, invS)));
+		double r = sqrt(meshMetric.metric_length_squared(ws->reduce(iv, S, invS)));
 		if(r < rWidth) //Polynomial with f',f" zero at origin and f,f',f" matched at rWidth
 		{	double t = r/rWidth;
 			rInv[i] = (1./rWidth) * (1. + 0.5*(1.+t*t*t*(-2.+t)) + (1./12)*(1.+t*t*t*(-4.+t*3.))*2. );
