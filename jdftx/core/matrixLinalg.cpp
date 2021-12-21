@@ -76,13 +76,11 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 		evecs = *this;
 		//Determine buffer size:
 		int lwork = 0;
-		syevjInfo_t params; cusolverDnCreateSyevjInfo(&params);
-		cusolverDnZheevj_bufferSize(cusolverHandle, jobz, uplo, N, (const double2*)evecs.dataPref(), N, eigsManaged.dataPref(), &lwork, params);
+		cusolverDnZheevd_bufferSize(cusolverHandle, jobz, uplo, N, (const double2*)evecs.dataPref(), N, eigsManaged.dataPref(), &lwork);
 		//Main call:
 		ManagedArray<double2> work; work.init(lwork, true);
 		ManagedArray<int> infoArr; infoArr.init(1, true);
-		cusolverDnZheevj(cusolverHandle, jobz, uplo, N, (double2*)evecs.dataPref(), N, eigsManaged.dataPref(), work.dataPref(), lwork, infoArr.dataPref(), params);
-		cusolverDnDestroySyevjInfo(params);
+		cusolverDnZheevd(cusolverHandle, jobz, uplo, N, (double2*)evecs.dataPref(), N, eigsManaged.dataPref(), work.dataPref(), lwork, infoArr.dataPref());
 		gpuErrorCheck();
 		int info = infoArr.data()[0];
 		if(!info) //Success
@@ -91,8 +89,8 @@ void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 			watch.stop();
 			return;
 		}
-		if(info<0) { logPrintf("Argument# %d to cusolverDn eigenvalue routine Zheevj is invalid.\n", -info); stackTraceExit(1); }
-		if(info>0) logPrintf("WARNING: %d elements failed to converge in cusolverDn eigenvalue routine Zheevj; falling back to CPU LAPACK.\n", info);
+		if(info<0) { logPrintf("Argument# %d to cusolverDn eigenvalue routine Zheevd is invalid.\n", -info); stackTraceExit(1); }
+		if(info>0) logPrintf("WARNING: %d elements failed to converge in cusolverDn eigenvalue routine Zheevd; falling back to CPU LAPACK.\n", info);
 	}
 #endif
 	char jobz = 'V'; //compute eigenvectors and eigenvalues
