@@ -99,7 +99,11 @@ MPIUtil::~MPIUtil()
 	if(finalized) return; //to prevent double-free type errors
 	//Finalize communicators or MPI as appropriate:
 	if(comm == MPI_COMM_WORLD)
+		#ifdef DONT_FINALIZE_MPI
+		; //Leave MPI unfinalized (needed to avoid crash on cleanup in cray-libsci)
+		#else
 		MPI_Finalize();
+		#endif
 	else
 		MPI_Comm_free(&comm);
 	#endif
