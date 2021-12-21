@@ -319,7 +319,8 @@ void testVnlPrime()
 {
 	//Forward declaration from SpeciesInfo_internal.h:
 	void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k, const vector3<int>* iGarr,
-		const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl, const vector3<>* derivDir=0);
+		const matrix3<> G, const vector3<>* pos, const RadialFunctionG& VnlRadial, complex* Vnl,
+		const vector3<>* derivDir=0, const int stressDir=-1);
 	
 	vector3<> k(0.25, 0.1, 0.3);
 	vector3<int> iG(1, -1, 0);
@@ -457,16 +458,35 @@ void testResample()
 	saveRawBinary(gauss2, "testResample.n2");
 }
 
+void testMatrixLinalg()
+{	//Make a hermitian pos-def matrix:
+	int N = 128;
+	matrix A(N, N);
+	randomize(A);
+	A = A * dagger(A);
+	//Make a random rhs matrix:
+	int Nrhs = 64;
+	matrix b(N, Nrhs);
+	randomize(b);
+	//Test invApply:
+	matrix x = invApply(A, b);
+	logPrintf("Relative error in invApply = %le\n", nrm2(A * x - b)/nrm2(b));
+	//Test orthoMatrix:
+	matrix U = orthoMatrix(A);
+	logPrintf("Relative error in orthoMatrix = %le\n", nrm2(dagger(U) * A * U - eye(N)));
+}
+
 int main(int argc, char** argv)
 {	initSystem(argc, argv);
 	//testHarmonics(); return 0;
 	//testYlmProd(); return 0;
 	//testYlmDeriv(); return 0;
-	testVnlPrime(); return 0;
+	//testVnlPrime(); return 0;
 	//fdtestGGAs(); return 0;
 	//testChangeGrid(); return 0;
 	//testHugeFileIO(); return 0;
 	//testResample(); return 0;
+	testMatrixLinalg(); return 0;
 	
 // 	const int Zn = 2;
 // 	SO3quad quad(QuadEuler, Zn, 11); //quad.print();

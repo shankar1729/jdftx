@@ -220,6 +220,11 @@ matrix pow(const matrix& A, double exponent, matrix* Aevecs=0, diagMatrix* Aeigs
 //! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
 matrix invsqrt(const matrix& A, matrix* Aevecs=0, diagMatrix* Aeigs=0, bool* isSingular=0);
 
+//! Compute matrix that orthonormalizes hermitian matrix A using Cholesky decomposition (Gram-Schmidt).
+//! This is a potentially much faster alternative to invsqrt, when differentiability is not needed.
+//! Consequently, e.g., this can be used in Davidson, but not in CG for variational minimization.
+matrix orthoMatrix(const matrix& A);
+
 //! Compute cis(A) = exp(iota A) and optionally the eigensystem of A (if non-null)
 matrix cis(const matrix& A, matrix* Aevecs=0, diagMatrix* Aeigs=0);
 

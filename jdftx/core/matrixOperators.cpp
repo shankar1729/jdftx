@@ -395,6 +395,12 @@ double relativeHermiticityError(int N, const complex* data)
 	return sqrt(errNum / (errDen*N));
 }
 
+void zeroLowerTriangular(int N, complex* data)
+{	for(int i=0; i<N; i++)
+		for(int j=0; j<i; j++)
+			data[i + N*j] = 0.;
+}
+
 //------------ Block matrices ------------
 
 tiledBlockMatrix::tiledBlockMatrix(const matrix& mBlock, int nBlocks, const std::vector<complex>* phaseArr) : mBlock(mBlock), nBlocks(nBlocks), phaseArr(phaseArr)

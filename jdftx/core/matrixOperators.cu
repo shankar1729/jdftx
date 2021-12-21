@@ -133,3 +133,17 @@ double relativeHermiticityError_gpu(int N, const complex* data)
 	cudaFree(buf);
 	return sqrt(errNum / (errDen*N));
 }
+
+__global__
+void zeroLowerTriangular_kernel(int N, complex* data)
+{	int i = kernelIndex1D();
+	if(i<N)
+	{	for(int j=0; j<i; j++)
+			data[i + N*j] = 0.;
+	}
+}
+void zeroLowerTriangular_gpu(int N, complex* data)
+{	GpuLaunchConfig1D glc(zeroLowerTriangular_kernel, N);
+	zeroLowerTriangular_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, data);
+	gpuErrorCheck();
+}

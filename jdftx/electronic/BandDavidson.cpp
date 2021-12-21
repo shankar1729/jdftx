@@ -116,7 +116,7 @@ void BandDavidson::minimize()
 			bigHsub.set(nBands,nBandsBig, 0,nBands, dagger(CdagHCexp));
 		}
 		//Solve expanded subspace generalized eigenvalue problem:
-		matrix bigU = invsqrt(bigOsub);
+		matrix bigU = orthoMatrix(bigOsub);
 		bigHsub = dagger_symmetrize(dagger(bigU) * bigHsub * bigU); //switch to the symmetrically-orthonormalized basis
 		matrix bigHsub_evecs; diagMatrix bigHsub_eigs;
 		bigHsub.diagonalize(bigHsub_evecs, bigHsub_eigs);
