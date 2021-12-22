@@ -482,12 +482,23 @@ matrix orthoMatrix(const matrix& A)
 	{	cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
 		cublasDiagType_t diag = CUBLAS_DIAG_NON_UNIT;
 		//Workspace query:
+		#if (CUSOLVER_VERSION < 11200)
 		int lwork = 0;
 		cusolverDnZtrtri_bufferSize(cusolverHandle, uplo, diag, N, (double2*)U.dataPref(), N, &lwork);
 		ManagedArray<double2> work; work.init(lwork, true);
+		#else
+		size_t lworkDev = 0, lworkHost = 0;
+		cusolverDnXtrtri_bufferSize(cusolverHandle, uplo, diag, N, CUDA_C_64F, U.dataPref(), N, &lworkDev, &lworkHost);
+		ManagedArray<char> workDev; workDev.init(lworkDev, true);
+		std::vector<char> workHost(lworkHost);
+		#endif
 		ManagedArray<int> infoArr; infoArr.init(1, true);
 		//Main call:
+		#if (CUSOLVER_VERSION < 11200)
 		cusolverDnZtrtri(cusolverHandle, uplo, diag, N, (double2*)U.dataPref(), N, work.dataPref(), lwork, infoArr.dataPref());
+		#else
+		cusolverDnXtrtri(cusolverHandle, uplo, diag, N, CUDA_C_64F, U.dataPref(), N, workDev.dataPref(), lworkDev, workHost.data(), lworkHost,  infoArr.dataPref());
+		#endif
 		int info = infoArr.data()[0];
 		if(info<0) { logPrintf("Argument# %d to CuSolver inversion routine Ztrtri is invalid.\n", -info); stackTraceExit(1); }
 		if(info>0) { logPrintf("Diagonal entry %d is zero in CuSolver inversion routine Ztrtri.\n", info); stackTraceExit(1); }
