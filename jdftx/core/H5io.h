@@ -82,7 +82,7 @@ template<typename T> void h5writeVector(hid_t fid, const char* dname, const T* d
 	if(did<0) die("Could not create dataset '%s' in HDF5 file.\n", dname);
 	//Create collective write property:
 	hid_t plid = H5Pcreate(H5P_DATASET_XFER);
-	H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
+	H5Pset_dxpl_mpio(plid, H5FD_MPIO_INDEPENDENT);
 	//Write data:
 	H5Dwrite(did, dataType, H5S_ALL, H5S_ALL, plid, data);
 	//Cleanup:

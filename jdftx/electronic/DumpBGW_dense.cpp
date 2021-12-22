@@ -89,7 +89,7 @@ template<typename T> std::vector<T> indexVector(const T* v, const std::vector<in
 
 //Solve wavefunctions using ScaLAPACK and write to hdf5 file:
 void BGW::denseWriteWfn(hid_t gidWfns)
-{	static StopWatch watchDiag("scalapackDiagonalize"), watchSetup("scalapackMatrixSetup"), watchVxc("scalapackVxcTransform");
+{	static StopWatch watchDiag("scalapackDiagonalize"), watchSetup("scalapackMatrixSetup"), watchVxc("scalapackVxcTransform"), watchIO("scalapackWriteHDF5");
 	logPrintf("\n");
 	nBands = bgwp.nBandsDense;
 	if(nSpinor > 1) die("\nDense diagonalization not yet implemented for spin-orbit / vector-spin modes.\n");
@@ -118,6 +118,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 	hid_t sid = H5Screate_simple(4, dims, NULL);
 	hid_t did = H5Dcreate(gidWfns, "coeffs", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	hid_t plid = H5Pcreate(H5P_DATASET_XFER);
+	H5Pset_dxpl_mpio(plid, H5FD_MPIO_INDEPENDENT);
 	H5Sclose(sid);
 	H5Fflush(gidWfns, H5F_SCOPE_GLOBAL);
 	
@@ -302,6 +303,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		}
 		
 		//Write the wavefunctions:
+		watchIO.start();
 		hsize_t offset[4] = { 0, hsize_t(iSpin), 0, 0 };
 		hsize_t count[4] = { 1, 1, 1, 2 };
 		matrix buf(blockSize, blockSize);
@@ -328,6 +330,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 			}
 		}
 		H5Fflush(gidWfns, H5F_SCOPE_GLOBAL);
+		watchIO.stop();
 		
 		//Transform Vxc to eigenbasis:
 		watchVxc.start();
