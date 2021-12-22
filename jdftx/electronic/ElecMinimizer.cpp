@@ -310,7 +310,8 @@ void bandMinimize(Everything& e, bool updateVxx)
 		logPrintf("\n"); logFlush();
 	}
 	std::swap(fixed_H, e.cntrl.fixed_H); //restore fixed_H flag
-	e.eVars.setEigenvectors();
+	if(e.cntrl.elecEigenAlgo != ElecEigenDavidson)
+		e.eVars.setEigenvectors();
 }
 
 
@@ -374,6 +375,8 @@ void elecMinimize(Everything& e)
 	else if(e.cntrl.scf)
 	{	SCF scf(e);
 		scf.minimize();
+		if(e.cntrl.elecEigenAlgo == ElecEigenDavidson)
+			e.eVars.setEigenvectors(); //this was skipped in each bandMinimize()
 	}
 	else if(e.cntrl.fixed_H)
 	{	bandMinimize(e);
