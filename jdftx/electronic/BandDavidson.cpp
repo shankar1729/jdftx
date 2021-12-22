@@ -43,9 +43,7 @@ void BandDavidson::minimize()
 	ColumnBundle HC;
 	diagMatrix I = eye(nBandsOut);
 	Energies ener; //not really used here
-	eVars.applyHamiltonian(q, I, HC, ener, true);
-	Hsub = C^HC;
-	Hsub.diagonalize(Hsub_evecs, Hsub_eigs);
+	eVars.applyHamiltonian(q, I, HC, ener, true, true); ///update Hsub, Hsub_evecs and Hsub_eigs
 	//--- switch C to subspace eigenbasis:
 	C = C * Hsub_evecs;
 	HC = HC * Hsub_evecs;
@@ -107,7 +105,7 @@ void BandDavidson::minimize()
 				std::swap(Hsub, HsubExp); \
 				std::swap(Hsub_eigs, HsubExp_eigs);
 			SWAP_C_Cexp //Temporarily swap C and Cexp
-			eVars.applyHamiltonian(q, eye(nBandsNew), HCexp, ener, true); //Hamiltonian always operates on C, where we put Cexp 
+			eVars.applyHamiltonian(q, eye(nBandsNew), HCexp, ener, true, false); //compute Hsub (for Cexp) but don't diagonalize
 			SWAP_C_Cexp  //Restore C and Cexp to correct places
 			matrix CdagHCexp = C  ^ HCexp;
 			bigHsub.set(0,nBands, 0,nBands, Hsub_eigs);

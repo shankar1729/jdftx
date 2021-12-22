@@ -57,16 +57,6 @@ double relativeHermiticityError(int N, const complex* data); //implemented in ma
 
 void matrix::diagonalize(matrix& evecs, diagMatrix& eigs) const
 {	static StopWatch watch("matrix::diagonalize");
-	
-	//HACK
-	bool logSilent = (globalLog == nullLog);
-	if(logSilent) logResume();
-	logPrintf("\nmatrix::diagonalize called from:\n");
-	printStack();
-	logPrintf("\n");
-	logFlush();
-	if(logSilent) logSuspend();
-
 	watch.start();
 	
 	assert(nCols()==nRows());

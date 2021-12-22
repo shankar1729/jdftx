@@ -643,7 +643,7 @@ void ElecVars::orthonormalize(int q, matrix* extraRotation)
 	e->iInfo.project(C[q], VdagC[q], &rot); //update the atomic projections
 }
 
-double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub)
+double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub, bool diagonalize_Hsub)
 {	assert(C[q]); //make sure wavefunction is available for this state
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
 	std::vector<matrix> HVdagCq(e->iInfo.species.size());
@@ -683,7 +683,8 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 	//Compute subspace hamiltonian if needed:
 	if(need_Hsub)
 	{	Hsub[q] = C[q] ^ HCq;
-		Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
+		if(diagonalize_Hsub)
+			Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
 	}
 	return KEq;
 }
