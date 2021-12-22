@@ -1,5 +1,35 @@
 /** \page ChangeLog Change log
 
+## Development version
+
++ Cholesky orthonormalization for improved minimize and SCF performance compared to symmetric orthonormalization (especially on GPUs)
+
++ New features:
+	- DFT-D3 dispersion correction
+	- Wannierized defect matrix elements using a perturbed supercell calculation
+	- Added option to sum over all atoms of species in orbital-projected DOS
+	- Checkpoint-restart capability and selection of a subset of momentum transfers in electron-scattering
+	- Finite temperature support in electron-scattering
+	- Detect and use potential-only functionals from LibXC
+	- Use LibXC functionals without exchange and/or correlation
+	- Output list of commensurate k-points in phononHsub to new phononKpts output
+	- Landauer conductance included in FermiVelocity output
+    
++ Exact exchange enhancements:
+	- Acceleration using adiabatic compression of exchange operator (ACE)
+	- Band parallelization of exact exchange allowing use of many more processes than nStates.
+	- Added command exchange-params to control ACE convergence and band blocks in EXX calculation.
+
++ BerkeleyGW interface:
+	- Added rALDA kernel option
+	- Added HDF5 flush for partial consistency of output during dense diagonalization
+	- Fix in RPA frequency grid to match BerkeleyGW
+
++ Compilation:
+	- Support for CUDA 11, which required changes in linkage
+	- Added CMake options to select ScaLAPACK other than MKL
+
+
 ## 1.6.0 - 2020-06-10 ([Site archive](http://jdftx.org/1.6.0))
 
 + Complete rewrite of ionic-dynamics with full support for NVT and NPT using either Nose-Hoover or Berendsen thermostats/barostats
