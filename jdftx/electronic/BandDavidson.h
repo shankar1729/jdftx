@@ -33,7 +33,7 @@ class BandDavidson
 {
 public:
 	BandDavidson(Everything& e, int q); //!< Construct Davidson eigenvalue solver for quantum number q
-	void minimize(); //!< Converge eigenproblem with tolerance set by e.elecMinParams
+	void minimize(bool isInner); //!< Converge eigenproblem with tolerance set by e.elecMinParams
 	
 private:
 	Everything& e;

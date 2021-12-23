@@ -25,7 +25,7 @@ BandDavidson::BandDavidson(Everything& e, int q): e(e), eVars(e.eVars), eInfo(e.
 {	assert(e.cntrl.fixed_H); // Check whether the electron Hamiltonian is fixed
 }
 
-void BandDavidson::minimize()
+void BandDavidson::minimize(bool isInner)
 {	//Use the same working set as the CG minimizer:
 	ColumnBundle& C = eVars.C[q];
 	std::vector<matrix>& VdagC = eVars.VdagC[q];
@@ -38,6 +38,15 @@ void BandDavidson::minimize()
 	if(2*nBandsMax >= int(C.basis->nbasis))
 		die_alone("Cannot use Davidson eigenvalue algorithm when 2 x nBands x davidsonBandRatio > nBasis.\n"
 			"Reduce nBands or davidsonBandRatio, increase nBasis (Ecut) or use elec-eigen-algo CG.\n\n");
+	int nEigsMin = nBandsOut; //typically converge all output bands to required threshold
+	if(isInner)
+	{	//If inner loop in SCF, only need to converge occupied eigenpairs in each cycle
+		nEigsMin = 0;
+		for(const double& f: eVars.F[q])
+			if(f > 1E-6)
+				nEigsMin++;
+	}
+	int nEigsDone = 0;
 	
 	//Initial subspace eigenvalue problem:
 	ColumnBundle HC;
@@ -65,7 +74,7 @@ void BandDavidson::minimize()
 		{	//Drop columns whose norm falls below above cutoff
 			complex* CexpData = Cexp.dataPref();
 			int bOut = 0;
-			for(int b=0; b<nBands; b++)
+			for(int b=nEigsDone; b<nBands; b++)
 			{	if(CexpNorm[b]<CexpNormCut) continue;
 				CexpNorm[bOut] = 1/sqrt(CexpNorm[b]);
 				if(bOut<b) callPref(eblas_copy)(CexpData+Cexp.index(bOut,0), CexpData+Cexp.index(b,0), Cexp.colLength());
@@ -125,6 +134,7 @@ void BandDavidson::minimize()
 		//Update C to optimum nBands subspace from [C,Cexp]
 		C = C*Crot + Cexp*CexpRot;
 		HC = HC*Crot + HCexp*CexpRot;
+		diagMatrix Hsub_eigs_prev = Hsub_eigs;
 		Hsub_eigs = bigHsub_eigs(0,nBandsNext);
 		for(size_t sp=0; sp<VdagC.size(); sp++) if(VdagC[sp])
 			VdagC[sp] = VdagC[sp]*Crot + VdagCexp[sp]*CexpRot;
@@ -132,9 +142,18 @@ void BandDavidson::minimize()
 		double EbandPrev = Eband;
 		Eband = qnum.weight * trace(Hsub_eigs(0,nBandsOut));
 		double dEband = Eband - EbandPrev;
+		//Check number of converged eigenvalues:
+		nEigsDone = 0;
+		for(nEigsDone=0; nEigsDone<nBands; nEigsDone++)
+			if(fabs(Hsub_eigs[nEigsDone] - Hsub_eigs_prev[nEigsDone]) > mp.energyDiffThreshold)
+				break;
 		logPrintf("BandDavidson: Iter: %3d  Eband: %+.15lf  dEband: %le  t[s]: %9.2lf\n", iter, Eband, dEband, clock_sec()); fflush(globalLog);
 		if(dEband<0 and fabs(dEband)<mp.energyDiffThreshold)
 		{	logPrintf("BandDavidson: Converged (dEband<%le)\n", mp.energyDiffThreshold);
+			break;
+		}
+		if(nEigsDone >= nEigsMin)
+		{	logPrintf("BandDavidson: Converged (nEigsDone>=%d)\n", nEigsMin);
 			break;
 		}
 	}

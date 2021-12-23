@@ -147,7 +147,7 @@ double SCF::cycle(double dEprev, std::vector<double>& extraValues)
 	if(not sp.verbose) { logSuspend(); e.elecMinParams.fpLog = nullLog; } // Silence eigensolver output
 	e.elecMinParams.energyDiffThreshold = std::min(1e-6, 0.1*fabs(dEprev));
 	if(sp.nEigSteps) e.elecMinParams.nIterations = sp.nEigSteps;
-	bandMinimize(e, false);
+	bandMinimize(e, false, true);
 	if(not sp.verbose) { logResume(); e.elecMinParams.fpLog = globalLog; }  // Resume output
 
 	//Compute new density and energy
