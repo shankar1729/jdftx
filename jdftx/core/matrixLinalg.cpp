@@ -498,6 +498,7 @@ matrix orthoMatrix(const matrix& A)
 		cusolverDnZtrtri(cusolverHandle, uplo, diag, N, (double2*)U.dataPref(), N, work.dataPref(), lwork, infoArr.dataPref());
 		#else
 		cusolverDnXtrtri(cusolverHandle, uplo, diag, N, CUDA_C_64F, U.dataPref(), N, workDev.dataPref(), lworkDev, workHost.data(), lworkHost,  infoArr.dataPref());
+		cudaDeviceSynchronize();
 		#endif
 		int info = infoArr.data()[0];
 		if(info<0) { logPrintf("Argument# %d to CuSolver inversion routine Ztrtri is invalid.\n", -info); stackTraceExit(1); }
