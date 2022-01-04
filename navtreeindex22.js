@@ -1,9 +1,5 @@
 var NAVTREEINDEX22 =
 {
-"structWannier_1_1TrialOrbital.html#a11d606e9631fae27568b5b001a485052":[2,2,1,4,24,1,1],
-"structWannier_1_1TrialOrbital.html#a35276d4ba1e93bfff4e9988cac092902":[2,2,1,4,24,1,0],
-"structWannier_1_1TrialOrbital.html#a5c74e14407f2fd6031c21b1e8f4f6367":[2,2,1,4,24,1,2],
-"structYlmProdTerm.html":[2,2,0,3,24],
 "structYlmProdTerm.html#a6217429a7ec692b4b984f69d3c3bb75c":[2,2,0,3,24,2],
 "structYlmProdTerm.html#a8234b314cafd480866aebd5f2d363249":[2,2,0,3,24,0],
 "structYlmProdTerm.html#a8c25bef0774b9a9abbcf40a21503c82e":[2,2,0,3,24,1],
@@ -135,5 +131,9 @@ var NAVTREEINDEX22 =
 "structsymmetricMatrix3.html#af44679f89d272d7dfdc1120c53bc1d83":[2,2,0,0,27,9],
 "symbols_8h.html":[2,5,0,2,20],
 "tensor3_8h.html":[2,5,0,1,29],
-"vector3_8h.html":[2,5,0,1,33]
+"vector3_8h.html":[2,5,0,1,33],
+"":[2,3,0,13],
+"":[2,3,0,1],
+"":[2,3,0,0],
+"":[2,3,0,3]
 };

@@ -1,9 +1,5 @@
 var NAVTREEINDEX20 =
 {
-"structFluidSolver_1_1SusceptibilityTerm.html#aa87e47835de37da9c111d4fe20983b13":[2,2,2,5,0,1],
-"structFluidSolver_1_1SusceptibilityTerm.html#ac176f0305761fca9c4ff9080b38850b2":[2,2,2,5,0,0],
-"structFmixParams.html":[2,2,2,6],
-"structFmixParams.html#a2c30a0c1351081b8d3589c13dc65fff5":[2,2,2,6,0],
 "structFmixParams.html#a429eb8e7b071479f0db09bc2c7ce7f51":[2,2,2,6,2],
 "structFmixParams.html#a7d89d796e19e5a2dff597347f8ed5363":[2,2,2,6,4],
 "structFmixParams.html#aaa642251becb4a09acb4f403e52186bb":[2,2,2,6,1],
@@ -249,5 +245,9 @@ var NAVTREEINDEX20 =
 "structNonlinearPCMeval_1_1Dielectric.html#ac51bed0942875d33b8bead349d753784":[2,4,0,1,1,4],
 "structNonlinearPCMeval_1_1Dielectric.html#ac92b4ee8b1150409ffe05996f18454f4":[2,4,0,1,1,3],
 "structNonlinearPCMeval_1_1Dielectric.html#ad7db6f0b37a22191a7b34f56e821cb50":[2,4,0,1,1,7],
-"structNonlinearPCMeval_1_1Screening.html":[2,4,0,1,0]
+"structNonlinearPCMeval_1_1Screening.html":[2,4,0,1,0],
+"structNonlinearPCMeval_1_1Screening.html#a2d71fead891fc770bf6b0fe2e34ee053":[2,4,0,1,0,20],
+"structNonlinearPCMeval_1_1Screening.html#a33caea747add8152257c02b7bfff69b3":[2,4,0,1,0,1],
+"structNonlinearPCMeval_1_1Screening.html#a4201bd0588ce9c97455b71091733f9a8":[2,4,0,1,0,10],
+"structNonlinearPCMeval_1_1Screening.html#a4c382d0dae57b3bd819d1c50bd308816":[2,4,0,1,0,3]
 };

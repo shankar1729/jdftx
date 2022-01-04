@@ -1,9 +1,5 @@
 var NAVTREEINDEX19 =
 {
-"structElectronScattering.html#aa7f97c4e228e3a44c0c605dd26ecdda5":[2,2,1,4,16,11],
-"structElectronScattering.html#ac07f3d0f7328a39f6dc19fc9b08b0522":[2,2,1,4,16,6],
-"structElectronScattering.html#ac8a257b5ea44967516e8b52045688525":[2,2,1,4,16,9],
-"structExCorr_1_1OrbitalDep.html":[2,2,1,2,7,0],
 "structExCorr_1_1OrbitalDep.html#a2c8a841826ec940b0578a490591ab435":[2,2,1,2,7,0,0],
 "structExCorr_1_1OrbitalDep.html#a59091d93194e502b8551e82f3d11f4a4":[2,2,1,2,7,0,2],
 "structExCorr_1_1OrbitalDep.html#a5c7ba837b1281a0d18ba6339ef054bec":[2,2,1,2,7,0,1],
@@ -249,5 +245,9 @@ var NAVTREEINDEX19 =
 "structFluidSolverParams.html#afb91bc0d52f73188e28f81f3bacf1de2":[2,2,2,7,21],
 "structFluidSolver_1_1SusceptibilityTerm.html":[2,2,2,5,0],
 "structFluidSolver_1_1SusceptibilityTerm.html#a060873b5e3147b11d05ab0a4e3a56aa2":[2,2,2,5,0,3],
-"structFluidSolver_1_1SusceptibilityTerm.html#a45b340f3d67cfae92a91bb382c76313a":[2,2,2,5,0,2]
+"structFluidSolver_1_1SusceptibilityTerm.html#a45b340f3d67cfae92a91bb382c76313a":[2,2,2,5,0,2],
+"structFluidSolver_1_1SusceptibilityTerm.html#aa87e47835de37da9c111d4fe20983b13":[2,2,2,5,0,1],
+"structFluidSolver_1_1SusceptibilityTerm.html#ac176f0305761fca9c4ff9080b38850b2":[2,2,2,5,0,0],
+"structFmixParams.html":[2,2,2,6],
+"structFmixParams.html#a2c30a0c1351081b8d3589c13dc65fff5":[2,2,2,6,0]
 };

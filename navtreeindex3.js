@@ -1,9 +1,5 @@
 var NAVTREEINDEX3 =
 {
-"classColumnBundle.html#ad0e11cba70df9e74a466c17530e0cadd":[2,2,0,0,43,4],
-"classColumnBundle.html#ae53811cc0a3336ed64473f3e76a3fd3f":[2,2,0,0,43,21],
-"classColumnBundle.html#ae5c8633b41976b9aac1aab316804bf6f":[2,2,0,0,43,11],
-"classColumnBundle.html#ae6e1a407f9c27583dd1108a86a11c83e":[2,2,0,0,43,19],
 "classColumnBundleTransform.html":[2,2,0,1,3],
 "classColumnBundleTransform.html#a39c46ced8b556e3830df5422ad49a637":[2,2,0,1,3,4],
 "classColumnBundleTransform.html#a416fefac8ebb1293e9864140b62fc3c1":[2,2,0,1,3,2],
@@ -249,5 +245,9 @@ var NAVTREEINDEX3 =
 "classElecInfo.html#af26e1ed1ffe2da10b7d2bef83255f2a9":[2,2,1,0,8,57],
 "classElecInfo.html#af534bf619d9d26103e56d9705fa678a2":[2,2,1,0,8,20],
 "classElecInfo.html#af7747a5f9fd3e61e05f58cd337ccc3c9":[2,2,1,0,8,13],
-"classElecInfo.html#af8c575fe4d6d14c8f8bc45b2b7177d40":[2,2,1,0,8,6]
+"classElecInfo.html#af8c575fe4d6d14c8f8bc45b2b7177d40":[2,2,1,0,8,6],
+"classElecMinimizer.html":[2,2,1,0,10],
+"classElecMinimizer.html#a09e7b7a2f0205876f842c3c810a04ca8":[2,2,1,0,10,3],
+"classElecMinimizer.html#a0cd9e61df08120b71e52cf23322ffc08":[2,2,1,0,10,5],
+"classElecMinimizer.html#a3f841daadac17277ec16b0707132c5fe":[2,2,1,0,10,4]
 };

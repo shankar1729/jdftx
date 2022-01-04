@@ -105,13 +105,14 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><h2><a class="anchor" id="autotoc_md0"></a>
-1.7.0 - 2021-01-03 (&lt;a href="http://jdftx.org/1.7.0"&gt;Site archive&lt;/a&gt;)</h2>
+1.7.0 - 2021-01-04</h2>
+<p><a href="http://jdftx.org/1.7.0">Site archive</a></p>
 <ul>
-<li>Cholesky orthonormalization for improved minimize and <a class="el" href="classSCF.html" title="Self-Consistent Field method for converging electronic state.">SCF</a> performance compared to symmetric orthonormalization (especially on GPUs)</li>
+<li>Cholesky orthonormalization for improved minimize and SCF performance compared to symmetric orthonormalization (especially on GPUs)</li>
 <li>New features:<ul>
 <li>DFT-D3 dispersion correction</li>
 <li>Wannierized defect matrix elements using a perturbed supercell calculation</li>
-<li>Added option to sum over all atoms of species in orbital-projected <a class="el" href="classDOS.html" title="(Weighted-) density of states calculator">DOS</a></li>
+<li>Added option to sum over all atoms of species in orbital-projected DOS</li>
 <li>Checkpoint-restart capability and selection of a subset of momentum transfers in electron-scattering</li>
 <li>Finite-temperature support in electron-scattering</li>
 <li>Detect and use potential-only functionals from LibXC</li>
@@ -139,7 +140,8 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 </li>
 </ul>
 <h2><a class="anchor" id="autotoc_md1"></a>
-1.6.0 - 2020-06-10 (&lt;a href="http://jdftx.org/1.6.0"&gt;Site archive&lt;/a&gt;)</h2>
+1.6.0 - 2020-06-10</h2>
+<p><a href="http://jdftx.org/1.6.0">Site archive</a></p>
 <ul>
 <li>Complete rewrite of ionic-dynamics with full support for NVT and NPT using either Nose-Hoover or Berendsen thermostats/barostats</li>
 <li>Revamped lattice minimization with analytical stress tensors, replacing previous finite difference implementation</li>
@@ -181,7 +183,8 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 </li>
 </ul>
 <h2><a class="anchor" id="autotoc_md2"></a>
-1.5.0 - 2019-07-28 (&lt;a href="http://jdftx.org/1.5.0"&gt;Site archive&lt;/a&gt;)</h2>
+1.5.0 - 2019-07-28</h2>
+<p><a href="http://jdftx.org/1.5.0">Site archive</a></p>
 <ul>
 <li>Wannier enhancements:<ul>
 <li>Condensed all Wannier outputs to unique-cell only, with separate cell weights to be used in post-processing, which substantially reduces memory and disk requirements of wannier tight-binding in large systems.</li>
@@ -219,7 +222,8 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 <li>Added an install target to the CMake build system, correctly handling pseudopotential paths etc. from installed directory</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md3"></a>
-1.4.2 - 2018-06-19 (&lt;a href="http://jdftx.org/1.4.2"&gt;Site archive&lt;/a&gt;)</h2>
+1.4.2 - 2018-06-19</h2>
+<p><a href="http://jdftx.org/1.4.2">Site archive</a></p>
 <ul>
 <li>BerkeleyGW interface enhancements:<ul>
 <li>ScaLAPACK diagonalizer for large-bands BerkeleyGW output, controlled by new command <a class="el" href="CommandBgwParams.html">bgw-params</a></li>
@@ -237,7 +241,8 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 <li>Added Fourier interpolation option in createVASP to generate high-resolution electron densities for Bader analysis</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md4"></a>
-1.4.1 - 2018-02-28 (&lt;a href="http://jdftx.org/1.4.1"&gt;Site archive&lt;/a&gt;)</h2>
+1.4.1 - 2018-02-28</h2>
+<p><a href="http://jdftx.org/1.4.1">Site archive</a></p>
 <ul>
 <li>Added newer versions of PBE and LDA GBRV pseudopotentials where available, and added PBEsol GBRV pseudopotentials for all elements</li>
 <li>Added links pointing to the latest version of each GBRV and SG15 pseudopotential (eg. GBRV/$ID_pbe.uspp and SG15/$ID_ONCV_PBE.upf)</li>
@@ -255,7 +260,8 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 <li>Updated internal normalization of SpeciesInfo::psiRadial to correspond more closely to normalized wavefunctions</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md5"></a>
-1.4.0 - 2017-12-11 (&lt;a href="http://jdftx.org/1.4.0"&gt;Site archive&lt;/a&gt;)</h2>
+1.4.0 - 2017-12-11</h2>
+<p><a href="http://jdftx.org/1.4.0">Site archive</a></p>
 <ul>
 <li>Support for ultrasoft pseudopotentials in phonon, Wannier, momentum matrix elements and e-ph matrix elements</li>
 <li><a class="el" href="classPhonon.html" title="Calculate phonon dispersion, free energies and electron-phonon matrix elements.">Phonon</a> enhancements:<ul>
@@ -296,7 +302,8 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 <li>Fixed <a class="el" href="classGridInfo.html" title="Simulation grid descriptor.">GridInfo</a> mismatch bug in polarizability and electron scattering with embedded Coulomb truncation</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md6"></a>
-1.3.1 - 2017-08-09 (&lt;a href="http://jdftx.org/1.3.1"&gt;Site archive&lt;/a&gt;)</h2>
+1.3.1 - 2017-08-09</h2>
+<p><a href="http://jdftx.org/1.3.1">Site archive</a></p>
 <ul>
 <li>Added script createVASP to export structure and electron density in VASP's CHGCAR format</li>
 <li>Updated <a class="el" href="classLatticeMinimizer.html" title="Lattice minimizer.">LatticeMinimizer</a> to jointly optimize ionic positions, rather than in an inner loop</li>
@@ -309,7 +316,8 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 <li>Reorganization of documentation with bibliography and better use of Doxygen modules</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md7"></a>
-1.3.0 - 2017-07-29 (&lt;a href="http://jdftx.org/1.3.0"&gt;Site archive&lt;/a&gt;)</h2>
+1.3.0 - 2017-07-29</h2>
+<p><a href="http://jdftx.org/1.3.0">Site archive</a></p>
 <ul>
 <li>Space group symmetrization instead of point groups alone. This now allows for calculations to be equally efficient regardless of where the structure is centered. This also substantially reduces the number of supercell calculations required by phonon for many systems. IMPORTANT: this may reduce number of k points for certain systems which will make the state incompatible from previous versions.</li>
 <li>Adjusted automatic FFT grid selection to be supercell-consistent i.e. minimum grid dimensions of unit cell, when multiplied by supercell count, will satisfy minimum grid dimensions for corresponding supercell at same plane-wave cutoff. IMPORTANT: default FFT boxes will change in some cases relative to 1.2.1 and earlier. This will only alter real-space grid outputs; wavefunctions remain unchanged.</li>
@@ -333,7 +341,8 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 <li>Added a CMake option for automating static linking</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md8"></a>
-1.2.1 - 2016-07-30 (&lt;a href="http://jdftx.org/1.2.1"&gt;Site archive&lt;/a&gt;)</h2>
+1.2.1 - 2016-07-30</h2>
+<p><a href="http://jdftx.org/1.2.1">Site archive</a></p>
 <ul>
 <li>Added Gaussian and Cold smearing options in addition to the original Fermi fillings, and deprecated the old elec-fermi-fillings command in favor of elec-smearing.</li>
 <li>Added outer loop over fixed charge calculations (using secant method to optimize nElectrons) as an alternate fall-back method for fixed-potential calculations.</li>
@@ -344,7 +353,8 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 <li>Added a mechanism to gracefully deprecate commands: a placeholder for the old command issues a deprecation warning and replaces itself with the new syntax, so that the output file shows the new syntax and all other command code (dependencies / forbids etc.) only need to deal with the new command.</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md9"></a>
-1.2.0 - 2016-07-10 (&lt;a href="http://jdftx.org/1.2.0"&gt;Site archive&lt;/a&gt;)</h2>
+1.2.0 - 2016-07-10</h2>
+<p><a href="http://jdftx.org/1.2.0">Site archive</a></p>
 <ul>
 <li>Substantial memory optimizations, reducing typical usage by 30-50 % overall:<ul>
 <li>Total energy minimize: switched from analytically-continued (Y and C) to orthonormal-only (C alone) algorithm, which eliminates one persistent copy of the wavefunctions</li>
@@ -363,7 +373,8 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 <li>Detailed compilation instructions for Debian and Redhat-based GNU/Linux, MacOS X and Cygwin/Windows</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md10"></a>
-1.1.2 - 2016-06-10 (&lt;a href="http://jdftx.org/1.1.2"&gt;Site archive&lt;/a&gt;)</h2>
+1.1.2 - 2016-06-10</h2>
+<p><a href="http://jdftx.org/1.1.2">Site archive</a></p>
 <ul>
 <li>Added support for compiling and running on Windows using Cygwin</li>
 <li>Added option to link JDFTx statically</li>
@@ -372,13 +383,15 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 <li>Consistent behavior for binary file I/O on big-endian architectures such as PowerPC64 (eg. BlueGene)</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md11"></a>
-1.1.1 - 2016-05-04 (&lt;a href="http://jdftx.org/1.1.1"&gt;Site archive&lt;/a&gt;)</h2>
+1.1.1 - 2016-05-04</h2>
+<p><a href="http://jdftx.org/1.1.1">Site archive</a></p>
 <ul>
 <li>Moved auxiliary executables to aux making their compilation optional, and renamed testsuite to test</li>
 <li>Fixed compilation for new compilers: up to g++-5.3, Clang 3.8 and CUDA 7.5</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md12"></a>
-1.1.0 - 2016-04-14 (&lt;a href="http://jdftx.org/1.1.0"&gt;Site archive&lt;/a&gt;)</h2>
+1.1.0 - 2016-04-14</h2>
+<p><a href="http://jdftx.org/1.1.0">Site archive</a></p>
 <ul>
 <li>Improved convergence and fixed initialization errors in the <a class="el" href="classSCF.html" title="Self-Consistent Field method for converging electronic state.">SCF</a> version of <a class="el" href="classNonlinearPCM.html" title="Nonlinear solvation models: shared electrostatic part implementation.">NonlinearPCM</a>, and included softening of ion packing limit to eliminate NANs</li>
 <li>Timing information in all iterations (electrons, fluids, geometry etc.), and corresponding support in the plotConvergence script</li>
@@ -389,7 +402,8 @@ $(document).ready(function(){initNavTree('ChangeLog.html',''); initResizable(); 
 <li>Added HyperPlane constraint to constrain combined motion of several ions and fixed transformation of linear constraint from lattice coordinates</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md13"></a>
-1.0.0 - 2016-02-05 (&lt;a href="http://jdftx.org/1.0.0"&gt;Site archive&lt;/a&gt;)</h2>
+1.0.0 - 2016-02-05</h2>
+<p><a href="http://jdftx.org/1.0.0">Site archive</a></p>
 <p>First stable release of JDFTx, that marks the transition from SVN to Git code versioning. A detailed change log was unfortunately not maintained prior to this release, but here's a partial list of major developments since the first numbered release:</p>
 <ul>
 <li>MPI parallelization over k-points for electronic DFT, orientations for classical DFT and angular momenta for <a class="el" href="classSaLSA.html" title="Nonlocal SaLSA  solvation model implementation (electrostatic part)">SaLSA</a></li>

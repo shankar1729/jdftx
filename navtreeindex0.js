@@ -1,9 +1,5 @@
 var NAVTREEINDEX0 =
 {
-"":[2,3,0,0],
-"":[2,3,0,1],
-"":[2,3,0,3],
-"":[2,3,0,13],
 "ASE.html":[1,3,0],
 "ASE.html#autotoc_md22":[0],
 "ASE.html#autotoc_md23":[1],
@@ -249,5 +245,9 @@ var NAVTREEINDEX0 =
 "CommandFluidInitialState.html":[1,1,0,60],
 "CommandFluidInitialState.html#autotoc_md213":[184],
 "CommandFluidInitialState.html#autotoc_md214":[185],
-"CommandFluidInitialState.html#autotoc_md215":[186]
+"CommandFluidInitialState.html#autotoc_md215":[186],
+"CommandFluidMinimize.html":[1,1,0,61],
+"CommandFluidMinimize.html#autotoc_md216":[187],
+"CommandFluidMinimize.html#autotoc_md217":[188],
+"CommandFluidMinimize.html#autotoc_md218":[189]
 };

@@ -1,9 +1,5 @@
 var NAVTREEINDEX1 =
 {
-"CommandFluidMinimize.html":[1,1,0,61],
-"CommandFluidMinimize.html#autotoc_md216":[187],
-"CommandFluidMinimize.html#autotoc_md217":[188],
-"CommandFluidMinimize.html#autotoc_md218":[189],
 "CommandFluidMixingFunctional.html":[1,1,0,62],
 "CommandFluidMixingFunctional.html#autotoc_md219":[190],
 "CommandFluidMixingFunctional.html#autotoc_md220":[191],
@@ -249,5 +245,9 @@ var NAVTREEINDEX1 =
 "CoulombWire_8h.html":[2,5,0,1,8],
 "Coulomb_8h.html":[2,5,0,1,2],
 "Coulomb__internal_8h.html":[2,5,0,1,3],
-"Customization.html":[0,4]
+"Customization.html":[0,4],
+"Customization.html#autotoc_md15":[0],
+"Customization.html#autotoc_md16":[1],
+"Customization.html#autotoc_md17":[2],
+"Customization.html#autotoc_md18":[3]
 };

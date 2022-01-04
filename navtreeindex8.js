@@ -1,9 +1,5 @@
 var NAVTREEINDEX8 =
 {
-"classVDWCoupling.html#aa23969a64e2087c5b523b51f496bdf96":[2,2,2,0,49,0],
-"classVDWCoupling.html#ab807abd61ce7b3b1f3d07b831cb056bf":[2,2,2,0,49,4],
-"classVDWCoupling.html#adb3a3299f2639e3cf115d28f8bf7568f":[2,2,2,0,49,2],
-"classVanDerWaals.html":[2,2,1,3,30],
 "classVanDerWaals.html#a2378965db411ab1c2791e60430f19d2c":[2,2,1,3,30,2],
 "classVanDerWaals.html#a419a07213088da995071153e3d0c80f8":[2,2,1,3,30,1],
 "classVanDerWaals.html#a5ed0d29b96085e3e99f3a7cb36b4bc05":[2,2,1,3,30,4],
@@ -249,5 +245,9 @@ var NAVTREEINDEX8 =
 "classtensor3.html#a2d93e6e26a9ed9bed01617a8e74108a5":[2,2,0,0,40,7],
 "classtensor3.html#a4f0add49247f57773e83a3f87874c133":[2,2,0,0,40,2],
 "classtensor3.html#a5714a0472d11d0ea96ba7dba6c05078d":[2,2,0,0,40,3],
-"classtensor3.html#a663ebee80f6e8ceb3148cde26f717faa":[2,2,0,0,40,12]
+"classtensor3.html#a663ebee80f6e8ceb3148cde26f717faa":[2,2,0,0,40,12],
+"classtensor3.html#a8558373664a2e10c85229fa6a01b43d6":[2,2,0,0,40,11],
+"classtensor3.html#a973c294b33d46fd6aba9eaa2616ae0c0":[2,2,0,0,40,9],
+"classtensor3.html#a9fdbfd1bcb81c83f7a7cc94824ceea2d":[2,2,0,0,40,0],
+"classtensor3.html#aaa758ba0b5109b3f5005a2311906eeb4":[2,2,0,0,40,6]
 };

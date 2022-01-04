@@ -1,9 +1,5 @@
 var NAVTREEINDEX18 =
 {
-"namespaceShapeFunctionSCCS.html":[2,3,0,10],
-"namespaceShapeFunctionSCCS.html#ad4f74f7e61058f0dcf67af7e97f6f164":[2,3,0,10,1],
-"namespaceShapeFunctionSCCS.html#af652cf0229272c87b9c6fb7f29e0e793":[2,3,0,10,0],
-"namespaceShapeFunctionSGA13.html":[2,3,0,11],
 "namespaceShapeFunctionSGA13.html#acc0c475273c9f03cd2e4ff74ac69083b":[2,3,0,11,0],
 "namespaceShapeFunctionSoftSphere.html":[2,3,0,12],
 "namespaceShapeFunctionSoftSphere.html#a4125cd1b32c3d7d0f8a9cdb9655beed2":[2,3,0,12,1],
@@ -249,5 +245,9 @@ var NAVTREEINDEX18 =
 "structElectronScattering.html#a78b90b8f202342c4a39a9d6d2f8b0f37":[2,2,1,4,16,5],
 "structElectronScattering.html#a79b764507500cbf2cdadc6ec629a4628":[2,2,1,4,16,1],
 "structElectronScattering.html#a882558abb99525f1be7388e0136715ae":[2,2,1,4,16,7],
-"structElectronScattering.html#aa328a27c6b59ffb2c3fc0c14999028e8":[2,2,1,4,16,0]
+"structElectronScattering.html#aa328a27c6b59ffb2c3fc0c14999028e8":[2,2,1,4,16,0],
+"structElectronScattering.html#aa7f97c4e228e3a44c0c605dd26ecdda5":[2,2,1,4,16,11],
+"structElectronScattering.html#ac07f3d0f7328a39f6dc19fc9b08b0522":[2,2,1,4,16,6],
+"structElectronScattering.html#ac8a257b5ea44967516e8b52045688525":[2,2,1,4,16,9],
+"structExCorr_1_1OrbitalDep.html":[2,2,1,2,7,0]
 };
