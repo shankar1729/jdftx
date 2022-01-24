@@ -55,7 +55,10 @@ extern "C"
 		const complex* b, const int* ib, const int* jb, const int* descb, const complex* beta,
 		complex* c, const int* ic, const int* jc, const int* descc);
 	
-	void zlacpy_(const char* uplo, const int* m, const int* n, const complex* a, const int* lda, complex* b, const int* ldb);
+	void pzgemr2d_(const int* m, const int* n,
+		const complex* a, const int* ia, const int* ja, const int* desca,
+		complex* b, const int* ib, const int* jb, const int* descb,
+		const int* ictxt);
 }
 
 
@@ -92,7 +95,7 @@ void transformV(int q, matrix& V, const matrix& evecs, std::vector<matrix>& Vsub
 	int nRows, int nEigs, int nRowsMine, int nColsMine, int blockSize,
 	int iProcRow, const std::vector<int>& iEigColsMine)
 {
-	static StopWatch watch("scalapackVTransform"); watch.start();
+	static StopWatch watch("scalapackTransformV"); watch.start();
 	matrix Vevecs = zeroes(nRowsMine, nColsMine); //local part of V * evecs
 	//--- parallel matrix multiplies:
 	complex alpha(1.,0.), beta(0.,0.); int one = 1;
@@ -158,12 +161,16 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 	int nProcsCol = nProcesses / nProcsRow;
 
 	//Initialize BLACS process grid:
-	int blacsContext, iProcRow, iProcCol;
+	int blacsContext, blacsContextCol, iProcRow, iProcCol;
 	{	int unused=-1, what=0;
 		blacs_get_(&unused, &what, &blacsContext);
 		blacs_gridinit_(&blacsContext, "Row-major", &nProcsRow, &nProcsCol);
 		blacs_gridinfo_(&blacsContext, &nProcsRow, &nProcsCol, &iProcRow, &iProcCol);
 		assert(mpiWorld->iProcess() == iProcRow * nProcsCol + iProcCol); //this mapping is assumed below, so check
+		//Initialize trivial context for column-split output:
+		int one = 1;
+		blacs_get_(&unused, &what, &blacsContextCol);
+		blacs_gridinit_(&blacsContextCol, "Row-major", &one, &nProcesses);
 	}
 	logPrintf("\tInitialized %d x %d process BLACS grid.\n", nProcsRow, nProcsCol);
 	
@@ -358,7 +365,6 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 			{	iEigColsMine.resize(jMine); //remaining columns irrelevant
 				break;
 			}
-		int nEigColsMine = iEigColsMine.size();
 		if(eInfo.isMine(q))
 		{	E[q] = eigs;
 			F[q].resize(nBands, 0.); //update to nBandsDense (padded with zeroes)
@@ -366,32 +372,35 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		
 		//Write the wavefunctions:
 		watchIO.start();
-		hsize_t offset[4] = { 0, hsize_t(iSpin), 0, 0 };
-		hsize_t count[4] = { 1, 1, 1, 2 };
-		matrix buf(blockSize, blockSize);
-		int nBlockRows = (nRowsMine+blockSize-1)/blockSize;
-		int nBlockCols = (nEigColsMine+blockSize-1)/blockSize;
-		for(int jBlock=0; jBlock<nBlockCols; jBlock++)
-		{	int jStart = jBlock*blockSize; //start index in local matrix
-			int jCount = std::min(blockSize, nEigColsMine-jStart); //number
-			int jOffset = iEigColsMine[jStart]; //start index in global matrix
-			for(int iBlock=0; iBlock<nBlockRows; iBlock++)
-			{	int iStart = iBlock*blockSize; //start index in local matrix
-				int iCount = std::min(blockSize, nRowsMine-iStart); //number
-				int iOffset = iRowsMine[iStart]; //start index in global matrix
-				//Copy block from local matrix to contiguous buffer:
-				zlacpy_("A", &iCount, &jCount, evecs.data()+nRowsMine*jStart+iStart, &nRowsMine, buf.data(), &iCount);
-				//Select destination in hdf5 file and wwrite from buffer:
-				count[0] = jCount; offset[0] = jOffset; //band index
-				count[2] = iCount; offset[2] = iOffset+nBasisPrev[ik]; //G-vector index
-				sid = H5Dget_space(did);
-				H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
-				hid_t sidMem = H5Screate_simple(4, count, NULL);
-				H5Dwrite(did, H5T_NATIVE_DOUBLE, sidMem, sid, plid, buf.data());
-				H5Sclose(sidMem);
-			}
+		//--- Switch to column-split form:
+		int colBlockSize = ceildiv(nEigs, nProcesses); //such that 1D block cyclic is just column-split
+		int descIn[9], descOut[9];
+		{	int zero=0, info;
+			//Input descriptor: same as descH, but only use first nEigs columns (of evecs)
+			descinit_(descIn, &nRows, &nEigs, &blockSize, &blockSize, &zero, &zero, &blacsContext, &nRowsMine, &info);
+			assert(info==0);
+			//Output descriptor: full rows, and contiguous column blocks:
+			descinit_(descOut, &nRows, &nEigs, &nRows, &colBlockSize, &zero, &zero, &blacsContextCol, &nRows, &info);
+			assert(info==0);
 		}
+		int iFullColStart = std::min(mpiWorld->iProcess() * colBlockSize, nEigs);
+		int iFullColStop = std::min((mpiWorld->iProcess()+1) * colBlockSize, nEigs);
+		int nFullColsMine = iFullColStop - iFullColStart;
+		matrix buf(nRows, nFullColsMine);
+		pzgemr2d_(&nRows, &nEigs,
+			evecs.data(), &one, &one, descIn,
+			buf.data(), &one, &one, descOut,
+			&blacsContext);
+		//Select destination in hdf5 file and wwrite from buffer:
+		hsize_t offset[4] = { hsize_t(iFullColStart), hsize_t(iSpin), hsize_t(nBasisPrev[ik]), 0 };
+		hsize_t count[4] = { hsize_t(nFullColsMine), 1, hsize_t(nRows), 2 };
+		sid = H5Dget_space(did);
+		H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
+		hid_t sidMem = H5Screate_simple(4, count, NULL);
+		H5Dwrite(did, H5T_NATIVE_DOUBLE, sidMem, sid, plid, buf.data());
+		H5Sclose(sidMem);
 		H5Fflush(gidWfns, H5F_SCOPE_GLOBAL);
+		buf = 0; //cleanup
 		watchIO.stop();
 		
 		//Transform Vxc to eigenbasis:
