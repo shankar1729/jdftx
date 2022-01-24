@@ -190,7 +190,8 @@ void BGW::writeVxc() const
 
 //Write exact exchange matrix elements for BGW
 void BGW::writeVxx() const
-{	if(e.exCorr.exxRange() or (not e.exCorr.exxFactor())) //writeVxc() did not prepare bare exchange
+{	if((e.exCorr.exxRange() or (not e.exCorr.exxFactor())) //writeVxc() did not prepare bare exchange
+			and (not bgwp.nBandsDense)) //and neither did the dense diagonalize
 		e.exx->prepareHamiltonian(0., e.eVars.F, e.eVars.C);
 	logPrintf("Computing Vxx ... "); logFlush();
 	std::vector<matrix>& VxxSub = ((BGW*)this)->VxxSub;
