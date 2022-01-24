@@ -1,13 +1,14 @@
 /** \page ChangeLog Change log
 
-## 1.7.0 - 2021-01-03 ([Site archive](http://jdftx.org/1.7.0))
+## 1.7.0 - 2021-01-04
+[Site archive](http://jdftx.org/1.7.0)
 
-+ Cholesky orthonormalization for improved minimize and SCF performance compared to symmetric orthonormalization (especially on GPUs)
++ Cholesky orthonormalization for improved minimize and %SCF performance compared to symmetric orthonormalization (especially on GPUs)
 
 + New features:
 	- DFT-D3 dispersion correction
 	- Wannierized defect matrix elements using a perturbed supercell calculation
-	- Added option to sum over all atoms of species in orbital-projected DOS
+	- Added option to sum over all atoms of species in orbital-projected %DOS
 	- Checkpoint-restart capability and selection of a subset of momentum transfers in electron-scattering
 	- Finite-temperature support in electron-scattering
 	- Detect and use potential-only functionals from LibXC
@@ -30,7 +31,8 @@
 	- Added CMake options to select ScaLAPACK other than MKL
 
 
-## 1.6.0 - 2020-06-10 ([Site archive](http://jdftx.org/1.6.0))
+## 1.6.0 - 2020-06-10
+[Site archive](http://jdftx.org/1.6.0)
 
 + Complete rewrite of ionic-dynamics with full support for NVT and NPT using either Nose-Hoover or Berendsen thermostats/barostats
 
@@ -70,7 +72,8 @@
 	- Updated %Wannier tutorials to account for new MLWF format from 1.5 version
 
 
-## 1.5.0 - 2019-07-28 ([Site archive](http://jdftx.org/1.5.0))
+## 1.5.0 - 2019-07-28
+[Site archive](http://jdftx.org/1.5.0)
 
 + %Wannier enhancements:
 	- Condensed all %Wannier outputs to unique-cell only, with separate cell weights to be used in post-processing, which substantially reduces memory and disk requirements of wannier tight-binding in large systems.
@@ -112,7 +115,8 @@
 + Added an install target to the CMake build system, correctly handling pseudopotential paths etc. from installed directory
 
 
-## 1.4.2 - 2018-06-19 ([Site archive](http://jdftx.org/1.4.2))
+## 1.4.2 - 2018-06-19
+[Site archive](http://jdftx.org/1.4.2)
 
 + BerkeleyGW interface enhancements:
 	- ScaLAPACK diagonalizer for large-bands BerkeleyGW output, controlled by new command \ref CommandBgwParams
@@ -136,7 +140,8 @@
 + Added Fourier interpolation option in createVASP to generate high-resolution electron densities for Bader analysis
 
 
-## 1.4.1 - 2018-02-28 ([Site archive](http://jdftx.org/1.4.1))
+## 1.4.1 - 2018-02-28
+[Site archive](http://jdftx.org/1.4.1)
 
 + Added newer versions of PBE and LDA GBRV pseudopotentials where available, and added PBEsol GBRV pseudopotentials for all elements
 
@@ -159,7 +164,8 @@
 + Updated internal normalization of SpeciesInfo::psiRadial to correspond more closely to normalized wavefunctions
 
 
-## 1.4.0 - 2017-12-11 ([Site archive](http://jdftx.org/1.4.0))
+## 1.4.0 - 2017-12-11
+[Site archive](http://jdftx.org/1.4.0)
 
 + Support for ultrasoft pseudopotentials in phonon, %Wannier, momentum matrix elements and e-ph matrix elements
 
@@ -205,7 +211,8 @@
 
 
 
-## 1.3.1 - 2017-08-09 ([Site archive](http://jdftx.org/1.3.1))
+## 1.3.1 - 2017-08-09
+[Site archive](http://jdftx.org/1.3.1)
 
 + Added script createVASP to export structure and electron density in VASP's CHGCAR format
 
@@ -229,7 +236,8 @@
 + Reorganization of documentation with bibliography and better use of Doxygen modules
 
 
-## 1.3.0 - 2017-07-29 ([Site archive](http://jdftx.org/1.3.0))
+## 1.3.0 - 2017-07-29
+[Site archive](http://jdftx.org/1.3.0)
 
 + Space group symmetrization instead of point groups alone.
   This now allows for calculations to be equally efficient
@@ -298,7 +306,8 @@
 + Added a CMake option for automating static linking
 
 
-## 1.2.1 - 2016-07-30 ([Site archive](http://jdftx.org/1.2.1))
+## 1.2.1 - 2016-07-30
+[Site archive](http://jdftx.org/1.2.1)
 
 + Added Gaussian and Cold smearing options in addition to the original Fermi fillings,
   and deprecated the old elec-fermi-fillings command in favor of elec-smearing.
@@ -322,7 +331,8 @@
   (dependencies / forbids etc.) only need to deal with the new command.
 
 
-## 1.2.0 - 2016-07-10 ([Site archive](http://jdftx.org/1.2.0))
+## 1.2.0 - 2016-07-10
+[Site archive](http://jdftx.org/1.2.0)
 
 + Substantial memory optimizations, reducing typical usage by 30-50 % overall:
 
@@ -360,7 +370,8 @@
 + Detailed compilation instructions for Debian and Redhat-based GNU/Linux, MacOS X and Cygwin/Windows
 
 
-## 1.1.2 - 2016-06-10 ([Site archive](http://jdftx.org/1.1.2))
+## 1.1.2 - 2016-06-10
+[Site archive](http://jdftx.org/1.1.2)
 
 + Added support for compiling and running on Windows using Cygwin
 
@@ -373,14 +384,16 @@
 + Consistent behavior for binary file I/O on big-endian architectures such as PowerPC64 (eg. BlueGene)
 
 
-## 1.1.1 - 2016-05-04 ([Site archive](http://jdftx.org/1.1.1))
+## 1.1.1 - 2016-05-04
+[Site archive](http://jdftx.org/1.1.1)
 
 + Moved auxiliary executables to aux making their compilation optional, and renamed testsuite to test
 
 + Fixed compilation for new compilers: up to g++-5.3, Clang 3.8 and CUDA 7.5 
 
 
-## 1.1.0 - 2016-04-14 ([Site archive](http://jdftx.org/1.1.0))
+## 1.1.0 - 2016-04-14
+[Site archive](http://jdftx.org/1.1.0)
 
 + Improved convergence and fixed initialization errors in the SCF version of NonlinearPCM,
   and included softening of ion packing limit to eliminate NANs
@@ -402,7 +415,8 @@
   and fixed transformation of linear constraint from lattice coordinates
 
 
-## 1.0.0 - 2016-02-05 ([Site archive](http://jdftx.org/1.0.0))
+## 1.0.0 - 2016-02-05
+[Site archive](http://jdftx.org/1.0.0)
 
 First stable release of JDFTx, that marks the transition from SVN to Git code versioning.
 A detailed change log was unfortunately not maintained prior to this release,

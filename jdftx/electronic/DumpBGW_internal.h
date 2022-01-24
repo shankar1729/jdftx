@@ -31,7 +31,8 @@ struct BGWparams
 {	int nBandsDense; //!< if non-zero, use a dense ScaLAPACK solver to calculate more bands
 	int blockSize; //!< block size for ScaLAPACK diagonalization
 	int clusterSize; //!< maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for
-	
+	bool saveVxx; //!< whether to write exact-exchange matrix elements
+
 	double EcutChiFluid; //!< KE cutoff for fluid polarizability output (enabled if non-zero)
 	bool elecOnly; //!< whether to only output electronic polarizability of fluid (default: true)
 	vector3<> q0; //!< zero wavevector replacement used for polarizability output
@@ -43,7 +44,7 @@ struct BGWparams
 	
 	double Ecut_rALDA; //!< KE cutoff (in Eh) for rALDA output (enabled if non-zero)
 	
-	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10),
+	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10), saveVxx(false),
 		EcutChiFluid(0.), elecOnly(true),
 		freqReMax_eV(30.), freqReStep_eV(1.), freqBroaden_eV(0.1),
 		freqNimag(25), freqPlasma(1.), Ecut_rALDA(0.)
@@ -79,6 +80,7 @@ class BGW
 	int nBands; //!< eInfo.nBands, or overridden by nBandsDense
 	std::vector<diagMatrix> E, F; //!< eigenvalues and fillings
 	std::vector<matrix> VxcSub; //!< exchange-correlation matrix elements
+	std::vector<matrix> VxxSub; //!< exact exchange matrix elements
 	
 	hid_t openHDF5(string fname) const; //!< Open HDF5 file for collective access
 	void writeHeaderMF(hid_t fid) const; //!< Write common HDF5 header specifying the mean-field claculation for BGW outputs
@@ -87,10 +89,13 @@ class BGW
 		std::vector<std::vector<vector3<int>>>& iGarr,
 		std::vector<int>& nBasis, int& nBasisMax) const; //!< Initialize header for polarizabilities, along with q and G-space quantities
 
+	void writeV(std::vector<matrix>& Vsub, string fname) const; //!< Common matrix elements I/O for writeVxc and writeVxx
+
 public:
 	BGW(const Everything& e, const BGWparams& bgwp);
 	void writeWfn() const; //!< Write wavefunction file
 	void writeVxc() const; //!< Write exchange-correlation matrix elements
+	void writeVxx() const; //!< Write exact exchange matrix elements
 	
 	//Implemented in DumpBGW_dense.cpp
 	void denseWriteWfn(hid_t gidWfns); //!< Solve and output wavefunctions using ScaLAPACK

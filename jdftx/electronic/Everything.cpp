@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaalsD3.h>
 #include <electronic/Vibrations.h>
 #include <electronic/DOS.h>
+#include <electronic/DumpBGW_internal.h>
 #include <core/LatticeUtils.h>
 #include <fluid/FluidSolver.h>
 
@@ -108,6 +109,8 @@ void Everything::setup()
 	for(auto ec: exCorrDiff) //Check the comparison functionals next
 		if(ec->exxFactor())
 			coulombParams.omegaSet.insert(ec->exxRange());
+	if(dump.bgwParams and dump.bgwParams->saveVxx)
+		coulombParams.omegaSet.insert(0.); //bare exchaneg output for BGW
 	bool exxPresent = coulombParams.omegaSet.size();
 	if(dump.polarizability || dump.electronScattering) coulombParams.omegaSet.insert(0.); //These are not EXX, but they use Coulomb_ExchangeEval
 	for(const auto& entry: dump) if(entry.second==DumpFCI) coulombParams.omegaSet.insert(0.); //DumpFCI also uses Coulomb_ExchangeEval
