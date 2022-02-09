@@ -54,6 +54,7 @@ var NAVTREEINDEX18 =
 "structBGWparams.html#a3692b49f0f675a1030997fadfc9aafc0":[2,2,1,4,15,5],
 "structBGWparams.html#a4467718884cfb205934e3120d2912ecd":[2,2,1,4,15,2],
 "structBGWparams.html#a5004f378cd1ab8288ee93c9c3888f831":[2,2,1,4,15,7],
+"structBGWparams.html#a8478e4cce9586ecceb013dd16e0825b9":[2,2,1,4,15,13],
 "structBGWparams.html#a90a29064c17e736551ff2a0f4b99b426":[2,2,1,4,15,10],
 "structBGWparams.html#a980c67fd801aa759397eb96ee7fdcf97":[2,2,1,4,15,1],
 "structBGWparams.html#aadc06cb3cddecbfa646218300fad538a":[2,2,1,4,15,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX18 =
 "structElectronScattering.html#aa328a27c6b59ffb2c3fc0c14999028e8":[2,2,1,4,16,0],
 "structElectronScattering.html#aa7f97c4e228e3a44c0c605dd26ecdda5":[2,2,1,4,16,11],
 "structElectronScattering.html#ac07f3d0f7328a39f6dc19fc9b08b0522":[2,2,1,4,16,6],
-"structElectronScattering.html#ac8a257b5ea44967516e8b52045688525":[2,2,1,4,16,9],
-"structExCorr_1_1OrbitalDep.html":[2,2,1,2,7,0]
+"structElectronScattering.html#ac8a257b5ea44967516e8b52045688525":[2,2,1,4,16,9]
 };

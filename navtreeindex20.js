@@ -1,5 +1,6 @@
 var NAVTREEINDEX20 =
 {
+"structFmixParams.html#a2c30a0c1351081b8d3589c13dc65fff5":[2,2,2,6,0],
 "structFmixParams.html#a429eb8e7b071479f0db09bc2c7ce7f51":[2,2,2,6,2],
 "structFmixParams.html#a7d89d796e19e5a2dff597347f8ed5363":[2,2,2,6,4],
 "structFmixParams.html#aaa642251becb4a09acb4f403e52186bb":[2,2,2,6,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX20 =
 "structNonlinearPCMeval_1_1Screening.html":[2,4,0,1,0],
 "structNonlinearPCMeval_1_1Screening.html#a2d71fead891fc770bf6b0fe2e34ee053":[2,4,0,1,0,20],
 "structNonlinearPCMeval_1_1Screening.html#a33caea747add8152257c02b7bfff69b3":[2,4,0,1,0,1],
-"structNonlinearPCMeval_1_1Screening.html#a4201bd0588ce9c97455b71091733f9a8":[2,4,0,1,0,10],
-"structNonlinearPCMeval_1_1Screening.html#a4c382d0dae57b3bd819d1c50bd308816":[2,4,0,1,0,3]
+"structNonlinearPCMeval_1_1Screening.html#a4201bd0588ce9c97455b71091733f9a8":[2,4,0,1,0,10]
 };

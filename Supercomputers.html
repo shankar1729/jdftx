@@ -106,18 +106,17 @@ $(document).ready(function(){initNavTree('Supercomputers.html',''); initResizabl
 <div class="contents">
 <div class="textblock"><h2><a class="anchor" id="autotoc_md19"></a>
 Compiling on NERSC Perlmutter</h2>
-<p>Compiling JDFTx to use the NVIDIA A100 GPUs on <a href="http://www.nersc.gov">NERSC Perlmutter</a> requires specific combinations of gcc and cuda to work correctly. Additional flags below are required to link non-threaded Cray libsci and avoid a crash within libsci during cleanup. The following commands may be used to invoke cmake (assuming bash shell): </p><pre class="fragment">#Select the appropriate compiler and load necessary modules
-module load PrgEnv-gnu
-module load cmake cray-fftw systemlayer
+<p>Compiling JDFTx to use the NVIDIA A100 GPUs on <a href="http://www.nersc.gov">NERSC Perlmutter</a> requires specific combinations of gcc and cuda to work correctly. Additional flags below are required to link non-threaded Cray libsci and avoid a crash within libsci during cleanup. The following commands may be used to invoke cmake (assuming bash shell): </p><pre class="fragment">module load PrgEnv-gnu
+module load cmake cray-fftw
+module load cudatoolkit/21.3_11.2
 module load gcc/9.3.0
-module load cuda/11.2.1 
 export CRAY_ACCEL_TARGET=nvidia80  # needed for CUDA-aware MPI support
 
 CC=cc CXX=CC cmake \
         -D EnableProfiling=yes \
         -D FFTW3_PATH=${FFTW_ROOT} \
-        -D GSL_PATH=${GSL_ROOT} \
-        -D CBLAS_LIBRARY=${GSL_ROOT}/lib/libgslcblas.so \
+        -D GSL_PATH=${HOME}/Code/perlmutter/GSL \
+        -D CBLAS_LIBRARY=${HOME}/Code/perlmutter/GSL/lib/libgslcblas.so \
         -D EnableCUDA=yes \
         -D EnableCuSolver=yes \
         -D CudaAwareMPI=yes \
@@ -126,8 +125,9 @@ CC=cc CXX=CC cmake \
         -D CUDA_ARCH=compute_80 \
         -D CUDA_CODE=sm_80 \
         -D EXTRA_CXX_FLAGS="-DDONT_FINALIZE_MPI -L/opt/cray/pe/lib64 -lsci_gnu_82" \
+        -D CMAKE_LIBRARY_PATH="${LD_LIBRARY_PATH//:/;}" \
         ../jdftx-git/jdftx
-</pre><p> Note that the GSL module on Perlmutter (at the time of writing this) is not compatible with the compiler versions needed for cuda. Consequently, you need to compile the GNU Scientific Library within some path inidicated as ${GSL_ROOT} above. Fetch the latest GSL source code, extract it and within the source directory: </p><pre class="fragment">#Compile GSL with same compiler versions as needed for JDFTx
+</pre><p>If you put the above in a script file, make sure to source it (rather than run it) because the CRAY_ACCEL_TARGET export needs to be set during make as well. Note that the GSL module on Perlmutter (at the time of writing this) is not compatible with the compiler versions needed for cuda. Consequently, you need to compile the GNU Scientific Library within some path inidicated as ${GSL_ROOT} above. Fetch the latest GSL source code, extract it and within the source directory: </p><pre class="fragment">#Compile GSL with same compiler versions as needed for JDFTx
 module load PrgEnv-gnu
 module load gcc/9.3.0
 ./configure CC=cc CXX=CC FC=ftn --enable-shared --prefix=${GSL_ROOT}
