@@ -941,6 +941,7 @@ enum BGWparamsMember
 	BGWpm_blockSize,
 	BGWpm_clusterSize,
 	BGWpm_saveVxx,
+	BGWpm_rpaExx,
 	BGWpm_EcutChiFluid,
 	BGWpm_elecOnly,
 	BGWpm_q0,
@@ -957,6 +958,7 @@ EnumStringMap<BGWparamsMember> bgwpmMap
 	BGWpm_blockSize, "blockSize",
 	BGWpm_clusterSize, "clusterSize",
 	BGWpm_saveVxx, "saveVxx",
+	BGWpm_rpaExx, "rpaExx",
 	BGWpm_EcutChiFluid, "EcutChiFluid",
 	BGWpm_elecOnly, "elecOnly",
 	BGWpm_q0, "q0",
@@ -972,6 +974,7 @@ EnumStringMap<BGWparamsMember> bgwpmDescMap
 	BGWpm_blockSize, "Block size for ScaLAPACK diagonalization (default: 32)",
 	BGWpm_clusterSize, "Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)",
 	BGWpm_saveVxx, "Whether to write exact-exchange matrix elements (default: no)",
+	BGWpm_rpaExx, "Whether to compute RPA-consistent exact-exchange energy (default: no)",
 	BGWpm_EcutChiFluid, "KE cutoff in hartrees for fluid polarizability output (default: 0; set non-zero to enable)",
 	BGWpm_elecOnly, "Whether fluid polarizability output should only include electronic response (default: true)",
 	BGWpm_q0, "Zero wavevector replacement to be used for polarizability output (default: (0,0,0))",
@@ -1004,17 +1007,18 @@ struct CommandBGWparams : public Command
 					pl.get(bgwp.param, val, #param, true); \
 					if(!(bgwp.param op val)) throw string(#param " must be " #op " " #val); \
 					break;
+			#define READ_BOOL(param) \
+				case BGWpm_##param: \
+					pl.get(bgwp.param, false, boolMap, #param, true); \
+					break;
 			switch(key)
 			{	READ_AND_CHECK(nBandsDense, >=, 0)
 				READ_AND_CHECK(blockSize, >, 0)
 				READ_AND_CHECK(clusterSize, >, 0)
-				case BGWpm_saveVxx:
-					pl.get(bgwp.saveVxx, true, boolMap, "saveVxx", true);
-					break;
+				READ_BOOL(saveVxx)
+				READ_BOOL(rpaExx)
 				READ_AND_CHECK(EcutChiFluid, >=, 0.)
-				case BGWpm_elecOnly:
-					pl.get(bgwp.elecOnly, true, boolMap, "elecOnly", true);
-					break;
+				READ_BOOL(elecOnly)
 				case BGWpm_q0:
 					for(int dir=0; dir<3; dir++)
 						pl.get(bgwp.q0[dir], 0., "q0", true);
@@ -1028,6 +1032,7 @@ struct CommandBGWparams : public Command
 				case BGWpm_Delim: return; //end of input
 			}
 			#undef READ_AND_CHECK
+			#undef READ_BOOL
 		}
 	}
 
@@ -1035,12 +1040,14 @@ struct CommandBGWparams : public Command
 	{	assert(e.dump.bgwParams);
 		const BGWparams& bgwp = *(e.dump.bgwParams);
 		#define PRINT(param, format) logPrintf(" \\\n\t" #param " " format, bgwp.param);
+		#define PRINT_BOOL(param) logPrintf(" \\\n\t" #param " %s", boolMap.getString(bgwp.param));
 		PRINT(nBandsDense, "%d")
 		PRINT(blockSize, "%d")
 		PRINT(clusterSize, "%d")
-		logPrintf(" \\\n\tsaveVxx %s", boolMap.getString(bgwp.saveVxx));
+		PRINT_BOOL(saveVxx)
+		PRINT_BOOL(rpaExx)
 		PRINT(EcutChiFluid, "%lg")
-		logPrintf(" \\\n\telecOnly %s", boolMap.getString(bgwp.elecOnly));
+		PRINT_BOOL(elecOnly)
 		logPrintf(" \\\n\tq0 %lg %lg %lg", bgwp.q0[0], bgwp.q0[1], bgwp.q0[2]);
 		PRINT(freqReMax_eV, "%lg")
 		PRINT(freqReStep_eV, "%lg")

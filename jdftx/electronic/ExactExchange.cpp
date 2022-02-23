@@ -56,13 +56,13 @@ public:
 	//! Calculate exchange operator and return energy
 	double compute(double aXX, double omega,
 		const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-		std::vector<ColumnBundle>* HC=0, matrix3<>* EXX_RRT=0) const;
+		std::vector<ColumnBundle>* HC=0, matrix3<>* EXX_RRT=0, bool rpaMode=false) const;
 	
 	//! Calculate exchange contributions for one pair of transformed ik and untransformed iq.
 	//! Gradients are only accumulated to untransformed iq, taking advantage of Hermitian symmetry of exchange operator.
 	double computePair(int ikReduced, int iqReduced, size_t& progress, size_t& progressTarget, double aXX, double omega,
 		const diagMatrix& Fk, const ColumnBundle& CkRed, const diagMatrix& Fq, const ColumnBundle& Cq,
-		ColumnBundle* HCq, matrix3<>* EXX_RRT=0) const;
+		ColumnBundle* HCq, matrix3<>* EXX_RRT=0, bool rpaMode=false) const;
 	
 private:
 	friend class ExactExchange;
@@ -100,9 +100,9 @@ ExactExchange::~ExactExchange()
 
 double ExactExchange::operator()(double aXX, double omega, 
 	const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr) const
+	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr, bool rpaMode) const
 {
-	if((omega == eval->omegaACE) and (not EXX_RRTptr))
+	if((omega == eval->omegaACE) and (not (EXX_RRTptr or rpaMode)))
 	{	//Use previously initialized ACE representation
 		double EXX = 0.;
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
@@ -114,9 +114,9 @@ double ExactExchange::operator()(double aXX, double omega,
 		return EXX;
 	}
 	else
-	{	//Compute full operator (if no ACE ready, or need lattice gradient):
+	{	//Compute full operator (if no ACE ready, or need lattice gradient / in RPA mode):
 		logPrintf("Computing exact exchange ... "); logFlush();
-		double EXX = eval->compute(aXX, omega, F, C, HC, EXX_RRTptr);
+		double EXX = eval->compute(aXX, omega, F, C, HC, EXX_RRTptr, rpaMode);
 		logPrintf("done.\n");
 		return EXX;
 	}
@@ -434,7 +434,7 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 
 double ExactExchangeEval::compute(double aXX, double omega, 
 	const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr) const
+	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr, bool rpaMode) const
 {
 	static StopWatch watch("ExactExchange"); watch.start();
 	
@@ -499,7 +499,7 @@ double ExactExchangeEval::compute(double aXX, double omega,
 			//Calculate energy (and gradient):
 			for(LocalState& ls: localStatesMine)
 				EXX += computePair(ikReduced, ls.iqReduced, progress, progressTarget, aXX, omega,
-					Fk, CkRed, ls.Fq, ls.Cq, HC ? &(ls.HCq) : 0, EXX_RRTptr ? &EXX_RRT : 0);
+					Fk, CkRed, ls.Fq, ls.Cq, HC ? &(ls.HCq) : 0, EXX_RRTptr ? &EXX_RRT : 0, rpaMode);
 		}
 		
 		//Free local wavefunction chunks:
@@ -552,9 +552,10 @@ double ExactExchangeEval::compute(double aXX, double omega,
 
 double ExactExchangeEval::computePair(int ikReduced, int iqReduced, size_t& progress, size_t& progressTarget, double aXX, double omega,
 	const diagMatrix& Fk, const ColumnBundle& CkRed, const diagMatrix& Fq, const ColumnBundle& Cq,
-	ColumnBundle* HCq, matrix3<>* EXX_RRT) const
+	ColumnBundle* HCq, matrix3<>* EXX_RRT, bool rpaMode) const
 {
 	const QuantumNumber& qnum_q = *(Cq.qnum);
+	
 	if(CkRed.qnum->spin != qnum_q.spin) return 0.;
 	int nBlocks = ceildiv(Cq.nCols(), blockSize);
 	double EXX = 0.;
@@ -589,6 +590,11 @@ double ExactExchangeEval::computePair(int ikReduced, int iqReduced, size_t& prog
 				//Loop over q-bands within block:
 				for(int bq=bqStart; bq<bqStop; bq++)
 				{	double wFq = qnum_q.weight * Fq[bq];
+					if(rpaMode)
+					{	double fmin = std::min(Fk[bk], Fq[bq]);
+						double fmax = std::max(Fk[bk], Fq[bq]);
+						wFq -= qnum_q.weight * fmin * (1. - fmax); //correction near Fermi level for RPA adiabatic connection case
+					}
 					if(!wFk && !wFq) continue; //at least one of the orbitals must be occupied
 					complexScalarField In; //state pair density
 					for(int s=0; s<nSpinor; s++)

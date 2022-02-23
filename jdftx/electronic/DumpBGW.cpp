@@ -35,6 +35,11 @@ void Dump::dumpBGW()
 	bgw.writeVxc();
 	if(bgwParams->saveVxx)
 		bgw.writeVxx();
+	if(bgwParams->rpaExx)
+	{	double EXX_RPA = (*e->exx)(1., 0., e->eVars.F, e->eVars.C, NULL, NULL, true);
+		logPrintf("\n EXX(RPA) = %25.16lf\n\n", EXX_RPA);
+		logFlush();
+	}
 	if(e->eVars.fluidSolver and bgwParams->EcutChiFluid)
 	{	bgw.writeChiFluid(true); //write q0
 		bgw.writeChiFluid(false); //write q != q0
@@ -204,6 +209,14 @@ void BGW::writeVxx() const
 	}
 	logPrintf("Done.\n");
 	writeV(VxxSub, e.dump.getFilename("bgw.vxx.dat"));
+	
+	//Report EXX energy computed from matrix elements:
+	double EXX = 0;
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		EXX += 0.5 * eInfo.qnums[q].weight * trace(diag(VxxSub[q]) * eVars.F[q]);
+	mpiWorld->allReduce(EXX, MPIUtil::ReduceSum);
+	logPrintf("\n      EXX = %25.16lf\n\n", EXX);
+	logFlush();
 }
 
 
