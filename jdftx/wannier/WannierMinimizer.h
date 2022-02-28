@@ -86,6 +86,7 @@ public:
 		matrix U2; //Rotation within Wannier subspace (nIn x nIn)
 		//NOTE: U and U2 are truncated from nIn -> nCenters after minimization
 		std::shared_ptr<MPIUtil> mpi; //MPI communicator with head=whose(ik) over which U must be bcast'd and reduced (created by subclass if needed)
+		ColumnBundle CUprime[3]; //d(C*U)/dk for each Cartesian k direction; set by computeCUprime() if needed
 	};
 	void bcastU(); //broadcast U to any processes that need it
 	
@@ -104,6 +105,9 @@ public:
 	//! Like getOmega, but for the subspace-invariant OmegaI instead.
 	virtual double getOmegaI(bool grad=false)=0;
 	
+	//! Compute d(C*U)/dk in kMeshEntry.CUprime atfer converging Wannier rotations
+	virtual void computeCUprime(int iSpin) { die("Not implemented.\n"); } //Overridden in supported subclasses (WannierMinimizerFD)
+
 protected:
 	friend struct WannierGradient;
 	const Everything& e;

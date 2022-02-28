@@ -238,6 +238,7 @@ void WannierMinimizerFD::initialize(int iSpin)
 	}
 	
 	//Compute the overlap matrices for current spin:
+	logPrintf("Computing initial overlaps ... "); logFlush();
 	for(int jProcess=0; jProcess<mpiWorld->nProcesses(); jProcess++)
 	{	//Send/recv wavefunctions to other processes:
 		Cother.assign(e.eInfo.nStates, ColumnBundle());
@@ -276,6 +277,8 @@ void WannierMinimizerFD::initialize(int iSpin)
 		}
 	}
 	Cother.clear();
+	VdagCother.clear();
+	logPrintf("done.\n"); logFlush();
 	
 	//Broadcast and dump the overlap matrices:
 	FILE* fp = 0;
@@ -435,4 +438,37 @@ WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
 	constrain(Kgrad);
 	watch.stop();
 	return Kgrad;
+}
+
+void WannierMinimizerFD::computeCUprime(int iSpin)
+{
+	//Compute wavefunction derivatives for current spin:
+	logPrintf("Computing d(C*U)/dk ... "); logFlush();
+	for(int jProcess=0; jProcess<mpiWorld->nProcesses(); jProcess++)
+	{	//Send/recv wavefunctions to other processes:
+		Cother.assign(e.eInfo.nStates, ColumnBundle());
+		if(jProcess == mpiWorld->iProcess()) //send
+		{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+				mpiWorld->bcastData((ColumnBundle&)e.eVars.C[q], jProcess);
+		}
+		else //recv
+		{	for(int q=e.eInfo.qStartOther(jProcess); q<e.eInfo.qStopOther(jProcess); q++)
+			{	Cother[q].init(nBands, e.basis[q].nbasis*nSpinor, &e.basis[q], &e.eInfo.qnums[q]);
+				mpiWorld->bcastData(Cother[q], jProcess);
+			}
+		}
+		
+		for(size_t ik=0; ik<kMesh.size(); ik++) if(isMine_q(ik,iSpin))
+		{	KmeshEntry& ke = kMesh[ik];
+			ColumnBundle Ci = getWfns(ke.point, iSpin); //Bloch functions at ik
+			//Overlap with neighbours:
+			for(Edge& edge: edges[ik])
+				if(whose_q(edge.ik,iSpin)==jProcess)
+				{	ColumnBundle Cj = getWfns(edge.point, iSpin);
+					//TODO
+				}
+		}
+	}
+	Cother.clear();
+	logPrintf("done.\n"); logFlush();
 }

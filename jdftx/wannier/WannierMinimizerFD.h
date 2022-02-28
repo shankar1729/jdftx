@@ -34,6 +34,7 @@ public:
 	void initialize(int iSpin);
 	double getOmega(bool grad);
 	double getOmegaI(bool grad);
+	void computeCUprime(int iSpin);
 	WannierGradient precondition(const WannierGradient& grad);
 	
 	//!An edge of the k-mesh involved in the finite difference formula
