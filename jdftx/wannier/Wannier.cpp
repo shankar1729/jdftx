@@ -110,8 +110,9 @@ void WannierEverything::setup()
 {	Everything::setup(); //base class setup
 	if(!coulombParams.supercell) updateSupercell(true); //force supercell generation
 	
-	//Extra initialization needed for momentum and defect matrix element output:
-	if(wannier.saveMomenta or wannier.defects.size())
+	//Extra initialization needed for momentum, L/Q and defect matrix element output:
+	bool needCprime = (wannier.saveL or wannier.saveQ);
+	if(wannier.saveMomenta or needCprime or wannier.defects.size())
 	{	if(eInfo.hasU)
 		{	//Calculate U_rho needed for the DFT+U correction to the [r,H] momentum matrix elements:
 			iInfo.rhoAtom_initZero(eVars.rhoAtom);
@@ -121,9 +122,9 @@ void WannierEverything::setup()
 		}
 		bool hasUltrasoft = false;
 		for(const auto& sp: iInfo.species) if(sp->isUltrasoft()) hasUltrasoft = true;
-		if(hasUltrasoft or wannier.defects.size())
-		{	//Compute Vscloc needed for defects, and then call augmentDensity*Grad needed
-			//for augmentation contribution to  the [r,H] momentum matrix elements:
+		if(hasUltrasoft or needCprime or wannier.defects.size())
+		{	//Compute Vscloc needed for defects and L/Q, and then call augmentDensity*Grad
+			//needed for augmentation contribution to  the [r,H] momentum matrix elements:
 			eVars.n = eVars.calcDensity();
 			if(exCorr.needsKEdensity()) eVars.tau = eVars.KEdensity();
 			eVars.EdensityAndVscloc(ener);

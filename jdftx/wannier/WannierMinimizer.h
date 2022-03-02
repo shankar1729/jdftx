@@ -104,12 +104,12 @@ public:
 	//! Like getOmega, but for the subspace-invariant OmegaI instead.
 	virtual double getOmegaI(bool grad=false)=0;
 	
-	//! Compute d(C*U)/dk * dagger(U) atfer converging Wannier rotations.
+	//! Compute i d(C*U)/dk * dagger(U) after converging Wannier rotations (effectively ~ r C, where r is position operator).
 	//! Return wavefunctions on the reduced q states on the processes that own each q, exactly like ElecVars::C.
 	//! The number of bands in the output are 3x ElecInfo::nBands, and contain blocks of nBands each for kx, ky and kz derivatives.
-	virtual std::vector<ColumnBundle> computeCprime(int iSpin) { die("Not implemented.\n"); } //Overridden in supported subclasses (WannierMinimizerFD)
+	virtual std::vector<ColumnBundle> getCprime(int iSpin) { die("Not implemented.\n"); } //Overridden in supported subclasses (WannierMinimizerFD)
 
-	//! Whether computeCprime() will be called (so that related initialization can be performed)
+	//! Whether getCprime() will be called (so that related initialization can be performed)
 	inline bool needCprime() const { return (wannier.saveL or wannier.saveQ); }
 
 protected:

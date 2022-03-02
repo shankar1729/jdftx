@@ -388,9 +388,80 @@ void WannierMinimizer::saveMLWF_S(int iSpin, const matrix& phase)
 //Save any matrix elements that depend on dC/dk (eg. L, Q)
 void WannierMinimizer::saveMLWF_CprimeBased(int iSpin, const matrix& phase)
 {	assert(needCprime());
-	std::vector<ColumnBundle> Cprime = computeCprime(iSpin);
-	
-	//TODO
+	//Compute r*p matrix elements of Bloch states:
+	std::vector<matrix3<matrix>> rpBloch(qCount);
+	std::vector<ColumnBundle> Cprime = getCprime(iSpin);
+	logPrintf("Computing <rp> in Bloch basis ... "); logFlush();
+	double nrm2totSq = 0., nrm2asymSq = 0.;
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		if(e.eInfo.qnums[q].index()==iSpin)
+		{	int iReduced = q - iSpin*qCount;
+			ColumnBundle& Cprime_i = Cprime[iReduced];
+			int nBandsPrime = Cprime_i.nCols();
+			assert(nBandsPrime == 3 * nBands); //one set for each direction
+			//Apply overlap to Cprime:
+			matrix OsubPrime;
+			std::vector<matrix> VdagCprime;
+			{	//Compute overlap and keep projections for Hamiltonian below:
+				ColumnBundle OCprime = O(Cprime_i, &VdagCprime);
+				matrix rotExisting = eye(nBandsPrime);
+				e.iInfo.project(Cprime_i, VdagCprime, &rotExisting);
+				OsubPrime = Cprime_i ^ OCprime;
+			}
+			//Apply Hamiltonian to Cprime:
+			matrix HsubPrime;
+			{	ColumnBundle HCprime;
+				ElecVars& eVars = (ElecVars&)e.eVars; //temporarily modified and restored below
+				#define SWAP_C_Cprime \
+					std::swap(eVars.C[q], Cprime_i); \
+					std::swap(eVars.VdagC[q], VdagCprime); \
+					std::swap(eVars.Hsub[q], HsubPrime);
+				SWAP_C_Cprime //Temporarily swap C and Cprime
+				Energies ener; //unused
+				eVars.applyHamiltonian(q, eye(nBandsPrime), HCprime, ener, true, false); //compute Hsub(Cprime), don't diagonalize
+				SWAP_C_Cprime  //Restore C and Cprime to correct places
+				#undef SWAP_C_Cprime
+			}
+			//Compute <r*p>:
+			for(int iDir=0; iDir<3; iDir++)
+				for(int jDir=0; jDir<3; jDir++)
+				{	matrix HprimeCur = HsubPrime(iDir*nBands, (iDir+1)*nBands, jDir*nBands, (jDir+1)*nBands);
+					matrix OprimeCur = OsubPrime(iDir*nBands, (iDir+1)*nBands, jDir*nBands, (jDir+1)*nBands);
+					matrix& rpCur = rpBloch[iReduced](iDir, jDir);
+					rpCur = complex(0, 1) * (HprimeCur - OprimeCur * e.eVars.Hsub_eigs[q]);
+				}
+			
+			//HACK
+			logPrintf("\nq: "); e.eInfo.qnums[q].k.print(globalLog, " %lf ");
+			for(int kDir=0; kDir<3; kDir++)
+			{	int iDir = (kDir + 1) % 3;
+				int jDir = (kDir + 2) % 3;
+				matrix Lk = rpBloch[iReduced](iDir, jDir) - rpBloch[iReduced](jDir, iDir);
+				matrix LkSym = dagger_symmetrize(Lk), LkEvecs; diagMatrix LkEigs;
+				LkSym.diagonalize(LkEvecs, LkEigs);
+				logPrintf("%d %d: %le in %le  Eigs:", iDir, jDir, nrm2(Lk - LkSym), nrm2(Lk));
+				LkEigs.print(globalLog, " %lf ");
+			}
+
+			//--- remove the anti-Hermitian trace(rp) component:
+			matrix rpTraceBy3 = (1./3) * trace(rpBloch[iReduced]);
+			for(int iDir=0; iDir<3; iDir++)
+				rpBloch[iReduced](iDir, iDir) -= rpTraceBy3;
+			//--- enforce Hermitian symmetry and collect error magnitude:
+			for(int iDir=0; iDir<3; iDir++)
+				for(int jDir=0; jDir<3; jDir++)
+				{	matrix& rpCur = rpBloch[iReduced](iDir, jDir);
+					matrix rpCurSym = dagger_symmetrize(rpCur);
+					nrm2totSq += std::pow(nrm2(rpCur), 2);
+					nrm2asymSq += std::pow(nrm2(rpCur - rpCurSym), 2);
+					rpCur = rpCurSym;
+				}
+		}
+	Cprime.clear();
+	mpiWorld->allReduce(nrm2totSq, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(nrm2asymSq, MPIUtil::ReduceSum);
+	logPrintf("done. Relative discarded anti-Hermitian part: %le\n", sqrt(nrm2asymSq / nrm2totSq));
+	logFlush();
 }
 
 

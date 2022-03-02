@@ -34,7 +34,7 @@ public:
 	void initialize(int iSpin);
 	double getOmega(bool grad);
 	double getOmegaI(bool grad);
-	std::vector<ColumnBundle> computeCprime(int iSpin);
+	std::vector<ColumnBundle> getCprime(int iSpin);
 	WannierGradient precondition(const WannierGradient& grad);
 	
 	//!An edge of the k-mesh involved in the finite difference formula

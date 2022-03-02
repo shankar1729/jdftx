@@ -468,43 +468,49 @@ WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
 	return Kgrad;
 }
 
-std::vector<ColumnBundle> WannierMinimizerFD::computeCprime(int iSpin)
-{	//Compute wavefunction derivatives for current spin:
+//Compute wavefunction derivatives for current spin:
+std::vector<ColumnBundle> WannierMinimizerFD::getCprime(int iSpin)
+{	static StopWatch watch("WannierMinimizerFD::getCprime"); watch.start();
 	logPrintf("Computing dC/dk ... "); logFlush();
 	Cother.assign(e.eInfo.nStates, ColumnBundle());
 	std::vector<ColumnBundle> Cprime(qCount);
 	for(int jReduced=0; jReduced<qCount; jReduced++)
-	{	int q = jReduced + qCount*iSpin; //current reduced state whose contributions to dC/dk at other states is being calculated
+	{	int qj = jReduced + qCount*iSpin; //current reduced state whose contributions to dC/dk at other states is being calculated
 
 		//Get this wavefunction to all processes:
-		int jProcess = e.eInfo.whose(q);
+		int jProcess = e.eInfo.whose(qj);
 		if(jProcess == mpiWorld->iProcess()) //send
-			mpiWorld->bcastData((ColumnBundle&)e.eVars.C[q], jProcess);
+			mpiWorld->bcastData((ColumnBundle&)e.eVars.C[qj], jProcess);
 		else //recv
-		{	Cother[q].init(nBands, e.basis[q].nbasis*nSpinor, &e.basis[q], &e.eInfo.qnums[q]);
-			mpiWorld->bcastData(Cother[q], jProcess);
+		{	Cother[qj].init(nBands, e.basis[qj].nbasis*nSpinor, &e.basis[qj], &e.eInfo.qnums[qj]);
+			mpiWorld->bcastData(Cother[qj], jProcess);
 		}
 		
 		//Find all edges from reduced states that use this one:
 		for(int iReduced=0; iReduced<qCount; iReduced++)
-			for(const Edge& edge: edges_reduced[iReduced])
-				if(int(edge.point.iReduced) == jReduced)
-				{	const KmeshEntry& ki = kMesh[ik_reduced[iReduced]];
-					const KmeshEntry& kj = kMesh[edge.ik];
-					ColumnBundle Cj = getWfns(edge.point, iSpin) * (kj.U * dagger(ki.U));
-					//Collect contribution to dC/dk:
-					ColumnBundle& Cprime_i = Cprime[iReduced];
-					if(not Cprime_i)
-					{	Cprime_i.init(3*nBands, basis.nbasis*nSpinor, &basis, &ki.point, isGpuEnabled());
-						Cprime_i.zero();
+		{	int qi = iReduced + qCount*iSpin;
+			if(e.eInfo.isMine(qi))
+			{	for(const Edge& edge: edges_reduced[iReduced])
+					if(int(edge.point.iReduced) == jReduced)
+					{	const KmeshEntry& ki = kMesh[ik_reduced[iReduced]];
+						const KmeshEntry& kj = kMesh[edge.ik];
+						ColumnBundle Cj = getWfns(edge.point, iSpin) * (kj.U * dagger(ki.U));
+						//Collect contribution to dC/dk:
+						ColumnBundle& Cprime_i = Cprime[iReduced];
+						if(not Cprime_i)
+						{	Cprime_i.init(3*nBands, basis.nbasis*nSpinor, &basis, &ki.point, isGpuEnabled());
+							Cprime_i.zero();
+						}
+						for(int iDir=0; iDir<3; iDir++)
+							if(edge.b[iDir])
+								Cprime_i.axpySub(nBands*iDir, complex(0., 0.5 *edge.wb * edge.b[iDir]), Cj);
 					}
-					for(int iDir=0; iDir<3; iDir++)
-						if(edge.b[iDir])
-							Cprime_i.axpySub(nBands*iDir, edge.wb * edge.b[iDir], Cj);
-				}
-		Cother[q] = 0; //free
+			}
+		}
+		Cother[qj] = 0; //free
 	}
 	Cother.clear();
 	logPrintf("done.\n"); logFlush();
+	watch.stop();
 	return Cprime;
 }
