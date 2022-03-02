@@ -116,6 +116,14 @@ void ColumnBundle::setSub(int colStart, const ColumnBundle& Y)
 	callPref(eblas_copy)(dataPref()+colStart*colLength(), Y.dataPref(), nColsSub*colLength());
 }
 
+void ColumnBundle::axpySub(int colStart, complex alpha, const ColumnBundle& Y)
+{	assert(colStart >= 0);
+	assert(colStart + Y.nCols() <= nCols());
+	assert(colLength() == Y.colLength());
+	callPref(eblas_zaxpy)(Y.nData(), alpha, Y.dataPref(), 1, dataPref()+colStart*colLength(), 1);
+}
+
+
 #define CHECK_COLUMN_INDEX \
 	assert(i>=0 && i<nCols()); \
 	assert(s>=0 && s<spinorLength());

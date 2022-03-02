@@ -69,6 +69,7 @@ public:
 	// Get/set columns
 	ColumnBundle getSub(int colStart, int colStop) const; //!< get a range of columns as a ColumnBundle 
 	void setSub(int colStart, const ColumnBundle&); //!< set columns (starting at colStart) from a ColumnBundle, ignoring columns that would go beyond nCols()
+	void axpySub(int colStart, complex alpha, const ColumnBundle&); //!< accumulate columns (starting at colStart) from a ColumnBundle with scale alpha
 	
 	complexScalarFieldTilde getColumn(int i, int s) const; //!< Expand the i'th column and s'th spinor component from reduced to full G-space
 	void setColumn(int i, int s, const complexScalarFieldTilde&); //!< Redeuce a full G-space vector and store it as the i'th column and s'th spinor component

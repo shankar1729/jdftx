@@ -86,7 +86,6 @@ public:
 		matrix U2; //Rotation within Wannier subspace (nIn x nIn)
 		//NOTE: U and U2 are truncated from nIn -> nCenters after minimization
 		std::shared_ptr<MPIUtil> mpi; //MPI communicator with head=whose(ik) over which U must be bcast'd and reduced (created by subclass if needed)
-		ColumnBundle CUprime[3]; //d(C*U)/dk for each Cartesian k direction; set by computeCUprime() if needed
 	};
 	void bcastU(); //broadcast U to any processes that need it
 	
@@ -105,8 +104,13 @@ public:
 	//! Like getOmega, but for the subspace-invariant OmegaI instead.
 	virtual double getOmegaI(bool grad=false)=0;
 	
-	//! Compute d(C*U)/dk in kMeshEntry.CUprime atfer converging Wannier rotations
-	virtual void computeCUprime(int iSpin) { die("Not implemented.\n"); } //Overridden in supported subclasses (WannierMinimizerFD)
+	//! Compute d(C*U)/dk * dagger(U) atfer converging Wannier rotations.
+	//! Return wavefunctions on the reduced q states on the processes that own each q, exactly like ElecVars::C.
+	//! The number of bands in the output are 3x ElecInfo::nBands, and contain blocks of nBands each for kx, ky and kz derivatives.
+	virtual std::vector<ColumnBundle> computeCprime(int iSpin) { die("Not implemented.\n"); } //Overridden in supported subclasses (WannierMinimizerFD)
+
+	//! Whether computeCprime() will be called (so that related initialization can be performed)
+	inline bool needCprime() const { return (wannier.saveL or wannier.saveQ); }
 
 protected:
 	friend struct WannierGradient;
@@ -192,6 +196,7 @@ private:
 	void saveMLWF_P(int iSpin, const matrix& phase); //Momenta
 	void saveMLWF_D(int iSpin, const matrix& phase); //Gradient
 	void saveMLWF_S(int iSpin, const matrix& phase); //Spins
+	void saveMLWF_CprimeBased(int iSpin, const matrix& phase); //Any that depend on dC/dk (eg. L, Q)
 	void saveMLWF_W(int iSpin, const matrix& phase); //Slab weights
 	void saveMLWF_Z(int iSpin, const matrix& phase); //z position operator
 	void saveMLWF(int iSpin, const matrix& phase, const ScalarFieldArray& w, string varName, bool suppressUnbound); //helper function for scalar field matrix elements (eg. slab and z)

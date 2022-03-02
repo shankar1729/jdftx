@@ -34,7 +34,7 @@ public:
 	void initialize(int iSpin);
 	double getOmega(bool grad);
 	double getOmegaI(bool grad);
-	void computeCUprime(int iSpin);
+	std::vector<ColumnBundle> computeCprime(int iSpin);
 	WannierGradient precondition(const WannierGradient& grad);
 	
 	//!An edge of the k-mesh involved in the finite difference formula
@@ -45,7 +45,9 @@ public:
 		Kpoint point; //!< description of neighbour (source state, rotation, translation etc.)
 		matrix M0; //!< initial overlap matrix for this pair
 	};
-	std::vector< std::vector<Edge> > edges; //!< set of all edges
+	std::vector< std::vector<Edge> > edges; //!< unidirectional edges on full k-mesh
+	std::vector< std::vector<Edge> > edges_reduced; //!< bidirectional edges for reduced k-points (only initialized if needCprime)
+	std::vector<int> ik_reduced; //!< full-mesh index for each reduced k-point (only initialized if needCprime)
 	matrix kHelmholtzInv; //!< inverse Helmholtz preconditioner
 };
 

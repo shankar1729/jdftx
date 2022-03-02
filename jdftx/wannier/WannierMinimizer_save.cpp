@@ -182,6 +182,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	saveMLWF_H(iSpin, phase); //Hamiltonian
 	if(wannier.saveMomenta) saveMLWF_P(iSpin, phase); //Momenta
 	if(wannier.saveSpin) saveMLWF_S(iSpin, phase); //Spins
+	if(needCprime()) saveMLWF_CprimeBased(iSpin, phase); //Any that need dC/dk
 	if(wannier.zVfilename.length()) saveMLWF_Z(iSpin, phase); //z position
 	if(wannier.zH) saveMLWF_W(iSpin, phase); //Slab weights
 	saveMLWF_ImSigma_ee(iSpin, phase);
@@ -381,6 +382,15 @@ void WannierMinimizer::saveMLWF_S(int iSpin, const matrix& phase)
 	}
 	//Fourier transform to Wannier space and save
 	dumpWannierized(SwannierTilde, phase, "mlwfS", realPartOnly, iSpin);
+}
+
+
+//Save any matrix elements that depend on dC/dk (eg. L, Q)
+void WannierMinimizer::saveMLWF_CprimeBased(int iSpin, const matrix& phase)
+{	assert(needCprime());
+	std::vector<ColumnBundle> Cprime = computeCprime(iSpin);
+	
+	//TODO
 }
 
 
