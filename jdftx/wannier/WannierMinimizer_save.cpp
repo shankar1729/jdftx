@@ -384,15 +384,27 @@ void WannierMinimizer::saveMLWF_S(int iSpin, const matrix& phase)
 	dumpWannierized(SwannierTilde, phase, "mlwfS", realPartOnly, iSpin);
 }
 
+//Construct 9x9 outer product rotation from two 3x3 rotation matrices
+//(Within each dimension, rot1 takes the slow outer index and rot2 takes the fast inner index.)
+matrix outer(matrix3<> rot1, matrix3<> rot2)
+{	matrix result = zeroes(9, 9);
+	complex* data = result.data(); //note matrix is column-major
+	for(int col1=0; col1<3; col1++)
+	for(int col2=0; col2<3; col2++)
+		for(int row1=0; row1<3; row1++)
+		for(int row2=0; row2<3; row2++)
+			*(data++) = rot1(row1, col1) * rot2(row2, col2);
+	return result;
+}
 
 //Save any matrix elements that depend on dC/dk (eg. L, Q)
 void WannierMinimizer::saveMLWF_CprimeBased(int iSpin, const matrix& phase)
 {	assert(needCprime());
+
 	//Compute r*p matrix elements of Bloch states:
-	std::vector<matrix3<matrix>> rpBloch(qCount);
+	std::vector<matrix3<matrix>> rrHbloch(qCount);
 	std::vector<ColumnBundle> Cprime = getCprime(iSpin);
-	logPrintf("Computing <rp> in Bloch basis ... "); logFlush();
-	double nrm2totSq = 0., nrm2asymSq = 0.;
+	logPrintf("Computing <r[r,H]> in Bloch basis ... "); logFlush();
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		if(e.eInfo.qnums[q].index()==iSpin)
 		{	int iReduced = q - iSpin*qCount;
@@ -403,39 +415,63 @@ void WannierMinimizer::saveMLWF_CprimeBased(int iSpin, const matrix& phase)
 			//Separate into components of <r*p>
 			for(int iDir=0; iDir<3; iDir++)
 				for(int jDir=0; jDir<3; jDir++)
-					rpBloch[iReduced](iDir, jDir) = complex(0,-1) * CprimeRHcommC[jDir](iDir*nBands, (iDir+1)*nBands, 0, nBands);
-			
-			//HACK
-			logPrintf("\nq: "); e.eInfo.qnums[q].k.print(globalLog, " %lf ");
-			for(int kDir=0; kDir<3; kDir++)
-			{	int iDir = (kDir + 1) % 3;
-				int jDir = (kDir + 2) % 3;
-				matrix Lk = rpBloch[iReduced](iDir, jDir) - rpBloch[iReduced](jDir, iDir);
-				matrix LkSym = dagger_symmetrize(Lk), LkEvecs; diagMatrix LkEigs;
-				LkSym.diagonalize(LkEvecs, LkEigs);
-				logPrintf("%d %d: %le in %le  Eigs:", iDir, jDir, nrm2(Lk - LkSym), nrm2(Lk));
-				LkEigs.print(globalLog, " %lf ");
-			}
-
-			//--- remove the anti-Hermitian trace(rp) component:
-			matrix rpTraceBy3 = (1./3) * trace(rpBloch[iReduced]);
-			for(int iDir=0; iDir<3; iDir++)
-				rpBloch[iReduced](iDir, iDir) -= rpTraceBy3;
-			//--- enforce Hermitian symmetry and collect error magnitude:
-			for(int iDir=0; iDir<3; iDir++)
-				for(int jDir=0; jDir<3; jDir++)
-				{	matrix& rpCur = rpBloch[iReduced](iDir, jDir);
-					matrix rpCurSym = dagger_symmetrize(rpCur);
-					nrm2totSq += std::pow(nrm2(rpCur), 2);
-					nrm2asymSq += std::pow(nrm2(rpCur - rpCurSym), 2);
-					rpCur = rpCurSym;
-				}
+					rrHbloch[iReduced](iDir, jDir) = CprimeRHcommC[jDir](iDir*nBands, (iDir+1)*nBands, 0, nBands);
 		}
 	Cprime.clear();
-	mpiWorld->allReduce(nrm2totSq, MPIUtil::ReduceSum);
-	mpiWorld->allReduce(nrm2asymSq, MPIUtil::ReduceSum);
-	logPrintf("done. Relative discarded anti-Hermitian part: %le\n", sqrt(nrm2asymSq / nrm2totSq));
-	logFlush();
+	logPrintf("done.\n"); logFlush();
+
+	//Convert to Wannier basis and split off L and Q as needed:
+	matrix LwannierTilde = 0, QwannierTilde = 0, projectL = 0, projectQ = 0;
+	if(wannier.saveL)
+	{	LwannierTilde = zeroes(nCenters*nCenters*3, phase.nRows());
+		projectL = zeroes(9, 3); //matrix to extract L components from ri * pj
+		for(int kDir=0; kDir<3; kDir++)
+		{	int iDir = (kDir + 1) % 3;
+			int jDir = (kDir + 2) % 3;
+			projectL.set(iDir*3 + jDir, kDir, +1.);  //Lk += ri * pj
+			projectL.set(jDir*3 + iDir, kDir, -1.);  //Lk -= rj * pi
+		}
+	}
+	if(wannier.saveQ)
+	{	QwannierTilde = zeroes(nCenters*nCenters*5, phase.nRows());
+		projectQ = zeroes(9, 5); //matrix to extract Q components from ri * pj
+		projectQ.set(0 * 3 + 1, 0, +1.); //Qxy += x * py
+		projectQ.set(1 * 3 + 0, 0, +1.); //Qxy += y * px
+		projectQ.set(1 * 3 + 2, 1, +1.); //Qyz += y * pz
+		projectQ.set(2 * 3 + 1, 1, +1.); //Qyz += z * py
+		projectQ.set(2 * 3 + 0, 2, +1.); //Qzx += z * px
+		projectQ.set(0 * 3 + 2, 2, +1.); //Qzx += x * pz
+		for(int iDir=0; iDir<2; iDir++) //select Qxxr or Qyyr
+			for(int jDir=0; jDir<3; jDir++) //contribution from rx px, ry py or rz pz
+				projectQ.set(jDir * 3 + jDir, 3+iDir, (iDir==jDir ? 2./3 : -1./3)); //effectively like rx px - (r.p)/3
+	}
+	int iqMine = 0;
+	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+	{	matrix rrHsub(nCenters*nCenters, 3*3);
+		for(int iDir=0; iDir<3; iDir++)
+			for(int jDir=0; jDir<3; jDir++)
+			{	matrix rrHsubDir = rrHbloch[kMesh[i].point.iReduced](iDir, jDir);
+				if(kMesh[i].point.invert<0) //apply complex conjugate:
+					callPref(eblas_dscal)(rrHsubDir.nData(), -1., ((double*)rrHsubDir.dataPref())+1, 2);
+				rrHsubDir = dagger(kMesh[i].U) * rrHsubDir * kMesh[i].U; //apply MLWF-optimized rotations
+				callPref(eblas_copy)(rrHsub.dataPref()+rrHsub.index(0, iDir*3+jDir), rrHsubDir.dataPref(), rrHsubDir.nData());
+			}
+		//Apply spatial transformation to r*p:
+		matrix3<> rot = e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR; //cartesian symmetry matrix
+		rrHsub = rrHsub * outer(rot, rot);
+		if(wannier.saveL)
+		{	matrix Lsub = rrHsub * projectL;
+			callPref(eblas_copy)(LwannierTilde.dataPref()+LwannierTilde.index(0,iqMine), Lsub.dataPref(), Lsub.nData());
+		}
+		if(wannier.saveQ)
+		{	matrix Qsub = rrHsub * projectQ;
+			callPref(eblas_copy)(QwannierTilde.dataPref()+QwannierTilde.index(0,iqMine), Qsub.dataPref(), Qsub.nData());
+		}
+		iqMine++;
+	}
+	//Fourier transform to Wannier space and save
+	if(wannier.saveL) dumpWannierized(LwannierTilde, phase, "mlwfL", realPartOnly, iSpin);
+	if(wannier.saveQ) dumpWannierized(QwannierTilde, phase, "mlwfQ", realPartOnly, iSpin);
 }
 
 
