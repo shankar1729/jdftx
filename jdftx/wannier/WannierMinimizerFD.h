@@ -47,7 +47,6 @@ public:
 	};
 	std::vector< std::vector<Edge> > edges; //!< unidirectional edges on full k-mesh
 	std::vector< std::vector<Edge> > edges_reduced; //!< bidirectional edges for reduced k-points (only initialized if needCprime)
-	std::vector<int> ik_reduced; //!< full-mesh index for each reduced k-point (only initialized if needCprime)
 	matrix kHelmholtzInv; //!< inverse Helmholtz preconditioner
 };
 

@@ -117,8 +117,13 @@ public:
 	void rhoAtom_forces(const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C, const std::vector<matrix>& U_rhoAtom,
 		IonicGradient& forces, matrix3<>* EU_RRT) const; //!< propagate U_rhoAtom to forces (and optionally stress)
 	
-	matrix rHcommutator(const ColumnBundle &Y, int iDir, const matrix& YdagHY) const; //!< Expectation value of [r_iDir,H] = D_iDir + nonlocal corrections
-	
+	//! Expectation value of [r_iDir,H] = D_iDir + nonlocal corrections
+	matrix rHcommutator(const ColumnBundle &Y, int iDir, const matrix& YdagHY) const; 
+
+	//! Expectation value of [r_iDir,H] = D_iDir + nonlocal corrections between different wavefunctions.
+	//! Return a result for each Cartesian direction.
+	vector3<matrix> rHcommutator(const ColumnBundle &Y1, const ColumnBundle &Y2) const; 
+
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
 	ColumnBundle getAtomicOrbitals(int q, bool applyO, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q, optionally with operator O pre-applied (with room for extra columns if specified)
 	

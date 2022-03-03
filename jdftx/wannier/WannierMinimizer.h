@@ -139,6 +139,7 @@ protected:
 	std::set<Kpoint> kpoints; //!< list of all k-points that will be in use (including those in FD formulae)
 	std::shared_ptr<ColumnBundleTransform::BasisWrapper> basisWrapper, basisSuperWrapper; //!< look-up tables for initializing transforms
 	std::map<Kpoint, std::shared_ptr<ColumnBundleTransform> > transformMap, transformMapSuper; //!< wave-function transforms for each k-point to the common bases
+	std::vector<int> ik_reduced; //!< full-mesh index for each reduced k-point (only initialized by WannierMinimizeFD if needCprime)
 	Basis basis; //!< common basis (with indexing into full G-space)
 	
 	//k-mesh MPI division:

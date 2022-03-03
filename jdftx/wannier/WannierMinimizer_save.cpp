@@ -396,40 +396,14 @@ void WannierMinimizer::saveMLWF_CprimeBased(int iSpin, const matrix& phase)
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		if(e.eInfo.qnums[q].index()==iSpin)
 		{	int iReduced = q - iSpin*qCount;
-			ColumnBundle& Cprime_i = Cprime[iReduced];
-			int nBandsPrime = Cprime_i.nCols();
-			assert(nBandsPrime == 3 * nBands); //one set for each direction
-			//Apply overlap to Cprime:
-			matrix OsubPrime;
-			std::vector<matrix> VdagCprime;
-			{	//Compute overlap and keep projections for Hamiltonian below:
-				ColumnBundle OCprime = O(Cprime_i, &VdagCprime);
-				matrix rotExisting = eye(nBandsPrime);
-				e.iInfo.project(Cprime_i, VdagCprime, &rotExisting);
-				OsubPrime = Cprime_i ^ OCprime;
+			vector3<matrix> CprimeRHcommC;
+			{	ColumnBundle Ci = getWfns(kMesh[ik_reduced[iReduced]].point, iSpin); //get C[q] in common wannier basis
+				CprimeRHcommC = e.iInfo.rHcommutator(Cprime[iReduced], Ci);
 			}
-			//Apply Hamiltonian to Cprime:
-			matrix HsubPrime;
-			{	ColumnBundle HCprime;
-				ElecVars& eVars = (ElecVars&)e.eVars; //temporarily modified and restored below
-				#define SWAP_C_Cprime \
-					std::swap(eVars.C[q], Cprime_i); \
-					std::swap(eVars.VdagC[q], VdagCprime); \
-					std::swap(eVars.Hsub[q], HsubPrime);
-				SWAP_C_Cprime //Temporarily swap C and Cprime
-				Energies ener; //unused
-				eVars.applyHamiltonian(q, eye(nBandsPrime), HCprime, ener, true, false); //compute Hsub(Cprime), don't diagonalize
-				SWAP_C_Cprime  //Restore C and Cprime to correct places
-				#undef SWAP_C_Cprime
-			}
-			//Compute <r*p>:
+			//Separate into components of <r*p>
 			for(int iDir=0; iDir<3; iDir++)
 				for(int jDir=0; jDir<3; jDir++)
-				{	matrix HprimeCur = HsubPrime(iDir*nBands, (iDir+1)*nBands, jDir*nBands, (jDir+1)*nBands);
-					matrix OprimeCur = OsubPrime(iDir*nBands, (iDir+1)*nBands, jDir*nBands, (jDir+1)*nBands);
-					matrix& rpCur = rpBloch[iReduced](iDir, jDir);
-					rpCur = complex(0, 1) * (HprimeCur - OprimeCur * e.eVars.Hsub_eigs[q]);
-				}
+					rpBloch[iReduced](iDir, jDir) = complex(0,-1) * CprimeRHcommC[jDir](iDir*nBands, (iDir+1)*nBands, 0, nBands);
 			
 			//HACK
 			logPrintf("\nq: "); e.eInfo.qnums[q].k.print(globalLog, " %lf ");
