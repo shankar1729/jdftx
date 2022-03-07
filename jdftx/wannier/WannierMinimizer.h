@@ -104,7 +104,7 @@ public:
 	//! Like getOmega, but for the subspace-invariant OmegaI instead.
 	virtual double getOmegaI(bool grad=false)=0;
 	
-	//! Compute i d(C*U)/dk * dagger(U) after converging Wannier rotations (effectively ~ r C, where r is position operator).
+	//! Compute i dC/dk (effectively ~ r C, where r is position operator).
 	//! Return wavefunctions on the reduced q states on the processes that own each q, exactly like ElecVars::C.
 	//! The number of bands in the output are 3x ElecInfo::nBands, and contain blocks of nBands each for kx, ky and kz derivatives.
 	virtual std::vector<ColumnBundle> getCprime(int iSpin) { die("Not implemented.\n"); } //Overridden in supported subclasses (WannierMinimizerFD)
@@ -171,15 +171,19 @@ protected:
 	//! Preconditioner for Wannier optimization: identity by default, override in derived class to change
 	virtual WannierGradient precondition(const WannierGradient& grad);
 
+	//! Return an exactly unitary version of U (orthogonalize columns)
+	//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
+	static matrix fixUnitary(const matrix& U, bool* isSingular=0); 
+	
+	//Fix phase / unitary rotations within degenerate subspaces of E, given overlap matrix O.
+	//Output is a unitary matrix, which will be block diagonal in degenrate subspaces.
+	static matrix fixUnitary(const matrix& O, const diagMatrix& E, double degeneracyThreshold);
+
 private:
 
 	//! Get the trial wavefunctions (hydrogenic, atomic or numerical orbitals) for the group of centers in the common basis
 	ColumnBundle trialWfns(const Kpoint& kpoint) const;
 	std::map< Kpoint, std::shared_ptr<ColumnBundle> > numericalOrbitals; //!< numerical orbitals read from file
-	
-	//! Return an exactly unitary version of U (orthogonalize columns)
-	//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
-	static matrix fixUnitary(const matrix& U, bool* isSingular=0); 
 	
 	//! Load / compute rotations for a given spin channel (used by saveMLWF)
 	void initRotations(int iSpin);

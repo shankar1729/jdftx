@@ -468,6 +468,7 @@ WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
 	return Kgrad;
 }
 
+
 //Compute wavefunction derivatives for current spin:
 std::vector<ColumnBundle> WannierMinimizerFD::getCprime(int iSpin)
 {	static StopWatch watch("WannierMinimizerFD::getCprime"); watch.start();
@@ -493,8 +494,10 @@ std::vector<ColumnBundle> WannierMinimizerFD::getCprime(int iSpin)
 			{	for(const Edge& edge: edges_reduced[iReduced])
 					if(int(edge.point.iReduced) == jReduced)
 					{	const KmeshEntry& ki = kMesh[ik_reduced[iReduced]];
-						const KmeshEntry& kj = kMesh[edge.ik];
-						ColumnBundle Cj = getWfns(edge.point, iSpin) * (kj.U * dagger(ki.U));
+						ColumnBundle Cj = getWfns(edge.point, iSpin);
+						//Align phase to wavefunction at i:
+						matrix rot = fixUnitary(Cj ^ O(getWfns(ki.point, iSpin)), e.eVars.Hsub_eigs[qi], 1E-6);
+						Cj = Cj * rot;
 						//Collect contribution to dC/dk:
 						ColumnBundle& Cprime_i = Cprime[iReduced];
 						if(not Cprime_i)
@@ -503,7 +506,7 @@ std::vector<ColumnBundle> WannierMinimizerFD::getCprime(int iSpin)
 						}
 						for(int iDir=0; iDir<3; iDir++)
 							if(edge.b[iDir])
-								Cprime_i.axpySub(nBands*iDir, complex(0., 0.5 *edge.wb * edge.b[iDir]), Cj);
+								Cprime_i.axpySub(nBands*iDir, complex(0., 0.5 * edge.wb * edge.b[iDir]), Cj);
 					}
 			}
 		}
