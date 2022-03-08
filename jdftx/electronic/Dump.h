@@ -51,7 +51,7 @@ enum DumpVariable { DumpNone, DumpState, //None or exactly those required to res
 	DumpEcomponents, DumpExcCompare,
  	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpOcean, DumpBGW, DumpRealSpaceWfns, DumpFluidDebug, DumpSlabEpsilon, DumpBulkEpsilon, DumpChargedDefect,
 	DumpDOS, DumpPolarizability, DumpElectronScattering, DumpSIC, DumpDipole, DumpStress, DumpExcitations, DumpFCI, DumpSpin,
-	DumpMomenta, DumpVelocities, DumpFermiVelocity,
+	DumpMomenta, DumpVelocities, DumpFermiVelocity, DumpL, DumpQ,
 	DumpSymmetries, DumpKpoints, DumpGvectors, DumpOrbitalDep, DumpXCanalysis, DumpEresolvedDensity, DumpFermiDensity,
 	DumpDelim, //special value used as a delimiter during command processing
 };
@@ -82,7 +82,8 @@ public:
 	std::shared_ptr<struct SlabEpsilon> slabEpsilon; //!< slab dielectric function calculator
 	std::shared_ptr<struct BulkEpsilon> bulkEpsilon; //!< bulk dielectric constant calculator
 	std::shared_ptr<struct ChargedDefect> chargedDefect; //!< charged defect correction calculator
-	std::shared_ptr<struct BGWparams> bgwParams; //!< parameters for BGW claculation if any
+	std::shared_ptr<struct BGWparams> bgwParams; //!< parameters for BGW calculation, if any
+	std::shared_ptr<struct DumpCprime> dumpCprime; //!< dC/dk calculator, if needed
 	bool potentialSubtraction; //!< whether to subtract neutral-atom potentials in Dvac and Dtot output
 	matrix3<int> Munfold; //!< transformation matrix for band structure unfolding
 private:

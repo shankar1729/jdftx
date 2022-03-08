@@ -127,6 +127,8 @@ EnumStringMap<DumpVariable> varMap
 	DumpMomenta, "Momenta",
 	DumpVelocities, "Velocities",
 	DumpFermiVelocity, "FermiVelocity",
+	DumpL, "L",
+	DumpQ, "Q",
 	DumpSymmetries, "Symmetries",
 	DumpKpoints, "Kpoints",
 	DumpGvectors, "Gvectors",
@@ -182,6 +184,8 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpMomenta,        "Momentum matrix elements in a binary file (indices outer to inner: state, cartesian direction, band1, band2)",
 	DumpVelocities,     "Diagonal momentum/velocity matrix elements in a binary file  (indices outer to inner: state, band, cartesian direction)",
 	DumpFermiVelocity,  "Fermi velocity, density of states at Fermi level and related quantities",
+	DumpL,              "Angular momentum matrix elements, only allowed at End (see command Cprime-params)",
+	DumpQ,              "Quadrupole r*p matrix elements, only allowed at End (see command Cprime-params)",
 	DumpSymmetries,     "List of symmetry matrices (in covariant lattice coordinates)",
 	DumpKpoints,        "List of reduced k-points in calculation, and mapping to the unreduced k-point mesh",
 	DumpGvectors,       "List of G vectors in reciprocal lattice basis, for each k-point",
@@ -1059,3 +1063,40 @@ struct CommandBGWparams : public Command
 	}
 }
 commandBGWparams;
+
+
+struct CommandCprimeParams : public Command
+{
+	CommandCprimeParams() : Command("Cprime-params", "jdftx/Output")
+	{	
+		format = "[<dk>=1E-4] [<degeneracyThreshold>=1E-6]";
+		comments = "Control dC/dk calculation for L and Q output.\n"
+			"Here, <dk> in a0^-1 controls the finite difference used for dC/dk,\n"
+			"while <degeneracyThreshold> specifies the energy range within unitary\n"
+			"rotations are accounted for in comparing wavefunctions between k.\n"
+			"\n"
+			"This is used for the calculation of orbital angular momenta L, output\n"
+			"in the same binary format as the momenta and selected by 'dump End L'.\n"
+			"\n"
+			"Additionally, 'dump End Q' selects output of r*p angular momenta,\n"
+			"which are output as a traceless symmetric tensor (of ri pj + rj pi).\n"
+			"Specifically, the output is a nStates x 5 x nBands x nBands complex\n"
+			"binary file, where the 5 components in order are xy, yz, zx, xxr, yyr\n"
+			"(where xxr = xx - rr/3). Note that zzr = -(xxr + yyr) because the trace\n"
+			"of the tensor is removed, and this redundant component is excluded.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	e.dump.dumpCprime = std::make_shared<DumpCprime>();
+		DumpCprime& dcp = *(e.dump.dumpCprime);
+		pl.get(dcp.dk, 1E-4, "dk");
+		pl.get(dcp.degeneracyThreshold, 1E-6, "degeneracyThreshold");
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	assert(e.dump.dumpCprime);
+		const DumpCprime& dcp = *(e.dump.dumpCprime);
+		logPrintf("%lg %lg", dcp.dk, dcp.degeneracyThreshold);
+	}
+}
+commandCprimeParams;
