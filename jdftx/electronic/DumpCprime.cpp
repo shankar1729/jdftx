@@ -42,8 +42,10 @@ void DumpCprime::dump(Everything& e) const
 	{	//Compute r*[r,H] moments using dC/dk:
 		matrix3<matrix> rrH;
 		for(int iDir=0; iDir<3; iDir++)
-		{	ColumnBundle Cprime_i = getCprime(e, q, iDir); //Compute idC/dk (effectively r*C)
-			rrH.set_row(iDir, e.iInfo.rHcommutator(Cprime_i, e.eVars.C[q])); //effectively (r*C) ^ p . C
+		{	matrix CprimeOC;
+			ColumnBundle Cprime_i = getCprime(e, q, iDir, CprimeOC); //Compute idC/dk (effectively r*C)
+			matrix CprimeHC = CprimeOC * e.eVars.Hsub_eigs[q]; //since C are eigenvectors
+			rrH.set_row(iDir, e.iInfo.rHcommutator(Cprime_i, e.eVars.C[q], CprimeHC)); //effectively (r*C) ^ p . C
 		}
 		//Extract L if needed:
 		if(needL)
@@ -58,7 +60,7 @@ void DumpCprime::dump(Everything& e) const
 		//Extract Q if needed:
 		if(needQ)
 		{	Q[q] = zeroes(nBands, nBands*5);
-			//xy, yz and zx components:
+			//xy, yz and zx components (note each ~ rx py + ):
 			for(int iDir=0; iDir<3; iDir++)
 			{	int jDir = (iDir + 1) % 3;
 				Q[q].set(0, nBands, iDir*nBands, (iDir+1)*e.eInfo.nBands,
@@ -68,7 +70,7 @@ void DumpCprime::dump(Everything& e) const
 			matrix traceTerm = (1./3) * trace(rrH);
 			for(int iDir=0; iDir<2; iDir++)
 				Q[q].set(0, nBands, (iDir+3)*nBands, (iDir+4)*e.eInfo.nBands,
-					complex(0, -1) * (rrH(iDir, iDir) - traceTerm));
+					complex(0, -2) * (rrH(iDir, iDir) - traceTerm));
 		}
 	}
 	logPrintf("\n---- dC/dk complete ----\n\n"); logFlush();
@@ -91,12 +93,18 @@ void DumpCprime::dump(Everything& e) const
 }
 
 
-ColumnBundle DumpCprime::getCprime(Everything& e, int q, int iDir) const
+ColumnBundle DumpCprime::getCprime(Everything& e, int q, int iDir, matrix& CprimeOC) const
 {	vector3<> dkVec = inv(e.gInfo.GT).column(iDir) * dk; //fractional k perturbation
-	return complex(0., 0.5/dk) * (getCpert(e, q, dkVec) - getCpert(e, q, -dkVec));
+	matrix CpOC, CmOC;
+	ColumnBundle Cp = getCpert(e, q, dkVec, CpOC);
+	ColumnBundle Cm = getCpert(e, q, -dkVec, CmOC);
+	complex prefac(0., 0.5/dk); //prefactor for i d/dk in central difference formula
+	CprimeOC = prefac.conj() * (CpOC - CmOC);
+	return prefac * (Cp - Cm);
 }
 
-ColumnBundle DumpCprime::getCpert(Everything& e, int q, vector3<> dkVec) const
+
+ColumnBundle DumpCprime::getCpert(Everything& e, int q, vector3<> dkVec, matrix& CpertOC) const
 {
 	//Perform a fixed-H calculation at this q with perturbed k:
 	ColumnBundle Cq = e.eVars.C[q]; //backup orginal wavefunction at this q
@@ -132,7 +140,10 @@ ColumnBundle DumpCprime::getCpert(Everything& e, int q, vector3<> dkVec) const
 	std::swap(VdagCq, e.eVars.VdagC[q]); //restore corresponding projections
 	
 	//Align phases / unitary rotations:
-	return Cq * fixUnitary(Cq ^ O(e.eVars.C[q]), e.eVars.Hsub_eigs[q]);
+	matrix Osub = Cq ^ O(e.eVars.C[q]);
+	matrix U = fixUnitary(Osub, e.eVars.Hsub_eigs[q]);
+	CpertOC = dagger(U) * Osub;
+	return Cq * U;
 }
 
 

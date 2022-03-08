@@ -121,8 +121,9 @@ public:
 	matrix rHcommutator(const ColumnBundle &Y, int iDir, const matrix& YdagHY) const; 
 
 	//! Expectation value of [r_iDir,H] = D_iDir + nonlocal corrections between different wavefunctions.
+	//! Here, H12 = Y1 ^ H(Y2) is needed for ultrasoft overlap-augmentation corrections.
 	//! Return a result for each Cartesian direction.
-	vector3<matrix> rHcommutator(const ColumnBundle &Y1, const ColumnBundle &Y2) const; 
+	vector3<matrix> rHcommutator(const ColumnBundle &Y1, const ColumnBundle &Y2, const matrix& H12) const; 
 
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
 	ColumnBundle getAtomicOrbitals(int q, bool applyO, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q, optionally with operator O pre-applied (with room for extra columns if specified)

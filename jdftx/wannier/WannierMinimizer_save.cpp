@@ -410,7 +410,8 @@ void WannierMinimizer::saveMLWF_CprimeBased(int iSpin, const matrix& phase)
 		{	int iReduced = q - iSpin*qCount;
 			vector3<matrix> CprimeRHcommC;
 			{	ColumnBundle Ci = getWfns(kMesh[ik_reduced[iReduced]].point, iSpin); //get C[q] in common wannier basis
-				CprimeRHcommC = e.iInfo.rHcommutator(Cprime[iReduced], Ci);
+				matrix CprimeHC = (Cprime[iReduced] ^ O(Ci)) * e.eVars.Hsub[q];
+				CprimeRHcommC = e.iInfo.rHcommutator(Cprime[iReduced], Ci, CprimeHC);
 			}
 			//Separate into components of <r*p>
 			for(int iDir=0; iDir<3; iDir++)

@@ -485,7 +485,7 @@ matrix IonInfo::rHcommutator(const ColumnBundle& Y, int iDir, const matrix& Ydag
 	return result;
 }
 
-vector3<matrix> IonInfo::rHcommutator(const ColumnBundle &Y1, const ColumnBundle &Y2) const
+vector3<matrix> IonInfo::rHcommutator(const ColumnBundle &Y1, const ColumnBundle &Y2, const matrix& H12) const
 {	//Ensure compatibility of wavefunctions (only bands can be different):
 	assert(Y1.basis == Y2.basis);
 	assert(Y1.qnum == Y2.qnum);
@@ -543,13 +543,25 @@ vector3<matrix> IonInfo::rHcommutator(const ColumnBundle &Y1, const ColumnBundle
 				matrix ri_VdagY1 = minus_i * ((*Vprime) ^ Y1);
 				matrix ri_VdagY2 = minus_i * ((*Vprime) ^ Y2);
 				//Apply nonlocal and augmentation corrections to the commutator:
-				result[iDir] += dagger(ri_VdagY1) * (tiledBlockMatrix(Mnl, nAtoms)*VdagY2 + Maug*VdagY2);
-				result[iDir] -= dagger(VdagY1) * (tiledBlockMatrix(Mnl, nAtoms)*ri_VdagY2 + Maug*ri_VdagY2);
+				tiledBlockMatrix MnlTiled(Mnl, nAtoms);
+				result[iDir] += dagger(ri_VdagY1) * (MnlTiled*VdagY2 + Maug*VdagY2);
+				result[iDir] -= dagger(VdagY1) * (MnlTiled*ri_VdagY2 + Maug*ri_VdagY2);
 				//Account for overlap augmentation (if any):
-				//TODO: figure out how to do this; print warning instead for now
+				if(s.QintAll.nRows())
+				{	diagMatrix diagH12 = diag(H12);
+					std::vector<complex> riArr;
+					for(const vector3<>& x: s.atpos)
+						riArr.push_back(dot(e->gInfo.R.row(iDir), x));
+					tiledBlockMatrix Qtiled(s.QintAll, nAtoms);
+					tiledBlockMatrix ri_Qtiled(s.QintAll, nAtoms, &riArr);
+					result[iDir] += 
+						( dagger(VdagY1) * (ri_Qtiled * VdagY2)
+						- dagger(ri_VdagY1) * (Qtiled * VdagY2) ) * diag(H12);
+					result[iDir] -= diag(H12) * 
+						( dagger(VdagY1) * (ri_Qtiled * VdagY2)
+						- dagger(VdagY1) * (Qtiled * ri_VdagY2) );
+				}
 			}
-			if(s.QintAll.nRows())
-				logPrintf("WARNING: overlap augmentation not handled in rHcommutator(Y1, Y2)\n");
 		}
 	return result;
 }
