@@ -22,10 +22,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ColumnBundle.h>
 #include <electronic/BandMinimizer.h>
 #include <electronic/BandDavidson.h>
+#include <core/LatticeUtils.h>
 
 
-DumpCprime::DumpCprime(double dk, double degeneracyThreshold)
-: dk(dk), degeneracyThreshold(degeneracyThreshold)
+DumpCprime::DumpCprime(double dk, double degeneracyThreshold, bool realSpaceTruncated)
+: dk(dk), degeneracyThreshold(degeneracyThreshold), realSpaceTruncated(realSpaceTruncated)
 {
 }
 
@@ -97,7 +98,25 @@ void DumpCprime::dump(Everything& e) const
 
 
 ColumnBundle DumpCprime::getCprime(Everything& e, int q, int iDir, matrix& CprimeOC) const
-{	vector3<> dkVec = inv(e.gInfo.GT).column(iDir) * dk; //fractional k perturbation
+{	//Check if direction is non-periodic:
+	vector3<> ei; ei[iDir] = -1.; //unit vector along iDir (sign to compensate V = -E.r for Efield potential)
+	std::swap(ei, e.coulombParams.Efield); //use Efield mechanism in Coulomb to check/create ramp potential
+	vector3<> RT_ei_ramp, RT_ei_wave;
+	e.coulombParams.splitEfield(e.gInfo.R, RT_ei_ramp, RT_ei_wave);
+	if(realSpaceTruncated and (RT_ei_wave.length_squared() < symmThresholdSq))
+	{	//No wave => all ramp => non-periodic: use ramp to compute ri * C:
+		logPrintf("\n---- Multiplying %c for quantum number: ", "xyz"[iDir]);
+		e.eInfo.kpointPrint(globalLog, q, true); logPrintf(" ----\n");
+		ScalarFieldArray ri(1);
+		ri[0] = (1./e.gInfo.nr) * e.coulomb->getEfieldPotential(); //scale factor converts Idag to J
+		std::swap(ei, e.coulombParams.Efield); //restore Efield
+		ColumnBundle Cprime = Idag_DiagV_I(e.eVars.C[q], ri);
+		CprimeOC = Cprime ^ O(e.eVars.C[q]);
+		return Cprime;
+	}
+	else std::swap(ei, e.coulombParams.Efield); //restore Efield
+	//Handle periodic case via dC/dk:
+	vector3<> dkVec = inv(e.gInfo.GT).column(iDir) * dk; //fractional k perturbation
 	matrix CpOC, CmOC;
 	ColumnBundle Cp = getCpert(e, q, dkVec, CpOC);
 	ColumnBundle Cm = getCpert(e, q, -dkVec, CmOC);

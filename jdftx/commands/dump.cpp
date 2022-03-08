@@ -1069,11 +1069,13 @@ struct CommandCprimeParams : public Command
 {
 	CommandCprimeParams() : Command("Cprime-params", "jdftx/Output")
 	{	
-		format = "[<dk>=1E-4] [<degeneracyThreshold>=1E-6]";
+		format = "[<dk>=1E-4] [<degeneracyThreshold>=1E-6] [<realSpaceTruncated>=yes]";
 		comments = "Control dC/dk calculation for L and Q output.\n"
 			"Here, <dk> in a0^-1 controls the finite difference used for dC/dk,\n"
 			"while <degeneracyThreshold> specifies the energy range within unitary\n"
 			"rotations are accounted for in comparing wavefunctions between k.\n"
+			"If <realSpaceTruncated> is yes (default), then truncated directions\n"
+			"are computed by a real space multiplication by r, instead of dC/dk.\n"
 			"\n"
 			"This is used for the calculation of orbital angular momenta L, output\n"
 			"in the same binary format as the momenta and selected by 'dump End L'.\n"
@@ -1091,12 +1093,13 @@ struct CommandCprimeParams : public Command
 		DumpCprime& dcp = *(e.dump.dumpCprime);
 		pl.get(dcp.dk, 1E-4, "dk");
 		pl.get(dcp.degeneracyThreshold, 1E-6, "degeneracyThreshold");
+		pl.get(dcp.realSpaceTruncated, true, boolMap, "realSpaceTruncated");
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	assert(e.dump.dumpCprime);
 		const DumpCprime& dcp = *(e.dump.dumpCprime);
-		logPrintf("%lg %lg", dcp.dk, dcp.degeneracyThreshold);
+		logPrintf("%lg %lg %s", dcp.dk, dcp.degeneracyThreshold, boolMap.getString(dcp.realSpaceTruncated));
 	}
 }
 commandCprimeParams;
