@@ -25,7 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @file tensor3.h Symmetric traceless tensor with CPU and GPU operators
 
-#include <core/scalar.h>
+#include <core/matrix3.h>
 
 #define LOOP5(code) { for(int k=0; k<5; k++) { code } }
 
@@ -50,6 +50,28 @@ public:
 
 	explicit __hostanddev__ tensor3(scalar a=0, scalar b=0, scalar c=0, scalar d=0, scalar e=0) { v[0]=a; v[1]=b; v[2]=c; v[3]=d; v[4]=e; }
 	tensor3(std::vector<scalar> a) { LOOP5( v[k]=a[k]; ) }
+	
+	//! Extract from full matrix
+	explicit __hostanddev__ tensor3(const matrix3<scalar>& m)
+	{	xy() = 0.5*(m(0, 1) + m(1, 0));
+		yz() = 0.5*(m(1, 2) + m(2, 1));
+		zx() = 0.5*(m(2, 0) + m(0, 2));
+		scalar traceTerm = (1./3) * trace(m);
+		xxr() = m(0, 0) - traceTerm;
+		yyr() = m(1, 1) - traceTerm;
+	}
+
+	//! Convert to full matrix
+	explicit __hostanddev__ operator matrix3<scalar>()
+	{	matrix3<scalar> m;
+		m(0, 1) = (m(1, 0) = xy());
+		m(1, 2) = (m(2, 1) = yz());
+		m(2, 0) = (m(0, 2) = zx());
+		m(0, 0) = xxr();
+		m(1, 1) = yyr();
+		m(2, 2) = -(xxr() + yyr());
+		return m;
+	}
 };
 
 //! Load tensor from a constant tensor field

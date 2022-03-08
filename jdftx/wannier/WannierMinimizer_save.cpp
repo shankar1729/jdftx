@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/ScalarFieldIO.h>
 #include <core/WignerSeitz.h>
 #include <core/SphericalHarmonics.h>
+#include <core/tensor3.h>
 
 void WannierMinimizer::saveMLWF()
 {	for(int iSpin: wannier.iSpinArr)
@@ -418,6 +419,18 @@ void WannierMinimizer::saveMLWF_L(int iSpin, const matrix& phase)
 	dumpWannierized(LwannierTilde, phase, "mlwfL", realPartOnly, iSpin);
 }
 
+//Get 5x5 transformation matrix for traceless symmetric tensors given 3x3 rotation matrix
+matrix getTensorRot(matrix3<> rot)
+{	matrix result = zeroes(5, 5);
+	for(int iComp=0; iComp<5; iComp++)
+	{	tensor3<> ei; ei[iComp] = 1.; //basis traceless tensor
+		tensor3<> eiRot((~rot) * matrix3<>(ei) * rot); //rotated version
+		for(int jComp=0; jComp<5; jComp++)
+			result.set(iComp, jComp, eiRot[jComp]);
+	}
+	return result;
+}
+
 //Save r*p quadrupole moments in Wannier basis:
 void WannierMinimizer::saveMLWF_Q(int iSpin, const matrix& phase)
 {	assert(wannier.saveQ);
@@ -435,7 +448,7 @@ void WannierMinimizer::saveMLWF_Q(int iSpin, const matrix& phase)
 	{	matrix Qsub(nCenters*nCenters, 5);
 		for(int iComp=0; iComp<5; iComp++)
 		{	matrix QsubComp = Qbloch[kMesh[i].point.iReduced + iSpin*qCount](0, nBands, iComp*nBands, (iComp+1)*nBands);
-			if(kMesh[i].point.invert<0) //apply negative complex conjugate (because Q is TODO: figure out transform):
+			if(kMesh[i].point.invert<0) //apply negative complex conjugate (analogous to L):
 				callPref(eblas_dscal)(QsubComp.nData(), -1., ((double*)QsubComp.dataPref())+0, 2);
 			QsubComp *= complex(0, 1); //divide by -i to make real when possible (i.e. r * p -> r * [r,H]);
 			QsubComp = dagger(kMesh[i].U) * QsubComp * kMesh[i].U; //apply MLWF-optimized rotations
@@ -443,8 +456,7 @@ void WannierMinimizer::saveMLWF_Q(int iSpin, const matrix& phase)
 		}
 		//Store with spatial transformation:
 		matrix3<> rot = e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR; //cartesian symmetry matrix
-		matrix rotQ = eye(5); //TODO: construct Q transformation correctly from rot
-		Qsub = Qsub * rotQ;
+		Qsub = Qsub * getTensorRot(rot);
 		callPref(eblas_copy)(QwannierTilde.dataPref()+QwannierTilde.index(0,iqMine), Qsub.dataPref(), Qsub.nData());
 		iqMine++;
 	}
