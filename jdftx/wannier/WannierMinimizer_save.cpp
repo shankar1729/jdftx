@@ -401,10 +401,10 @@ void WannierMinimizer::saveMLWF_L(int iSpin, const matrix& phase)
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	matrix Lsub(nCenters*nCenters, 3);
 		for(int iDir=0; iDir<3; iDir++)
-		{	matrix LsubDir = complex(0, 1) //divide by -i to make real when possible (i.e. r x p -> r x [r,H])
-				* Lbloch[kMesh[i].point.iReduced + iSpin*qCount](0, nBands, iDir*nBands, (iDir+1)*nBands);
-			if(kMesh[i].point.invert<0) //apply negative complex conjugate (because L is a pseudo-vector TODO: check):
+		{	matrix LsubDir = Lbloch[kMesh[i].point.iReduced + iSpin*qCount](0, nBands, iDir*nBands, (iDir+1)*nBands);
+			if(kMesh[i].point.invert<0) //apply negative complex conjugate (because L is a pseudo-vector):
 				callPref(eblas_dscal)(LsubDir.nData(), -1., ((double*)LsubDir.dataPref())+0, 2);
+			LsubDir *= complex(0, 1); //divide by -i to make real when possible (i.e. r x p -> r x [r,H])
 			LsubDir = dagger(kMesh[i].U) * LsubDir * kMesh[i].U; //apply MLWF-optimized rotations
 			callPref(eblas_copy)(Lsub.dataPref()+Lsub.index(0,iDir), LsubDir.dataPref(), LsubDir.nData());
 		}
@@ -434,10 +434,10 @@ void WannierMinimizer::saveMLWF_Q(int iSpin, const matrix& phase)
 	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
 	{	matrix Qsub(nCenters*nCenters, 5);
 		for(int iComp=0; iComp<5; iComp++)
-		{	matrix QsubComp = complex(0, 1) //divide by -i to make real when possible (i.e. r * p -> r * [r,H])
-				* Qbloch[kMesh[i].point.iReduced + iSpin*qCount](0, nBands, iComp*nBands, (iComp+1)*nBands);
+		{	matrix QsubComp = Qbloch[kMesh[i].point.iReduced + iSpin*qCount](0, nBands, iComp*nBands, (iComp+1)*nBands);
 			if(kMesh[i].point.invert<0) //apply negative complex conjugate (because Q is TODO: figure out transform):
 				callPref(eblas_dscal)(QsubComp.nData(), -1., ((double*)QsubComp.dataPref())+0, 2);
+			QsubComp *= complex(0, 1); //divide by -i to make real when possible (i.e. r * p -> r * [r,H]);
 			QsubComp = dagger(kMesh[i].U) * QsubComp * kMesh[i].U; //apply MLWF-optimized rotations
 			callPref(eblas_copy)(Qsub.dataPref()+Qsub.index(0,iComp), QsubComp.dataPref(), QsubComp.nData());
 		}
