@@ -53,8 +53,8 @@ void DumpCprime::dump(Everything& e) const
 			for(int kDir=0; kDir<3; kDir++)
 			{	int iDir = (kDir + 1) % 3;
 				int jDir = (kDir + 2) % 3;
-				L[q].set(0, nBands, kDir*nBands, (kDir+1)*e.eInfo.nBands,
-					complex(0, -1) * (rrH(iDir, jDir) - rrH(jDir, iDir)));
+				matrix Lqk = complex(0, -1) * (rrH(iDir, jDir) - rrH(jDir, iDir));
+				L[q].set(0, nBands, kDir*nBands, (kDir+1)*e.eInfo.nBands, dagger_symmetrize(Lqk));
 			}
 		}
 		//Extract Q if needed:
@@ -63,16 +63,17 @@ void DumpCprime::dump(Everything& e) const
 			//xy, yz and zx components:
 			for(int iDir=0; iDir<3; iDir++)
 			{	int jDir = (iDir + 1) % 3;
-				Q[q].set(0, nBands, iDir*nBands, (iDir+1)*e.eInfo.nBands,
-					complex(0, -1) * (rrH(iDir, jDir) - dagger(rrH(jDir, iDir)))); //ri pj + pi rj
+				matrix Qqij = complex(0, -1) * (rrH(iDir, jDir) - dagger(rrH(jDir, iDir))); //ri pj + pi rj
+				Q[q].set(0, nBands, iDir*nBands, (iDir+1)*e.eInfo.nBands, dagger_symmetrize(Qqij));
 			}
 			//xx - r^2/3 and yy - r^2/3 components:
 			matrix traceTerm = complex(0., -1./3) * trace(rrH); //sum(ri pi)/3
 			traceTerm += dagger(traceTerm); //+= sum(pi ri)/3
 			for(int iDir=0; iDir<2; iDir++)
-				Q[q].set(0, nBands, (iDir+3)*nBands, (iDir+4)*e.eInfo.nBands,
-					complex(0, -1) * (rrH(iDir, iDir) - dagger(rrH(iDir, iDir))) //ri pi + pi ri
-					- traceTerm);
+			{	matrix Qqiir = complex(0, -1) * (rrH(iDir, iDir) - dagger(rrH(iDir, iDir))) //ri pi + pi ri
+					- traceTerm;
+				Q[q].set(0, nBands, (iDir+3)*nBands, (iDir+4)*e.eInfo.nBands, dagger_symmetrize(Qqiir));
+			}
 		}
 	}
 	logPrintf("\n---- dC/dk complete ----\n\n"); logFlush();
