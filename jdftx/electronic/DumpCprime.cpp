@@ -60,17 +60,19 @@ void DumpCprime::dump(Everything& e) const
 		//Extract Q if needed:
 		if(needQ)
 		{	Q[q] = zeroes(nBands, nBands*5);
-			//xy, yz and zx components (note each ~ rx py + ):
+			//xy, yz and zx components:
 			for(int iDir=0; iDir<3; iDir++)
 			{	int jDir = (iDir + 1) % 3;
 				Q[q].set(0, nBands, iDir*nBands, (iDir+1)*e.eInfo.nBands,
-					complex(0, -1) * (rrH(iDir, jDir) + rrH(jDir, iDir)));
+					complex(0, -1) * (rrH(iDir, jDir) - dagger(rrH(jDir, iDir)))); //ri pj + pi rj
 			}
 			//xx - r^2/3 and yy - r^2/3 components:
-			matrix traceTerm = (1./3) * trace(rrH);
+			matrix traceTerm = complex(0., -1./3) * trace(rrH); //sum(ri pi)/3
+			traceTerm += dagger(traceTerm); //+= sum(pi ri)/3
 			for(int iDir=0; iDir<2; iDir++)
 				Q[q].set(0, nBands, (iDir+3)*nBands, (iDir+4)*e.eInfo.nBands,
-					complex(0, -2) * (rrH(iDir, iDir) - traceTerm));
+					complex(0, -1) * (rrH(iDir, iDir) - dagger(rrH(iDir, iDir))) //ri pi + pi ri
+					- traceTerm);
 		}
 	}
 	logPrintf("\n---- dC/dk complete ----\n\n"); logFlush();
