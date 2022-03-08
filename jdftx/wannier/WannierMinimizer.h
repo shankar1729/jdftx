@@ -104,14 +104,6 @@ public:
 	//! Like getOmega, but for the subspace-invariant OmegaI instead.
 	virtual double getOmegaI(bool grad=false)=0;
 	
-	//! Compute i dC/dk (effectively ~ r C, where r is position operator).
-	//! Return wavefunctions on the reduced q states on the processes that own each q, exactly like ElecVars::C.
-	//! The number of bands in the output are 3x ElecInfo::nBands, and contain blocks of nBands each for kx, ky and kz derivatives.
-	virtual std::vector<ColumnBundle> getCprime(int iSpin) { die("Not implemented.\n"); } //Overridden in supported subclasses (WannierMinimizerFD)
-
-	//! Whether getCprime() will be called (so that related initialization can be performed)
-	inline bool needCprime() const { return (wannier.saveL or wannier.saveQ); }
-
 protected:
 	friend struct WannierGradient;
 	const Everything& e;
@@ -139,7 +131,6 @@ protected:
 	std::set<Kpoint> kpoints; //!< list of all k-points that will be in use (including those in FD formulae)
 	std::shared_ptr<ColumnBundleTransform::BasisWrapper> basisWrapper, basisSuperWrapper; //!< look-up tables for initializing transforms
 	std::map<Kpoint, std::shared_ptr<ColumnBundleTransform> > transformMap, transformMapSuper; //!< wave-function transforms for each k-point to the common bases
-	std::vector<int> ik_reduced; //!< full-mesh index for each reduced k-point (only initialized by WannierMinimizeFD if needCprime)
 	Basis basis; //!< common basis (with indexing into full G-space)
 	
 	//k-mesh MPI division:
@@ -174,10 +165,6 @@ protected:
 	//! Return an exactly unitary version of U (orthogonalize columns)
 	//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.
 	static matrix fixUnitary(const matrix& U, bool* isSingular=0); 
-	
-	//Fix phase / unitary rotations within degenerate subspaces of E, given overlap matrix O.
-	//Output is a unitary matrix, which will be block diagonal in degenrate subspaces.
-	static matrix fixUnitary(const matrix& O, const diagMatrix& E, double degeneracyThreshold);
 
 private:
 
@@ -201,7 +188,8 @@ private:
 	void saveMLWF_P(int iSpin, const matrix& phase); //Momenta
 	void saveMLWF_D(int iSpin, const matrix& phase); //Gradient
 	void saveMLWF_S(int iSpin, const matrix& phase); //Spins
-	void saveMLWF_CprimeBased(int iSpin, const matrix& phase); //Any that depend on dC/dk (eg. L, Q)
+	void saveMLWF_L(int iSpin, const matrix& phase); //Orbital angular momentum
+	void saveMLWF_Q(int iSpin, const matrix& phase); //r*p quadrupole matrix elements
 	void saveMLWF_W(int iSpin, const matrix& phase); //Slab weights
 	void saveMLWF_Z(int iSpin, const matrix& phase); //z position operator
 	void saveMLWF(int iSpin, const matrix& phase, const ScalarFieldArray& w, string varName, bool suppressUnbound); //helper function for scalar field matrix elements (eg. slab and z)

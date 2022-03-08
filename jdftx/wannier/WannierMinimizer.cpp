@@ -151,25 +151,6 @@ matrix WannierMinimizer::fixUnitary(const matrix& U, bool* isSingular)
 {	return U * invsqrt(dagger(U) * U, 0, 0, isSingular);
 }
 
-matrix WannierMinimizer::fixUnitary(const matrix& O, const diagMatrix& E, double degeneracyThreshold)
-{	int N = E.nRows();
-	assert(O.nRows() == N);
-	matrix U = zeroes(N, N);
-	for(int bStart = 0; bStart < N-1;)
-	{	int bStop = bStart;
-		while(bStop < N and (E[bStop] < E[bStart] + degeneracyThreshold))
-			bStop++;
-		if(bStop - bStart > 1) //degeneracy
-			U.set(bStart, bStop, bStart, bStop, fixUnitary(O(bStart, bStop, bStart, bStop)));
-		else //separated band
-		{	complex Obb = O(bStart, bStart);
-			U.set(bStart, bStart,  Obb / Obb.abs());
-		}
-		bStart = bStop;
-	}
-	return U;
-}
-
 
 bool WannierMinimizer::report(int iter)
 {	//Check unitarity:

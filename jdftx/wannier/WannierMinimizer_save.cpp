@@ -182,7 +182,8 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	saveMLWF_H(iSpin, phase); //Hamiltonian
 	if(wannier.saveMomenta) saveMLWF_P(iSpin, phase); //Momenta
 	if(wannier.saveSpin) saveMLWF_S(iSpin, phase); //Spins
-	if(needCprime()) saveMLWF_CprimeBased(iSpin, phase); //Any that need dC/dk
+	if(wannier.saveL) saveMLWF_L(iSpin, phase); //Orbital angular momentum
+	if(wannier.saveQ) saveMLWF_Q(iSpin, phase); //r*p quadrupole matrix elements
 	if(wannier.zVfilename.length()) saveMLWF_Z(iSpin, phase); //z position
 	if(wannier.zH) saveMLWF_W(iSpin, phase); //Slab weights
 	saveMLWF_ImSigma_ee(iSpin, phase);
@@ -384,19 +385,74 @@ void WannierMinimizer::saveMLWF_S(int iSpin, const matrix& phase)
 	dumpWannierized(SwannierTilde, phase, "mlwfS", realPartOnly, iSpin);
 }
 
-//Construct 9x9 outer product rotation from two 3x3 rotation matrices
-//(Within each dimension, rot1 takes the slow outer index and rot2 takes the fast inner index.)
-matrix outer(matrix3<> rot1, matrix3<> rot2)
-{	matrix result = zeroes(9, 9);
-	complex* data = result.data(); //note matrix is column-major
-	for(int col1=0; col1<3; col1++)
-	for(int col2=0; col2<3; col2++)
-		for(int row1=0; row1<3; row1++)
-		for(int row2=0; row2<3; row2++)
-			*(data++) = rot1(row1, col1) * rot2(row2, col2);
-	return result;
+//Save orbital angular momentum in Wannier basis:
+void WannierMinimizer::saveMLWF_L(int iSpin, const matrix& phase)
+{	assert(wannier.saveL);
+	//Read L matrix elements of Bloch states:
+	std::vector<matrix> Lbloch(e.eInfo.nStates);
+	{	string fnameIn = wannier.getFilename(Wannier::FilenameInit, "L");
+		logPrintf("Reading '%s' ... ", fnameIn.c_str()); logFlush();
+		e.eInfo.read(Lbloch, fnameIn.c_str(), nBands, nBands*3);
+		logPrintf("done.\n");
+	}
+	//Convert to Wannier basis:
+	matrix LwannierTilde = zeroes(nCenters*nCenters*3, phase.nRows());
+	int iqMine = 0;
+	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+	{	matrix Lsub(nCenters*nCenters, 3);
+		for(int iDir=0; iDir<3; iDir++)
+		{	matrix LsubDir = complex(0, 1) //divide by -i to make real when possible (i.e. r x p -> r x [r,H])
+				* Lbloch[kMesh[i].point.iReduced + iSpin*qCount](0, nBands, iDir*nBands, (iDir+1)*nBands);
+			if(kMesh[i].point.invert<0) //apply negative complex conjugate (because L is a pseudo-vector TODO: check):
+				callPref(eblas_dscal)(LsubDir.nData(), -1., ((double*)LsubDir.dataPref())+0, 2);
+			LsubDir = dagger(kMesh[i].U) * LsubDir * kMesh[i].U; //apply MLWF-optimized rotations
+			callPref(eblas_copy)(Lsub.dataPref()+Lsub.index(0,iDir), LsubDir.dataPref(), LsubDir.nData());
+		}
+		//Store with spatial transformation:
+		matrix3<> rot = e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR; //cartesian symmetry matrix
+		Lsub = Lsub * matrix(rot * (1./det(rot))); //extra rotation sign because spin is a pseudo-vector
+		callPref(eblas_copy)(LwannierTilde.dataPref()+LwannierTilde.index(0,iqMine), Lsub.dataPref(), Lsub.nData());
+		iqMine++;
+	}
+	//Fourier transform to Wannier space and save
+	dumpWannierized(LwannierTilde, phase, "mlwfL", realPartOnly, iSpin);
 }
 
+//Save r*p quadrupole moments in Wannier basis:
+void WannierMinimizer::saveMLWF_Q(int iSpin, const matrix& phase)
+{	assert(wannier.saveQ);
+	//Read Q matrix elements of Bloch states:
+	std::vector<matrix> Qbloch(e.eInfo.nStates);
+	{	string fnameIn = wannier.getFilename(Wannier::FilenameInit, "Q");
+		logPrintf("Reading '%s' ... ", fnameIn.c_str()); logFlush();
+		e.eInfo.read(Qbloch, fnameIn.c_str(), nBands, nBands*5);
+		logPrintf("done.\n");
+	}
+	//Convert to Wannier basis:
+	matrix QwannierTilde = zeroes(nCenters*nCenters*5, phase.nRows());
+	int iqMine = 0;
+	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+	{	matrix Qsub(nCenters*nCenters, 5);
+		for(int iComp=0; iComp<5; iComp++)
+		{	matrix QsubComp = complex(0, 1) //divide by -i to make real when possible (i.e. r * p -> r * [r,H])
+				* Qbloch[kMesh[i].point.iReduced + iSpin*qCount](0, nBands, iComp*nBands, (iComp+1)*nBands);
+			if(kMesh[i].point.invert<0) //apply negative complex conjugate (because Q is TODO: figure out transform):
+				callPref(eblas_dscal)(QsubComp.nData(), -1., ((double*)QsubComp.dataPref())+0, 2);
+			QsubComp = dagger(kMesh[i].U) * QsubComp * kMesh[i].U; //apply MLWF-optimized rotations
+			callPref(eblas_copy)(Qsub.dataPref()+Qsub.index(0,iComp), QsubComp.dataPref(), QsubComp.nData());
+		}
+		//Store with spatial transformation:
+		matrix3<> rot = e.gInfo.R * sym[kMesh[i].point.iSym].rot * e.gInfo.invR; //cartesian symmetry matrix
+		matrix rotQ = eye(5); //TODO: construct Q transformation correctly from rot
+		Qsub = Qsub * rotQ;
+		callPref(eblas_copy)(QwannierTilde.dataPref()+QwannierTilde.index(0,iqMine), Qsub.dataPref(), Qsub.nData());
+		iqMine++;
+	}
+	//Fourier transform to Wannier space and save
+	dumpWannierized(QwannierTilde, phase, "mlwfQ", realPartOnly, iSpin);
+}
+
+/*
 //Save any matrix elements that depend on dC/dk (eg. L, Q)
 void WannierMinimizer::saveMLWF_CprimeBased(int iSpin, const matrix& phase)
 {	assert(needCprime());
@@ -410,7 +466,7 @@ void WannierMinimizer::saveMLWF_CprimeBased(int iSpin, const matrix& phase)
 		{	int iReduced = q - iSpin*qCount;
 			vector3<matrix> CprimeRHcommC;
 			{	ColumnBundle Ci = getWfns(kMesh[ik_reduced[iReduced]].point, iSpin); //get C[q] in common wannier basis
-				matrix CprimeHC = (Cprime[iReduced] ^ O(Ci)) * e.eVars.Hsub[q];
+				matrix CprimeHC = (Cprime[iReduced] ^ O(Ci)) * e.eVars.Hsub_eigs[q];
 				CprimeRHcommC = e.iInfo.rHcommutator(Cprime[iReduced], Ci, CprimeHC);
 			}
 			//Separate into components of <r*p>
@@ -474,7 +530,7 @@ void WannierMinimizer::saveMLWF_CprimeBased(int iSpin, const matrix& phase)
 	if(wannier.saveL) dumpWannierized(LwannierTilde, phase, "mlwfL", realPartOnly, iSpin);
 	if(wannier.saveQ) dumpWannierized(QwannierTilde, phase, "mlwfQ", realPartOnly, iSpin);
 }
-
+*/
 
 //Thread function for setting fourier transform of z-slice of half-width zH centered at z0 with smoothness zSigma:
 inline void slabWeight_thread(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT,

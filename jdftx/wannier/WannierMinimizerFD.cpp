@@ -182,34 +182,6 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 		}
 	}
 	
-	//Find bidirectional edges for reduced k-points:
-	if(needCprime())
-	{	edges_reduced.resize(qCount);
-		ik_reduced.resize(qCount);
-		for(size_t i=0; i<kMesh.size(); i++)
-		{	unsigned int iReduced = kMesh[i].point.iReduced;
-			if(circDistanceSquared(kMesh[i].point.k, e.eInfo.qnums[iReduced].k) < symmThreshold)
-			{	ik_reduced[iReduced] = i; //This mesh point is in the reduced set
-				edges_reduced[iReduced] = edges[i]; //copy over the unidirectional set of edges
-				//Add the reverse edges:
-				edges_reduced[iReduced].reserve(2 * wb.size());
-				for(unsigned j=0; j<wb.size(); j++)
-				{	Edge edge;
-					edge.wb = wb[j]; //same weight
-					edge.b = -b[j]; //reverse direction
-					//Find neighbour:
-					vector3<> kj = kMesh[i].point.k + inv(e.gInfo.GT) * edge.b;
-					edge.ik = plook.find(kj);
-					edge.point = kMesh[edge.ik].point;
-					edge.point.offset += round(kj - edge.point.k); //extra offset
-					edge.point.k = kj;
-					kpoints.insert(edge.point);
-					edges_reduced[iReduced].push_back(edge);
-				}
-			}
-		}
-	}
-	
 	//Create MPI communicators for rotations:
 	for(size_t i=0; i<kMesh.size(); i++)
 		if(ranksNeeded[i].size() //some communication is needed
@@ -466,54 +438,4 @@ WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
 	constrain(Kgrad);
 	watch.stop();
 	return Kgrad;
-}
-
-
-//Compute wavefunction derivatives for current spin:
-std::vector<ColumnBundle> WannierMinimizerFD::getCprime(int iSpin)
-{	static StopWatch watch("WannierMinimizerFD::getCprime"); watch.start();
-	logPrintf("Computing dC/dk ... "); logFlush();
-	Cother.assign(e.eInfo.nStates, ColumnBundle());
-	std::vector<ColumnBundle> Cprime(qCount);
-	for(int jReduced=0; jReduced<qCount; jReduced++)
-	{	int qj = jReduced + qCount*iSpin; //current reduced state whose contributions to dC/dk at other states is being calculated
-
-		//Get this wavefunction to all processes:
-		int jProcess = e.eInfo.whose(qj);
-		if(jProcess == mpiWorld->iProcess()) //send
-			mpiWorld->bcastData((ColumnBundle&)e.eVars.C[qj], jProcess);
-		else //recv
-		{	Cother[qj].init(nBands, e.basis[qj].nbasis*nSpinor, &e.basis[qj], &e.eInfo.qnums[qj]);
-			mpiWorld->bcastData(Cother[qj], jProcess);
-		}
-		
-		//Find all edges from reduced states that use this one:
-		for(int iReduced=0; iReduced<qCount; iReduced++)
-		{	int qi = iReduced + qCount*iSpin;
-			if(e.eInfo.isMine(qi))
-			{	for(const Edge& edge: edges_reduced[iReduced])
-					if(int(edge.point.iReduced) == jReduced)
-					{	const KmeshEntry& ki = kMesh[ik_reduced[iReduced]];
-						ColumnBundle Cj = getWfns(edge.point, iSpin);
-						//Align phase to wavefunction at i:
-						matrix rot = fixUnitary(Cj ^ O(getWfns(ki.point, iSpin)), e.eVars.Hsub_eigs[qi], 1E-6);
-						Cj = Cj * rot;
-						//Collect contribution to dC/dk:
-						ColumnBundle& Cprime_i = Cprime[iReduced];
-						if(not Cprime_i)
-						{	Cprime_i.init(3*nBands, basis.nbasis*nSpinor, &basis, &ki.point, isGpuEnabled());
-							Cprime_i.zero();
-						}
-						for(int iDir=0; iDir<3; iDir++)
-							if(edge.b[iDir])
-								Cprime_i.axpySub(nBands*iDir, complex(0., 0.5 * edge.wb * edge.b[iDir]), Cj);
-					}
-			}
-		}
-		Cother[qj] = 0; //free
-	}
-	Cother.clear();
-	logPrintf("done.\n"); logFlush();
-	watch.stop();
-	return Cprime;
 }
