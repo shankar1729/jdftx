@@ -72,7 +72,7 @@ void DumpCprime::dump(Everything& e) const
 			traceTerm += dagger(traceTerm); //+= sum(pi ri)/3
 			for(int iDir=0; iDir<2; iDir++)
 			{	matrix Qqiir = complex(0, -1) * (rrH(iDir, iDir) - dagger(rrH(iDir, iDir))) //ri pi + pi ri
-					- traceTerm;
+					- (traceTerm + dagger(traceTerm));
 				Q[q].set(0, nBands, (iDir+3)*nBands, (iDir+4)*e.eInfo.nBands, dagger_symmetrize(Qqiir));
 			}
 		}
