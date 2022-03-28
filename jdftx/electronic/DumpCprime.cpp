@@ -39,12 +39,14 @@ void DumpCprime::dump(Everything& e) const
 	
 	//Compute dC/dk, r*[r,H] moments and hence L or Q moments for each reduced k:
 	std::vector<matrix> L(e.eInfo.nStates), Q(e.eInfo.nStates);
+	std::vector<matrix> CpOCarr(e.eInfo.nStates, zeroes(nBands, 3*nBands)); //HACK
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	//Compute r*[r,H] moments using dC/dk:
 		matrix3<matrix> rrH;
 		for(int iDir=0; iDir<3; iDir++)
 		{	matrix CprimeOC;
 			ColumnBundle Cprime_i = getCprime(e, q, iDir, CprimeOC); //Compute idC/dk (effectively r*C)
+			CpOCarr[q].set(0, nBands, iDir*nBands, (iDir+1)*nBands, CprimeOC); //HACK
 			matrix CprimeHC = CprimeOC * e.eVars.Hsub_eigs[q]; //since C are eigenvectors
 			rrH.set_row(iDir, e.iInfo.rHcommutator(Cprime_i, e.eVars.C[q], CprimeHC)); //effectively (r*C) ^ p . C
 		}
@@ -92,6 +94,13 @@ void DumpCprime::dump(Everything& e) const
 	{	string fname = e.dump.getFilename("Q");
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		e.eInfo.write(Q, fname.c_str(), nBands, nBands*5);
+		logPrintf("done.\n");
+	}
+	
+	//HACK:
+	{	string fname = e.dump.getFilename("CprimeOC");
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		e.eInfo.write(CpOCarr, fname.c_str(), nBands, nBands*3);
 		logPrintf("done.\n");
 	}
 }
@@ -175,7 +184,7 @@ matrix DumpCprime::fixUnitary(const matrix& O, const diagMatrix& E) const
 {	int N = E.nRows();
 	assert(O.nRows() == N);
 	matrix U = zeroes(N, N);
-	for(int bStart = 0; bStart < N-1;)
+	for(int bStart = 0; bStart < N;)
 	{	int bStop = bStart;
 		while(bStop < N and (E[bStop] < E[bStart] + degeneracyThreshold))
 			bStop++;
