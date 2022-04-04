@@ -25,8 +25,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 
 
-DumpCprime::DumpCprime(double dk, double degeneracyThreshold, bool realSpaceTruncated)
-: dk(dk), degeneracyThreshold(degeneracyThreshold), realSpaceTruncated(realSpaceTruncated)
+DumpCprime::DumpCprime(double dk, double degeneracyThreshold, double vThreshold, bool realSpaceTruncated)
+: dk(dk), degeneracyThreshold(degeneracyThreshold), vThreshold(vThreshold), realSpaceTruncated(realSpaceTruncated)
 {
 }
 
@@ -210,41 +210,45 @@ matrix pseudoInvApply(const matrix& A, const matrix& b)
 matrix DumpCprime::fixUnitary(const matrix& CpertOC, const diagMatrix& E, const matrix& dH) const
 {	int N = E.nRows();
 	assert(CpertOC.nRows() == N);
-	
-	//return CpertOC * invsqrt(dagger(CpertOC) * CpertOC); //HACK
 
 	assert(dH.nRows() == N);
 	matrix U = zeroes(N, N);
+	double EpertPrev = NAN; //last (largest) perturbed energy of previous degenerate subspace
 	for(int bStart = 0; bStart < N;)
 	{	int bStop = bStart;
 		while(bStop < N and (E[bStop] < E[bStart] + degeneracyThreshold))
 			bStop++;
 		int g = bStop - bStart; //degenerate subspace size
 		
-		//Setup subspace perturbation matrices:
-		matrix O(N-g, g), X(N-g, g);
-		if(bStart > 0)
-		{	O.set(0, bStart, 0, g, dagger(CpertOC(bStart, bStop, 0, bStart)));
-			X.set(0, bStart, 0, g, dH(0, bStart, bStart, bStop));
-		}
-		if(bStop < N)
-		{	O.set(bStart, N-g, 0, g, dagger(CpertOC(bStart, bStop, bStop, N)));
-			X.set(bStart, N-g, 0, g, dH(bStop, N, bStart, bStop));
-		}
-		//--- energy denominator in X:
-		{	complex* Xdata = X.data();
-			for(int bCol=bStart; bCol<bStop; bCol++) //band indexed by column (within [bStart, bStop) subspace)
-			{	for(int bRow=0; bRow<bStart; bRow++) //band indexed by row (below [bStart, bStop) subspace)
-					*(Xdata++) *= 1./(E[bCol] - E[bRow]);
-				for(int bRow=bStop; bRow<N; bRow++) //band indexed by row (above [bStart, bStop) subspace)
-					*(Xdata++) *= 1./(E[bCol] - E[bRow]);
-			}
-		}
+		//Resolve degeneracy (partly) by perturbation:
+		matrix dHsub = dH(bStart, bStop, bStart, bStop);
+		diagMatrix dE; matrix dHevecs;
+		dHsub.diagonalize(dHevecs, dE);
+		matrix Osub = CpertOC(bStart, bStop, bStart, bStop) * dHevecs; //Cpert^O(C) with degeneracies resolved by dH
 		
-		//Constrain subspace rotations based on P matrix elements outside it:
-		matrix Usub = pseudoInvApply(O, X);
-		Usub = Usub * invsqrt(dagger(Usub) * Usub); //make exactly unitary
+		logPrintf("dE/dk: "); ((1./dk) * dE).print(globalLog);
+		
+		//Best align wavefunctions within remaining degenerate sub-subspaces:
+		matrix Usub = zeroes(g, g);
+		for(int aStart=0; aStart < g;)
+		{	int aStop = aStart;
+			while(aStop < g and (dE[aStop] < dE[aStart] + vThreshold*dk))
+				aStop++;
+			matrix OsubSub = Osub(aStart, aStop, aStart, aStop);
+			OsubSub = OsubSub * invsqrt(dagger(OsubSub) * OsubSub); //make exactly unitary
+			Usub.set(aStart, aStop, aStart, aStop, OsubSub);
+			aStart = aStop;
+		}
+		Usub = Usub * dagger(dHevecs); //rotate back into original linear combinations of C
 		U.set(bStart, bStop, bStart, bStop, Usub);
+		
+		//Check for overlapping subspaces:
+		if(bStart)
+		{	double EpertMin = E[bStart] + dE[0]; //lowest energy of current subspace
+			if(EpertMin < EpertPrev + degeneracyThreshold)
+				logPrintf("WARNING: degenerate subspaces overlap upon perturbation near E = %lg\n", EpertMin);
+		}
+		EpertPrev = E[bStop-1] + dE[g-1];
 		
 		//DEBUG
 		{	matrix Osub = CpertOC(bStart, bStop, bStart, bStop);
@@ -252,19 +256,8 @@ matrix DumpCprime::fixUnitary(const matrix& CpertOC, const diagMatrix& E, const 
 			logPrintf("\nBand range [%d, %d):\n", bStart, bStop);
 			logPrintf("U from pert:\n"); Usub.print(globalLog);
 			logPrintf("U from overlap:\n"); Osub.print(globalLog);
-			U.set(bStart, bStop, bStart, bStop, Osub); //HACK
 		}
 		
-		/*
-		if(g > 1) //degeneracy
-		{	matrix Osub = CpertOC(bStart, bStop, bStart, bStop);
-			U.set(bStart, bStop, bStart, bStop, Osub * invsqrt(dagger(Osub) * Osub));
-		}
-		else //separated band
-		{	complex Obb = CpertOC(bStart, bStart);
-			U.set(bStart, bStart,  Obb / Obb.abs());
-		}
-		*/
 		bStart = bStop;
 	}
 	return U;

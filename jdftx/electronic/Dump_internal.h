@@ -113,9 +113,10 @@ struct DumpCprime
 {
 	double dk;
 	double degeneracyThreshold;
+	double vThreshold;
 	bool realSpaceTruncated;
 	
-	DumpCprime(double dk=1E-4, double degeneracyThreshold=1E-6, bool realSpaceTruncated=true);
+	DumpCprime(double dk=1E-4, double degeneracyThreshold=1E-6, double vThreshold=1E-4, bool realSpaceTruncated=true);
 	void dump(Everything& e) const;
 
 private:

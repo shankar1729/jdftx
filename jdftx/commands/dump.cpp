@@ -1069,11 +1069,15 @@ struct CommandCprimeParams : public Command
 {
 	CommandCprimeParams() : Command("Cprime-params", "jdftx/Output")
 	{	
-		format = "[<dk>=1E-4] [<degeneracyThreshold>=1E-6] [<realSpaceTruncated>=yes]";
+		format = "[<dk>=1E-4] [<degeneracyThreshold>=1E-6] [<vThreshold>=1E-4] [<realSpaceTruncated>=yes]";
 		comments = "Control dC/dk calculation for L and Q output.\n"
 			"Here, <dk> in a0^-1 controls the finite difference used for dC/dk,\n"
 			"while <degeneracyThreshold> specifies the energy range within unitary\n"
 			"rotations are accounted for in comparing wavefunctions between k.\n"
+			"Within degenerate subspaces of energy, rotations are first revolved\n"
+			"by the velocity operator and then obtained by best match between\n"
+			"wavefunctions for sub-subspaces that have the same velocity within\n"
+			"<vThreshold> (in Eh-a0 atomic units).\n"
 			"If <realSpaceTruncated> is yes (default), then truncated directions\n"
 			"are computed by a real space multiplication by r, instead of dC/dk.\n"
 			"\n"
@@ -1093,13 +1097,14 @@ struct CommandCprimeParams : public Command
 		DumpCprime& dcp = *(e.dump.dumpCprime);
 		pl.get(dcp.dk, 1E-4, "dk");
 		pl.get(dcp.degeneracyThreshold, 1E-6, "degeneracyThreshold");
+		pl.get(dcp.vThreshold, 1E-4, "vThreshold");
 		pl.get(dcp.realSpaceTruncated, true, boolMap, "realSpaceTruncated");
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	assert(e.dump.dumpCprime);
 		const DumpCprime& dcp = *(e.dump.dumpCprime);
-		logPrintf("%lg %lg %s", dcp.dk, dcp.degeneracyThreshold, boolMap.getString(dcp.realSpaceTruncated));
+		logPrintf("%lg %lg %lg %s", dcp.dk, dcp.degeneracyThreshold, dcp.vThreshold, boolMap.getString(dcp.realSpaceTruncated));
 	}
 }
 commandCprimeParams;
