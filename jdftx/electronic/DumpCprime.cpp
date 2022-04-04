@@ -126,16 +126,17 @@ ColumnBundle DumpCprime::getCprime(Everything& e, int q, int iDir, matrix& Cprim
 	else std::swap(ei, e.coulombParams.Efield); //restore Efield
 	//Handle periodic case via dC/dk:
 	vector3<> dkVec = inv(e.gInfo.GT).column(iDir) * dk; //fractional k perturbation
+	matrix Vi = complex(0,-1) * e.iInfo.rHcommutator(e.eVars.C[q], iDir, e.eVars.Hsub_eigs[q]); //velocity matrix
 	matrix CpOC, CmOC;
-	ColumnBundle Cp = getCpert(e, q, dkVec, CpOC);
-	ColumnBundle Cm = getCpert(e, q, -dkVec, CmOC);
+	ColumnBundle Cp = getCpert(e, q, dkVec, dk * Vi, CpOC);
+	ColumnBundle Cm = getCpert(e, q, -dkVec, -dk * Vi, CmOC);
 	complex prefac(0., 0.5/dk); //prefactor for i d/dk in central difference formula
 	CprimeOC = prefac.conj() * (CpOC - CmOC);
 	return prefac * (Cp - Cm);
 }
 
 
-ColumnBundle DumpCprime::getCpert(Everything& e, int q, vector3<> dkVec, matrix& CpertOC) const
+ColumnBundle DumpCprime::getCpert(Everything& e, int q, vector3<> dkVec, const matrix& dkDotV, matrix& CpertOC) const
 {
 	//Perform a fixed-H calculation at this q with perturbed k:
 	ColumnBundle Cq = e.eVars.C[q]; //backup orginal wavefunction at this q
@@ -171,31 +172,99 @@ ColumnBundle DumpCprime::getCpert(Everything& e, int q, vector3<> dkVec, matrix&
 	std::swap(VdagCq, e.eVars.VdagC[q]); //restore corresponding projections
 	
 	//Align phases / unitary rotations:
-	matrix Osub = Cq ^ O(e.eVars.C[q]);
-	matrix U = fixUnitary(Osub, e.eVars.Hsub_eigs[q]);
-	CpertOC = dagger(U) * Osub;
+	CpertOC = Cq ^ O(e.eVars.C[q]);
+	matrix U = fixUnitary(CpertOC, e.eVars.Hsub_eigs[q], dkDotV);
+	CpertOC = dagger(U) * CpertOC;
 	return Cq * U;
 }
 
 
-//Fix phase / unitary rotations within degenerate subspaces of E, given overlap matrix O.
-//Output is a unitary matrix, which will be block diagonal in degenrate subspaces.
-matrix DumpCprime::fixUnitary(const matrix& O, const diagMatrix& E) const
+//Return inv(A) * b, where inv(A) is an SVD-based pseudo-inverse.
+matrix pseudoInvApply(const matrix& A, const matrix& b)
+{	assert(A.nRows() == b.nRows());
+	matrix U, Vdag; diagMatrix S;
+	A.svd(U, S, Vdag);
+
+	//Check condition number:
+	const double condWarnThreshold = 1E6;
+	const double Sthreshold = S.front() / condWarnThreshold; //singular values in descending order
+	if(S.back() < Sthreshold)
+		logPrintf("Found singular value range %le to %le exceeding condition number threshold.\n", S.back(), S.front());
+
+	//Invert singular values in place:
+	for(double& s: S)
+		s = (s<Sthreshold) ? 0. : 1./s;
+
+	//Apply pseudoinverse:
+	int M = A.nRows(), N = A.nCols();
+	return (M > N)
+			? ( dagger(Vdag) * (S * (dagger(U(0,M, 0,N)) * b)) )
+			: ( dagger(Vdag(0,M, 0,N)) * (S * (dagger(U) * b)) );
+}
+
+
+//Fix phase / unitary rotations within degenerate subspaces of E,
+//given overlap matrix CpertOC between the perturbed and original
+//Bloch functions, and the perturbation Hamiltonian dH.
+//Output is a unitary matrix, which will be block diagonal in degenerate subspaces.
+matrix DumpCprime::fixUnitary(const matrix& CpertOC, const diagMatrix& E, const matrix& dH) const
 {	int N = E.nRows();
-	assert(O.nRows() == N);
+	assert(CpertOC.nRows() == N);
+	
+	//return CpertOC * invsqrt(dagger(CpertOC) * CpertOC); //HACK
+
+	assert(dH.nRows() == N);
 	matrix U = zeroes(N, N);
 	for(int bStart = 0; bStart < N;)
 	{	int bStop = bStart;
 		while(bStop < N and (E[bStop] < E[bStart] + degeneracyThreshold))
 			bStop++;
-		if(bStop - bStart > 1) //degeneracy
-		{	matrix Osub = O(bStart, bStop, bStart, bStop);
+		int g = bStop - bStart; //degenerate subspace size
+		
+		//Setup subspace perturbation matrices:
+		matrix O(N-g, g), X(N-g, g);
+		if(bStart > 0)
+		{	O.set(0, bStart, 0, g, dagger(CpertOC(bStart, bStop, 0, bStart)));
+			X.set(0, bStart, 0, g, dH(0, bStart, bStart, bStop));
+		}
+		if(bStop < N)
+		{	O.set(bStart, N-g, 0, g, dagger(CpertOC(bStart, bStop, bStop, N)));
+			X.set(bStart, N-g, 0, g, dH(bStop, N, bStart, bStop));
+		}
+		//--- energy denominator in X:
+		{	complex* Xdata = X.data();
+			for(int bCol=bStart; bCol<bStop; bCol++) //band indexed by column (within [bStart, bStop) subspace)
+			{	for(int bRow=0; bRow<bStart; bRow++) //band indexed by row (below [bStart, bStop) subspace)
+					*(Xdata++) *= 1./(E[bCol] - E[bRow]);
+				for(int bRow=bStop; bRow<N; bRow++) //band indexed by row (above [bStart, bStop) subspace)
+					*(Xdata++) *= 1./(E[bCol] - E[bRow]);
+			}
+		}
+		
+		//Constrain subspace rotations based on P matrix elements outside it:
+		matrix Usub = pseudoInvApply(O, X);
+		Usub = Usub * invsqrt(dagger(Usub) * Usub); //make exactly unitary
+		U.set(bStart, bStop, bStart, bStop, Usub);
+		
+		//DEBUG
+		{	matrix Osub = CpertOC(bStart, bStop, bStart, bStop);
+			Osub = Osub * invsqrt(dagger(Osub) * Osub);
+			logPrintf("\nBand range [%d, %d):\n", bStart, bStop);
+			logPrintf("U from pert:\n"); Usub.print(globalLog);
+			logPrintf("U from overlap:\n"); Osub.print(globalLog);
+			U.set(bStart, bStop, bStart, bStop, Osub); //HACK
+		}
+		
+		/*
+		if(g > 1) //degeneracy
+		{	matrix Osub = CpertOC(bStart, bStop, bStart, bStop);
 			U.set(bStart, bStop, bStart, bStop, Osub * invsqrt(dagger(Osub) * Osub));
 		}
 		else //separated band
-		{	complex Obb = O(bStart, bStart);
+		{	complex Obb = CpertOC(bStart, bStart);
 			U.set(bStart, bStart,  Obb / Obb.abs());
 		}
+		*/
 		bStart = bStop;
 	}
 	return U;

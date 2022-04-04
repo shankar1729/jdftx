@@ -120,8 +120,8 @@ struct DumpCprime
 
 private:
 	ColumnBundle getCprime(Everything& e, int q, int iDir, matrix& CprimeOC) const;
-	ColumnBundle getCpert(Everything& e, int q, vector3<> dkVec, matrix& CpertOC) const;
-	matrix fixUnitary(const matrix& O, const diagMatrix& E) const;
+	ColumnBundle getCpert(Everything& e, int q, vector3<> dkVec, const matrix& dkDotV, matrix& CpertOC) const;
+	matrix fixUnitary(const matrix& CpertOC, const diagMatrix& E, const matrix& dH) const;
 };
 
 //! @}
