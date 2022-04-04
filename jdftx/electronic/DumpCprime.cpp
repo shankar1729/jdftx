@@ -39,14 +39,12 @@ void DumpCprime::dump(Everything& e) const
 	
 	//Compute dC/dk, r*[r,H] moments and hence L or Q moments for each reduced k:
 	std::vector<matrix> L(e.eInfo.nStates), Q(e.eInfo.nStates);
-	std::vector<matrix> CpOCarr(e.eInfo.nStates, zeroes(nBands, 3*nBands)); //HACK
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	//Compute r*[r,H] moments using dC/dk:
 		matrix3<matrix> rrH;
 		for(int iDir=0; iDir<3; iDir++)
 		{	matrix CprimeOC;
 			ColumnBundle Cprime_i = getCprime(e, q, iDir, CprimeOC); //Compute idC/dk (effectively r*C)
-			CpOCarr[q].set(0, nBands, iDir*nBands, (iDir+1)*nBands, CprimeOC); //HACK
 			matrix CprimeHC = CprimeOC * e.eVars.Hsub_eigs[q]; //since C are eigenvectors
 			rrH.set_row(iDir, e.iInfo.rHcommutator(Cprime_i, e.eVars.C[q], CprimeHC)); //effectively (r*C) ^ p . C
 		}
@@ -94,13 +92,6 @@ void DumpCprime::dump(Everything& e) const
 	{	string fname = e.dump.getFilename("Q");
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		e.eInfo.write(Q, fname.c_str(), nBands, nBands*5);
-		logPrintf("done.\n");
-	}
-	
-	//HACK:
-	{	string fname = e.dump.getFilename("CprimeOC");
-		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-		e.eInfo.write(CpOCarr, fname.c_str(), nBands, nBands*3);
 		logPrintf("done.\n");
 	}
 }
@@ -179,30 +170,6 @@ ColumnBundle DumpCprime::getCpert(Everything& e, int q, vector3<> dkVec, const m
 }
 
 
-//Return inv(A) * b, where inv(A) is an SVD-based pseudo-inverse.
-matrix pseudoInvApply(const matrix& A, const matrix& b)
-{	assert(A.nRows() == b.nRows());
-	matrix U, Vdag; diagMatrix S;
-	A.svd(U, S, Vdag);
-
-	//Check condition number:
-	const double condWarnThreshold = 1E6;
-	const double Sthreshold = S.front() / condWarnThreshold; //singular values in descending order
-	if(S.back() < Sthreshold)
-		logPrintf("Found singular value range %le to %le exceeding condition number threshold.\n", S.back(), S.front());
-
-	//Invert singular values in place:
-	for(double& s: S)
-		s = (s<Sthreshold) ? 0. : 1./s;
-
-	//Apply pseudoinverse:
-	int M = A.nRows(), N = A.nCols();
-	return (M > N)
-			? ( dagger(Vdag) * (S * (dagger(U(0,M, 0,N)) * b)) )
-			: ( dagger(Vdag(0,M, 0,N)) * (S * (dagger(U) * b)) );
-}
-
-
 //Fix phase / unitary rotations within degenerate subspaces of E,
 //given overlap matrix CpertOC between the perturbed and original
 //Bloch functions, and the perturbation Hamiltonian dH.
@@ -210,7 +177,6 @@ matrix pseudoInvApply(const matrix& A, const matrix& b)
 matrix DumpCprime::fixUnitary(const matrix& CpertOC, const diagMatrix& E, const matrix& dH) const
 {	int N = E.nRows();
 	assert(CpertOC.nRows() == N);
-
 	assert(dH.nRows() == N);
 	matrix U = zeroes(N, N);
 	double EpertPrev = NAN; //last (largest) perturbed energy of previous degenerate subspace
@@ -225,8 +191,6 @@ matrix DumpCprime::fixUnitary(const matrix& CpertOC, const diagMatrix& E, const 
 		diagMatrix dE; matrix dHevecs;
 		dHsub.diagonalize(dHevecs, dE);
 		matrix Osub = CpertOC(bStart, bStop, bStart, bStop) * dHevecs; //Cpert^O(C) with degeneracies resolved by dH
-		
-		logPrintf("dE/dk: "); ((1./dk) * dE).print(globalLog);
 		
 		//Best align wavefunctions within remaining degenerate sub-subspaces:
 		matrix Usub = zeroes(g, g);
@@ -249,14 +213,6 @@ matrix DumpCprime::fixUnitary(const matrix& CpertOC, const diagMatrix& E, const 
 				logPrintf("WARNING: degenerate subspaces overlap upon perturbation near E = %lg\n", EpertMin);
 		}
 		EpertPrev = E[bStop-1] + dE[g-1];
-		
-		//DEBUG
-		{	matrix Osub = CpertOC(bStart, bStop, bStart, bStop);
-			Osub = Osub * invsqrt(dagger(Osub) * Osub);
-			logPrintf("\nBand range [%d, %d):\n", bStart, bStop);
-			logPrintf("U from pert:\n"); Usub.print(globalLog);
-			logPrintf("U from overlap:\n"); Osub.print(globalLog);
-		}
 		
 		bStart = bStop;
 	}
