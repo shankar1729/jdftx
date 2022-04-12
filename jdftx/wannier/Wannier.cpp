@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 Wannier::Wannier() : needAtomicOrbitals(false), localizationMeasure(LM_FiniteDifference), precond(false),
 	bStart(0), outerWindow(false), innerWindow(false), nFrozen(0),
-	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false), saveSpin(false), saveL(false), saveQ(false),
+	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false), saveSpin(false),
 	zFieldMag(0.),
 	z0(0.), zH(0.), zSigma(0.),
 	loadRotations(false), numericalOrbitalsOffset(0.5,0.5,0.5), rSmooth(1.),
@@ -111,8 +111,7 @@ void WannierEverything::setup()
 	if(!coulombParams.supercell) updateSupercell(true); //force supercell generation
 	
 	//Extra initialization needed for momentum, L/Q and defect matrix element output:
-	bool needCprime = (wannier.saveL or wannier.saveQ);
-	if(wannier.saveMomenta or needCprime or wannier.defects.size())
+	if(wannier.saveMomenta or wannier.defects.size())
 	{	if(eInfo.hasU)
 		{	//Calculate U_rho needed for the DFT+U correction to the [r,H] momentum matrix elements:
 			iInfo.rhoAtom_initZero(eVars.rhoAtom);
@@ -122,7 +121,7 @@ void WannierEverything::setup()
 		}
 		bool hasUltrasoft = false;
 		for(const auto& sp: iInfo.species) if(sp->isUltrasoft()) hasUltrasoft = true;
-		if(hasUltrasoft or needCprime or wannier.defects.size())
+		if(hasUltrasoft or wannier.defects.size())
 		{	//Compute Vscloc needed for defects and L/Q, and then call augmentDensity*Grad
 			//needed for augmentation contribution to  the [r,H] momentum matrix elements:
 			eVars.n = eVars.calcDensity();
