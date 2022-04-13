@@ -19,9 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <wannier/WannierMinimizerFD.h>
 #include <core/ScalarFieldIO.h>
-#include <core/WignerSeitz.h>
 #include <core/SphericalHarmonics.h>
-#include <core/tensor3.h>
 
 void WannierMinimizer::saveMLWF()
 {	for(int iSpin: wannier.iSpinArr)
@@ -384,21 +382,6 @@ void WannierMinimizer::saveMLWF_S(int iSpin, const matrix& phase)
 	//Fourier transform to Wannier space and save
 	dumpWannierized(SwannierTilde, phase, "mlwfS", realPartOnly, iSpin);
 }
-
-
-//Construct 9x9 outer product rotation from two 3x3 rotation matrices
-//(Within each dimension, rot1 takes the slow outer index and rot2 takes the fast inner index.)
-matrix outer(matrix3<> rot1, matrix3<> rot2)
-{	matrix result = zeroes(9, 9);
-	complex* data = result.data(); //note matrix is column-major
-	for(int col1=0; col1<3; col1++)
-	for(int col2=0; col2<3; col2++)
-		for(int row1=0; row1<3; row1++)
-		for(int row2=0; row2<3; row2++)
-			*(data++) = rot1(row1, col1) * rot2(row2, col2);
-	return result;
-}
-
 
 //Save R*P matrix elements:
 void WannierMinimizer::saveMLWF_RP(int iSpin, const matrix& phase)

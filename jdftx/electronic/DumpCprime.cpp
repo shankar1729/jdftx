@@ -64,15 +64,12 @@ void DumpCprime::dump(Everything& e) const
 			//xy, yz and zx components:
 			for(int iDir=0; iDir<3; iDir++)
 			{	int jDir = (iDir + 1) % 3;
-				matrix Qqij = complex(0, -1) * (rrH(iDir, jDir) - dagger(rrH(jDir, iDir))); //ri pj + pi rj
+				matrix Qqij = complex(0, -1) * (rrH(iDir, jDir) + rrH(jDir, iDir)); //Includes + (i <-> j)
 				Q[q].set(0, nBands, iDir*nBands, (iDir+1)*e.eInfo.nBands, dagger_symmetrize(Qqij));
 			}
 			//xx - r^2/3 and yy - r^2/3 components:
-			matrix traceTerm = complex(0., -1./3) * trace(rrH); //sum(ri pi)/3
-			traceTerm += dagger(traceTerm); //+= sum(pi ri)/3
 			for(int iDir=0; iDir<2; iDir++)
-			{	matrix Qqiir = complex(0, -1) * (rrH(iDir, iDir) - dagger(rrH(iDir, iDir))) //ri pi + pi ri
-					- (traceTerm + dagger(traceTerm));
+			{	matrix Qqiir = complex(0, -2) * (rrH(iDir, iDir) - (1./3)*trace(rrH));  //factor of 2 from the + (i <-> j)
 				Q[q].set(0, nBands, (iDir+3)*nBands, (iDir+4)*e.eInfo.nBands, dagger_symmetrize(Qqiir));
 			}
 		}
