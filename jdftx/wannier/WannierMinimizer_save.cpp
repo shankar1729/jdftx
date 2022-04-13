@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <wannier/WannierMinimizer.h>
+#include <wannier/WannierMinimizerFD.h>
 #include <core/ScalarFieldIO.h>
 #include <core/WignerSeitz.h>
 #include <core/SphericalHarmonics.h>
@@ -183,6 +183,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	saveMLWF_H(iSpin, phase); //Hamiltonian
 	if(wannier.saveMomenta) saveMLWF_P(iSpin, phase); //Momenta
 	if(wannier.saveSpin) saveMLWF_S(iSpin, phase); //Spins
+	if(wannier.saveRP) saveMLWF_RP(iSpin, phase); //R*P matrix elements
 	if(wannier.zVfilename.length()) saveMLWF_Z(iSpin, phase); //z position
 	if(wannier.zH) saveMLWF_W(iSpin, phase); //Slab weights
 	saveMLWF_ImSigma_ee(iSpin, phase);
@@ -382,6 +383,90 @@ void WannierMinimizer::saveMLWF_S(int iSpin, const matrix& phase)
 	}
 	//Fourier transform to Wannier space and save
 	dumpWannierized(SwannierTilde, phase, "mlwfS", realPartOnly, iSpin);
+}
+
+
+//Construct 9x9 outer product rotation from two 3x3 rotation matrices
+//(Within each dimension, rot1 takes the slow outer index and rot2 takes the fast inner index.)
+matrix outer(matrix3<> rot1, matrix3<> rot2)
+{	matrix result = zeroes(9, 9);
+	complex* data = result.data(); //note matrix is column-major
+	for(int col1=0; col1<3; col1++)
+	for(int col2=0; col2<3; col2++)
+		for(int row1=0; row1<3; row1++)
+		for(int row2=0; row2<3; row2++)
+			*(data++) = rot1(row1, col1) * rot2(row2, col2);
+	return result;
+}
+
+
+//Save R*P matrix elements:
+void WannierMinimizer::saveMLWF_RP(int iSpin, const matrix& phase)
+{	assert(wannier.saveRP);
+
+	//Compute r*p matrix elements from dC/dk on Wannier mesh:
+	logPrintf("Computing <du/dk|[r,H]|u> on Wannier mesh ... "); logFlush();
+	std::vector<matrix3<matrix>> rrHmesh(kMesh.size());
+	assert(wannier.localizationMeasure == Wannier::LM_FiniteDifference);
+	const WannierMinimizerFD& wmin_fd = *((const WannierMinimizerFD*)this);
+	Cother.assign(e.eInfo.nStates, ColumnBundle());
+	int qInterval = std::max(1, int(round(qCount/20.))); //interval for reporting progress
+	for(int jReduced=0; jReduced<qCount; jReduced++)
+	{	int qj = jReduced + qCount*iSpin; //current reduced state whose contributions to dC/dk at other states is being calculated
+		//Get this wavefunction to all processes:
+		int jProcess = e.eInfo.whose(qj);
+		if(jProcess == mpiWorld->iProcess()) //send
+			mpiWorld->bcastData((ColumnBundle&)e.eVars.C[qj], jProcess);
+		else //recv
+		{	Cother[qj].init(nBands, e.basis[qj].nbasis*nSpinor, &e.basis[qj], &e.eInfo.qnums[qj]);
+			mpiWorld->bcastData(Cother[qj], jProcess);
+		}
+		//Find all edges connecting this one to states I have data for:
+		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+		{	for(const WannierMinimizerFD::Edge& edge: wmin_fd.edges_bi[i])
+				if(int(edge.point.iReduced) == jReduced)
+				{	const KmeshEntry& ki = kMesh[i];
+					const KmeshEntry& kj = kMesh[edge.ik];
+					ColumnBundle Ci = getWfns(ki.point, iSpin) * ki.U;
+					ColumnBundle Cj = getWfns(edge.point, iSpin) * kj.U;
+					Cj.qnum = Ci.qnum; //effectively transport coefficients kj -> ki
+					//Compute Cj ^ [r,H] Ci:
+					int qi = ki.point.iReduced + qCount*iSpin;
+					matrix Cj_H_Ci = (Cj ^ O(Ci)) * (dagger(ki.U) * e.eVars.Hsub_eigs[qi] * ki.U);
+					vector3<matrix> Cj_rHcomm_Ci = e.iInfo.rHcommutator(Cj, Ci, Cj_H_Ci);
+					//Collect contributions to (i dC/dk) ^ [r,H] C
+					for(int mu=0; mu<3; mu++) //d/dk i.e. r direction
+						if(edge.b[mu])
+						{	complex w_mu(0, -0.5 * edge.wb * edge.b[mu]);
+							for(int nu=0; nu<3; nu++) //[r,H] i.e. p direction
+								rrHmesh[i](mu, nu) += w_mu * Cj_rHcomm_Ci[nu];
+						}
+				}
+		}
+		Cother[qj] = 0; //free
+		//Print progress:
+		if((jReduced+1) % qInterval == 0)
+		{	logPrintf("%d%% ", int(round((jReduced+1)*100./qCount)));
+			logFlush();
+		};
+	}
+	Cother.clear();
+	logPrintf("done.\n"); logFlush();
+
+	//Collect local contributions in contiguous form:
+	int nCentersSq = nCenters * nCenters;
+	matrix RPwannierTilde = zeroes(nCentersSq*3*3, phase.nRows());
+	complex* RPdata = RPwannierTilde.dataPref();
+	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+	{	for(int iDir=0; iDir<3; iDir++)
+			for(int jDir=0; jDir<3; jDir++)
+			{	callPref(eblas_copy)(RPdata, rrHmesh[i](iDir, jDir).dataPref(), nCentersSq);
+				RPdata += nCentersSq;
+			}
+	}
+	
+	//Fourier transform to Wannier space and save:
+	dumpWannierized(RPwannierTilde, phase, "mlwfRP", realPartOnly, iSpin);
 }
 
 

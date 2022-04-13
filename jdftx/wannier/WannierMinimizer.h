@@ -188,6 +188,7 @@ private:
 	void saveMLWF_P(int iSpin, const matrix& phase); //Momenta
 	void saveMLWF_D(int iSpin, const matrix& phase); //Gradient
 	void saveMLWF_S(int iSpin, const matrix& phase); //Spins
+	void saveMLWF_RP(int iSpin, const matrix& phase); //R*P matrix elements
 	void saveMLWF_W(int iSpin, const matrix& phase); //Slab weights
 	void saveMLWF_Z(int iSpin, const matrix& phase); //z position operator
 	void saveMLWF(int iSpin, const matrix& phase, const ScalarFieldArray& w, string varName, bool suppressUnbound); //helper function for scalar field matrix elements (eg. slab and z)

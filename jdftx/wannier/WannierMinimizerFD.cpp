@@ -182,6 +182,28 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 		}
 	}
 	
+	//Find bidirectional edges for R*P output:
+	if(wannier.saveRP)
+	{	edges_bi = edges; //copy over edges initialized above
+		for(size_t i=0; i<kMesh.size(); i++)
+		{	//Add the reverse edges:
+			edges_bi[i].reserve(2 * wb.size());
+			for(unsigned j=0; j<wb.size(); j++)
+			{	Edge edge;
+				edge.wb = wb[j]; //same weight
+				edge.b = -b[j]; //reverse direction
+				//Find neighbour:
+				vector3<> kj = kMesh[i].point.k + inv(e.gInfo.GT) * edge.b;
+				edge.ik = plook.find(kj);
+				edge.point = kMesh[edge.ik].point;
+				edge.point.offset += round(kj - edge.point.k); //extra offset
+				edge.point.k = kj;
+				kpoints.insert(edge.point);
+				edges_bi[i].push_back(edge);
+			}
+		}
+	}
+	
 	//Create MPI communicators for rotations:
 	for(size_t i=0; i<kMesh.size(); i++)
 		if(ranksNeeded[i].size() //some communication is needed
