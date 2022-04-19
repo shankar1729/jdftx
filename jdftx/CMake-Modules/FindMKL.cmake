@@ -63,7 +63,7 @@ else()
 endif()
 
 
-if(EnableScaLAPACK AND (NOT ForceScaLAPACK))
+if(EnableScaLAPACK AND (NOT (ForceScaLAPACK OR BuiltinScaLAPACK)))
 	#Find the ScaLAPACK library:
 	find_library(MKL_SCALAPACK_LIBRARY NAMES mkl_scalapack_lp64 PATHS ${MKL_LIB_PATH})
 	
