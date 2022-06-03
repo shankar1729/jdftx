@@ -53,12 +53,12 @@ void DumpCprime::dump(Everything& e) const
 		}
 		if (needBerry){
 			BerryCurvature[q] = zeroes(nBands, nBands * 3);
+			const ColumnBundle Y[3] = { Cprime_i[0], Cprime_i[1], Cprime_i[2] };
 			for (int kDir = 0; kDir < 3; kDir++){
 				int iDir = (kDir + 1) % 3;
 				int jDir = (kDir + 2) % 3;
 				// BerryCurvature = i <dC/dk| X |dC/dk> = i <idC/dk| X |idC/dk>
-				const ColumnBundle Yi = 1.0 * Cprime_i[iDir], Yj = 1.0 * Cprime_i[jDir]; // copy ColumnBundle instead of move
-				matrix BerryCurvatureqk = complex(0,1) * ((Yi ^ Yj) - (Yj ^ Yi));
+				matrix BerryCurvatureqk = complex(0, 1) * ((Y[iDir] ^ Y[jDir]) - (Y[jDir] ^ Y[iDir]));
 				BerryCurvature[q].set(0, nBands, kDir*nBands, (kDir + 1)*e.eInfo.nBands, BerryCurvatureqk);
 			}
 		}
