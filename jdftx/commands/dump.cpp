@@ -187,7 +187,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpFermiVelocity,  "Fermi velocity, density of states at Fermi level and related quantities",
 	DumpL,              "Angular momentum matrix elements, only allowed at End (see command Cprime-params)",
 	DumpQ,              "Quadrupole r*p matrix elements, only allowed at End (see command Cprime-params)",
-	DumpBerry,          "Berry curvature i <dC/dk| X |dC/dk>, only allowed at End (see command Cprime-params)"
+	DumpBerry,          "Berry curvature i <dC/dk| X |dC/dk>, only allowed at End (see command Cprime-params)",
 	DumpSymmetries,     "List of symmetry matrices (in covariant lattice coordinates)",
 	DumpKpoints,        "List of reduced k-points in calculation, and mapping to the unreduced k-point mesh",
 	DumpGvectors,       "List of G vectors in reciprocal lattice basis, for each k-point",
