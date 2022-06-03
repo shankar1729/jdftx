@@ -35,18 +35,31 @@ void DumpCprime::dump(Everything& e) const
 	logPrintf("\n---- dC/dk calculation with dk = %lg a0^-1 and degeneracyThreshold = %le Eh ----\n", dk, degeneracyThreshold);
 	bool needL = e.dump.count(std::make_pair(DumpFreq_End, DumpL));
 	bool needQ = e.dump.count(std::make_pair(DumpFreq_End, DumpQ));
+	bool needBerry = e.dump.count(std::make_pair(DumpFreq_End, DumpBerry));
 	int nBands = e.eInfo.nBands;
 	
-	//Compute dC/dk, r*[r,H] moments and hence L or Q moments for each reduced k:
-	std::vector<matrix> L(e.eInfo.nStates), Q(e.eInfo.nStates);
+	//Compute dC/dk, Berry Curvature Omega_k = i <dC/dk| X |dC/dk>, r*[r,H] moments and hence L or Q moments for each reduced k:
+	std::vector<matrix> L(e.eInfo.nStates), Q(e.eInfo.nStates), BerryCurvature(e.eInfo.nStates);
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{	//Compute r*[r,H] moments using dC/dk:
-		matrix3<matrix> rrH;
+	{	//Compute dC/dk and r*[r,H] moments using dC/dk:
+		ColumnBundle Cprime_i[3]; matrix3<matrix> rrH;
 		for(int iDir=0; iDir<3; iDir++)
 		{	matrix CprimeOC;
-			ColumnBundle Cprime_i = getCprime(e, q, iDir, CprimeOC); //Compute idC/dk (effectively r*C)
-			matrix CprimeHC = CprimeOC * e.eVars.Hsub_eigs[q]; //since C are eigenvectors
-			rrH.set_row(iDir, e.iInfo.rHcommutator(Cprime_i, e.eVars.C[q], CprimeHC)); //effectively (r*C) ^ p . C
+			Cprime_i[iDir] = getCprime(e, q, iDir, CprimeOC); //Compute idC/dk (effectively r*C)
+			if (needL || needQ){
+				matrix CprimeHC = CprimeOC * e.eVars.Hsub_eigs[q]; //since C are eigenvectors
+				rrH.set_row(iDir, e.iInfo.rHcommutator(Cprime_i, e.eVars.C[q], CprimeHC)); //effectively (r*C) ^ p . C
+			}
+		}
+		if (needBerry){
+			BerryCurvature = zeroes(nBands, nBands * 3);
+			for (int kDir = 0; kDir < 3; kDir++){
+				int iDir = (kDir + 1) % 3;
+				int jDir = (kDir + 2) % 3;
+				// BerryCurvature = i <dC/dk| X |dC/dk> = i <idC/dk| X |idC/dk>
+				matrix BerryCurvatureqk = complex(0,1) * (Cprime_i[iDir] ^ Cprime_i[jDir] - Cprime_i[jDir] ^ Cprime_i[iDir]);
+				BerryCurvature[q].set(0, nBands, kDir*nBands, (kDir + 1)*e.eInfo.nBands, BerryCurvatureqk);
+			}
 		}
 		//Extract L if needed:
 		if(needL)
@@ -77,10 +90,17 @@ void DumpCprime::dump(Everything& e) const
 	logPrintf("\n---- dC/dk complete ----\n\n"); logFlush();
 
 	//Output L if requested:
+	if (needBerry)
+	{	string fname = e.dump.getFilename("BerryCurvature");
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		e.eInfo.write(BerryCurvature, fname.c_str(), nBands, nBands * 3);
+		logPrintf("done.\n");
+	}
+
 	if(needL)
 	{	string fname = e.dump.getFilename("L");
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-		e.eInfo.write(L, fname.c_str(), nBands, nBands*3);
+		e.eInfo.write(L, fname.c_str(), nBands, nBands * 3);
 		logPrintf("done.\n");
 	}
 
