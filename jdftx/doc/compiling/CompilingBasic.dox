@@ -1,6 +1,6 @@
 /** \page CompilingBasic Basic compilation
 
-Download the latest JDFTx source package from [GitHub](https://github.com/shankar1729/jdftx/releases)
+Download the latest JDFTx source package from [GitHub](https://github.com/shankar1729/jdftx/tags)
 into the directory where you want to install it (eg. /home/user/JDFTx), which we'll refer to as JDFTXDIR below.
 In a terminal, the following commands should unpack, configure and build jdftx:
 
