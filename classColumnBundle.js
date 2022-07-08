@@ -4,6 +4,7 @@ var classColumnBundle =
     [ "ColumnBundle", "classColumnBundle.html#ac761e5f17c0527caaf199a7e2d545b26", null ],
     [ "ColumnBundle", "classColumnBundle.html#ab1b7cd88ab6bc1c77da9587770c71c73", null ],
     [ "accumColumn", "classColumnBundle.html#a16e52bd2417e2ad6e80868a429112089", null ],
+    [ "axpySub", "classColumnBundle.html#aaa5bd2e47962ba9f537182bcc07d2150", null ],
     [ "colLength", "classColumnBundle.html#ad0e11cba70df9e74a466c17530e0cadd", null ],
     [ "free", "classColumnBundle.html#a720408a499181108d187c2d8a1323d8c", null ],
     [ "getColumn", "classColumnBundle.html#a9b0c9b468b17da0ade0ddeac9657a2fb", null ],

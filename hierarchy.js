@@ -52,6 +52,7 @@ var hierarchy =
     ] ],
     [ "NonlinearPCMeval::Dielectric", "structNonlinearPCMeval_1_1Dielectric.html", null ],
     [ "DOS", "classDOS.html", null ],
+    [ "DumpCprime", "structDumpCprime.html", null ],
     [ "DumpSelfInteractionCorrection", "classDumpSelfInteractionCorrection.html", null ],
     [ "WannierMinimizerFD::Edge", "structWannierMinimizerFD_1_1Edge.html", null ],
     [ "ElecGradient", "structElecGradient.html", null ],

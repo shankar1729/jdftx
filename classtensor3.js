@@ -2,6 +2,8 @@ var classtensor3 =
 [
     [ "tensor3", "classtensor3.html#a9fdbfd1bcb81c83f7a7cc94824ceea2d", null ],
     [ "tensor3", "classtensor3.html#a006b30f3397d947606be4a2ab491c341", null ],
+    [ "tensor3", "classtensor3.html#aa37fab9145f289912f7803ebbaf6d259", null ],
+    [ "operator matrix3< scalar >", "classtensor3.html#af434917415876ee8a29e1434087be661", null ],
     [ "operator[]", "classtensor3.html#a4f0add49247f57773e83a3f87874c133", null ],
     [ "operator[]", "classtensor3.html#a5714a0472d11d0ea96ba7dba6c05078d", null ],
     [ "xxr", "classtensor3.html#af0eca535f0c93457b86e5036db623d17", null ],

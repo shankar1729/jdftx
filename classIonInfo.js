@@ -22,6 +22,7 @@ var classIonInfo =
     [ "project", "classIonInfo.html#a7ed51c9eac106cfe4c68dcc8e28f9f75", null ],
     [ "projectGrad", "classIonInfo.html#a29502db0a32216cefc4c09296710aa86", null ],
     [ "rHcommutator", "classIonInfo.html#ab84c91f9893895894a271b1324461b65", null ],
+    [ "rHcommutator", "classIonInfo.html#a1641150909edd7c297058ead6789aa00", null ],
     [ "rhoAtom_calc", "classIonInfo.html#a12b819eae6863fc9b1a71aecea230af2", null ],
     [ "rhoAtom_computeU", "classIonInfo.html#a8de56bcbe81ddacd52f952b40cec806f", null ],
     [ "rhoAtom_forces", "classIonInfo.html#adf8678c231995eeb84a9c6540e22fb3c", null ],

@@ -104,10 +104,10 @@ $(document).ready(function(){initNavTree('CommandElecSmearing.html',''); initRes
 <div class="title">elec-smearing </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md153"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md156"></a>
 Syntax:</h2>
 <pre class="fragment">elec-smearing &lt;smearingType&gt;=Cold|Fermi|Gauss|MP1 &lt;smearingWidth&gt;
-</pre> <h2><a class="anchor" id="autotoc_md154"></a>
+</pre> <h2><a class="anchor" id="autotoc_md157"></a>
 Description:</h2>
 <p>Use variable electronic fillings using a smearing function selected by &lt;smearingType&gt;:</p><ul>
 <li>Cold : Use the cold smearing function <a class="el" href="citelist.html#CITEREF_ColdSmearing">[21]</a> to approximate zero temperature</li>
@@ -116,7 +116,7 @@ Description:</h2>
 <li>MP1 : Use an order-1 Methfessel-Paxton <a class="el" href="citelist.html#CITEREF_MP1">[23]</a> function for fillings</li>
 </ul>
 <p>with width set by &lt;smearingWidth&gt; in Hartrees. The width corresponds to kT (electronic temperature) for Fermi smearing, and sigma/2 for the remaining gaussian-based options: this convention results in roughly the same rate of k-point convergence for all smearing methods using the same width. However, the entropy contribution at the same width will follow the order Fermi &gt; Gauss &gt;&gt; (Cold, MP1).</p>
-<h2><a class="anchor" id="autotoc_md155"></a>
+<h2><a class="anchor" id="autotoc_md158"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandLcaoParams.html">lcao-params</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>

@@ -73,6 +73,7 @@ var group__Output =
       [ "chargedDefect", "classDump.html#a8d4f14ca5471a1b582c9fc6e882ef0cd", null ],
       [ "densityErange", "classDump.html#a09106dabf8b6940789e41a07914c774b", null ],
       [ "dos", "classDump.html#aafc647540ca070745e3b965bfa5fad55", null ],
+      [ "dumpCprime", "classDump.html#a095fa6bb7c8fd9860f0f320130560da6", null ],
       [ "electronScattering", "classDump.html#a88dbb9bd5b3da42b90658c106f249b85", null ],
       [ "fermiDensityLevels", "classDump.html#a9e0d16c900c77208b07aa25a89a8c98d", null ],
       [ "Munfold", "classDump.html#a9aaf9b3a63629b3c93e75143ee3a76ca", null ],
@@ -113,6 +114,14 @@ var group__Output =
       [ "rSigma", "structChargedDefect.html#ad291e816a9bce1d3b4c9f88e2b7b26d6", null ],
       [ "slabEpsFname", "structChargedDefect.html#a618e24db40cf37a59522c15878c252d2", null ]
     ] ],
+    [ "DumpCprime", "structDumpCprime.html", [
+      [ "DumpCprime", "structDumpCprime.html#ae3ee91f2c6481a95a8e1bdf1a06f0bdd", null ],
+      [ "dump", "structDumpCprime.html#a16d9d5d13537d1dd6221ed72dba945b3", null ],
+      [ "degeneracyThreshold", "structDumpCprime.html#ab47779542af00425e541f4029acaf28c", null ],
+      [ "dk", "structDumpCprime.html#a3cece2dfbb9376e586485b20df5e7a2b", null ],
+      [ "realSpaceTruncated", "structDumpCprime.html#ae08f2e1f86387ad2a535314eb445c785", null ],
+      [ "vThreshold", "structDumpCprime.html#a00e19e7cac668fb65b6ad5541ac472cb", null ]
+    ] ],
     [ "BGWparams", "structBGWparams.html", [
       [ "BGWparams", "structBGWparams.html#aadc06cb3cddecbfa646218300fad538a", null ],
       [ "blockSize", "structBGWparams.html#a980c67fd801aa759397eb96ee7fdcf97", null ],
@@ -127,6 +136,7 @@ var group__Output =
       [ "freqReStep_eV", "structBGWparams.html#a90a29064c17e736551ff2a0f4b99b426", null ],
       [ "nBandsDense", "structBGWparams.html#a29fe9072f5af47b22ffca7e565dc9643", null ],
       [ "q0", "structBGWparams.html#a1b10175bb6aa1918d3aeaeb5f007190b", null ],
+      [ "rpaExx", "structBGWparams.html#a7ad938857e431d12c63b4ebd4588aff2", null ],
       [ "saveVxx", "structBGWparams.html#a8478e4cce9586ecceb013dd16e0825b9", null ]
     ] ],
     [ "ElectronScattering", "structElectronScattering.html", [
@@ -279,6 +289,7 @@ var group__Output =
       [ "precond", "classWannier.html#a700c1f5b8331f22e53b9becb899b4d9c", null ],
       [ "rSmooth", "classWannier.html#a44df300a5c7e4bdae38a7dec785bc310", null ],
       [ "saveMomenta", "classWannier.html#a91db9d0742e6e012b2f6af22776b28f8", null ],
+      [ "saveRP", "classWannier.html#a5c46f3434e822df70b1c146884dd2067", null ],
       [ "saveSpin", "classWannier.html#a5aa878e27ad0f5593d4fa9496e7286ac", null ],
       [ "saveWfns", "classWannier.html#a75493237f96463466af51f1a6fe077c6", null ],
       [ "saveWfnsRealSpace", "classWannier.html#a9227b89e50bb5853456aab646572e8b5", null ],
@@ -396,6 +407,7 @@ var group__Output =
       [ "initialize", "classWannierMinimizerFD.html#a3884ed1535d4210b69d1ebd02c12113d", null ],
       [ "precondition", "classWannierMinimizerFD.html#abe0a4f6bb6679827f1e1c2187169075e", null ],
       [ "edges", "classWannierMinimizerFD.html#afc57dc943ae34773b9f938c4ab9f7b74", null ],
+      [ "edges_bi", "classWannierMinimizerFD.html#a36b7e1a3dc22ff6d38459388ba4bed1f", null ],
       [ "kHelmholtzInv", "classWannierMinimizerFD.html#a7fc39ac579b00c43237c8b8263f5820e", null ]
     ] ],
     [ "WannierMinimizerRS", "classWannierMinimizerRS.html", [

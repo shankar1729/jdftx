@@ -49,6 +49,7 @@ var annotated_dup =
     [ "diagMatrix", "classdiagMatrix.html", "classdiagMatrix" ],
     [ "DOS", "classDOS.html", "classDOS" ],
     [ "Dump", "classDump.html", "classDump" ],
+    [ "DumpCprime", "structDumpCprime.html", "structDumpCprime" ],
     [ "DumpSelfInteractionCorrection", "classDumpSelfInteractionCorrection.html", "classDumpSelfInteractionCorrection" ],
     [ "EdiffCheck", "classEdiffCheck.html", "classEdiffCheck" ],
     [ "ElecGradient", "structElecGradient.html", "structElecGradient" ],

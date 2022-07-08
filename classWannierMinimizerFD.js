@@ -7,5 +7,6 @@ var classWannierMinimizerFD =
     [ "initialize", "classWannierMinimizerFD.html#a3884ed1535d4210b69d1ebd02c12113d", null ],
     [ "precondition", "classWannierMinimizerFD.html#abe0a4f6bb6679827f1e1c2187169075e", null ],
     [ "edges", "classWannierMinimizerFD.html#afc57dc943ae34773b9f938c4ab9f7b74", null ],
+    [ "edges_bi", "classWannierMinimizerFD.html#a36b7e1a3dc22ff6d38459388ba4bed1f", null ],
     [ "kHelmholtzInv", "classWannierMinimizerFD.html#a7fc39ac579b00c43237c8b8263f5820e", null ]
 ];

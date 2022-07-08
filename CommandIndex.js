@@ -1,17 +1,17 @@
 var CommandIndex =
 [
-    [ "Input file format", "Commands.html#autotoc_md387", null ],
-    [ "Commands allowed in jdftx input files", "Commands.html#autotoc_md388", [
-      [ "%Coulomb interactions", "Commands.html#autotoc_md389", null ],
-      [ "%Electronic", "Commands.html#autotoc_md390", null ],
-      [ "%Fluid", "Commands.html#autotoc_md391", null ],
-      [ "%Initialization", "Commands.html#autotoc_md392", null ],
-      [ "%Ionic", "Commands.html#autotoc_md393", null ],
-      [ "%Miscellaneous", "Commands.html#autotoc_md394", null ],
-      [ "%Output", "Commands.html#autotoc_md395", null ]
+    [ "Input file format", "Commands.html#autotoc_md390", null ],
+    [ "Commands allowed in jdftx input files", "Commands.html#autotoc_md391", [
+      [ "%Coulomb interactions", "Commands.html#autotoc_md392", null ],
+      [ "%Electronic", "Commands.html#autotoc_md393", null ],
+      [ "%Fluid", "Commands.html#autotoc_md394", null ],
+      [ "%Initialization", "Commands.html#autotoc_md395", null ],
+      [ "%Ionic", "Commands.html#autotoc_md396", null ],
+      [ "%Miscellaneous", "Commands.html#autotoc_md397", null ],
+      [ "%Output", "Commands.html#autotoc_md398", null ]
     ] ],
-    [ "Additional commands in phonon input files", "Commands.html#autotoc_md396", null ],
-    [ "Additional commands in wannier input files", "Commands.html#autotoc_md397", null ],
+    [ "Additional commands in phonon input files", "Commands.html#autotoc_md399", null ],
+    [ "Additional commands in wannier input files", "Commands.html#autotoc_md400", null ],
     [ "add-U", "CommandAddU.html", null ],
     [ "band-unfold", "CommandBandUnfold.html", null ],
     [ "barostat-velocity", "CommandBarostatVelocity.html", null ],
@@ -29,6 +29,7 @@ var CommandIndex =
     [ "coulomb-interaction", "CommandCoulombInteraction.html", null ],
     [ "coulomb-truncation-embed", "CommandCoulombTruncationEmbed.html", null ],
     [ "coulomb-truncation-ion-margin", "CommandCoulombTruncationIonMargin.html", null ],
+    [ "Cprime-params", "CommandCprimeParams.html", null ],
     [ "davidson-band-ratio", "CommandDavidsonBandRatio.html", null ],
     [ "debug", "CommandDebug.html", null ],
     [ "defect-supercell", "CommandDefectSupercell.html", null ],

@@ -205,6 +205,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#ab84c91f9893895894a271b1324461b65">rHcommutator</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, int iDir, const <a class="el" href="classmatrix.html">matrix</a> &amp;YdagHY) const</td></tr>
 <tr class="memdesc:ab84c91f9893895894a271b1324461b65"><td class="mdescLeft">&#160;</td><td class="mdescRight">Expectation value of [r_iDir,H] = D_iDir + nonlocal corrections. <br /></td></tr>
 <tr class="separator:ab84c91f9893895894a271b1324461b65"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1641150909edd7c297058ead6789aa00"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classvector3.html">vector3</a>&lt; <a class="el" href="classmatrix.html">matrix</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a1641150909edd7c297058ead6789aa00">rHcommutator</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y1, const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y2, const <a class="el" href="classmatrix.html">matrix</a> &amp;H12) const</td></tr>
+<tr class="separator:a1641150909edd7c297058ead6789aa00"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2030c0d35ab6e1035039acda0a386c6c"><td class="memItemLeft" align="right" valign="top"><a id="a2030c0d35ab6e1035039acda0a386c6c"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a2030c0d35ab6e1035039acda0a386c6c">nAtomicOrbitals</a> () const</td></tr>
 <tr class="memdesc:a2030c0d35ab6e1035039acda0a386c6c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get total number of atomic orbitals. <br /></td></tr>
@@ -386,6 +388,41 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>shouldPrintForceCompo
       </table>
 </div><div class="memdoc">
 <p>Return the total (free) energy and update the ionic gradient in <a class="el" href="classIonInfo.html#a9878631a33ae059352c4a61ef2f14340" title="forces at current atomic positions in latice coordinates">IonInfo::forces</a> If <a class="el" href="classIonInfo.html#aeec6ad80dc3445ba75890620acc5d412" title="flag to control whether ionicEnergyAndGrad() computes the stress tensor in addition to forces">IonInfo::computeStress</a> = true, also update the lattice gradient in <a class="el" href="classIonInfo.html#a804b55006dbb912b0317ebda63097812" title="stresses at current lattice geometry in Eh/a0^3 (only calculated if optimizing lattice or dumping str...">IonInfo::stress</a> </p>
+
+</div>
+</div>
+<a id="a1641150909edd7c297058ead6789aa00"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1641150909edd7c297058ead6789aa00">&#9670;&nbsp;</a></span>rHcommutator()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classvector3.html">vector3</a>&lt;<a class="el" href="classmatrix.html">matrix</a>&gt; IonInfo::rHcommutator </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;&#160;</td>
+          <td class="paramname"><em>Y1</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;&#160;</td>
+          <td class="paramname"><em>Y2</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classmatrix.html">matrix</a> &amp;&#160;</td>
+          <td class="paramname"><em>H12</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Expectation value of [r_iDir,H] = D_iDir + nonlocal corrections between different wavefunctions. Here, H12 = Y1 ^ H(Y2) is needed for ultrasoft overlap-augmentation corrections. Return a result for each Cartesian direction. </p>
 
 </div>
 </div>

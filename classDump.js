@@ -15,6 +15,7 @@ var classDump =
     [ "chargedDefect", "classDump.html#a8d4f14ca5471a1b582c9fc6e882ef0cd", null ],
     [ "densityErange", "classDump.html#a09106dabf8b6940789e41a07914c774b", null ],
     [ "dos", "classDump.html#aafc647540ca070745e3b965bfa5fad55", null ],
+    [ "dumpCprime", "classDump.html#a095fa6bb7c8fd9860f0f320130560da6", null ],
     [ "electronScattering", "classDump.html#a88dbb9bd5b3da42b90658c106f249b85", null ],
     [ "fermiDensityLevels", "classDump.html#a9e0d16c900c77208b07aa25a89a8c98d", null ],
     [ "Munfold", "classDump.html#a9aaf9b3a63629b3c93e75143ee3a76ca", null ],

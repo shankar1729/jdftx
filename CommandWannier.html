@@ -104,11 +104,11 @@ $(document).ready(function(){initNavTree('CommandWannier.html',''); initResizabl
 <div class="title">wannier </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md369"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md372"></a>
 Syntax:</h2>
 <pre class="fragment">wannier &lt;key1&gt; &lt;args1...&gt;  &lt;key2&gt; &lt;args2...&gt;  ...
 </pre><p> <b>Note:</b> only available in calculations using the 'wannier' executable. </p>
-<h2><a class="anchor" id="autotoc_md370"></a>
+<h2><a class="anchor" id="autotoc_md373"></a>
 Description:</h2>
 <p>Control calculation and output of maximally-localized <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions.">Wannier</a> functions <a class="el" href="citelist.html#CITEREF_MLWF">[20]</a>. The possible &lt;key&gt;'s and their corresponding arguments are:</p>
 <ul>
@@ -138,10 +138,13 @@ Description:</h2>
 <p class="startli">Whether to write supercell wavefunctions band-by-band in real space (can be enormous). Default: no.</p>
 </li>
 <li><p class="startli">saveMomenta yes|no</p>
-<p class="startli">Whether to write momentum matrix elements in the same format as Hamiltonian. The output is real and antisymmetric (drops the iota so as to half the output size). Default: no.</p>
+<p class="startli">Whether to write momentum matrix elements in the same format as Hamiltonian. The output is real and antisymmetric, i.e. it is [r,H] instead of p. Default: no.</p>
 </li>
 <li><p class="startli">saveSpin yes|no</p>
 <p class="startli">Whether to write spin matrix elements (for non-collinear calculations only). Default: no.</p>
+</li>
+<li><p class="startli">saveRP yes|no</p>
+<p class="startli">Whether to write R*P matrix elements for calculation of angular momentum and electric quadrupole matrix elements in post-processing. Note that the position R here is the only short-ranged part; longer-ranged contributions from derivative of <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions.">Wannier</a> rotations need to be added after <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions.">Wannier</a> interpolation. The output drops a factor of (-i) to make it real when possible, i.e. it actually corresponds to R*[R,H] instead of R*P. Default: no.</p>
 </li>
 <li><p class="startli">saveZ &lt;Vfilename&gt; &lt;Emag&gt;</p>
 <p class="startli">If specified, output matrix elements of z for perturbative electric field in post processing. &lt;Vfilename&gt; is Vscloc output from a calculation with an applied electric field, and it should be in the <a class="el" href="CommandDumpName.html">dump-name</a> format contain $VAR (as in command <a class="el" href="CommandFixElectronPotential.html">fix-electron-potential</a>). &lt;Emag&gt; is the magnitude of the difference in electric field (in Eh/a0) between that calculation and the present case. This combination is used to compute the matrix element accounting for static local field effects due to the response of the system to the electric field. Alternately, specify &lt;Vfilename&gt;=Ramp and &lt;Emag&gt;=0 to use a ramp potential (no local field). Default: no.</p>
@@ -174,7 +177,7 @@ Description:</h2>
 <p class="startli">Whether to include polar contribution subtractions in electron-phonon matrix elements. Requires files 'totalE.Zeff' containing Born effective charges and 'totalE.epsInf' containing optical dielectric tensor computed externally. Default: false.</p>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md371"></a>
+<h2><a class="anchor" id="autotoc_md374"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandCoulombInteraction.html">coulomb-interaction</a> &#160;&#160;&#160; <a class="el" href="CommandSpintype.html">spintype</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>

@@ -58,6 +58,8 @@ var Dump_8h =
       [ "DumpMomenta", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7ad4a17203402b7598b18b5ab7c394a09a", null ],
       [ "DumpVelocities", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a846eebc4b77c61e71cbef10ac2eeb39b", null ],
       [ "DumpFermiVelocity", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a2bb7b06f31b2cd3761bf32452f9ece52", null ],
+      [ "DumpL", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a3b87ad71f64402dffeb9878f8ace9799", null ],
+      [ "DumpQ", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a39eda1623d7269c33c93cdddf9dcdcbe", null ],
       [ "DumpSymmetries", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a6cc54b125c6f6db38e24c2182add7528", null ],
       [ "DumpKpoints", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a6f50699b8636fd67b1250fbb93e55be0", null ],
       [ "DumpGvectors", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7aa2c7e5e11eb0cc0d9b44853c93c0b2ec", null ],

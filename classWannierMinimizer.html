@@ -104,6 +104,7 @@ $(document).ready(function(){initNavTree('classWannierMinimizer.html',''); initR
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pro-methods">Protected Member Functions</a> &#124;
+<a href="#pro-static-methods">Static Protected Member Functions</a> &#124;
 <a href="#pro-attribs">Protected Attributes</a> &#124;
 <a href="#friends">Friends</a> &#124;
 <a href="classWannierMinimizer-members.html">List of all members</a>  </div>
@@ -230,6 +231,11 @@ virtual <a class="el" href="structWannierGradient.html">WannierGradient</a>&#160
 <tr class="memdesc:a8281596e4fd572db8baca31aad57328d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Preconditioner for <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions.">Wannier</a> optimization: identity by default, override in derived class to change. <br /></td></tr>
 <tr class="separator:a8281596e4fd572db8baca31aad57328d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-static-methods"></a>
+Static Protected Member Functions</h2></td></tr>
+<tr class="memitem:ad9e72e264f748b9d307b914d47d9f24e"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannierMinimizer.html#ad9e72e264f748b9d307b914d47d9f24e">fixUnitary</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;U, bool *isSingular=0)</td></tr>
+<tr class="separator:ad9e72e264f748b9d307b914d47d9f24e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
 <tr class="memitem:a6b6e0efb5dede1793722142b5bdc6243"><td class="memItemLeft" align="right" valign="top"><a id="a6b6e0efb5dede1793722142b5bdc6243"></a>
@@ -355,6 +361,43 @@ struct&#160;</td><td class="memItemRight" valign="bottom"><b>WannierGradient</b>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Base class for different wannier minimizers: </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="ad9e72e264f748b9d307b914d47d9f24e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad9e72e264f748b9d307b914d47d9f24e">&#9670;&nbsp;</a></span>fixUnitary()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static <a class="el" href="classmatrix.html">matrix</a> WannierMinimizer::fixUnitary </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classmatrix.html">matrix</a> &amp;&#160;</td>
+          <td class="paramname"><em>U</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool *&#160;</td>
+          <td class="paramname"><em>isSingular</em> = <code>0</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return an exactly unitary version of U (orthogonalize columns) If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases. </p>
+
+</div>
+</div>
 <a id="a3f39b4c9e5f72211097b1dd2c6314f7a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3f39b4c9e5f72211097b1dd2c6314f7a">&#9670;&nbsp;</a></span>getOmega()</h2>
 

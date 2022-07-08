@@ -13,5 +13,6 @@ var structBGWparams =
     [ "freqReStep_eV", "structBGWparams.html#a90a29064c17e736551ff2a0f4b99b426", null ],
     [ "nBandsDense", "structBGWparams.html#a29fe9072f5af47b22ffca7e565dc9643", null ],
     [ "q0", "structBGWparams.html#a1b10175bb6aa1918d3aeaeb5f007190b", null ],
+    [ "rpaExx", "structBGWparams.html#a7ad938857e431d12c63b4ebd4588aff2", null ],
     [ "saveVxx", "structBGWparams.html#a8478e4cce9586ecceb013dd16e0825b9", null ]
 ];
