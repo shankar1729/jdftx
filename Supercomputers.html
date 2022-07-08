@@ -110,13 +110,14 @@ Compiling on NERSC Perlmutter</h2>
 module load cmake cray-fftw
 module load cudatoolkit/11.2
 module load gcc/10.3.0
+module load gsl
 export CRAY_ACCEL_TARGET=nvidia80  # needed for CUDA-aware MPI support
 
 CC=cc CXX=CC cmake \
         -D EnableProfiling=yes \
         -D FFTW3_PATH=${FFTW_ROOT} \
-        -D GSL_PATH=${HOME}/Code/perlmutter/GSL \
-        -D CBLAS_LIBRARY=${HOME}/Code/perlmutter/GSL/lib/libgslcblas.so \
+        -D GSL_PATH=${GSL_ROOT} \
+        -D CBLAS_LIBRARY=${GSL_ROOT}/lib/libgslcblas.so \
         -D EnableCUDA=yes \
         -D EnableCuSolver=yes \
         -D CudaAwareMPI=yes \
@@ -127,14 +128,8 @@ CC=cc CXX=CC cmake \
         -D EXTRA_CXX_FLAGS="-DDONT_FINALIZE_MPI -L/opt/cray/pe/lib64 -lsci_gnu_82" \
         -D CMAKE_LIBRARY_PATH="${LD_LIBRARY_PATH//:/;}" \
         ../jdftx-git/jdftx
-</pre><p>If you put the above in a script file, make sure to source it (rather than run it) because the CRAY_ACCEL_TARGET export needs to be set during make as well. Note that the GSL module on Perlmutter (at the time of writing this) is not compatible with the compiler versions needed for cuda. Consequently, you need to compile the GNU Scientific Library within some path inidicated as ${GSL_ROOT} above. Fetch the latest GSL source code, extract it and within the source directory: </p><pre class="fragment">#Compile GSL with same compiler versions as needed for JDFTx
-module load PrgEnv-gnu
-module load gcc/9.3.0
-./configure CC=cc CXX=CC FC=ftn --enable-shared --prefix=${GSL_ROOT}
-make -j32
-make install
-</pre><p> Do this first and then use the same ${GSL_ROOT} in the jdftx cmake command above.</p>
-<p>When running jobs on perlmutter, make sure the same modules are loaded (four module load lines in the compile script above) before launching a job. Here's an example job script using two nodes with four GPUs each: </p><pre class="fragment">#!/bin/bash
+</pre><p>If you put the above in a script file, make sure to source it (rather than run it) because the CRAY_ACCEL_TARGET export needs to be set during make as well.</p>
+<p>When running jobs on perlmutter, make sure the same modules are loaded (module load lines in the compile script above) before launching a job. Here's an example job script using two nodes with four GPUs each: </p><pre class="fragment">#!/bin/bash
 #SBATCH -A account_g      # replace with valid account
 #SBATCH -t 10             # replace with suitable time limit
 #SBATCH -C gpu
