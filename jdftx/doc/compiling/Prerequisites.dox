@@ -1,6 +1,6 @@
 /** \page Prerequisites Prerequisites
 
-JDFTx is distributed as [source packages](https://github.com/shankar1729/jdftx/releases),
+JDFTx is distributed as [source packages](https://github.com/shankar1729/jdftx/tags),
 or for development via [git](https://github.com/shankar1729/jdftx),
 and requires a POSIX-compatible environment and a C++11 compiler
 to install and get running.
