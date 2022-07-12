@@ -767,7 +767,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		F = Forig; //restore fillings
 	}
 	
-	if(freq==DumpFreq_End and (ShouldDump(L) or ShouldDump(Q)))
+	if(freq==DumpFreq_End and (ShouldDump(L) or ShouldDump(Q) or ShouldDump(Berry)))
 	{	if(!dumpCprime) dumpCprime = std::make_shared<DumpCprime>(); //default parameters
 		dumpCprime->dump((Everything&)*e);
 	}
