@@ -610,29 +610,30 @@ double ExactExchangeEval::computePair(int ikReduced, int iqReduced, size_t& prog
 				std::vector<complexScalarField> Ipsik(nSpinor);
 				for(int s=0; s<nSpinor; s++)
 					Ipsik[s] = I(Ck.getColumn(0,s));
-				double wFk = qnum_k.weight * (rpaMode ? 1. : Fk[bk]);
+				double wFk = qnum_k.weight * Fk[bk];
 				//Loop over q-bands within block:
 				for(int bq=bqStart; bq<bqStop; bq++)
 				{	double wFq = qnum_q.weight * Fq[bq];
+					double wFprod = wFk * wFq;
 					if(rpaMode)
-						wFq -= qnum_q.weight * (
+						wFprod += (qnum_k.weight * qnum_q.weight) * (
 							Hsub_eigsk->at(bk) < Hsub_eigsq->at(bq)
 							? Fq[bq] * (1. - Fk[bk]) //Ek < Eq => fk > fq => fmin = fq, fmax = fk
 							: Fk[bk] * (1. - Fq[bq]) //Ek > Eq => fq > fk => fmin = fk, fmax = fq
 						);
-					if(!wFk && !wFq) continue; //at least one of the orbitals must be occupied
+					if(!wFprod) continue; //at least one of the orbitals must be occupied
 					complexScalarField In; //state pair density
 					for(int s=0; s<nSpinor; s++)
 						In += conj(Ipsik[s]) * Ipsiq[bq-bqStart][s];
 					complexScalarFieldTilde n = J(In);
 					complexScalarFieldTilde Kn = O((*e.coulombWfns)(n, qnum_q.k-qnum_k.k, omega)); //Electrostatic potential due to n
-					EXX += (prefac*wFk*wFq) * dot(n,Kn).real();
+					EXX += (prefac*wFprod) * dot(n,Kn).real();
 					if(HCq)
 					{	complexScalarField E_In = Jdag(Kn);
 						for(int s=0; s<nSpinor; s++)
 							grad_Ipsiq[bq-bqStart][s] += (2.*prefac*wFk) * E_In * Ipsik[s]; //factor of 2 to count grad_Ipsik using Hermitian symmetry
 					}
-					if(EXX_RRT) *EXX_RRT += (prefac*wFk*wFq) * e.coulombWfns->latticeGradient(n, qnum_q.k-qnum_k.k, omega); //Stress contribution
+					if(EXX_RRT) *EXX_RRT += (prefac*wFprod) * e.coulombWfns->latticeGradient(n, qnum_q.k-qnum_k.k, omega); //Stress contribution
 				}
 			}
 		}
