@@ -621,7 +621,7 @@ double ExactExchangeEval::computePair(int ikReduced, int iqReduced, size_t& prog
 							? Fq[bq] * (1. - Fk[bk]) //Ek < Eq => fk > fq => fmin = fq, fmax = fk
 							: Fk[bk] * (1. - Fq[bq]) //Ek > Eq => fq > fk => fmin = fk, fmax = fq
 						);
-					if(!wFprod) continue; //at least one of the orbitals must be occupied
+					if(!wFk && !wFq) continue; //at least one of the orbitals must be occupied
 					complexScalarField In; //state pair density
 					for(int s=0; s<nSpinor; s++)
 						In += conj(Ipsik[s]) * Ipsiq[bq-bqStart][s];
