@@ -36,7 +36,7 @@ void Dump::dumpBGW()
 	if(bgwParams->saveVxx)
 		bgw.writeVxx();
 	if(bgwParams->rpaExx)
-	{	double EXX_RPA = (*e->exx)(1., 0., e->eVars.F, e->eVars.C, NULL, NULL, true);
+	{	double EXX_RPA = (*e->exx)(1., 0., e->eVars.F, e->eVars.C, NULL, NULL, true, &e->eVars.Hsub_eigs);
 		logPrintf("\n EXX(RPA) = %25.16lf\n\n", EXX_RPA);
 		logFlush();
 	}
