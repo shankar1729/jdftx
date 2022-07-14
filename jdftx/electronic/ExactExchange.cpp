@@ -586,7 +586,7 @@ double ExactExchangeEval::computePair(int ikReduced, int iqReduced, size_t& prog
 				std::vector<complexScalarField> Ipsik(nSpinor);
 				for(int s=0; s<nSpinor; s++)
 					Ipsik[s] = I(Ck.getColumn(0,s));
-				double wFk = qnum_k.weight * Fk[bk];
+				double wFk = qnum_k.weight * (rpaMode ? 1. : Fk[bk]);
 				//Loop over q-bands within block:
 				for(int bq=bqStart; bq<bqStop; bq++)
 				{	double wFq = qnum_q.weight * Fq[bq];
