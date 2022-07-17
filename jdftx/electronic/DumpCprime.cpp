@@ -138,7 +138,7 @@ ColumnBundle DumpCprime::getCprime(Everything& e, int q, int iDir, matrix& Cprim
 	else std::swap(ei, e.coulombParams.Efield); //restore Efield
 	//Handle periodic case via dC/dk:
 	vector3<> dkVec = inv(e.gInfo.GT).column(iDir) * dk; //fractional k perturbation
-	matrix Vi = complex(0,-1) * e.iInfo.rHcommutator(e.eVars.C[q], iDir, e.eVars.Hsub_eigs[q]); //velocity matrix
+	matrix Vi = dagger_symmetrize(complex(0,-1) * e.iInfo.rHcommutator(e.eVars.C[q], iDir, e.eVars.Hsub_eigs[q])); //velocity matrix
 	matrix CpOC, CmOC;
 	ColumnBundle Cp = getCpert(e, q, dkVec, dk * Vi, CpOC);
 	ColumnBundle Cm = getCpert(e, q, -dkVec, -dk * Vi, CmOC);
