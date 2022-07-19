@@ -87,7 +87,7 @@ WignerSeitz::WignerSeitz(const matrix3<>& R)
 		}
 	
 	//Slice the current zone in increasing order of point distance:
-	for(const std::pair<double, vector3<int> >& ivMapEntry: ivMap)
+	for(const std::pair<const double, vector3<int> >& ivMapEntry: ivMap)
 	{	if(ivMapEntry.first > 4*rMaxSq) break; //in that case bisector cannot touch surface
 		//Slice with plane:
 		addPlane(ivMapEntry.second);

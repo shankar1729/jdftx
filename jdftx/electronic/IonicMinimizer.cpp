@@ -165,7 +165,7 @@ IonicMinimizer::IonicMinimizer(Everything& e, bool dynamicsMode)
 : e(e), populationAnalysisPending(false), skipWfnsDrag(false), dynamicsMode(dynamicsMode)
 {	//Check if any atoms constrained:
 	anyConstrained = false;
-	for(const auto sp: e.iInfo.species)
+	for(const auto& sp: e.iInfo.species)
 		for(const auto& constraint: sp->constraints)
 			if((constraint.getDimension()<3)
 				|| (constraint.type==SpeciesInfo::Constraint::HyperPlane))
