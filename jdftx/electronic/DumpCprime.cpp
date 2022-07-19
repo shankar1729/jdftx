@@ -33,20 +33,36 @@ DumpCprime::DumpCprime(double dk, double degeneracyThreshold, double vThreshold,
 void DumpCprime::dump(Everything& e) const
 {
 	logPrintf("\n---- dC/dk calculation with dk = %lg a0^-1 and degeneracyThreshold = %le Eh ----\n", dk, degeneracyThreshold);
+	bool needBerry = e.dump.count(std::make_pair(DumpFreq_End, DumpBerry));
 	bool needL = e.dump.count(std::make_pair(DumpFreq_End, DumpL));
 	bool needQ = e.dump.count(std::make_pair(DumpFreq_End, DumpQ));
 	int nBands = e.eInfo.nBands;
 	
-	//Compute dC/dk, r*[r,H] moments and hence L or Q moments for each reduced k:
-	std::vector<matrix> L(e.eInfo.nStates), Q(e.eInfo.nStates);
+	//Compute dC/dk, Berry Curvature Omega_k = i <dC/dk| X |dC/dk>, r*[r,H] moments and hence L or Q moments for each reduced k:
+	std::vector<matrix> L(e.eInfo.nStates), Q(e.eInfo.nStates), BerryCurvature(e.eInfo.nStates);
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{	//Compute r*[r,H] moments using dC/dk:
+	{	//Compute dC/dk, and r*[r,H] moments using dC/dk if needed:
+		ColumnBundle Cprime[3];
 		matrix3<matrix> rrH;
 		for(int iDir=0; iDir<3; iDir++)
 		{	matrix CprimeOC;
 			ColumnBundle Cprime_i = getCprime(e, q, iDir, CprimeOC); //Compute idC/dk (effectively r*C)
-			matrix CprimeHC = CprimeOC * e.eVars.Hsub_eigs[q]; //since C are eigenvectors
-			rrH.set_row(iDir, e.iInfo.rHcommutator(Cprime_i, e.eVars.C[q], CprimeHC)); //effectively (r*C) ^ p . C
+			if(needBerry) Cprime[iDir] = Cprime_i; //only store if cross-terms needed (eg. for Berry curvature)
+			if(needL or needQ)
+			{	matrix CprimeHC = CprimeOC * e.eVars.Hsub_eigs[q]; //since C are eigenvectors
+				rrH.set_row(iDir, e.iInfo.rHcommutator(Cprime_i, e.eVars.C[q], CprimeHC)); //effectively (r*C) ^ p . C
+			}
+		}
+		//Compute Berry curvature if needed:
+		if (needBerry)
+		{	BerryCurvature[q] = zeroes(nBands, nBands * 3);
+			for (int kDir = 0; kDir < 3; kDir++)
+			{	int iDir = (kDir + 1) % 3;
+				int jDir = (kDir + 2) % 3;
+				matrix BerryCurvature_qk = complex(0, 1) * (Cprime[iDir] ^ O(Cprime[jDir])); // i <dC/dki | dC/dkj>
+				BerryCurvature_qk += dagger(BerryCurvature_qk); // -i <dC/dkj | dC/dki>
+				BerryCurvature[q].set(0, nBands, kDir*nBands, (kDir + 1)*e.eInfo.nBands, BerryCurvature_qk);
+			}
 		}
 		//Extract L if needed:
 		if(needL)
@@ -76,11 +92,19 @@ void DumpCprime::dump(Everything& e) const
 	}
 	logPrintf("\n---- dC/dk complete ----\n\n"); logFlush();
 
+	//Output Berry curvature if requested:
+	if (needBerry)
+	{	string fname = e.dump.getFilename("BerryCurvature");
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		e.eInfo.write(BerryCurvature, fname.c_str(), nBands, nBands * 3);
+		logPrintf("done.\n");
+	}
+
 	//Output L if requested:
 	if(needL)
 	{	string fname = e.dump.getFilename("L");
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-		e.eInfo.write(L, fname.c_str(), nBands, nBands*3);
+		e.eInfo.write(L, fname.c_str(), nBands, nBands * 3);
 		logPrintf("done.\n");
 	}
 
@@ -114,7 +138,7 @@ ColumnBundle DumpCprime::getCprime(Everything& e, int q, int iDir, matrix& Cprim
 	else std::swap(ei, e.coulombParams.Efield); //restore Efield
 	//Handle periodic case via dC/dk:
 	vector3<> dkVec = inv(e.gInfo.GT).column(iDir) * dk; //fractional k perturbation
-	matrix Vi = complex(0,-1) * e.iInfo.rHcommutator(e.eVars.C[q], iDir, e.eVars.Hsub_eigs[q]); //velocity matrix
+	matrix Vi = dagger_symmetrize(complex(0,-1) * e.iInfo.rHcommutator(e.eVars.C[q], iDir, e.eVars.Hsub_eigs[q])); //velocity matrix
 	matrix CpOC, CmOC;
 	ColumnBundle Cp = getCpert(e, q, dkVec, dk * Vi, CpOC);
 	ColumnBundle Cm = getCpert(e, q, -dkVec, -dk * Vi, CmOC);

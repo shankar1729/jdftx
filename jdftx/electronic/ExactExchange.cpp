@@ -56,13 +56,15 @@ public:
 	//! Calculate exchange operator and return energy
 	double compute(double aXX, double omega,
 		const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-		std::vector<ColumnBundle>* HC=0, matrix3<>* EXX_RRT=0, bool rpaMode=false) const;
+		std::vector<ColumnBundle>* HC=0, matrix3<>* EXX_RRT=0,
+		bool rpaMode=false, const std::vector<diagMatrix>* Hsub_eigs=0) const;
 	
 	//! Calculate exchange contributions for one pair of transformed ik and untransformed iq.
 	//! Gradients are only accumulated to untransformed iq, taking advantage of Hermitian symmetry of exchange operator.
 	double computePair(int ikReduced, int iqReduced, size_t& progress, size_t& progressTarget, double aXX, double omega,
 		const diagMatrix& Fk, const ColumnBundle& CkRed, const diagMatrix& Fq, const ColumnBundle& Cq,
-		ColumnBundle* HCq, matrix3<>* EXX_RRT=0, bool rpaMode=false) const;
+		ColumnBundle* HCq, matrix3<>* EXX_RRT=0,
+		bool rpaMode=false, const diagMatrix* Hsub_eigsk=0, const diagMatrix* Hsub_eigsq=0) const;
 	
 private:
 	friend class ExactExchange;
@@ -79,7 +81,7 @@ private:
 	{	int iqReduced; //index into reduced q mesh (without spin)
 		int bStart, bStop; //start and stop indices of current chunk within original wavefunctions
 		ColumnBundle Cq, HCq; //chunk of wavefunctions and gradients to be processed
-		diagMatrix Fq; //corresponding occupations
+		diagMatrix Fq, Hsub_eigsq; //corresponding occupations, and only in RPA mode, eigenvalues
 	};
 	std::vector<std::vector<LocalState>> localStates; //local state descriptions on each process
 	std::vector<LocalState>& localStatesMine; //reference to local state on this process
@@ -100,7 +102,8 @@ ExactExchange::~ExactExchange()
 
 double ExactExchange::operator()(double aXX, double omega, 
 	const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr, bool rpaMode) const
+	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr,
+	bool rpaMode, const std::vector<diagMatrix>* Hsub_eigs) const
 {
 	if((omega == eval->omegaACE) and (not (EXX_RRTptr or rpaMode)))
 	{	//Use previously initialized ACE representation
@@ -116,7 +119,7 @@ double ExactExchange::operator()(double aXX, double omega,
 	else
 	{	//Compute full operator (if no ACE ready, or need lattice gradient / in RPA mode):
 		logPrintf("Computing exact exchange ... "); logFlush();
-		double EXX = eval->compute(aXX, omega, F, C, HC, EXX_RRTptr, rpaMode);
+		double EXX = eval->compute(aXX, omega, F, C, HC, EXX_RRTptr, rpaMode, Hsub_eigs);
 		logPrintf("done.\n");
 		return EXX;
 	}
@@ -434,12 +437,14 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 
 double ExactExchangeEval::compute(double aXX, double omega, 
 	const std::vector<diagMatrix>& F, const std::vector<ColumnBundle>& C,
-	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr, bool rpaMode) const
+	std::vector<ColumnBundle>* HC, matrix3<>* EXX_RRTptr,
+	bool rpaMode, const std::vector<diagMatrix>* Hsub_eigs) const
 {
 	static StopWatch watch("ExactExchange"); watch.start();
 	
 	double EXX = 0.;
 	matrix3<> EXX_RRT; //computed only if EXX_RRTptr is non-null
+	if(rpaMode) assert(Hsub_eigs);
 	size_t progress=0, progressTarget = progressInterval; //Current progress and next threshold before reporting
 	
 	for(int iSpin=0; iSpin<nSpins; iSpin++)
@@ -457,6 +462,7 @@ double ExactExchangeEval::compute(double aXX, double omega,
 					if(e.eInfo.isMine(iqSrc))
 					{	callPref(eblas_copy)(ls.Cq.dataPref(), C[iqSrc].dataPref() + ls.Cq.colLength()*ls.bStart, ls.Cq.nData());
 						ls.Fq = F[iqSrc](ls.bStart, ls.bStop);
+						if(rpaMode) ls.Hsub_eigsq = Hsub_eigs->at(iqSrc)(ls.bStart, ls.bStop);
 					}
 					else
 					{	//Recv wavefunctions:
@@ -466,6 +472,12 @@ double ExactExchangeEval::compute(double aXX, double omega,
 						ls.Fq.resize(ls.bStop-ls.bStart);
 						int tagF = tagC + e.eInfo.nBands*e.eInfo.nStates; requests.push_back(MPIUtil::Request());
 						mpiWorld->recvData(ls.Fq, e.eInfo.whose(iqSrc), tagF, &requests.back());
+						//Recv eigenvalues:
+						if(rpaMode)
+						{	ls.Hsub_eigsq.resize(ls.bStop-ls.bStart);
+							int tagHsub_eigs = tagF + e.eInfo.nBands*e.eInfo.nStates; requests.push_back(MPIUtil::Request());
+							mpiWorld->recvData(ls.Hsub_eigsq, e.eInfo.whose(iqSrc), tagHsub_eigs, &requests.back());
+						}
 					}
 				}
 				else if(e.eInfo.isMine(iqSrc))
@@ -476,6 +488,11 @@ double ExactExchangeEval::compute(double aXX, double omega,
 					//Send occupations:
 					int tagF = tagC + e.eInfo.nBands*e.eInfo.nStates;
 					mpiWorld->send(&F[iqSrc][ls.bStart], ls.bStop-ls.bStart, jProc, tagF, &requests.back());
+					//Send eigenvalues:
+					if(rpaMode)
+					{	int tagHsub_eigs = tagF + e.eInfo.nBands*e.eInfo.nStates;
+						mpiWorld->send(&Hsub_eigs->at(iqSrc)[ls.bStart], ls.bStop-ls.bStart, jProc, tagHsub_eigs, &requests.back());
+					}
 				}
 			}
 		}
@@ -487,19 +504,26 @@ double ExactExchangeEval::compute(double aXX, double omega,
 			//Prepare (reduced) ik state on all processes:
 			int ikSrc = ikReduced + iSpin*qCount; //source state number
 			ColumnBundle CkTmp;
-			diagMatrix Fk(e.eInfo.nBands);
+			diagMatrix Fk, Hsub_eigsk;
 			if(e.eInfo.isMine(ikSrc))
-				Fk = F[ikSrc];
+			{	Fk = F[ikSrc];
+				if(rpaMode) Hsub_eigsk = Hsub_eigs->at(ikSrc);
+			}
 			else
-				CkTmp.init(e.eInfo.nBands, e.basis[ikSrc].nbasis*nSpinor, &(e.basis[ikSrc]), &(e.eInfo.qnums[ikSrc]), isGpuEnabled());
+			{	CkTmp.init(e.eInfo.nBands, e.basis[ikSrc].nbasis*nSpinor, &(e.basis[ikSrc]), &(e.eInfo.qnums[ikSrc]), isGpuEnabled());
+				Fk.resize(e.eInfo.nBands);
+				if(rpaMode) Hsub_eigsk.resize(e.eInfo.nBands);
+			}
 			ColumnBundle& CkRed = e.eInfo.isMine(ikSrc) ? (ColumnBundle&)(C[ikSrc]) : CkTmp; 
 			mpiWorld->bcastData(CkRed, e.eInfo.whose(ikSrc));
 			mpiWorld->bcastData(Fk, e.eInfo.whose(ikSrc));
+			if(rpaMode) mpiWorld->bcastData(Hsub_eigsk, e.eInfo.whose(ikSrc));
 			
 			//Calculate energy (and gradient):
 			for(LocalState& ls: localStatesMine)
 				EXX += computePair(ikReduced, ls.iqReduced, progress, progressTarget, aXX, omega,
-					Fk, CkRed, ls.Fq, ls.Cq, HC ? &(ls.HCq) : 0, EXX_RRTptr ? &EXX_RRT : 0, rpaMode);
+					Fk, CkRed, ls.Fq, ls.Cq, HC ? &(ls.HCq) : 0, EXX_RRTptr ? &EXX_RRT : 0,
+					rpaMode, &Hsub_eigsk, &ls.Hsub_eigsq);
 		}
 		
 		//Free local wavefunction chunks:
@@ -552,7 +576,7 @@ double ExactExchangeEval::compute(double aXX, double omega,
 
 double ExactExchangeEval::computePair(int ikReduced, int iqReduced, size_t& progress, size_t& progressTarget, double aXX, double omega,
 	const diagMatrix& Fk, const ColumnBundle& CkRed, const diagMatrix& Fq, const ColumnBundle& Cq,
-	ColumnBundle* HCq, matrix3<>* EXX_RRT, bool rpaMode) const
+	ColumnBundle* HCq, matrix3<>* EXX_RRT, bool rpaMode, const diagMatrix* Hsub_eigsk, const diagMatrix* Hsub_eigsq) const
 {
 	const QuantumNumber& qnum_q = *(Cq.qnum);
 	
@@ -590,24 +614,26 @@ double ExactExchangeEval::computePair(int ikReduced, int iqReduced, size_t& prog
 				//Loop over q-bands within block:
 				for(int bq=bqStart; bq<bqStop; bq++)
 				{	double wFq = qnum_q.weight * Fq[bq];
+					double wFprod = wFk * wFq;
 					if(rpaMode)
-					{	double fmin = std::min(Fk[bk], Fq[bq]);
-						double fmax = std::max(Fk[bk], Fq[bq]);
-						wFq -= qnum_q.weight * fmin * (1. - fmax); //correction near Fermi level for RPA adiabatic connection case
-					}
+						wFprod += (qnum_k.weight * qnum_q.weight) * (
+							Hsub_eigsk->at(bk) < Hsub_eigsq->at(bq)
+							? Fq[bq] * (1. - Fk[bk]) //Ek < Eq => fk > fq => fmin = fq, fmax = fk
+							: Fk[bk] * (1. - Fq[bq]) //Ek > Eq => fq > fk => fmin = fk, fmax = fq
+						);
 					if(!wFk && !wFq) continue; //at least one of the orbitals must be occupied
 					complexScalarField In; //state pair density
 					for(int s=0; s<nSpinor; s++)
 						In += conj(Ipsik[s]) * Ipsiq[bq-bqStart][s];
 					complexScalarFieldTilde n = J(In);
 					complexScalarFieldTilde Kn = O((*e.coulombWfns)(n, qnum_q.k-qnum_k.k, omega)); //Electrostatic potential due to n
-					EXX += (prefac*wFk*wFq) * dot(n,Kn).real();
+					EXX += (prefac*wFprod) * dot(n,Kn).real();
 					if(HCq)
 					{	complexScalarField E_In = Jdag(Kn);
 						for(int s=0; s<nSpinor; s++)
 							grad_Ipsiq[bq-bqStart][s] += (2.*prefac*wFk) * E_In * Ipsik[s]; //factor of 2 to count grad_Ipsik using Hermitian symmetry
 					}
-					if(EXX_RRT) *EXX_RRT += (prefac*wFk*wFq) * e.coulombWfns->latticeGradient(n, qnum_q.k-qnum_k.k, omega); //Stress contribution
+					if(EXX_RRT) *EXX_RRT += (prefac*wFprod) * e.coulombWfns->latticeGradient(n, qnum_q.k-qnum_k.k, omega); //Stress contribution
 				}
 			}
 		}
