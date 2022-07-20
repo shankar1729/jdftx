@@ -3,15 +3,13 @@
 ## Compiling on NERSC Perlmutter
 
 Compiling JDFTx to use the NVIDIA A100 GPUs on [NERSC Perlmutter](http://www.nersc.gov)
-requires specific combinations of gcc and cuda to work correctly.
+should work with default compilers within the GNU programming environment.
+Make sure to pull the latest code from git, as support for these GPUs and the Cray libraries is recent.
 Additional flags below are required to link non-threaded Cray libsci and avoid a crash within libsci during cleanup.
 The following commands may be used to invoke cmake (assuming bash shell):
 
     module load PrgEnv-gnu
-    module load cmake cray-fftw
-    module load cudatoolkit/11.2
-    module load gcc/10.3.0
-    module load gsl
+    module load cmake cray-fftw cudatoolkit gsl
     export CRAY_ACCEL_TARGET=nvidia80  # needed for CUDA-aware MPI support
     
     CC=cc CXX=CC cmake \
@@ -55,8 +53,8 @@ Here's an example job script using two nodes with four GPUs each:
     srun /path/to/jdftx_gpu -i inputfile.in
 
 Please report any issues with building or running JDFTx on Perlmutter.
-In particular, the module versions may need some changes after each Cray update.
-Hopefully, some of the additional tweaks made above should become unnecessary as the Cray libraries stabilize.
+In particular, we may need to select specific module versions after Cray updates,
+and hence may need to update these instructions.
 
 
 ## Compiling on NERSC Edison/Cori
