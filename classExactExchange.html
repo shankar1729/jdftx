@@ -118,8 +118,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a0493fb1a1da53043cfcd9342a54f75d5"><td class="memItemLeft" align="right" valign="top"><a id="a0493fb1a1da53043cfcd9342a54f75d5"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>ExactExchange</b> (const <a class="el" href="classEverything.html">Everything</a> &amp;e)</td></tr>
 <tr class="separator:a0493fb1a1da53043cfcd9342a54f75d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5d1f16b359675511c84cab58de7b3705"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExactExchange.html#a5d1f16b359675511c84cab58de7b3705">operator()</a> (double aXX, double omega, const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C, std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; *HC=0, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *EXX_RRT=0, bool rpaMode=false) const</td></tr>
-<tr class="separator:a5d1f16b359675511c84cab58de7b3705"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2538022c4828c227f139610f4617477c"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExactExchange.html#a2538022c4828c227f139610f4617477c">operator()</a> (double aXX, double omega, const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C, std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; *HC=0, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *EXX_RRT=0, bool rpaMode=false, const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; *Hsub_eigs=0) const</td></tr>
+<tr class="separator:a2538022c4828c227f139610f4617477c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afb08efd47141f727d3fc5dfe9ac056f5"><td class="memItemLeft" align="right" valign="top"><a id="afb08efd47141f727d3fc5dfe9ac056f5"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExactExchange.html#afb08efd47141f727d3fc5dfe9ac056f5">prepareHamiltonian</a> (double omega, const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; &amp;F, const std::vector&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;C)</td></tr>
 <tr class="memdesc:afb08efd47141f727d3fc5dfe9ac056f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the ACE (Adiabatic Compression of Exchange) representation in preparation for applyHamiltonian. <br /></td></tr>
@@ -187,8 +187,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 
 </div>
 </div>
-<a id="a5d1f16b359675511c84cab58de7b3705"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5d1f16b359675511c84cab58de7b3705">&#9670;&nbsp;</a></span>operator()()</h2>
+<a id="a2538022c4828c227f139610f4617477c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2538022c4828c227f139610f4617477c">&#9670;&nbsp;</a></span>operator()()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -233,7 +233,13 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>rpaMode</em> = <code>false</code>&#160;</td>
+          <td class="paramname"><em>rpaMode</em> = <code>false</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const std::vector&lt; <a class="el" href="classdiagMatrix.html">diagMatrix</a> &gt; *&#160;</td>
+          <td class="paramname"><em>Hsub_eigs</em> = <code>0</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -242,7 +248,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Compute scaled exact exchange energy with scale aXX and range omega (and optionally accumulate gradients) given fillings and wavefunctions. If prepareHamiltonian has been called with the same omega already, then the ACE representation is used to compute the energy and HC instead, except when lattice gradient or RPA-mode are requested which require full computation. </p>
+<p>Compute scaled exact exchange energy with scale aXX and range omega (and optionally accumulate gradients) given fillings and wavefunctions. If prepareHamiltonian has been called with the same omega already, then the ACE representation is used to compute the energy and HC instead, except when lattice gradient or RPA-mode are requested which require full computation. RPA mode additionally requires electronic eigenvalues E. </p>
 
 </div>
 </div>

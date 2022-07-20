@@ -2,6 +2,7 @@ var matrix_8h =
 [
     [ "axpy", "group__DataStructures.html#ga9201d2bb818d751ddeabdedd9cdf7fc1", null ],
     [ "axpy", "group__DataStructures.html#gafdd4fe4f9d3dd4019772cb82f0b32883", null ],
+    [ "cholesky", "group__DataStructures.html#ga83fcedc5ff9caa6c8f786aa6403244f0", null ],
     [ "cis", "group__DataStructures.html#ga504431273c1ae98868db2637285b7883", null ],
     [ "cis_grad", "group__DataStructures.html#ga2c39ebcc891d5642518f73e27742f518", null ],
     [ "cisInv", "group__DataStructures.html#gabcb98759d6fa9d1f12d357c698c081f8", null ],
@@ -21,6 +22,7 @@ var matrix_8h =
     [ "inv", "group__DataStructures.html#ga38f53b7400e8545f331500300b8a9a9f", null ],
     [ "invApply", "group__DataStructures.html#ga375e009dd87fd48696e10da190e1d571", null ],
     [ "invsqrt", "group__DataStructures.html#ga6fa8ca4139babeadbf4025193cbb13a3", null ],
+    [ "invTriangular", "group__DataStructures.html#gacd3ebae7293bfb98533b721d96f37c17", null ],
     [ "LU", "group__DataStructures.html#gae9910e3dfd426c3fa42d17a532fd57fa", null ],
     [ "nrm2", "group__DataStructures.html#ga64ddc4a9e9b52aee7a4ba5fcd9feeb0f", null ],
     [ "nrm2", "group__DataStructures.html#ga1cc096c7a659ec179de1717af409bdf6", null ],

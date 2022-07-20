@@ -1,5 +1,15 @@
 var NAVTREEINDEX21 =
 {
+"structMolecule_1_1Site.html#abfb9a69ebe3388af3916da105b5b2dba":[2,2,2,8,0,25],
+"structMolecule_1_1Site.html#acaa26d659f28e53eb06d7399859af0b9":[2,2,2,8,0,3],
+"structMolecule_1_1Site.html#acecf7f950e23794e0d88fd2ffb397c18":[2,2,2,8,0,5],
+"structMolecule_1_1Site.html#ad0a13fff7768cf011e5d973945cb0c10":[2,2,2,8,0,20],
+"structMolecule_1_1Site.html#adff0a687b4a508f97a1baa9299c0eb5a":[2,2,2,8,0,28],
+"structMolecule_1_1Site.html#ae7da27de7280c630b0bad805efb50246":[2,2,2,8,0,8],
+"structMolecule_1_1Site.html#aea7bdbf38701fcaf395a6658ade0d851":[2,2,2,8,0,21],
+"structMolecule_1_1Site.html#afb76ac7741efcddee5f78d4dfd068921":[2,2,2,8,0,11],
+"structMolecule_1_1Site.html#afd94685d6ea19bfcc991ec5bc3bdf26a":[2,2,2,8,0,2],
+"structMolecule_1_1Site.html#aff120a3a452bc8b2f66d78423dea3885":[2,2,2,8,0,0],
 "structNonlinearPCMeval_1_1Dielectric.html":[2,4,0,1,1],
 "structNonlinearPCMeval_1_1Dielectric.html#a02b19a8f5b5537eac520e45935186eea":[2,4,0,1,1,14],
 "structNonlinearPCMeval_1_1Dielectric.html#a0dce8f1a98fc2ce700d63cfe9d630e31":[2,4,0,1,1,8],
@@ -239,15 +249,5 @@ var NAVTREEINDEX21 =
 "structWannierEverything.html#a9b45fb0978443dd425e9d4841e55e8f3":[2,2,1,4,26,0],
 "structWannierGradient.html":[2,2,1,4,27],
 "structWannierGradient.html#a069161a32a3524eba1749f3d80ae117b":[2,2,1,4,27,4],
-"structWannierGradient.html#a22d1640bca31ccc6eceee17133062bdc":[2,2,1,4,27,1],
-"structWannierGradient.html#a5d39c895d1e80bf3003c76320c32e3c6":[2,2,1,4,27,3],
-"structWannierGradient.html#a69b3bdab29f2bc58ee7c6ddf689ed4f4":[2,2,1,4,27,5],
-"structWannierGradient.html#a90cfa19c3558729a84620e50bc66da18":[2,2,1,4,27,0],
-"structWannierGradient.html#aaad321fb87b7d1ddbf7ba36dcaebef21":[2,2,1,4,27,2],
-"structWannierMinimizerFD_1_1Edge.html":[2,2,1,4,31,0],
-"structWannierMinimizerFD_1_1Edge.html#a098e64a0d8515217e42fcddd6679e72f":[2,2,1,4,31,0,2],
-"structWannierMinimizerFD_1_1Edge.html#a0f26da340e0886448627f91b70f1991f":[2,2,1,4,31,0,0],
-"structWannierMinimizerFD_1_1Edge.html#a11cc630b8595ea189c1dc4644dcb976f":[2,2,1,4,31,0,4],
-"structWannierMinimizerFD_1_1Edge.html#aeb51af2c49533547d60540b7b97f0b24":[2,2,1,4,31,0,1],
-"structWannierMinimizerFD_1_1Edge.html#af426c670b56daaf951221e7cb6912d40":[2,2,1,4,31,0,3]
+"structWannierGradient.html#a22d1640bca31ccc6eceee17133062bdc":[2,2,1,4,27,1]
 };

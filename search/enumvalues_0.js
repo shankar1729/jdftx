@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['atomslice_3844',['AtomSlice',['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83a2d9060f4c17095a15d48641799462928',1,'DOS::Weight']]],
-  ['atomsphere_3845',['AtomSphere',['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83af9ae050dbb2cf5dfaee9df3b17fc99c7',1,'DOS::Weight']]],
-  ['auxiliaryfunction_3846',['AuxiliaryFunction',['../structCoulombParams.html#a4c748577e8daa85d6c37203d93842daca0d0fcd2843f2d80657f6a0f43f194977',1,'CoulombParams']]]
+  ['atomslice_3854',['AtomSlice',['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83a2d9060f4c17095a15d48641799462928',1,'DOS::Weight']]],
+  ['atomsphere_3855',['AtomSphere',['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83af9ae050dbb2cf5dfaee9df3b17fc99c7',1,'DOS::Weight']]],
+  ['auxiliaryfunction_3856',['AuxiliaryFunction',['../structCoulombParams.html#a4c748577e8daa85d6c37203d93842daca0d0fcd2843f2d80657f6a0f43f194977',1,'CoulombParams']]]
 ];

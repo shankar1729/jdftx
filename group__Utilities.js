@@ -289,6 +289,7 @@ var group__Utilities =
     [ "cudaDevProps", "group__Utilities.html#gac05c6e7e2788683fda8f63d711576be7", null ],
     [ "eV", "group__Utilities.html#ga87b385f118e3715860117a77eda7136d", null ],
     [ "fs", "group__Utilities.html#gae9b6ba26b138aafb089d93703ea2758c", null ],
+    [ "gElectron", "group__Utilities.html#gaade066600cf0fcd4768d16a67fea2361", null ],
     [ "inputBasename", "group__Utilities.html#ga907316040fd97459f37e166f613b88cb", null ],
     [ "invcm", "group__Utilities.html#ga19afd8422ee1ca180223db46437f54b1", null ],
     [ "invSec", "group__Utilities.html#ga492a43b4b0284563867905d8ac7d635d", null ],
@@ -315,5 +316,6 @@ var group__Utilities =
     [ "Pascal", "group__Utilities.html#ga126cef65679c94a01e8fb216febfde82", null ],
     [ "Ryd", "group__Utilities.html#gad5b3d738b790c3465c2162fbb7c53e08", null ],
     [ "sec", "group__Utilities.html#ga775a3e65279359fb2b464f0aedc383f1", null ],
+    [ "Tesla", "group__Utilities.html#gae9d072f65f54d5f5c8ef6272340c03d3", null ],
     [ "Volt", "group__Utilities.html#ga03677a0aece81df0433737cd11bc658f", null ]
 ];

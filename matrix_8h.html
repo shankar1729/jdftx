@@ -270,12 +270,16 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>randomize</b> (<a cla
 <tr class="memdesc:ga8bc169ea8e3dfad6bc7f850d86bcea4f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute diag(dagger(X)*Y) efficiently (avoid the off-diagonals) <br /></td></tr>
 <tr class="separator:ga8bc169ea8e3dfad6bc7f850d86bcea4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga38f53b7400e8545f331500300b8a9a9f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga38f53b7400e8545f331500300b8a9a9f">inv</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;A)</td></tr>
-<tr class="memdesc:ga38f53b7400e8545f331500300b8a9a9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute inverse of an arbitrary matrix A (via LU decomposition)  <a href="group__DataStructures.html#ga38f53b7400e8545f331500300b8a9a9f">More...</a><br /></td></tr>
+<tr class="memdesc:ga38f53b7400e8545f331500300b8a9a9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute / apply inverse:  <a href="group__DataStructures.html#ga38f53b7400e8545f331500300b8a9a9f">More...</a><br /></td></tr>
 <tr class="separator:ga38f53b7400e8545f331500300b8a9a9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9f4484fe01b16e0ac592eb7193b13969"><td class="memItemLeft" align="right" valign="top">
 <a class="el" href="classdiagMatrix.html">diagMatrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga9f4484fe01b16e0ac592eb7193b13969">inv</a> (const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;A)</td></tr>
 <tr class="memdesc:ga9f4484fe01b16e0ac592eb7193b13969"><td class="mdescLeft">&#160;</td><td class="mdescRight">inverse of diagonal matrix <br /></td></tr>
 <tr class="separator:ga9f4484fe01b16e0ac592eb7193b13969"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacd3ebae7293bfb98533b721d96f37c17"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gacd3ebae7293bfb98533b721d96f37c17">invTriangular</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;T, bool upper)</td></tr>
+<tr class="memdesc:gacd3ebae7293bfb98533b721d96f37c17"><td class="mdescLeft">&#160;</td><td class="mdescRight">return inv(T) for triangular matrix T (upper/lower for upper=true/false) <br /></td></tr>
+<tr class="separator:gacd3ebae7293bfb98533b721d96f37c17"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga375e009dd87fd48696e10da190e1d571"><td class="memItemLeft" align="right" valign="top">
 <a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga375e009dd87fd48696e10da190e1d571">invApply</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;A, const <a class="el" href="classmatrix.html">matrix</a> &amp;b)</td></tr>
 <tr class="memdesc:ga375e009dd87fd48696e10da190e1d571"><td class="mdescLeft">&#160;</td><td class="mdescRight">return inv(A) * b (A must be hermitian, positive-definite) <br /></td></tr>
@@ -284,6 +288,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>randomize</b> (<a cla
 <a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gae9910e3dfd426c3fa42d17a532fd57fa">LU</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;A)</td></tr>
 <tr class="memdesc:gae9910e3dfd426c3fa42d17a532fd57fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the LU decomposition of the matrix. <br /></td></tr>
 <tr class="separator:gae9910e3dfd426c3fa42d17a532fd57fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga83fcedc5ff9caa6c8f786aa6403244f0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga83fcedc5ff9caa6c8f786aa6403244f0">cholesky</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;A, bool upper)</td></tr>
+<tr class="separator:ga83fcedc5ff9caa6c8f786aa6403244f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf46b340c73345637a8d0cb0362a2de19"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structcomplex.html">complex</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gaf46b340c73345637a8d0cb0362a2de19">det</a> (const <a class="el" href="classmatrix.html">matrix</a> &amp;A)</td></tr>
 <tr class="separator:gaf46b340c73345637a8d0cb0362a2de19"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga564c2777490ba869ad7aade933ebebea"><td class="memItemLeft" align="right" valign="top">

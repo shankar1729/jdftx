@@ -144,7 +144,7 @@ var NAVTREEINDEX4 =
 "classExCorr.html#aef3e4649b5d5e50ba3583734bfead3cd":[2,2,1,2,7,3],
 "classExactExchange.html":[2,2,1,2,5],
 "classExactExchange.html#a0493fb1a1da53043cfcd9342a54f75d5":[2,2,1,2,5,0],
-"classExactExchange.html#a5d1f16b359675511c84cab58de7b3705":[2,2,1,2,5,4],
+"classExactExchange.html#a2538022c4828c227f139610f4617477c":[2,2,1,2,5,4],
 "classExactExchange.html#a78541c29ce17a25bcaa4291eb3e1a672":[2,2,1,2,5,1],
 "classExactExchange.html#ad1382f0dbbcc78f91087895434edf671":[2,2,1,2,5,2],
 "classExactExchange.html#ada190debc8ec280fe3322af38eb77610":[2,2,1,2,5,3],

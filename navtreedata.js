@@ -86,17 +86,17 @@ var NAVTREEINDEX =
 "classmatrix3.html#ad97e0b2e3d04e90e25eacda5b774c40a",
 "group__DataStructures.html#ga007589d9f04be013082d9e9971ab48d3",
 "group__DataStructures.html#ga66888133579e8cc2a8f2734985f8ede2",
-"group__DataStructures.html#gad89eec073a5f67583f1b0dfb0ad1b213",
-"group__ExchangeCorrelation.html#gga43442348399a4e3545139b6bb5cd373badbe14e320059815d6174cf6513b3f8dd",
-"group__LongRange.html",
-"group__Operators.html#ga6379a3d39a315ffa2dcf2c92477741b1",
-"group__Output.html#gab78cde8e08849746f8d4ea413fb1a6d7",
-"group__Utilities.html#gaae1a3abf1f6a35891fec00905d3fedec",
-"namespaceQuinticSpline.html#abdce32d1b56619fab030aaeffa7e7a78",
-"structElecInfo_1_1ColumnBundleReadConversion.html#a64c372464f856b6e8f57a7ee3ae3d6a7",
-"structFluidSolverParams.html#ab83305769fd59ecb151f41285f06e5d7",
-"structNonlinearPCMeval_1_1Dielectric.html",
-"structWannierMinimizer_1_1KmeshEntry.html"
+"group__DataStructures.html#gad68024dc4c9e7f987c92a988e9ed1620",
+"group__ExchangeCorrelation.html#gga43442348399a4e3545139b6bb5cd373bad3e232ec392bfd2f9eac64cf7025e941",
+"group__IonicSystem.html#gga7fbd36ebdbd95947aa3c34bbb179acb5ab2070b217ac2dc980855f817a96d7673",
+"group__Operators.html#ga62654d46c082c3dc317852044a0345cd",
+"group__Output.html#gaae15664dc0cf35eb6215f02b2222ec8c",
+"group__Utilities.html#gaabde4b0530466090debc4fa233f3b02f",
+"namespaceD3.html#ae77da5c2f694c82ec451346a9519c872",
+"structDumpCprime.html#ae08f2e1f86387ad2a535314eb445c785",
+"structFluidSolverParams.html#a819e080231f1a5d3e8249256d4705576",
+"structMolecule_1_1Site.html#abfb9a69ebe3388af3916da105b5b2dba",
+"structWannierGradient.html#a5d39c895d1e80bf3003c76320c32e3c6"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

@@ -106,11 +106,8 @@ $(document).ready(function(){initNavTree('Supercomputers.html',''); initResizabl
 <div class="contents">
 <div class="textblock"><h2><a class="anchor" id="autotoc_md19"></a>
 Compiling on NERSC Perlmutter</h2>
-<p>Compiling JDFTx to use the NVIDIA A100 GPUs on <a href="http://www.nersc.gov">NERSC Perlmutter</a> requires specific combinations of gcc and cuda to work correctly. Additional flags below are required to link non-threaded Cray libsci and avoid a crash within libsci during cleanup. The following commands may be used to invoke cmake (assuming bash shell): </p><pre class="fragment">module load PrgEnv-gnu
-module load cmake cray-fftw
-module load cudatoolkit/11.2
-module load gcc/10.3.0
-module load gsl
+<p>Compiling JDFTx to use the NVIDIA A100 GPUs on <a href="http://www.nersc.gov">NERSC Perlmutter</a> should work with default compilers within the GNU programming environment. Make sure to pull the latest code from git, as support for these GPUs and the Cray libraries is recent. Additional flags below are required to link non-threaded Cray libsci and avoid a crash within libsci during cleanup. The following commands may be used to invoke cmake (assuming bash shell): </p><pre class="fragment">module load PrgEnv-gnu
+module load cmake cray-fftw cudatoolkit gsl
 export CRAY_ACCEL_TARGET=nvidia80  # needed for CUDA-aware MPI support
 
 CC=cc CXX=CC cmake \
@@ -145,7 +142,7 @@ export JDFTX_MEMPOOL_SIZE=8192      # adjust as needed (in MB)
 export MPICH_GPU_SUPPORT_ENABLED=1  # needed for CUDA-aware MPI support
 
 srun /path/to/jdftx_gpu -i inputfile.in
-</pre><p> Please report any issues with building or running JDFTx on Perlmutter. In particular, the module versions may need some changes after each Cray update. Hopefully, some of the additional tweaks made above should become unnecessary as the Cray libraries stabilize.</p>
+</pre><p> Please report any issues with building or running JDFTx on Perlmutter. In particular, we may need to select specific module versions after Cray updates, and hence may need to update these instructions.</p>
 <h2><a class="anchor" id="autotoc_md20"></a>
 Compiling on NERSC Edison/Cori</h2>
 <p>Use the gnu compiler and MKL to compile JDFTx on <a href="http://www.nersc.gov">NERSC Edison/Cori</a>. The following commands may be used to invoke cmake (assuming bash shell): </p><pre class="fragment">#Select the right compiler and load necessary modules

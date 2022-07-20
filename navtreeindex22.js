@@ -1,5 +1,15 @@
 var NAVTREEINDEX22 =
 {
+"structWannierGradient.html#a5d39c895d1e80bf3003c76320c32e3c6":[2,2,1,4,27,3],
+"structWannierGradient.html#a69b3bdab29f2bc58ee7c6ddf689ed4f4":[2,2,1,4,27,5],
+"structWannierGradient.html#a90cfa19c3558729a84620e50bc66da18":[2,2,1,4,27,0],
+"structWannierGradient.html#aaad321fb87b7d1ddbf7ba36dcaebef21":[2,2,1,4,27,2],
+"structWannierMinimizerFD_1_1Edge.html":[2,2,1,4,31,0],
+"structWannierMinimizerFD_1_1Edge.html#a098e64a0d8515217e42fcddd6679e72f":[2,2,1,4,31,0,2],
+"structWannierMinimizerFD_1_1Edge.html#a0f26da340e0886448627f91b70f1991f":[2,2,1,4,31,0,0],
+"structWannierMinimizerFD_1_1Edge.html#a11cc630b8595ea189c1dc4644dcb976f":[2,2,1,4,31,0,4],
+"structWannierMinimizerFD_1_1Edge.html#aeb51af2c49533547d60540b7b97f0b24":[2,2,1,4,31,0,1],
+"structWannierMinimizerFD_1_1Edge.html#af426c670b56daaf951221e7cb6912d40":[2,2,1,4,31,0,3],
 "structWannierMinimizer_1_1KmeshEntry.html":[2,2,1,4,28,0],
 "structWannierMinimizer_1_1KmeshEntry.html#a41e55f8a45478c3163c0cabf39f4a6f0":[2,2,1,4,28,0,0],
 "structWannierMinimizer_1_1KmeshEntry.html#a5e52b35f901d19e6454ec7b70a5d3675":[2,2,1,4,28,0,6],

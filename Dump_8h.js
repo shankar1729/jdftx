@@ -60,6 +60,7 @@ var Dump_8h =
       [ "DumpFermiVelocity", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a2bb7b06f31b2cd3761bf32452f9ece52", null ],
       [ "DumpL", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a3b87ad71f64402dffeb9878f8ace9799", null ],
       [ "DumpQ", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a39eda1623d7269c33c93cdddf9dcdcbe", null ],
+      [ "DumpBerry", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7ad6732f28a586c7b56a850f7d7ba0adbf", null ],
       [ "DumpSymmetries", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a6cc54b125c6f6db38e24c2182add7528", null ],
       [ "DumpKpoints", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a6f50699b8636fd67b1250fbb93e55be0", null ],
       [ "DumpGvectors", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7aa2c7e5e11eb0cc0d9b44853c93c0b2ec", null ],
