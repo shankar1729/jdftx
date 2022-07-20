@@ -483,41 +483,18 @@ matrix invApply(const matrix& A, const matrix& b)
 }
 
 matrix invTriangular(const matrix& T, bool upper)
-{	matrix Tcopy = clone(T); //work on a destructible copy
-	int N = T.nRows();
-	
-	//Invert triangular matrix in place:
-#ifdef USE_CUSOLVER
-	if(N > NcutCuSolver)
-	{	cublasFillMode_t uplo = upper ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER;
-		cublasDiagType_t diag = CUBLAS_DIAG_NON_UNIT;
-		//Workspace query:
-		#if (CUSOLVER_VERSION < 11200)
-		int lwork = 0;
-		cusolverDnZtrtri_bufferSize(cusolverHandle, uplo, diag, N, (double2*)Tcopy.dataPref(), N, &lwork);
-		ManagedArray<double2> work; work.init(lwork, true);
-		#else
-		size_t lworkDev = 0, lworkHost = 0;
-		cusolverDnXtrtri_bufferSize(cusolverHandle, uplo, diag, N, CUDA_C_64F, Tcopy.dataPref(), N, &lworkDev, &lworkHost);
-		ManagedArray<char> workDev; workDev.init(lworkDev, true);
-		std::vector<char> workHost(lworkHost);
-		#endif
-		ManagedArray<int> infoArr; infoArr.init(1, true);
-		//Main call:
-		#if (CUSOLVER_VERSION < 11200)
-		cusolverDnZtrtri(cusolverHandle, uplo, diag, N, (double2*)Tcopy.dataPref(), N, work.dataPref(), lwork, infoArr.dataPref());
-		#else
-		infoArr.zero();
-		cusolverDnXtrtri(cusolverHandle, uplo, diag, N, CUDA_C_64F, Tcopy.dataPref(), N, workDev.dataPref(), lworkDev,
-			lworkHost ? workHost.data() : NULL, lworkHost, infoArr.dataPref());
-		cudaDeviceSynchronize();
-		#endif
-		int info = infoArr.data()[0];
-		if(info<0) { logPrintf("Argument# %d to CuSolver inversion routine Ztrtri is invalid.\n", -info); stackTraceExit(1); }
-		if(info>0) { logPrintf("Diagonal entry %d is zero in CuSolver inversion routine Ztrtri.\n", info); stackTraceExit(1); }
-		return Tcopy;
-	}
-#endif
+{	int N = T.nRows();
+#ifdef GPU_ENABLED
+	//Solve triangular matrix with identity as RHS (in place):
+	matrix rhs = eye(N);
+	cublasFillMode_t uplo = (upper ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
+	complex alpha = 1.;
+	cublasZtrsm(cublasHandle, CUBLAS_SIDE_LEFT, uplo, CUBLAS_OP_N, CUBLAS_DIAG_NON_UNIT, N, N,
+		(const double2*)&alpha, (const double2*)T.dataPref(), N, (double2*)rhs.dataPref(), N);
+	return rhs;
+#else
+	//Invert triangular matrix in-place:
+	matrix Tcopy = clone(T); //work in-place on a destructible copy
 	char uplo = upper ? 'U' : 'L';
 	char diag = 'N';
 	int info = 0;
@@ -525,6 +502,7 @@ matrix invTriangular(const matrix& T, bool upper)
 	if(info<0) { logPrintf("Argument# %d to LAPACK inversion routine ZTRTRI is invalid.\n", -info); stackTraceExit(1); }
 	if(info>0) { logPrintf("Diagonal entry %d is zero in LAPACK inversion routine ZTRTRI.\n", info); stackTraceExit(1); }
 	return Tcopy;
+#endif
 }
 
 matrix orthoMatrix(const matrix& A)
