@@ -102,9 +102,7 @@ void FluidSolverParams::setPCMparams()
 					vdwScale = 0.37; //Tentative: using toluene solvation energy alone
 					break;
 				default:
-					vdwScale = 1.;
-					initWarnings += "WARNING: SALSA has not been parametrized for this solvent, using 1.0 as the Van der Waals scale factor!\n";
-					break;
+					throw string("SALSA has not been parametrized for this solvent");
 			}
 			assert(fluidType == FluidSaLSA);
 			break;
@@ -134,14 +132,13 @@ void FluidSolverParams::setPCMparams()
 					initWarnings += "WARNING: CANDLE parameters for DMSO have not yet been fit (initial guess only)\n";
 					break;
 				case FluidComponent::H2O:
-				default:
 					Ztot = 8;
 					eta_wDiel = 1.46;
 					sqrtC6eff = 0.770;
 					pCavity = 36.5;
-					if(solvents[0]->name != FluidComponent::H2O)
-						initWarnings += "WARNING: CANDLE LinearPCM has not been parametrized for this solvent, using fit parameters for water\n";
 					break;
+				default:
+					throw string("CANDLE LinearPCM has not been parametrized for this solvent");
 			}
 			if(fluidType != FluidLinearPCM) initWarnings += "WARNING: CANDLE has only been parametrized for LinearPCM.\n";
 			break;
@@ -188,7 +185,7 @@ void FluidSolverParams::setPCMparams()
 							cavityTension = -8.99e-06;
 							break;
 						case FluidNonlinearPCM:
-							die("\nERROR: You can't use NonlinearPCM with CCl4 as it does not have a permanent dipole moment!\n");
+							throw string("CCl4 does not support NonlinearPCM as it does not have a permanent dipole moment");
 						default: //Other fluids do not use these parameters
 							break;
 					}
@@ -257,7 +254,7 @@ void FluidSolverParams::setPCMparams()
 							break;
 						}
 						case FluidNonlinearPCM:
-							die("\nERROR: You can't use NonlinearPCM with Ethylene Glycol as it does not have a permanent dipole moment!\n");
+							throw string("Ethylene glycol does not support NonlinearPCM as it does not have a permanent dipole moment");
 						default: //Other fluids do not use these parameters
 							break;
 					}
@@ -271,7 +268,7 @@ void FluidSolverParams::setPCMparams()
 							break;
 						}
 						case FluidNonlinearPCM:
-							die("\nERROR: You can't use NonlinearPCM with Glyme as it does not have a permanent dipole moment!\n");
+							throw string("Glyme does not support NonlinearPCM as it does not have a permanent dipole moment");
 						default: //Other fluids do not use these parameters
 							break;
 					}
@@ -285,7 +282,7 @@ void FluidSolverParams::setPCMparams()
 							cavityTension = -6.8e-06;
 							break;
 						case FluidNonlinearPCM:
-							die("\nERROR: You can't use NonlinearPCM with CarbonDisulfide as it does not have a permanent dipole moment!\n");
+							throw string("Carbon disulfide does not support NonlinearPCM as it does not have a permanent dipole moment");
 						default: //Other fluids do not use these parameters
 							break;
 					}
