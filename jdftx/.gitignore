@@ -1,2 +1,5 @@
 .kdev4
 __pycache__
+/build/
+.project
+.cproject

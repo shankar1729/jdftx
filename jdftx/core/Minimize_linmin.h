@@ -54,6 +54,7 @@ namespace MinimizeLinmin
 	bool linminQuad(Minimizable<Vector>& obj, const MinimizeParams& p,
 		const Vector& d, double alphaT, double& alpha, double& E, Vector& g, Vector& Kg)
 	{
+		logPrintf("testE");
 		double alphaPrev = 0.0; //the progress made so far along d
 		double Eorig = E;
 		double gdotd = obj.sync(dot(g,d)); //directional derivative at starting point
@@ -62,6 +63,7 @@ namespace MinimizeLinmin
 			alpha = alphaPrev;
 			return false;
 		}
+		logPrintf("testF");
 
 		//Test step and step size prediction:
 		double ET = 0.0; //test step energy
@@ -72,8 +74,10 @@ namespace MinimizeLinmin
 				return false;
 			}
 			//Try the test step:
+			logPrintf("testG");
 			obj.step(d, alphaT-alphaPrev); alphaPrev = alphaT;
 			ET = obj.sync(obj.compute(0,0));
+			logPrintf("testH");
 			//Check if step crossed domain of validity of parameter space:
 			if(!std::isfinite(ET))
 			{	alphaT *= p.alphaTreduceFactor;
@@ -116,8 +120,11 @@ namespace MinimizeLinmin
 		//Actual step:
 		for(int s=0; s<p.nAlphaAdjustMax; s++)
 		{	//Try the step:
+
+			logPrintf("testG2");
 			obj.step(d, alpha-alphaPrev); alphaPrev=alpha;
 			E = obj.sync(obj.compute(&g, &Kg));
+			logPrintf("testH2");
 			if(!std::isfinite(E))
 			{	alpha *= p.alphaTreduceFactor;
 				fprintf(p.fpLog, "%s\tStep failed with %s = %le, reducing alpha to %le.\n",
@@ -130,9 +137,12 @@ namespace MinimizeLinmin
 					p.linePrefix, p.energyLabel, E-Eorig, alpha); fflush(p.fpLog);
 				continue;
 			}
+
+			logPrintf("testI");
 			//Step successful:
 			break;
 		}
+		logPrintf("testJ");
 		if(!std::isfinite(E) || E>Eorig)
 		{	fprintf(p.fpLog, "%s\tStep failed to reduce %s after %d attempts. Quitting step.\n",
 				p.linePrefix, p.energyLabel, p.nAlphaAdjustMax); fflush(p.fpLog);

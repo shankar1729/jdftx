@@ -104,6 +104,9 @@ public:
 	//! The gradients will be set to zero for regions with n < nCut (useful to reduce numerical sensitivity in systems with empty space)
 	void getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, ScalarField& e_sigma, ScalarField& e_nsigma, ScalarField& e_sigmasigma, double nCut=1e-4) const;
 	
+	void getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeTXC includeTXC,
+			const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, const ScalarFieldArray& dn) const;
+
 	//! Abstract base class (interface specification) for orbital-dependent potential functionals
 	struct OrbitalDep
 	{	OrbitalDep(const Everything& e) : e(e) {}

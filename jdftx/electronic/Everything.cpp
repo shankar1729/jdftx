@@ -208,6 +208,14 @@ void Everything::setup()
 	latticeMinParams.energyLabel = relevantFreeEnergyName(*this);
 	latticeMinParams.energyFormat = "%+.15lf";
 
+	//TODO
+	vptParams.fpLog = globalLog;
+	vptParams.linePrefix = "PerturbationSolve: ";
+	vptParams.energyLabel = relevantFreeEnergyName(*this);
+	vptParams.energyFormat = "%+.15lf";
+
+	vptInfo.setup(this, &eVars);
+
 	logPrintf("\n"); logFlush();
 }
 

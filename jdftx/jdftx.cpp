@@ -25,6 +25,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/LatticeMinimizer.h>
 #include <electronic/Vibrations.h>
 #include <electronic/IonicDynamics.h>
+#include <electronic/PerturbationSolver.h>
 #include <fluid/FluidSolver.h>
 #include <core/Util.h>
 #include <commands/parser.h>
@@ -99,8 +100,15 @@ int main(int argc, char** argv)
 		LatticeMinimizer lmin(e);
 		lmin.minimize(e.latticeMinParams);
 	}
+	else if(e.vptParams.nIterations)
+	{
+		PerturbationSolver ps(e);
+		logPrintf("testA");
+		ps.minimize(e.vptParams);
+	}
 	else
 	{	//Ionic minimization loop (which calls electron/fluid minimization loops)
+		std::cout <<"HERE!";
 		IonicMinimizer imin(e);
 		imin.minimize(e.ionicMinParams);
 	}

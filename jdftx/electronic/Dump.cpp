@@ -772,6 +772,14 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		dumpCprime->dump((Everything&)*e);
 	}
 	
+	if(ShouldDump(PerturbationWfns))
+	{
+		//Dump wave functions
+		StartDump("rwfns")
+		eInfo.write(e->vptInfo.dY, fname.c_str());
+		EndDump
+	}
+
 	//----------------------------------------------------------------------
 	//The following compute-intensive things are free to clear wavefunctions
 	//to conserve memory etc. and should therefore happen at the very end

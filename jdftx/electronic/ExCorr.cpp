@@ -1046,3 +1046,152 @@ void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, Scala
 		e_sigmasigma = 0;
 	}
 }
+
+void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeTXC includeTXC,
+		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, const ScalarFieldArray& dn) const
+{
+	static StopWatch watch("ExCorrTotal"), watchComm("ExCorrCommunication"), watchFunc("ExCorrFunctional");
+	watch.start();
+
+	const int nInCount = n.size(); assert(nInCount==1 || nInCount==2 || nInCount==4);
+	const int nCount = std::min(nInCount, 2); //Number of spin-densities used in the parametrization of the functional
+	const int sigmaCount = 2*nCount-1;
+	const GridInfo& gInfo = n[0]->gInfo;
+
+	//------- Prepare inputs, allocate outputs -------
+
+	//Energy density per volume:
+	ScalarField E; nullToZero(E, gInfo);
+
+	//Gradient w.r.t spin densities:
+	dVxc->clear();
+	ScalarFieldArray E_n(nCount);
+	nullToZero(E_n, gInfo);
+
+	//Check for GGAs and meta GGAs:
+	bool needsSigma = false, needsTau=false, needsLap=false;
+	for(auto func: functionals->internal)
+		if(shouldInclude(func, includeTXC))
+		{	needsSigma |= func->needsSigma();
+			needsLap |= func->needsLap();
+			needsTau |= func->needsTau();
+		}
+
+	if (needsLap || needsTau || nCount > 1) {
+		ScalarFieldArray nplusdn, Vxc, VxcplusdVxc;
+		double h;
+		nplusdn = n+h*dn;
+		(*this)(n, &Vxc, includeTXC, tauPtr, Vtau);
+		(*this)(nplusdn, &VxcplusdVxc, includeTXC, tauPtr, Vtau);
+		*dVxc = (VxcplusdVxc-Vxc)*(1/h);
+		return;
+	}
+
+	ScalarField e_nn, e_sigma, e_nsigma, e_sigmasigma;
+	getSecondDerivatives(n[0], e_nn, e_sigma, e_nsigma, e_sigmasigma);
+	(*dVxc)[0] = e_nn * dn[0];
+
+	int iDirStart, iDirStop;
+	TaskDivision(3, mpiWorld).myRange(iDirStart, iDirStop);
+	if (needsSigma) {
+		for(int i=iDirStart; i<iDirStop; i++) {
+			(*dVxc)[0] -= 2*I(D(J(I(D(J(dn[0]),i))*e_sigma + I(D(J(n[0]),i))*e_nsigma*dn[0]),i));
+		}
+
+		(*dVxc)[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	}
+	/*
+	//Calculate spatial gradients for GGA (if needed)
+	std::vector<VectorField> Dn(nInCount);
+	int iDirStart, iDirStop;
+	TaskDivision(3, mpiWorld).myRange(iDirStart, iDirStop);
+	if(needsSigma)
+	{	//Compute the gradients of the (spin-)densities:
+		const ScalarFieldTilde Jn = J(n[0]);
+		for(int i=iDirStart; i<iDirStop; i++)
+			Dn[0][i] = I(D(Jn,i));
+	}
+
+	//Additional inputs/outputs for MGGAs (Laplacian, orbital KE and gradients w.r.t those)
+	ScalarFieldArray lap(nInCount), E_lap(nCount);
+	ScalarFieldArray tau(nInCount), E_tau(nCount);
+
+	//Transform to local spin-diagonal basis (noncollinear magnetism mode only)
+	ScalarFieldArray nCapped(nCount), lapIn(nCount), tauIn(nCount);
+	std::vector<VectorField> DnIn(nCount);
+
+	//Cap negative densities to 0:
+	if(!nCapped[0]) nCapped = clone(n);
+	double nMin, nMax;
+	callPref(eblas_capMinMax)(gInfo.nr, nCapped[0]->dataPref(), nMin, nMax, 0.);
+
+	//Compute the required contractions for GGA:
+	ScalarFieldArray sigma(sigmaCount), E_sigma(sigmaCount);
+	if(needsSigma)
+	{
+		for(int i=iDirStart; i<iDirStop; i++)
+			sigma[0] += Dn[0][i] * Dn[0][i];
+		watchComm.start();
+		nullToZero(sigma[0], gInfo);
+		sigma[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+		watchComm.stop();
+		//Allocate gradient if required:
+		if(needGradients) nullToZero(E_sigma, gInfo, sigmaCount);
+	}
+
+	//---------------- Compute internal functionals ----------------
+	watchFunc.start();
+	for(auto func: functionals->internal)
+		if(shouldInclude(func, includeTXC))
+			func->evaluateSub(gInfo.irStart, gInfo.irStop,
+				constDataPref(nCapped), constDataPref(sigma), constDataPref(lap), constDataPref(tau),
+				E->dataPref(), dataPref(E_n), dataPref(E_sigma), dataPref(E_lap), dataPref(E_tau));
+	watchFunc.stop();
+
+	//Cleanup unneeded derived quantities (free memory before starting communications and gradient propagation)
+	double Exc = integral(E); E = 0; //note Exc accumulated over processes below in communication block
+	nCapped.clear();
+	sigma.clear();
+	lap.clear();
+	tau.clear();
+
+	//---------------- Collect results over processes ----------------
+	watchComm.start();
+	mpiWorld->allReduce(Exc, MPIUtil::ReduceSum);
+	for(ScalarField& x: E_n) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	for(ScalarField& x: E_sigma) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	for(ScalarField& x: E_lap) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	for(ScalarField& x: E_tau) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	watchComm.stop();
+
+	//--------------- Gradient propagation ---------------------
+	if(needGradients)
+	{
+
+		//Propagate spatial gradient contribution to density
+		if(needsSigma)
+		{	ScalarFieldTildeArray E_nTilde(nInCount); //contribution to the potential in fourier space
+			std::vector<VectorField> DnAll(nInCount); //gradients of all density components required for stress calculation
+
+			for(int i=iDirStart; i<iDirStop; i++)
+			{	//Propagate from contraction sigma to the spatial derivatives
+				ScalarFieldArray E_Dni(nCount);
+				E_Dni[0] += 2*(E_sigma[0] * Dn[0][i]);
+				//Propagate to E_nTilde:
+				E_nTilde[0] -= D(Idag(E_Dni[0]), i);
+			}
+			//Accumulate over processes:
+			watchComm.start();
+			nullToZero(E_nTilde[0], gInfo);
+			E_nTilde[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+			watchComm.stop();
+			E_n[0] += Jdag(E_nTilde[0]);
+		}
+	}
+
+	if(Vxc) *Vxc = E_n;
+	if(Vtau) *Vtau = E_tau;
+	watch.stop();
+	return Exc;
+	*/
+}

@@ -54,6 +54,7 @@ enum DumpVariable { DumpNone, DumpState, //None or exactly those required to res
 	DumpMomenta, DumpVelocities, DumpFermiVelocity, DumpL, DumpQ, DumpBerry,
 	DumpSymmetries, DumpKpoints, DumpGvectors, DumpOrbitalDep, DumpXCanalysis, DumpEresolvedDensity, DumpFermiDensity,
 	DumpDelim, //special value used as a delimiter during command processing
+	DumpPerturbationWfns,
 };
 
 
