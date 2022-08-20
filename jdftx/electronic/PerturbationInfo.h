@@ -27,7 +27,7 @@ public:
 	void setup(Everything *e, ElecVars *eVars);
 
 	std::vector<string> dVexternalFilename; //!< external potential filename (read in real space)
-	std::vector<ColumnBundle> dY, dC;
+	std::vector<ColumnBundle> dY, dC, dGradTau, dGradPsi;
 	std::vector<matrix> dU;
 	std::vector<ScalarField> dVext;
 	//TODO q-vector

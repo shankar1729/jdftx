@@ -582,3 +582,70 @@ ScalarFieldArray diagouterI(const diagMatrix &F,const ColumnBundle &X,  int nDen
 	}
 	return nSub[0]; //rest cleaned up destructor
 }
+
+
+// Compute the density from a subset of columns of a ColumnBundle
+//TODO rename
+void diagouterI2_sub(int iThread, int nThreads, const diagMatrix *F, const ColumnBundle *A, const ColumnBundle *B, std::vector<complexScalarFieldArray>* nSub)
+{
+	//Determine column range:
+	int colStart = (( iThread ) * A->nCols())/nThreads;
+	int colStop  = ((iThread+1) * A->nCols())/nThreads;
+
+	complexScalarFieldArray& nLocal = (*nSub)[iThread];
+	nullToZero(nLocal, *(A->basis->gInfo)); //sets to zero
+	int nDensities = nLocal.size();
+	assert(nDensities==1);
+	int nSpinor = A->spinorLength();
+	for(int i=colStart; i<colStop; i++)
+		for(int s=0; s<nSpinor; s++) {
+			//nlocal[0]->accumColumn(col,s, Idag(Vs * I(C->getColumn(col,s)))); //note VC is zero'd just before
+			callPref(eblas_accumProdComplex)(A->basis->gInfo->nr, (*F)[i], I(A->getColumn(i,s))->dataPref(), I(B->getColumn(i,s))->dataPref(), nLocal[0]->dataPref()); //Re and Im parts of UpDn
+		}
+}
+
+// Collect all contributions from nSub into the first entry
+void diagouterI2_collect(size_t iStart, size_t iStop, std::vector<complexScalarFieldArray>* nSub)
+{	assert(!isGpuEnabled()); // this is needed and should be called only in CPU mode
+	for(size_t s=0; s<(*nSub)[0].size(); s++)
+	{	//Get the data pointers for each piece in nSub:
+		int nThreads = nSub->size();
+		std::vector<complex*> nSubData(nThreads);
+		for(int j=0; j<nThreads; j++) nSubData[j] = (*nSub)[j][s]->data();
+
+		//Accumulate pointwise into the first piece:
+		for(size_t i=iStart; i<iStop; i++)
+			for(int j=1; j<nThreads; j++)
+				nSubData[0][i] += nSubData[j][i];
+	}
+}
+// Calculate diag((I*A)*F*(I*B)^) where X^ is the hermetian adjoint of X.
+complexScalarFieldArray diagouterI(const diagMatrix &F, const ColumnBundle &A, const ColumnBundle &B,  int nDensities, const GridInfo* gInfoOut)
+{	static StopWatch watch("diagouterI"); watch.start();
+	//Check sizes:
+	assert(F.nRows()==A.nCols());
+	assert(A.nCols()==B.nCols());
+	assert(nDensities==1 || nDensities==2);
+	//if(nDensities==2) assert(!X.isSpinor());
+
+	//Collect the contributions for different sets of columns in separate scalar fields (one per thread):
+	int nThreads = isGpuEnabled() ? 1: nProcsAvailable;
+	std::vector<complexScalarFieldArray> nSub(nThreads, complexScalarFieldArray(1)); //collinear spin-polarized will have only one non-zero output channel
+	threadLaunch(nThreads, diagouterI2_sub, 0, &F, &A, &B, &nSub);
+
+	//If more than one thread, accumulate all vectors in nSub into the first:
+	if(nThreads>1) threadLaunch(diagouterI2_collect, A.basis->gInfo->nr, &nSub);
+	watch.stop();
+
+	//Change grid if necessary:
+	if(gInfoOut && (A.basis->gInfo!=gInfoOut))
+		for(complexScalarField& nSub0s: nSub[0])
+			nSub0s = changeGrid(nSub0s, *gInfoOut);
+
+	//Correct the location of the single non-zero channel of collinear spin-polarized densities:
+	if(nDensities==2)
+	{	nSub[0].resize(2);
+		if(A.qnum->index()==1) std::swap(nSub[0][0], nSub[0][1]);
+	}
+	return nSub[0]; //rest cleaned up destructor
+}

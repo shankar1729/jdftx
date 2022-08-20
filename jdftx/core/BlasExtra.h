@@ -209,6 +209,9 @@ void eblas_accumNorm_gpu(int N, const double& a, const complex* x, double* y);
 void eblas_accumProd_gpu(int N, const double& a, const complex* xU, const complex* xC, double* yRe, double* yIm);
 #endif
 
+
+void eblas_accumProdComplex(int N, const double& a, const complex* xU, const complex* xC, complex* y);
+
 //! @brief Symmetrize an array x, using N n-fold equivalence classes in symmIndex
 //! @param N Length of array x
 //! @param n Length of symmetry equivalence classes

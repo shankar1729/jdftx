@@ -124,6 +124,15 @@ void eblas_accumProd(int N, const double& a, const complex* xU, const complex* x
 		eblas_accumProd_sub, N, a, xU, xC, yRe, yIm);
 }
 
+void eblas_accumProdComplex_sub(size_t iStart, size_t iStop, const double& a, const complex* xU, const complex* xC, complex* y)
+{	for(size_t i=iStart; i<iStop; i++)
+		y[i] += a * xU[i] * xC[i].conj();
+}
+void eblas_accumProdComplex(int N, const double& a, const complex* xU, const complex* xC, complex* y)
+{	threadLaunch((N<100000) ? 1 : 0, //force single threaded for small problem sizes
+		eblas_accumProdComplex_sub, N, a, xU, xC, y);
+}
+
 
 template<typename scalar> void eblas_symmetrize_sub(size_t iStart, size_t iStop, int n, const int* symmIndex, scalar* x)
 {	double nInv = 1./n;

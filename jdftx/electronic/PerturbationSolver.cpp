@@ -68,12 +68,16 @@ void randomize(PerturbationGradient& x)
 	randomize(x.dY, *x.eInfo);
 }
 
-ScalarFieldArray PerturbationSolver::getdn()
+ScalarFieldArray PerturbationSolver::getdn(std::vector<ColumnBundle>* dC, std::vector<ColumnBundle>* C)
 {	ScalarFieldArray density(eVars.n.size());
 	//Runs over all states and accumulates density to the corresponding spin channel of the total density
 	//e.iInfo.augmentDensityInit();
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{	density += e.eInfo.qnums[q].weight * diagouterI(eVars.F[q], eVars.C[q], density.size(), &e.gInfo);
+	{
+		if (C)
+			density += 2.0*e.eInfo.qnums[q].weight * Real(diagouterI(eVars.F[q], (*C)[q], (*dC)[q], density.size(), &e.gInfo));
+		else
+			density += 2.0*e.eInfo.qnums[q].weight * Real(diagouterI(eVars.F[q], eVars.C[q], (*dC)[q], density.size(), &e.gInfo));
 		//e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], eVars.VdagC[q]); //pseudopotential contribution
 	}
 	//e.iInfo.augmentDensityGrid(density);
@@ -85,6 +89,27 @@ ScalarFieldArray PerturbationSolver::getdn()
 	return density;
 }
 
+
+
+ScalarFieldArray PerturbationSolver::getn(std::vector<ColumnBundle>& C)
+{	ScalarFieldArray density(eVars.n.size());
+	nullToZero(density, e.gInfo);
+
+	logPrintf("Density norm %g.\n", nrm2(density[0]));
+	//Runs over all states and accumulates density to the corresponding spin channel of the total density
+	//e->iInfo.augmentDensityInit();
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{	density += e.eInfo.qnums[q].weight * diagouterI(eVars.F[q], C[q], density.size(), &e.gInfo);
+		//e->iInfo.augmentDensitySpherical(e->eInfo.qnums[q], F[q], VdagC[q]); //pseudopotential contribution
+	}
+	//e.iInfo.augmentDensityGrid(density);
+	for(ScalarField& ns: density)
+	{	nullToZero(ns, e.gInfo);
+		ns->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	}
+	e.symm.symmetrize(density);
+	return density;
+}
 
 
 PerturbationSolver::PerturbationSolver(Everything& e) : e(e), eVars(e.eVars), eInfo(e.eInfo), pInfo(e.vptInfo) {}
@@ -114,54 +139,131 @@ double PerturbationSolver::compute(PerturbationGradient* grad, PerturbationGradi
 		pInfo.dC[q] -= 0.5*(eVars.C[q]*pInfo.dU[q]);
 	}
 
-	ScalarFieldArray dn = getdn();
-
+	ScalarFieldArray dn = getdn(&pInfo.dC);
+	ScalarFieldArray n = eVars.n; //TODO change
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		logPrintf("Compute %d", q);
 		const QuantumNumber& qnum = e.eInfo.qnums[q];
 		ColumnBundle dHC, HC, HdC, dwGradEq, d_HCFUmhalf;
 		matrix dHtilde, HtildeCommF, dHtildeCommF;
+
+		dwGradEq.zero(); d_HCFUmhalf.zero();
+
 		diagMatrix F = eVars.F[q];
 
+		logPrintf("Compute A0.\n");
+
 		dHpsi(dHC, eVars.C[q], dn);
-		dHtau(dHC, eVars.C[q]);
-		applyH(q, F, HC, eVars.C[q]);
-		applyH(q, F, HdC, pInfo.dC[q]);
+		//dHtau(dHC, eVars.C[q]);
+
+		applyH(q, F, HC, eVars.C[q], n);
+		applyH(q, F, HdC, pInfo.dC[q], n);
+
+		logPrintf("Compute A1.\n");
 
 		HtildeCommF = eVars.Hsub[q]*F - F*eVars.Hsub[q];
 	    dHtilde = (pInfo.dC[q]^HC) + (eVars.C[q]^dHC) + (eVars.C[q]^HdC);
 	    dHtildeCommF = dHtilde*F - F*dHtilde;
 
+		//logPrintf("Compute A2");
 	    //TODO
 	    //d_HCFUmhalf = (dHC*F) + (HdC*F) - (0.5*(HC*(F*pInfo.dU[q])));
 	    d_HCFUmhalf = dHC*F;
 	    d_HCFUmhalf += HdC*F;
 	    d_HCFUmhalf -= 0.5*(HC*(F*pInfo.dU[q]));
 
+		//logPrintf("Compute A3");
 	    //dwGradEq = -O(pInfo.dC[q]*(eVars.C[q]^HC*F) + eVars.C[q]*(pInfo.dC[q]^HC*F)) + d_HCFUmhalf - O(eVars.C[q]*(eVars.C[q]^d_HCFUmhalf))
 	    //    + O(0.5*pInfo.dC[q]*HtildeCommF + 0.5*eVars.C[q]*dHtildeCommF - 0.125*eVars.C[q]*(HtildeCommF*pInfo.dU[q]+pInfo.dU[q]*HtildeCommF));
 	    dwGradEq = -O(pInfo.dC[q]*(eVars.C[q]^HC*F));
-	    dwGradEq += O(eVars.C[q]*(pInfo.dC[q]^HC*F));
+	    dwGradEq -= O(eVars.C[q]*(pInfo.dC[q]^HC*F));
 	    dwGradEq += d_HCFUmhalf;
+		//logPrintf("Compute A4");
 	    dwGradEq -= O(eVars.C[q]*(eVars.C[q]^d_HCFUmhalf));
 	    dwGradEq += O(0.5*pInfo.dC[q]*HtildeCommF);
 	    dwGradEq += O(0.5*eVars.C[q]*dHtildeCommF);
+		//logPrintf("Compute A5");
 	    dwGradEq -= O(0.125*eVars.C[q]*(HtildeCommF*pInfo.dU[q]+pInfo.dU[q]*HtildeCommF));
-	    dwGradEq = dwGradEq*qnum.weight;
+		logPrintf("Compute A6 Norm %g %g.\n", nrm2(HtildeCommF), nrm2(dHtildeCommF));
+	    pInfo.dGradPsi[q] = dwGradEq*qnum.weight;
 	}
 
+	logPrintf("Compute A.\n");
+	//Objective function is 1/2 x^T*A*x - b^T*x
+	//double ener = 0.5*dot(pInfo.dC, pInfo.dGradPsi, eInfo.qStart, eInfo.qStop) - dot(pInfo.dC, pInfo.dGradTau, eInfo.qStart, eInfo.qStop);
+	double ener = 0;
 
-	/*for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+	logPrintf("Compute B0");
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		if (grad) {
-			grad->dY[q] = e.vptInfo.dY[q] - eVars.C[q];
+			//grad->dY[q] = pInfo.dGradPsi[q] - pInfo.dGradTau[q];
+			grad->dY[q] = pInfo.dGradPsi[q];
 			if (Kgrad) {
 				Kgrad->dY[q] = grad->dY[q];
 			}
 		}
-	}*/
+	}
+	logPrintf("Compute B");
 
-	//Objective function is 1/2 x^T*A*x - b^T*x
-	double ener = 0.5*dot(e.vptInfo.dY, e.vptInfo.dY, eInfo.qStart, eInfo.qStop) - dot(eVars.C, e.vptInfo.dY, eInfo.qStart, eInfo.qStop);
 	return ener;
+}
+
+void PerturbationSolver::calcdGradTau() {
+
+	ScalarFieldArray n = eVars.n; //TODO change
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		const QuantumNumber& qnum = e.eInfo.qnums[q];
+		ColumnBundle dHC, HC, dwGradEq, d_HCFUmhalf;
+		matrix dHtilde, HtildeCommF, dHtildeCommF;
+		diagMatrix F = eVars.F[q];
+
+		//dHpsi(dHC, eVars.C[q], dn);
+		dHtau(dHC, eVars.C[q]);
+		applyH(q, F, HC, eVars.C[q], n);
+
+		HtildeCommF = eVars.Hsub[q]*F - F*eVars.Hsub[q];
+	    dHtilde = eVars.C[q]^dHC;
+	    dHtildeCommF = dHtilde*F - F*dHtilde;
+
+	    //TODO
+	    //d_HCFUmhalf = (dHC*F) + (HdC*F) - (0.5*(HC*(F*pInfo.dU[q])));
+	    d_HCFUmhalf = dHC*F;
+
+	    //dwGradEq = -O(pInfo.dC[q]*(eVars.C[q]^HC*F) + eVars.C[q]*(pInfo.dC[q]^HC*F)) + d_HCFUmhalf - O(eVars.C[q]*(eVars.C[q]^d_HCFUmhalf))
+	    //    + O(0.5*pInfo.dC[q]*HtildeCommF + 0.5*eVars.C[q]*dHtildeCommF - 0.125*eVars.C[q]*(HtildeCommF*pInfo.dU[q]+pInfo.dU[q]*HtildeCommF));
+	    dwGradEq += d_HCFUmhalf;
+	    dwGradEq -= O(eVars.C[q]*(eVars.C[q]^d_HCFUmhalf));
+	    dwGradEq += O(0.5*eVars.C[q]*dHtildeCommF);
+	    pInfo.dGradTau[q] = dwGradEq*qnum.weight;
+	}
+
+}
+
+void PerturbationSolver::getGrad(std::vector<ColumnBundle> *grad, std::vector<ColumnBundle> Y) {
+	logPrintf("Getgrad A.\n");
+
+	ScalarFieldArray n = eVars.n; //TODO change
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		const QuantumNumber& qnum = e.eInfo.qnums[q];
+		ColumnBundle HC, gradq, HCFUmhalf;
+		matrix dHtilde, HtildeCommF;
+
+		HCFUmhalf.zero();
+		gradq.zero();
+
+		diagMatrix F = eVars.F[q];
+
+		applyH(q, F, HC, eVars.C[q], n);
+
+		HtildeCommF = eVars.Hsub[q]*F - F*eVars.Hsub[q];
+		matrix Usqrtinv = invsqrt(Y[q]^O(Y[q]));
+		ColumnBundle HCFUsqrtinv = HC*(F*Usqrtinv);
+		gradq = HC*F*Usqrtinv;
+		gradq -= O(eVars.C[q]*(eVars.C[q]^HCFUsqrtinv));
+		gradq += 0.5*O(eVars.C[q]*HtildeCommF);
+	    (*grad)[q]  = gradq*qnum.weight;
+	}
+	logPrintf("Getgrad B.\n");
 }
 
 void PerturbationSolver::step(const PerturbationGradient& dir, double alpha)
@@ -169,7 +271,7 @@ void PerturbationSolver::step(const PerturbationGradient& dir, double alpha)
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		axpy(alpha, dir.dY[q], e.vptInfo.dY[q]);
 	}
-	logPrintf("testD\n");
+	logPrintf("testD.\n");
 }
 
 bool PerturbationSolver::report(int iter)
@@ -193,49 +295,92 @@ void PerturbationSolver::constrain(PerturbationGradient&)
 double PerturbationSolver::minimize(const MinimizeParams& params)
 {
 	std::cout <<"Starting";
-	logPrintf("testB\n");
+	logPrintf("testB.\n");
 	if(eVars.wfnsFilename.length() == 0) {
 		elecFluidMinimize(e);
 	}
 	pInfo.dY.resize(eInfo.nStates);
 	pInfo.dC.resize(eInfo.nStates);
 	pInfo.dU.resize(eInfo.nStates);
+	pInfo.dGradPsi.resize(eInfo.nStates);
+	pInfo.dGradPsi.resize(eInfo.nStates);
 
 	init(e.vptInfo.dY, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 	init(e.vptInfo.dC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(e.vptInfo.dGradPsi, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(e.vptInfo.dGradPsi, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 	randomize(e.vptInfo.dY, eInfo);
 	//for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 	//	e.vptInfo.dY[q] *= 0;
 	//}
+//	calcdGradTau();
+
+	testVPT();
+
 	return Minimizable<PerturbationGradient>::minimize(params);
 }
 
 
-void PerturbationSolver::applyH(int q, const diagMatrix& F, ColumnBundle& HC, ColumnBundle& C)
+void PerturbationSolver::applyH(int q, const diagMatrix& F, ColumnBundle& HC, ColumnBundle& C, ScalarFieldArray ntot)
 {	assert(C); //make sure wavefunction is available for this state
 	const QuantumNumber& qnum = e.eInfo.qnums[q];
 	std::vector<matrix> HVdagC(e.iInfo.species.size());
 	std::vector<matrix> VdagC(e.iInfo.species.size());
+	HC.zero();
 
+	logPrintf("applyH a.\n");
 	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
-	HC += Idag_DiagV_I(C, eVars.Vscloc);
+	ScalarFieldArray Vscloc = getVscloc(ntot);
+
+	HC += Idag_DiagV_I(C, Vscloc);
+
+	e.iInfo.project(C, VdagC); //update the atomic projections
+	e.iInfo.augmentDensitySphericalGrad(e.eInfo.qnums[q], VdagC, HVdagC);
 
 	//Kinetic energy:
 	HC += (-0.5) * L(C);
 
+	logPrintf("applyH b.\n");
 	//Nonlocal pseudopotentials:
-	e.iInfo.project(C, VdagC); //update the atomic projections
 	e.iInfo.EnlAndGrad(qnum, F, VdagC, HVdagC);
 	e.iInfo.projectGrad(HVdagC, C, HC);
 }
 
+
+void PerturbationSolver::applyH2(int q, const diagMatrix& Fq, ColumnBundle& HCq) //Do not use this
+{
+	const QuantumNumber& qnum = e.eInfo.qnums[q];
+	std::vector<matrix> HVdagCq(e.iInfo.species.size());
+
+	HCq.zero();
+
+	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
+	HCq += Idag_DiagV_I(eVars.C[q], eVars.Vscloc); //Accumulate Idag Diag(Vscloc) I C
+	e.iInfo.augmentDensitySphericalGrad(qnum, eVars.VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
+
+	//Kinetic energy:
+	ColumnBundle LCq = L(eVars.C[q]);
+	HCq += (-0.5) * LCq;
+
+	//Nonlocal pseudopotentials:
+	e.iInfo.EnlAndGrad(qnum, Fq, eVars.VdagC[q], HVdagCq);
+	e.iInfo.projectGrad(HVdagCq, eVars.C[q], HCq);
+
+	//Compute subspace hamiltonian if needed:
+	//Hsub[q] = C[q] ^ HCq;
+}
+
+
 void PerturbationSolver::dHpsi(ColumnBundle& HC, ColumnBundle& C, ScalarFieldArray dn)
 {	assert(C);
 
-	ScalarFieldArray dVscloc;
+	ScalarFieldArray dVscloc(eVars.Vscloc.size());
 
 	getdVsclocPsi(dn, dVscloc);
 
+	logPrintf("dVscloc norm: %g.\n", nrm2(dVscloc[0]));
+
+	HC.zero();
 	HC += Idag_DiagV_I(C, dVscloc);
 }
 
@@ -246,6 +391,7 @@ void PerturbationSolver::dHtau(ColumnBundle& HC, ColumnBundle& C)
 
 	getdVsclocTau(dVscloc);
 
+	HC.zero();
 	HC -= Idag_DiagV_I(C, dVscloc);
 
 	//Nonlocal pseudopotentials:
@@ -255,11 +401,14 @@ void PerturbationSolver::dHtau(ColumnBundle& HC, ColumnBundle& C)
 }
 
 //simplified version
-void PerturbationSolver::getVscloc()
+ScalarFieldArray PerturbationSolver::getVscloc(ScalarFieldArray ntot)
 {	static StopWatch watch("EdensityAndVscloc"); watch.start();
 	const IonInfo& iInfo = e.iInfo;
 
-	ScalarFieldTilde nTilde = J(eVars.get_nTot());
+	ScalarFieldArray Vscloc(eVars.Vscloc.size());
+
+	logPrintf("N size %d.\n", ntot.size());
+	ScalarFieldTilde nTilde = J(ntot[0]); //TODO change
 
 	// Local part of pseudopotential:
 	ScalarFieldTilde VsclocTilde = clone(iInfo.Vlocps);
@@ -275,27 +424,30 @@ void PerturbationSolver::getVscloc()
 	}
 
 	// Exchange and correlation, and store the real space Vscloc with the odd historic normalization factor of JdagOJ:
-	e.exCorr(eVars.get_nXC(), &eVars.Vxc, false, &eVars.tau, &eVars.Vtau);
+	e.exCorr(eVars.get_nXC(&ntot), &eVars.Vxc, false, &eVars.tau, &eVars.Vtau);
 
-	for(unsigned s=0; s<eVars.Vscloc.size(); s++)
-	{	eVars.Vscloc[s] = JdagOJ(eVars.Vxc[s]);
+	for(unsigned s=0; s<Vscloc.size(); s++)
+	{	Vscloc[s] = JdagOJ(eVars.Vxc[s]);
 		if(s<2) //Include all the spin-independent contributions along the diagonal alone
-			eVars.Vscloc[s] += Jdag(O(VsclocTilde), true);
+			Vscloc[s] += Jdag(O(VsclocTilde), true);
 
 		//External potential contributions:
 		if(eVars.Vexternal.size())
-			eVars.Vscloc[s] += JdagOJ(eVars.Vexternal[s]);
+			Vscloc[s] += JdagOJ(eVars.Vexternal[s]);
 	}
-	e.symm.symmetrize(eVars.Vscloc);
+	e.symm.symmetrize(Vscloc);
 	if(eVars.Vtau[0]) e.symm.symmetrize(eVars.Vtau);
 	watch.stop();
+
+	return Vscloc;
 }
 
 
 void PerturbationSolver::getdVsclocPsi(ScalarFieldArray dn, ScalarFieldArray& dVscloc)
 {	static StopWatch watch("EdensityAndVscloc"); watch.start();
 
-	ScalarFieldTilde dnTilde = J(eVars.get_nTot());
+	ScalarFieldTilde dnTilde = J(dn[0]);
+	//TODO implememtn get_nTot
 
 	// Hartree term:
 	ScalarFieldTilde dVsclocTilde = (*e.coulomb)(dnTilde); //Note: external charge and nuclear charge contribute to d_vac as well (see below)
@@ -303,14 +455,21 @@ void PerturbationSolver::getdVsclocPsi(ScalarFieldArray dn, ScalarFieldArray& dV
 	// Exchange and correlation, and store the real space Vscloc with the odd historic normalization factor of JdagOJ:
 	//e.exCorr(eVars.get_nXC(), &eVars.Vxc, false, &eVars.tau, &eVars.Vtau);
 	//Second derivative exc
-	ScalarFieldArray dVxc;
-	e.exCorr.getdVxc(eVars.get_nXC(), &dVxc, false, &eVars.tau, &eVars.Vtau, dn);
+	ScalarFieldArray dVxc(eVars.Vxc.size());
+	ScalarField tmp;
+	e.exCorr.getdVxc(eVars.get_nXC(), &dVxc, false, &tmp, &eVars.tau, &eVars.Vtau, dn);
 
+	logPrintf("VsclocPsi A.\n");
 	for(unsigned s=0; s<eVars.Vscloc.size(); s++)
-	{	eVars.Vscloc[s] = JdagOJ(dVxc[s]);
+	{	dVscloc[s] = JdagOJ(dVxc[s]);
+	logPrintf("VsclocPsi B.\n");
 		if(s<2) //Include all the spin-independent contributions along the diagonal alone
 			dVscloc[s] += Jdag(O(dVsclocTilde), true);
 	}
+
+	logPrintf("dVscloc norm: %g.\n", nrm2(dVscloc[0]));
+
+	logPrintf("VsclocPsi C.\n");
 	e.symm.symmetrize(dVscloc);
 	watch.stop();
 }
@@ -329,7 +488,260 @@ void PerturbationSolver::getdVsclocTau(ScalarFieldArray& dVscloc)
 	watch.stop();
 }
 
+void PerturbationSolver::orthonormalize(int q, ColumnBundle& Cq)
+{	assert(e.eInfo.isMine(q));
+	//VdagC[q].clear();
+	//matrix rot = orthoMatrix(Cq^O(Cq)); //Compute matrix that orthonormalizes wavefunctions
+	matrix rot = invsqrt(Cq^O(Cq));
+	Cq = Cq * rot;
+//	e->iInfo.project(C[q], VdagC[q], &rot); //update the atomic projections
+}
+
+void printCB(ColumnBundle C) {
+	double *dat = (double*)(C.getColumn(0, 0)->dataPref());
+	logPrintf("ColumnBundle values %g %g %g %g %g %g %g %g %g %g\n", dat[0], dat[1], dat[2], dat[3], dat[4], dat[5], dat[6], dat[7], dat[8], dat[9]);
+}
+
+void printV(ScalarField V) {
+	double *dat = V->dataPref();
+	logPrintf("ColumnBundle values %g %g %g %g %g %g %g %g %g %g\n", dat[0], dat[1], dat[2], dat[3], dat[4], dat[5], dat[6], dat[7], dat[8], dat[9]);
+}
+
+
+ScalarFieldArray PerturbationSolver::addnXC(ScalarFieldArray n)
+{	if(e.iInfo.nCore)
+	{	ScalarFieldArray nXC = clone(n);
+		int nSpins = std::min(int(nXC.size()), 2); //1 for unpolarized and 2 for polarized
+		for(int s=0; s<nSpins; s++) //note that off-diagonal components of spin-density matrix are excluded
+			nXC[s] += (1./nSpins) * e.iInfo.nCore; //add core density
+		return nXC;
+	}
+	else return n; //no cores
+}
+
+void PerturbationSolver::testVPT() {
+	int test = 4;
+	if(e.exCorr.exxFactor())
+		die("Variational perturbation currently does not support exact exchange.");
+	if(e.eInfo.hasU)
+		die("Variational perturbation currently does not support DFT+U.");
+	if (e.exCorr.needsKEdensity())
+		die("Variational perturbation currently does not support KE density dependent functionals.");
+	if(!e.exCorr.hasEnergy())
+		die("Variational perturbation does not support potential functionals.");
+	if(e.exCorr.orbitalDep)
+		die("Variational perturbation currently does not support orbital dependent potential functionals.");
+	if(eVars.fluidParams.fluidType != FluidNone)
+		die("Variational perturbation does not support fluids.");
+
+	std::vector<ColumnBundle> W;
+	std::vector<ColumnBundle> dW;
+	std::vector<ColumnBundle> W2;
+	std::vector<ColumnBundle> Y;
+	std::vector<ColumnBundle> dY;
+	std::vector<ColumnBundle> Y2;
+	std::vector<ColumnBundle> H1Y;
+	std::vector<ColumnBundle> H2Y;
+	std::vector<ColumnBundle> H3Y;
+	std::vector<ColumnBundle> Grad1;
+	std::vector<ColumnBundle> Grad2;
+	PerturbationGradient pg;
+	std::vector<ColumnBundle> dHY;
+	pg.init(e);
+	//std::vector<ColumnBundle> dGrad;
+	init(W, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(dW, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(W2, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(Y, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(dY, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(Y2, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(H1Y, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(H2Y, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(H3Y, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(Grad1, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(Grad2, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(pg.dY, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	init(dHY, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	randomize(W, eInfo);
+	randomize(dW, eInfo);
+	double h = 1e-7;
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		H1Y[q].zero();
+		H2Y[q].zero();
+		H3Y[q].zero();
+		dW[q] = dW[q]*h;
+		orthonormalize(q, W[q]);
+		Y[q] = W[q];
+		W2[q] = W[q] + dW[q];
+		//orthonormalize(q, Y[q]);
+		Y2[q] = W2[q];
+		orthonormalize(q, Y2[q]);
+		dY[q] = Y2[q] - Y[q];
+		dHY[q].zero();
+	}
+	logPrintf("Norm %g.\n", nrm2(H1Y[0]));
+	logPrintf("Norm %g.\n", nrm2(H2Y[0]));
+
+	if (test == 1) {
+		ColumnBundle tmpC;
+		Energies ener;
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+			//eVars.n = getn(Y);
+			applyH(q, eVars.F[q], H1Y[q], Y[q], getn(Y));
+
+			eVars.C[q] = Y[q];
+			e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
+			eVars.n = eVars.calcDensity();
+			eVars.EdensityAndVscloc(ener);
+			//eVars.elecEnergyAndGrad(ener,0,0,true);
+			e.iInfo.augmentDensityGridGrad(eVars.Vscloc);
+			eVars.applyHamiltonian(q, eVars.F[q], H2Y[q], ener, true, false);
+			applyH2(q, eVars.F[q], H3Y[q]);
+		}
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+			logPrintf("Difference %g.\n", nrm2(H1Y[q]-H2Y[q])/nrm2(H2Y[q]));
+			logPrintf("Difference %g.\n", nrm2(H2Y[q]-H3Y[q])/nrm2(H2Y[q]));
+			printCB(H1Y[q]);
+			printCB(H2Y[q]);
+			printCB(H3Y[q]);
+		}
+	} else if (test == 2) { //FD test d(Vexc)
+		int ncount = eVars.n.size();
+		ScalarFieldArray Vxc(ncount), Vxc2(ncount), n(ncount), n2(ncount), dn(ncount), dVxc(ncount), Dvxc(ncount);
+		ScalarField v1,v2,dv;
+		n = getn(Y);
+		n2 =getn(Y2);
+		dn = n2-n;
+		e.exCorr.getVxcSimplified(addnXC(n), &Vxc, false, &v1);
+		e.exCorr.getVxcSimplified(addnXC(n2), &Vxc2, false, &v2);
+		e.exCorr.getdVxc(addnXC(n), &dVxc, false, &dv, 0, 0, dn);
+		Dvxc = Vxc2-Vxc;
+		logPrintf("Difference %g.\n", nrm2(Dvxc[0]-dVxc[0])/nrm2(dVxc[0]));
+		printV(Dvxc[0]*(1/h));
+		printV(dVxc[0]*(1/h));
+		logPrintf("Difference %g.\n", nrm2((v2-v1)-dv)/nrm2(dv));
+		printV((v2-v1)*(1/h));
+		printV(dv*(1/h));
+		logPrintf("Density");
+		printV(n[0]);
+		printV(dn[0]);
+	} else if (test == 3) { //FD test dn
+		ScalarFieldArray Vxc, n, n2, dnnum, dnanal;
+		n = getn(Y);
+		n2 =getn(Y2);
+		dnnum = n2 - n;
+		dnanal = getdn(&dY, &Y);
+		logPrintf("Difference %g.\n", nrm2(dnnum[0]-dnanal[0])/nrm2(dnnum[0]));
+		printV(dnnum[0]);
+		printV(dnanal[0]);
+		printCB(Y[0]);
+		printCB(dY[0]);
+	} else if (test == 4) { //FD test dE_psipsi
+		Energies ener;
+		eVars.C = Y;
+		//for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+			//e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
+		//}
+		eVars.n = eVars.calcDensity();
+		//eVars.n = eVars.calcDensity();
+		//eVars.EdensityAndVscloc(ener);
+		//eVars.elecEnergyAndGrad(ener);
+		getGrad(&Grad1, Y);
+
+		eVars.C = Y2;
+		eVars.n = eVars.calcDensity();
+		//for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+			//e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
+		//}
+		//eVars.n = eVars.calcDensity();
+		//eVars.EdensityAndVscloc(ener);
+		//eVars.elecEnergyAndGrad(ener);
+		getGrad(&Grad2, W2);
+
+		pInfo.dY = dW;
+		eVars.C = Y;
+		eVars.n = eVars.calcDensity();
+		//for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+			//e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
+		//}
+		//eVars.n = eVars.calcDensity();
+		//eVars.EdensityAndVscloc(ener);
+		//eVars.elecEnergyAndGrad(ener);
+
+		logPrintf("Test wut");
+		compute(&pg, 0);
+
+
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+			logPrintf("Difference %g", nrm2((Grad2[q]-Grad1[q])-pg.dY[q])/nrm2(pg.dY[q]));
+			printCB(Grad2[q]-Grad1[q]);
+			printCB(pg.dY[q]);
+		}
+	} else if (test == 5) { //Test grad C = 0
+		getGrad(&Y, Y);
+		logPrintf("Norm %g.\n", nrm2(Y[0]));
+		logPrintf("Norm %g.\n", nrm2(eVars.C[0]));
+		logPrintf("Norm %g.\n", nrm2(Y[0])/nrm2(eVars.C[0]));
+		printCB(Y[0]);
+	} else if (test == 6) { //Compare Vxc
+		int ncount = eVars.n.size();
+		ScalarFieldArray Vxc(ncount), Vxc2(ncount), n(ncount);
+		n = getn(Y);
+		e.exCorr(addnXC(n), &Vxc, false);
+		e.exCorr.getVxcSimplified(addnXC(n), &Vxc2, false);
+		logPrintf("Difference %g.\n", nrm2(Vxc[0]-Vxc2[0])/nrm2(Vxc[0]));
+		printV(Vxc[0]);
+		printV(Vxc2[0]);
+	} else if (test == 7) { //FD test hamiltonian
+
+		/*for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+			Energies ener;
+			eVars.C = Y;
+			eVars.n = getn(Y);
+			applyH(q, eVars.F[q], H1Y[q], Y[q]);
+			eVars.C = Y2;
+			eVars.n = getn(Y2);
+			applyH(q, eVars.F[q], H2Y[q], Y[q]);
+
+			eVars.C = Y;
+			eVars.n = getn(Y);
+			eVars.EdensityAndVscloc(ener);
+			dHpsi(dHY[q], Y[q], getdn(&dY, &Y));
+			logPrintf("Norm %g.\n", nrm2(H2Y[q]-H1Y[q]));
+			logPrintf("Difference %g.\n", nrm2(H2Y[q]-H1Y[q]-dHY[0])/nrm2(dHY[q]));
+			printCB(H2Y[q]-H1Y[q]);
+			printCB(dHY[q]);
+		}*/
+	} else if (test == 8) { //Compare getn
+		ScalarFieldArray n1;
+		ScalarFieldArray n2;
+		eVars.C = Y;
+		n1 = eVars.calcDensity();
+		n2 = getn(Y);
+
+		printV(n1[0]);
+		printV(n2[0]);
+	} else if (test == 9) { //FD test dC
+
+		pInfo.dY = dW;
+		eVars.C = Y;
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+			pInfo.dU[q] = (pInfo.dY[q]^O(eVars.C[q])) + (eVars.C[q]^O(pInfo.dY[q]));
+			pInfo.dC[q] = pInfo.dY[q];
+			pInfo.dC[q] -= 0.5*(eVars.C[q]*pInfo.dU[q]);
+			logPrintf("Difference %g.\n", nrm2(Y2[q]-Y[q]-pInfo.dC[q])/nrm2(pInfo.dC[q]));
+			printCB(Y2[q]-Y[q]);
+			printCB(pInfo.dC[q]);
+		}
+
+
+	}
+	die("Test over\n");
+}
+
 //Compare applyH to applyHamiltonian
+//Compare excorr functions
 //Finite difference test dH
 //Finite difference test dn
-//Finite difference test dGrad psi/tau
+//Finite difference test dGrad psi/tau against Grad
+//Test Grad(C) = 0 at converged wfns

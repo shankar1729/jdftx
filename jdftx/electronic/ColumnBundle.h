@@ -177,6 +177,7 @@ complex traceinner(const diagMatrix &F, const ColumnBundle &X,const ColumnBundle
 //!    4: return spin density-matrix (valid for spinor X only)
 //! If gInfoOut is specified, function ensures that the output is changed to that grid (in case tighter wfns grid is in use)
 ScalarFieldArray diagouterI(const diagMatrix &F,const ColumnBundle &X, int nDensities, const GridInfo* gInfoOut=0);
+complexScalarFieldArray diagouterI(const diagMatrix &F, const ColumnBundle &A, const ColumnBundle &B,  int nDensities, const GridInfo* gInfoOut);
 
 //! @}
 #endif // JDFTX_ELECTRONIC_COLUMNBUNDLE_H

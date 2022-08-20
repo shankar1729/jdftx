@@ -1037,7 +1037,7 @@ void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, Scala
 	if(needsSigma)
 	{	ScalarField sigmaDen = (0.5/eps) * inv(sigma) * mask;
 		e_sigma = configs[0].e_sigma*mask; //First derivative available analytically
-		e_nsigma = 0.5*(nDen * (configs[1].e_sigma - configs[2].e_sigma) + sigmaDen * (configs[3].e_n - configs[4].e_n));
+		e_nsigma = 0.5*(nDen * (configs[1].e_sigma - configs[2].e_sigma)  + sigmaDen * (configs[3].e_n - configs[4].e_n));
 		e_sigmasigma = sigmaDen * (configs[3].e_sigma - configs[4].e_sigma);
 	}
 	else
@@ -1048,7 +1048,7 @@ void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, Scala
 }
 
 void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeTXC includeTXC,
-		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, const ScalarFieldArray& dn) const
+		ScalarField* quantity, const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, const ScalarFieldArray& dn) const
 {
 	static StopWatch watch("ExCorrTotal"), watchComm("ExCorrCommunication"), watchFunc("ExCorrFunctional");
 	watch.start();
@@ -1068,6 +1068,7 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 	ScalarFieldArray E_n(nCount);
 	nullToZero(E_n, gInfo);
 
+	logPrintf("getdVxc A");
 	//Check for GGAs and meta GGAs:
 	bool needsSigma = false, needsTau=false, needsLap=false;
 	for(auto func: functionals->internal)
@@ -1076,10 +1077,11 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 			needsLap |= func->needsLap();
 			needsTau |= func->needsTau();
 		}
-
+	logPrintf("getdVxc B");
 	if (needsLap || needsTau || nCount > 1) {
+		logPrintf("getdVxc B0");
 		ScalarFieldArray nplusdn, Vxc, VxcplusdVxc;
-		double h;
+		double h = 1;
 		nplusdn = n+h*dn;
 		(*this)(n, &Vxc, includeTXC, tauPtr, Vtau);
 		(*this)(nplusdn, &VxcplusdVxc, includeTXC, tauPtr, Vtau);
@@ -1087,20 +1089,84 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 		return;
 	}
 
+	logPrintf("getdVxc B1");
 	ScalarField e_nn, e_sigma, e_nsigma, e_sigmasigma;
-	getSecondDerivatives(n[0], e_nn, e_sigma, e_nsigma, e_sigmasigma);
+	logPrintf("getdVxc B2");
+	getSecondDerivatives(n[0], e_nn, e_sigma, e_nsigma, e_sigmasigma, 1e-9);
+
+	logPrintf("getdVxc B3");
 	(*dVxc)[0] = e_nn * dn[0];
+	logPrintf("getdVxc C");
+	*quantity = e_nn * dn[0];
 
 	int iDirStart, iDirStop;
 	TaskDivision(3, mpiWorld).myRange(iDirStart, iDirStop);
 	if (needsSigma) {
+		ScalarFieldArray dsigma(sigmaCount), tmp(nCount);
+		nullToZero(dsigma, gInfo, sigmaCount);
+		nullToZero(tmp, gInfo, nCount);
+		logPrintf("Exc Norm %f", nrm2(dsigma[0]));
+		logPrintf("Exc Norm %f", nrm2(tmp[0]));
 		for(int i=iDirStart; i<iDirStop; i++) {
-			(*dVxc)[0] -= 2*I(D(J(I(D(J(dn[0]),i))*e_sigma + I(D(J(n[0]),i))*e_nsigma*dn[0]),i));
+			dsigma[0] += 2*I(D(J(dn[0]), i))*I(D(J(n[0]), i));
+		}
+		dsigma[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+
+		//*quantity = dsigma[0];
+
+		logPrintf("getdVxc D");
+		for(int i=iDirStart; i<iDirStop; i++) {
+			tmp[0] -= 2*I(D(J(
+					I(D(J(dn[0]),i))*e_sigma +
+					I(D(J(n[0]),i))*(e_nsigma*dn[0]+e_sigmasigma*dsigma[0])
+												),i));
 		}
 
-		(*dVxc)[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+		logPrintf("getdVxc E");
+		tmp[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+
+		//*quantity = tmp[0];
+
+		(*dVxc)[0] += tmp[0];
+		(*dVxc)[0] += e_nsigma*dsigma[0];
+
+		logPrintf("getdVxc F");
+		*quantity =  (e_nn * dn[0]) + (e_nsigma*dsigma[0]);
 	}
-	/*
+}
+
+
+double ExCorr::getVxcSimplified(const ScalarFieldArray& n, ScalarFieldArray* Vxc, IncludeTXC includeTXC, ScalarField* quantity,
+		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, matrix3<>* Exc_RRT) const
+{
+	static StopWatch watch("ExCorrTotal"), watchComm("ExCorrCommunication"), watchFunc("ExCorrFunctional");
+	watch.start();
+
+	const int nInCount = n.size(); assert(nInCount==1 || nInCount==2 || nInCount==4);
+	const int nCount = std::min(nInCount, 2); //Number of spin-densities used in the parametrization of the functional
+	const int sigmaCount = 2*nCount-1;
+	const GridInfo& gInfo = n[0]->gInfo;
+
+	//------- Prepare inputs, allocate outputs -------
+
+	//Energy density per volume:
+	ScalarField E; nullToZero(E, gInfo);
+
+	//Gradient w.r.t spin densities:
+	bool needGradients = (Vxc or Exc_RRT); //need gradient propagation (for Vxc/Vtau, or for Exc_RRT)
+	if(Vxc) Vxc->clear();
+	ScalarFieldArray E_n(nCount);
+	if(needGradients) nullToZero(E_n, gInfo);
+
+	//Check for GGAs and meta GGAs:
+	bool needsSigma = false, needsTau=false, needsLap=false;
+	for(auto func: functionals->internal)
+		if(shouldInclude(func, includeTXC))
+		{	needsSigma |= func->needsSigma();
+		needsLap |= func->needsLap();
+		needsTau |= func->needsTau();
+		}
+
 	//Calculate spatial gradients for GGA (if needed)
 	std::vector<VectorField> Dn(nInCount);
 	int iDirStart, iDirStop;
@@ -1112,9 +1178,10 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 			Dn[0][i] = I(D(Jn,i));
 	}
 
+	if(needsTau || needsLap || nCount > 1)
+		die("No");
+
 	//Additional inputs/outputs for MGGAs (Laplacian, orbital KE and gradients w.r.t those)
-	ScalarFieldArray lap(nInCount), E_lap(nCount);
-	ScalarFieldArray tau(nInCount), E_tau(nCount);
 
 	//Transform to local spin-diagonal basis (noncollinear magnetism mode only)
 	ScalarFieldArray nCapped(nCount), lapIn(nCount), tauIn(nCount);
@@ -1123,7 +1190,8 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 	//Cap negative densities to 0:
 	if(!nCapped[0]) nCapped = clone(n);
 	double nMin, nMax;
-	callPref(eblas_capMinMax)(gInfo.nr, nCapped[0]->dataPref(), nMin, nMax, 0.);
+	for(int s=0; s<nCount; s++)
+		callPref(eblas_capMinMax)(gInfo.nr, nCapped[0]->dataPref(), nMin, nMax, 0.);
 
 	//Compute the required contractions for GGA:
 	ScalarFieldArray sigma(sigmaCount), E_sigma(sigmaCount);
@@ -1139,59 +1207,56 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 		if(needGradients) nullToZero(E_sigma, gInfo, sigmaCount);
 	}
 
+	//*quantity = sigma[0];
+
+	ScalarFieldArray lap(nInCount), E_lap(nCount);
+	ScalarFieldArray tau(nInCount), E_tau(nCount);
 	//---------------- Compute internal functionals ----------------
 	watchFunc.start();
 	for(auto func: functionals->internal)
 		if(shouldInclude(func, includeTXC))
 			func->evaluateSub(gInfo.irStart, gInfo.irStop,
-				constDataPref(nCapped), constDataPref(sigma), constDataPref(lap), constDataPref(tau),
-				E->dataPref(), dataPref(E_n), dataPref(E_sigma), dataPref(E_lap), dataPref(E_tau));
+					constDataPref(nCapped), constDataPref(sigma), constDataPref(lap), constDataPref(tau),
+					E->dataPref(), dataPref(E_n), dataPref(E_sigma), dataPref(E_lap), dataPref(E_tau));
 	watchFunc.stop();
 
 	//Cleanup unneeded derived quantities (free memory before starting communications and gradient propagation)
 	double Exc = integral(E); E = 0; //note Exc accumulated over processes below in communication block
 	nCapped.clear();
 	sigma.clear();
-	lap.clear();
-	tau.clear();
 
 	//---------------- Collect results over processes ----------------
 	watchComm.start();
 	mpiWorld->allReduce(Exc, MPIUtil::ReduceSum);
 	for(ScalarField& x: E_n) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	for(ScalarField& x: E_sigma) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
-	for(ScalarField& x: E_lap) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
-	for(ScalarField& x: E_tau) if(x) x->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 	watchComm.stop();
-
+	*quantity = 1.0*E_n[0];
 	//--------------- Gradient propagation ---------------------
 	if(needGradients)
 	{
-
 		//Propagate spatial gradient contribution to density
 		if(needsSigma)
 		{	ScalarFieldTildeArray E_nTilde(nInCount); //contribution to the potential in fourier space
-			std::vector<VectorField> DnAll(nInCount); //gradients of all density components required for stress calculation
-
-			for(int i=iDirStart; i<iDirStop; i++)
-			{	//Propagate from contraction sigma to the spatial derivatives
-				ScalarFieldArray E_Dni(nCount);
-				E_Dni[0] += 2*(E_sigma[0] * Dn[0][i]);
-				//Propagate to E_nTilde:
-				E_nTilde[0] -= D(Idag(E_Dni[0]), i);
-			}
-			//Accumulate over processes:
-			watchComm.start();
-			nullToZero(E_nTilde[0], gInfo);
-			E_nTilde[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
-			watchComm.stop();
-			E_n[0] += Jdag(E_nTilde[0]);
+		matrix3<> Esigma_RRT; //stress contribution through gradients
+		for(int i=iDirStart; i<iDirStop; i++)
+		{	//Propagate from contraction sigma to the spatial derivatives
+			ScalarFieldArray E_Dni(nCount);
+			E_Dni[0] += 2*(E_sigma[0] * Dn[0][i]);
+			//Propagate to E_nTilde:
+			E_nTilde[0] -= D(Idag(E_Dni[0]), i);
+		}
+		//Accumulate over processes:
+		watchComm.start();
+		nullToZero(E_nTilde[0], gInfo);
+		E_nTilde[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+		watchComm.stop();
+		E_n[0] += Jdag(E_nTilde[0]);
+		//*quantity = Jdag(E_nTilde[0]);
 		}
 	}
 
 	if(Vxc) *Vxc = E_n;
-	if(Vtau) *Vtau = E_tau;
 	watch.stop();
 	return Exc;
-	*/
 }
