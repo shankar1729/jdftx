@@ -29,5 +29,10 @@ void PerturbationInfo::setup(Everything *e, ElecVars *eVars) {
 			dVext.push_back(dVext[0]->clone());
 		if(e->iInfo.computeStress)
 			die("\nStress calculation not supported with external potentials.\n\n");
+	} else {
+		dVext.resize(eVars->n.size());
+		nullToZero(dVext, e->gInfo);
+		logPrintf("WARNING: dVext not loaded.");
 	}
+	//assert(dVext.size() == eVars->Vexternal.size());
 }

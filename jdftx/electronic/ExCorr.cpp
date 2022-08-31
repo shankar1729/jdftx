@@ -1068,7 +1068,7 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 	ScalarFieldArray E_n(nCount);
 	nullToZero(E_n, gInfo);
 
-	logPrintf("getdVxc A");
+	debugBP("getdVxc A");
 	//Check for GGAs and meta GGAs:
 	bool needsSigma = false, needsTau=false, needsLap=false;
 	for(auto func: functionals->internal)
@@ -1077,9 +1077,9 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 			needsLap |= func->needsLap();
 			needsTau |= func->needsTau();
 		}
-	logPrintf("getdVxc B");
+	debugBP("getdVxc B");
 	if (needsLap || needsTau || nCount > 1) {
-		logPrintf("getdVxc B0");
+		debugBP("getdVxc B0");
 		ScalarFieldArray nplusdn, Vxc, VxcplusdVxc;
 		double h = 1;
 		nplusdn = n+h*dn;
@@ -1089,14 +1089,14 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 		return;
 	}
 
-	logPrintf("getdVxc B1");
+	debugBP("getdVxc B1");
 	ScalarField e_nn, e_sigma, e_nsigma, e_sigmasigma;
-	logPrintf("getdVxc B2");
+	debugBP("getdVxc B2");
 	getSecondDerivatives(n[0], e_nn, e_sigma, e_nsigma, e_sigmasigma, 1e-9);
 
-	logPrintf("getdVxc B3");
+	debugBP("getdVxc B3");
 	(*dVxc)[0] = e_nn * dn[0];
-	logPrintf("getdVxc C");
+	debugBP("getdVxc C");
 	*quantity = e_nn * dn[0];
 
 	int iDirStart, iDirStop;
@@ -1105,8 +1105,8 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 		ScalarFieldArray dsigma(sigmaCount), tmp(nCount);
 		nullToZero(dsigma, gInfo, sigmaCount);
 		nullToZero(tmp, gInfo, nCount);
-		logPrintf("Exc Norm %f", nrm2(dsigma[0]));
-		logPrintf("Exc Norm %f", nrm2(tmp[0]));
+		debugBP("Exc Norm %f", nrm2(dsigma[0]));
+		debugBP("Exc Norm %f", nrm2(tmp[0]));
 		for(int i=iDirStart; i<iDirStop; i++) {
 			dsigma[0] += 2*I(D(J(dn[0]), i))*I(D(J(n[0]), i));
 		}
@@ -1114,7 +1114,7 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 
 		//*quantity = dsigma[0];
 
-		logPrintf("getdVxc D");
+		debugBP("getdVxc D");
 		for(int i=iDirStart; i<iDirStop; i++) {
 			tmp[0] -= 2*I(D(J(
 					I(D(J(dn[0]),i))*e_sigma +
@@ -1122,7 +1122,7 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 												),i));
 		}
 
-		logPrintf("getdVxc E");
+		debugBP("getdVxc E");
 		tmp[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 
 		//*quantity = tmp[0];
@@ -1130,7 +1130,7 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 		(*dVxc)[0] += tmp[0];
 		(*dVxc)[0] += e_nsigma*dsigma[0];
 
-		logPrintf("getdVxc F");
+		debugBP("getdVxc F");
 		*quantity =  (e_nn * dn[0]) + (e_nsigma*dsigma[0]);
 	}
 }
