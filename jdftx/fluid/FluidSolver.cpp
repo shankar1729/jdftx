@@ -115,9 +115,9 @@ public:
 		coupling = std::make_shared<ConvCoupling>(fluidMixture, fsp.exCorr);
 
 		//Create van der Waals mixing functional
-		assert(e.vanDerWaals);
+		assert(e.vanDerWaalsFluid);
 		vdwCoupling = std::make_shared<VDWCoupling>(fluidMixture, atpos, e.vanDerWaalsFluid,
-			e.vanDerWaals->getScaleFactor(fsp.exCorr.getName(), fsp.vdwScale));
+			e.vanDerWaalsFluid->getScaleFactor(fsp.exCorr.getName(), fsp.vdwScale));
 
 		//---- G=0 constraints -----
 
