@@ -106,11 +106,11 @@ $(document).ready(function(){initNavTree('ASE.html',''); initResizable(); });
 <div class="contents">
 <div class="textblock"><p>JDFTx contains a python interface class to the <a href="https://wiki.fysik.dtu.dk/ase/">Atomic Simulation Environment</a>. This provides a quick but powerful interface to many features, including <a href="https://wiki.fysik.dtu.dk/ase/ase/phonons.html">phonons</a> and <a href="https://wiki.fysik.dtu.dk/ase/ase/md.html">ab-initio molecular dynamics</a> alternative to the now built-in versions, or to barrier calculations using the <a href="https://wiki.fysik.dtu.dk/ase/ase/neb.html">nudged-elastic band</a> method.</p>
 <p>The current implementation of the interface is as a force calculator, which only exchanges forces and potential energies with ASE.</p>
-<h2><a class="anchor" id="autotoc_md22"></a>
+<h2><a class="anchor" id="autotoc_md21"></a>
 Installation</h2>
 <p>The interface is available with the JDFTx source code, under the scripts directory (/jdftx/scripts/ase). After installing JDFTx and ASE (follow instructions for each), set the python path to access the interface file. For example, in unix-based systems, add </p><pre class="fragment">   export PYTHONPATH=/path-to-jdftx/scripts/ase:$PYTHONPATH
 </pre><p> to ~/.bashrc or ~/.profile files. Once this is done, you can import the JDFTx calculator in python using: </p><pre class="fragment">   from JDFTx import JDFTx
-</pre> <h2><a class="anchor" id="autotoc_md23"></a>
+</pre> <h2><a class="anchor" id="autotoc_md22"></a>
 Use</h2>
 <p>The JDFTx interface needs to know the path to the executable and to pseudopotentials (if not using a built-in pseudopotential set). This can be done using arguments executable and pseudoDir in the constructor, or by setting environment variables JDFTx and JDFTx_pseudo respectively.</p>
 <p>The easiest way to use the interface is to set the environment variables </p><pre class="fragment">export JDFTx=/path/to/jdftx
@@ -127,7 +127,7 @@ export JDFTx_pseudo=/path/to/pseudopotential/directory
 <p>Finally, to use MPI or a job management system like SLURM, use: </p><pre class="fragment">calculator = JDFTx(executable='mpirun -n Nprocs /path/to/jdftx')
 </pre><p> or </p><pre class="fragment">calculator = JDFTx(executable='srun -n Nprocs /path/to/jdftx')
 </pre><p> Note that the command that submits the job eg. srun should not release the shell until the job is completed. Therefore, in slurm, srun would work, but not sbatch.</p>
-<h2><a class="anchor" id="autotoc_md24"></a>
+<h2><a class="anchor" id="autotoc_md23"></a>
 Example</h2>
 <p>Below is a sample python script that uses jdftx through the ASE interface to calculate the bond length of CO molecule using the BFGS minimization algorithm. Note that you must edit the executable path in the code below (or remove that argument and set the environment variable JDFTx). </p><pre class="fragment">from ase import Atoms
 from JDFTx import JDFTx
@@ -159,7 +159,7 @@ BFGS:    2 16:54:20     -591.766731        0.7019
 BFGS:    3 16:54:26     -591.768793        0.1145
 BFGS:    4 16:54:30     -591.768846        0.0040
 </pre><p> See the <a href="https://wiki.fysik.dtu.dk/ase/tutorials/tutorials.html">ASE tutorials</a> for many examples illustrating ASE's features; it is then straightforward to instead use the JDFTx calculator in any of those examples.</p>
-<h2><a class="anchor" id="autotoc_md25"></a>
+<h2><a class="anchor" id="autotoc_md24"></a>
 Extracting outputs</h2>
 <div class="image">
 <img src="CO.png" alt=""/>

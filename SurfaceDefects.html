@@ -108,7 +108,7 @@ $(document).ready(function(){initNavTree('SurfaceDefects.html',''); initResizabl
 <img src="SurfaceDefect.png" alt=""/>
 </div>
 <p>We now deal with localized point defects at or near the surface of a 3D material, which largely follows the procedure of a point defect in the bulk (interior) of a 3D material shown in the previous tutorial, with a few extra steps. In particular, we will consider the same N<sub>C</sub> (nitrogen substituting carbon) point defect as the previous tutorial, but at the (111) surface of diamond instead of the bulk.</p>
-<h2><a class="anchor" id="autotoc_md36"></a>
+<h2><a class="anchor" id="autotoc_md35"></a>
 Surface unit cell</h2>
 <p>First construct a (111) surface unit cell of diamond with four layers. This is very similar to the <a class="el" href="Pt111.html">Pt(111) setup</a>, except with two C atoms within the FCC primitive cell (instead of a single Pt atom). However, we will additionally need to terminate the dangling bonds at the surface. This is particularly important for covalent-bonded materials and semiconductors/insulators compared to metals, because the dangling bonds may introduce surface states within the bulk band gap which will interfere with our calculation of defect states. H-termination is standard for dangling C bonds in organic chemistry, but interestingly H-terminated diamond has a negative electron affinity that will make calculating -1 charge states of surface defects unstable. Let us consider an F-terminated diamond (111) surface instead, which is structurally as simple as H-termination and exhibits a positive electron affinity: </p><pre class="fragment">#Save the following to surface.in
 lattice Hexagonal 4.766 30
@@ -151,7 +151,7 @@ slab-epsilon minus.d_tot 2.  0 0 -0.001
 <p>Note that the dielectric function varies smoothly from 1 in the vacuum region to approximately 5.9 in the center of the slab, which agrees very well with the experimental dielectric constant of 5.8 used in the previous tutorial. Since we did not optimize the ionic positions, this corresponds to \( \epsilon_\infty \), and we will consistently not do ionic optimizations below. As discussed in <a class="el" href="BulkDefects.html">Defects in 3D materials</a>, if we perform ionic optimization of the defect structure, we should use \( \epsilon_0 \) instead, which can be optimized exactly as above with <a class="el" href="CommandIonicMinimize.html">ionic-minimize</a> added to both minus.in and plus.in.</p>
 <p>Finally, note that the second argument of <a class="el" href="CommandSlabEpsilon.html">slab-epsilon</a> is a Gaussian smoothing which should be adjusted to the smallest value that does not show an oscillating profile within the material. We have set the value above to roughly half the spacing between atomic layers in diamond (111) which is sufficient to damp out the oscillations.</p>
 <p><b>Exercise</b>: Run plus.in with smaller and larger values of the Gaussian smoothing to check the impact on the dielectric profile.</p>
-<h2><a class="anchor" id="autotoc_md37"></a>
+<h2><a class="anchor" id="autotoc_md36"></a>
 Surface supercell</h2>
 <p>Next, exactly as in the bulk defect case, we need to construct a supercell so that we separate the defect from its periodic images. The slab already breaks periodicity along the z direction, so we now need to repeat the unit cell only along the two remaining directions. For computational expediency, we work here with a 2x2x1 supercell by expanding the first two lattice vectors by a factor of 2 and then halving, repeating and offsetting the first two fractional coordinates: </p><pre class="fragment">#Save the following to supercell.in
 lattice Hexagonal 4.766 30
@@ -214,7 +214,7 @@ converge-empty-states yes
 dump End EigStats ElecDensity Dtot
 </pre><p> Run jdftx on supercell.in: note that it has nStates (reduced k-points) = 2, so if you are running it with MPI on a four core system, you should use "mpirun -n 2 jdftx -c2 -i supercell.in". On a compute cluster, you can use up to two nodes with "mpirun -n 2 jdftx -cX -i supercell.in", where X is the number of cores per node. See <a class="el" href="GettingStarted.html">Getting started</a> for further details.</p>
 <p>This calculation outputs the eigenvalue statistics, electron density and electrostatic potential. Note that the HOMO and LUMO levels are overall offset from the bulk: they are now on an absolute scale referenced to zero outside the surface, and correspond to the ionization potential and electron affinity respectively of F-terminated diamond.</p>
-<h2><a class="anchor" id="autotoc_md38"></a>
+<h2><a class="anchor" id="autotoc_md37"></a>
 Neutral defect</h2>
 <p>We can now introduce a neutral defect by substituting a surface carbon atom with nitrogen: </p><pre class="fragment">#Save the following to N_C-0.in:
 lattice Hexagonal 4.766 30
@@ -276,7 +276,7 @@ electronic-SCF
 dump End Dtot ElecDensity
 </pre><p> For the neutral defect, we can calculate the formation energy by comparing to the energy of the perfect supercell, with reference energies (chemical potentials) for C and N set by bulk diamond and N<sub>2</sub> respectively, exactly as discussed in <a class="el" href="BulkDefects.html">Defects in 3D materials</a>. This results in a neutral formation energy of approximately 5.5 eV, which is larger than that of the bulk defect. This indicates that the N-F bond is weaker than the C-F bond by a greater amount than the N-C bond is weaker than the C-C bond for the bulk case.</p>
 <p><b>Exercise</b>: Compute the neutral formation energies for N<sub>C</sub> defects positioned deeper within the slab. How does the formation energy compare with the bulk case for a defect in the center of the slab?</p>
-<h2><a class="anchor" id="autotoc_md39"></a>
+<h2><a class="anchor" id="autotoc_md38"></a>
 Charged defects</h2>
 <p>The procedure for charged defects at the surface is very similar to the bulk case, with the only difference being that <a class="el" href="CommandChargedDefectCorrection.html">charged-defect-correction</a> expects a dielectric profile computed by <a class="el" href="CommandSlabEpsilon.html">slab-epsilon</a> as we did above instead of a single number. (See <a class="el" href="citelist.html#CITEREF_ElectrostaticPotential">[33]</a> for implementation details.) Run jdftx on N_C-1.in for the -1 charge state: </p><pre class="fragment">#Save the following to N_C-1.in
 include N_C-0.in

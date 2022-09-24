@@ -1,17 +1,17 @@
 var CommandIndex =
 [
-    [ "Input file format", "Commands.html#autotoc_md390", null ],
-    [ "Commands allowed in jdftx input files", "Commands.html#autotoc_md391", [
-      [ "%Coulomb interactions", "Commands.html#autotoc_md392", null ],
-      [ "%Electronic", "Commands.html#autotoc_md393", null ],
-      [ "%Fluid", "Commands.html#autotoc_md394", null ],
-      [ "%Initialization", "Commands.html#autotoc_md395", null ],
-      [ "%Ionic", "Commands.html#autotoc_md396", null ],
-      [ "%Miscellaneous", "Commands.html#autotoc_md397", null ],
-      [ "%Output", "Commands.html#autotoc_md398", null ]
+    [ "Input file format", "Commands.html#autotoc_md389", null ],
+    [ "Commands allowed in jdftx input files", "Commands.html#autotoc_md390", [
+      [ "%Coulomb interactions", "Commands.html#autotoc_md391", null ],
+      [ "%Electronic", "Commands.html#autotoc_md392", null ],
+      [ "%Fluid", "Commands.html#autotoc_md393", null ],
+      [ "%Initialization", "Commands.html#autotoc_md394", null ],
+      [ "%Ionic", "Commands.html#autotoc_md395", null ],
+      [ "%Miscellaneous", "Commands.html#autotoc_md396", null ],
+      [ "%Output", "Commands.html#autotoc_md397", null ]
     ] ],
-    [ "Additional commands in phonon input files", "Commands.html#autotoc_md399", null ],
-    [ "Additional commands in wannier input files", "Commands.html#autotoc_md400", null ],
+    [ "Additional commands in phonon input files", "Commands.html#autotoc_md398", null ],
+    [ "Additional commands in wannier input files", "Commands.html#autotoc_md399", null ],
     [ "add-U", "CommandAddU.html", null ],
     [ "band-unfold", "CommandBandUnfold.html", null ],
     [ "barostat-velocity", "CommandBarostatVelocity.html", null ],

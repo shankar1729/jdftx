@@ -104,10 +104,10 @@ $(document).ready(function(){initNavTree('CommandAddU.html',''); initResizable()
 <div class="title">add-U </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md48"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md47"></a>
 Syntax:</h2>
 <pre class="fragment">add-U &lt;species&gt; &lt;orbDesc&gt; &lt;UminusJ&gt; [Vext &lt;atom&gt; &lt;V&gt;] ... [ &lt;species2&gt; ... ]
-</pre> <h2><a class="anchor" id="autotoc_md49"></a>
+</pre> <h2><a class="anchor" id="autotoc_md48"></a>
 Description:</h2>
 <p>Add U correction (DFT+U) to specified species and orbitals, in the simplified rotationally-invariant scheme of [Dudarev et al, Phys. Rev. B 57, 1505], where the correction depends only on U - J.</p><ul>
 <li>&lt;species&gt; is a species identifier (see command <a class="el" href="CommandIonSpecies.html">ion-species</a>)</li>
@@ -116,7 +116,7 @@ Description:</h2>
 <li>Vext &lt;atom&gt; &lt;V&gt;: optionally specify an external potential on the atomic projection which may be used to calculate U from linear response. &lt;atom&gt; is the atom number of this species (1-based) to perturb by strength &lt;V&gt; (in Eh). Multiple Vext's may appear per U channel to perturb multiple atoms simultaneously.</li>
 </ul>
 <p>Repeat the sequence for corrections to multiple species. If pseudoatom has multiple shells of same angular momentum, prefix &lt;orbDesc&gt; with a number e.g. 1p or 2p to select the first or second p shell respectively.</p>
-<h2><a class="anchor" id="autotoc_md50"></a>
+<h2><a class="anchor" id="autotoc_md49"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandIon.html">ion</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>

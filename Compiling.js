@@ -1,6 +1,6 @@
 var Compiling =
 [
-    [ "Features", "index.html#autotoc_md28", null ],
+    [ "Features", "index.html#autotoc_md27", null ],
     [ "Prerequisites", "Prerequisites.html", null ],
     [ "Dependencies", "Dependencies.html", null ],
     [ "Basic compilation", "CompilingBasic.html", null ],

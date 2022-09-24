@@ -25,6 +25,7 @@ var vector3_8h =
     [ "operator*", "group__DataStructures.html#ga80663ab50c27fa03834a01d1df35c49e", null ],
     [ "operator*", "group__DataStructures.html#gaf616915b4b001863e21c354674de7e46", null ],
     [ "operator*", "group__DataStructures.html#ga742834fa68e3b90071df7f6ce9f5d534", null ],
+    [ "operator*", "group__DataStructures.html#gacf2cd52f0d2791d6fbc2033eec70beb4", null ],
     [ "operator*", "group__DataStructures.html#ga8e56d04e3ba0ba871d0c5405e33f4aad", null ],
     [ "operator*", "group__DataStructures.html#ga46b477c70881fb3077d2526acbf9d18d", null ],
     [ "operator*", "group__DataStructures.html#ga54fcbd9ea35183a820228e27a4001656", null ],

@@ -108,7 +108,7 @@ $(document).ready(function(){initNavTree('BulkDefects.html',''); initResizable()
 <img src="BulkDefect.png" alt=""/>
 </div>
 <p>Our examples of periodic materials have so far dealt with perfect crystals. Defects in crystals that break this periodicity play a critical role in the behavior of real materials for several properties. DFT calculations approximate defects in a supercell containing several unit cells of the material, with the defect introduced in just one of those unit cells. This requires care to ensure that the interaction of defects with its periodic images (on the superlattice) is negligible, especially when the defect is charged.</p>
-<h2><a class="anchor" id="autotoc_md30"></a>
+<h2><a class="anchor" id="autotoc_md29"></a>
 Bulk calculation</h2>
 <p>We will introduce defect calculation techniques in JDFTx here using the example of a nitrogen atom substituting a carbon atom (denoted N<sub>C</sub>) in diamond. First, we need to perform calculation of a perfect 'bulk' diamond crystal, which has a face-centered cubic lattice with a 2 atom basis: </p><pre class="fragment">#Save the following to bulk.in
 lattice face-centered Cubic 6.74
@@ -142,7 +142,7 @@ electronic-SCF
 ionic-minimize nIterations 10
 dump End None
 </pre><p> Run jdftx on N2.in to get the total energy of an N<sub>2</sub> molecule.</p>
-<h2><a class="anchor" id="autotoc_md31"></a>
+<h2><a class="anchor" id="autotoc_md30"></a>
 Perfect supercell</h2>
 <p>Next, we need to construct a perfect supercell of the diamond crystal. Here, we will make a 2x2x2 supercell of the primitive unit cell calculated above. To do this, we will scale up the lattice vectors by a factor of 2 using <a class="el" href="CommandLattScale.html">latt-scale</a>. We will correspondingly reduce the <a class="el" href="CommandKpointFolding.html">kpoint-folding</a> by a factor of 2, so that the effective supercell sampled by the k-mesh remains the same as the unit cell calculation. We will also need to repeat the atoms to account for all the unit cells within the supercell. The net result of this is scaling down the lattice coordinates of the two atoms in the unit cell by a factor of 2 (since the lattice vectors have doubled), and then repeating them by adding all combinations of 0 and 1/2 in each of the three coordinates to fill up eight unit cells within the 2x2x2 supercell. (Note that this amounts to the transformation detailed in <a class="el" href="Pt100.html">Pt(100) setup</a> with matrix M = 2 x identity.) The resulting input file for the perfect supercell is: </p><pre class="fragment">#Save the following to supercell.in
 lattice face-centered Cubic 6.74
@@ -175,7 +175,7 @@ electronic-SCF
 converge-empty-states yes
 dump End EigStats ElecDensity Dtot
 </pre><p> Run jdftx on supercell.in to get the energy, eigStats, electron density and electrostatic potential of the perfect supercell. Notice that the band edges (HOMO and LUMO) are identical within numerical error, and the total energy is exactly 8 times that of the bulk unit cell, as expected.</p>
-<h2><a class="anchor" id="autotoc_md32"></a>
+<h2><a class="anchor" id="autotoc_md31"></a>
 Neutral defect</h2>
 <p>Now, let us substitute one of the carbon atoms with nitrogen, say the one at the origin without loss of generality. This gives us the input for the neutral N<sub>C</sub> defect: </p><pre class="fragment">#Save the following to N_C-0.in
 lattice face-centered Cubic 6.74
@@ -213,7 +213,7 @@ dump End Dtot ElecDensity
 </p>
 <p>where \( E(\text{N_C-0}) \) and \( E(\text{supercell}) \) are the total energies (F) obtained from the N_C-0.in and supercell.in calculation output files respectively. Above, \( \mu_C \) is the chemical potential of the carbon atom, equal to the energy per atom in the reference state for carbon, which is just perfect diamond in this case. Therefore, \( \mu_C = E(\text{bulk})/2 \) from the unit cell calculation above. Similarly, \( \mu_N = E(\text{N2})/2 \) from the nitrogen molecule calculation above. This results in a formation energy of approximately 4.0 eV for the neutral defect.</p>
 <p><b>Exercise</b>: converge the formation energy of the neutral N<sub>C</sub> defect with respect to supercell size by performing 3x3x3 and 4x4x4 supercell calculations. (These will of course be much slower than the 2x2x2 calculation above.)</p>
-<h2><a class="anchor" id="autotoc_md33"></a>
+<h2><a class="anchor" id="autotoc_md32"></a>
 Charged defects</h2>
 <p>Let us now compute the energy of the N<sub>C</sub> defect with one fewer or one extra electron i.e. in the +1 or -1 charge states respectively. Unlike the previous case, we cannot just take the energy of the supercell calculation to compute the formation energy because charged defects will interact very strongly with their periodic images due by the long-range 1/r Coulomb interaction. Consequently, we correct the energy of a defect with charge <em>q</em> by comparing the energy and electrostatic potential of a Gaussian charge distribution embedded in a uniform medium with the dielectric constant of our bulk material, each computed with isolated and periodic boundary conditions. This yields an energy correction <a class="el" href="citelist.html#CITEREF_BulkDefect-VanDeWalle">[9]</a></p>
 <p class="formulaDsp">

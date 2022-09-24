@@ -1,6 +1,5 @@
 var NAVTREEINDEX8 =
 {
-"classTranslationOperatorSpline.html#ab408316375ca8464de2150ce759ee48c":[2,2,0,1,5,0],
 "classTranslationOperatorSpline.html#ab408316375ca8464de2150ce759ee48ca0152af57eb81c09b20263cc13f5fcfbc":[2,2,0,1,5,0,0],
 "classTranslationOperatorSpline.html#ab408316375ca8464de2150ce759ee48cad3bdb60efa863b18fc958fb5744929df":[2,2,0,1,5,0,1],
 "classTranslationOperatorSpline.html#affa447215b75b421bd69fabbb59a1822":[2,2,0,1,5,2],
@@ -249,5 +248,6 @@ var NAVTREEINDEX8 =
 "classmatrix3.html#ac2c76afa3d03a0af5c9b05bf869dc9f2":[2,2,0,0,26,12],
 "classmatrix3.html#ac59e3dc508eaf8807fc3407e82059b46":[2,2,0,0,26,2],
 "classmatrix3.html#ad2638b861878b910491ac8b91c86ff3d":[2,2,0,0,26,19],
-"classmatrix3.html#ad2ca895bcc1ae5cfec058b2e70346f6e":[2,2,0,0,26,25]
+"classmatrix3.html#ad2ca895bcc1ae5cfec058b2e70346f6e":[2,2,0,0,26,25],
+"classmatrix3.html#ad97e0b2e3d04e90e25eacda5b774c40a":[2,2,0,0,26,23]
 };

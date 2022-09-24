@@ -104,13 +104,13 @@ $(document).ready(function(){initNavTree('QMC.html',''); initResizable(); });
 <div class="title">quantum Monte Carlo Calculations </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md26"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md25"></a>
 Using the JDFTx to CASINO interface</h2>
 <p>JDFTx provides an option to output wavefunctions and potentials for use in quantum Monte Carlo calculations in the <a href="http://vallico.net/casinoqmc">CASINO</a> code. In addition to vacuum calculations, this interface also enables solvation through the use of external potentials and second order correction energies <a class="el" href="citelist.html#CITEREF_Katie-QMC">[27]</a>.</p>
 <p>To export orbitals, and optionally external potential from any solvation model, include the line </p><pre class="fragment">dump End QMC
 </pre><p> in the input file. This command will convert the plane-wave wavefunction coefficients (and potential) to Bspline coefficients in the CASINO format. See Ref. <a class="el" href="citelist.html#CITEREF_Katie-QMC">[27]</a> for the procedure to extract the solvation energy from the resulting QMC calculation.</p>
 <p>Note that such calculations must use pseudopotentials appropriate for QMC (see the <a href="http://vallico.net/casinoqmc">CASINO website</a>), which should also be available in (or convertible to) a JDFTx-supported format (see <a class="el" href="Pseudopotentials.html">Pseudopotentials</a>).</p>
-<h2><a class="anchor" id="autotoc_md27"></a>
+<h2><a class="anchor" id="autotoc_md26"></a>
 Tips</h2>
 <ul>
 <li>Some solvation models may behave in casino better than others, depending on the features of the potentials used: sharp features in potentials will cause numerical problems in QMC.</li>

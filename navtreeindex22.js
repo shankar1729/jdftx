@@ -1,5 +1,11 @@
 var NAVTREEINDEX22 =
 {
+"structWannierEverything.html":[2,2,1,4,26],
+"structWannierEverything.html#a5e212cb19b87dddc1f342a7e8221e64d":[2,2,1,4,26,1],
+"structWannierEverything.html#a9b45fb0978443dd425e9d4841e55e8f3":[2,2,1,4,26,0],
+"structWannierGradient.html":[2,2,1,4,27],
+"structWannierGradient.html#a069161a32a3524eba1749f3d80ae117b":[2,2,1,4,27,4],
+"structWannierGradient.html#a22d1640bca31ccc6eceee17133062bdc":[2,2,1,4,27,1],
 "structWannierGradient.html#a5d39c895d1e80bf3003c76320c32e3c6":[2,2,1,4,27,3],
 "structWannierGradient.html#a69b3bdab29f2bc58ee7c6ddf689ed4f4":[2,2,1,4,27,5],
 "structWannierGradient.html#a90cfa19c3558729a84620e50bc66da18":[2,2,1,4,27,0],

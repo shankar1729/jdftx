@@ -104,10 +104,10 @@ $(document).ready(function(){initNavTree('CommandIon.html',''); initResizable();
 <div class="title">ion </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md249"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md248"></a>
 Syntax:</h2>
 <pre class="fragment">ion &lt;species-id&gt; &lt;x0&gt; &lt;x1&gt; &lt;x2&gt; [v &lt;vx0&gt; &lt;vx1&gt; &lt;vx2&gt;] &lt;moveScale&gt; [&lt;constraint type&gt;=HyperPlane|Linear|None|Planar &lt;d0&gt; &lt;d1&gt; &lt;d2&gt; [&lt;group&gt; [HyperPlane &lt;d0&gt; ...]]]
-</pre> <h2><a class="anchor" id="autotoc_md250"></a>
+</pre> <h2><a class="anchor" id="autotoc_md249"></a>
 Description:</h2>
 <p>Add an atom of species &lt;species-id&gt; at coordinates (&lt;x0&gt;,&lt;x1&gt;,&lt;x2&gt;).</p>
 <p>Optionally, for dynamics, specify ion velocity &lt;v0&gt;,&lt;v1&gt;,&lt;v2&gt; after keyword 'v'.</p>
@@ -115,7 +115,7 @@ Description:</h2>
 <p>In addition, the ion may be constrained to a line or a plane with line direction or plane normal equal to (&lt;d0&gt;,&lt;d1&gt;,&lt;d2&gt;) in the coordinate system selected by command <a class="el" href="CommandCoordsType.html">coords-type</a>. Note that the constraints must be consistent with respect to symmetries (if enabled).</p>
 <p>The HyperPlane constraint allows constraining collective motion of many ions by restricting their motion to a hyperplane with normal specified by (&lt;d0&gt;,&lt;d1&gt;,&lt;d2&gt;) for all ions specifying a hyperplane constraint. By default, all hyperplane-constrained ions are included in a single group; use optional &lt;group&gt; label to specify multiple hyper-planes. Multiple hyperplane constraints may also be added to each atom, but this requires an explicit group label for each hyperplane.</p>
 <p>Note that when <a class="el" href="CommandCoordsType.html">coords-type</a> is lattice, the constraints are in covariant lattice coordinates (like direction indices) for line constraints, but contravariant coordinates (like plane indices) for plane constraints.</p>
-<h2><a class="anchor" id="autotoc_md251"></a>
+<h2><a class="anchor" id="autotoc_md250"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandCoordsType.html">coords-type</a> &#160;&#160;&#160; <a class="el" href="CommandIonSpecies.html">ion-species</a> &#160;&#160;&#160; <a class="el" href="CommandLattScale.html">latt-scale</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>

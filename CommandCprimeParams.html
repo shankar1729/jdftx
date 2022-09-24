@@ -104,15 +104,15 @@ $(document).ready(function(){initNavTree('CommandCprimeParams.html',''); initRes
 <div class="title">Cprime-params </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md99"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md98"></a>
 Syntax:</h2>
 <pre class="fragment">Cprime-params [&lt;dk&gt;=1E-4] [&lt;degeneracyThreshold&gt;=1E-6] [&lt;vThreshold&gt;=1E-4] [&lt;realSpaceTruncated&gt;=yes]
-</pre> <h2><a class="anchor" id="autotoc_md100"></a>
+</pre> <h2><a class="anchor" id="autotoc_md99"></a>
 Description:</h2>
 <p><a class="el" href="classControl.html" title="Miscellaneous flags controlling electronic DFT.">Control</a> dC/dk calculation for L and Q output. Here, &lt;dk&gt; in a0^-1 controls the finite difference used for dC/dk, while &lt;degeneracyThreshold&gt; specifies the energy range within unitary rotations are accounted for in comparing wavefunctions between k. Within degenerate subspaces of energy, rotations are first revolved by the velocity operator and then obtained by best match between wavefunctions for sub-subspaces that have the same velocity within &lt;vThreshold&gt; (in Eh-a0 atomic units). If &lt;realSpaceTruncated&gt; is yes (default), then truncated directions are computed by a real space multiplication by r, instead of dC/dk.</p>
 <p>This is used for the calculation of orbital angular momenta L, output in the same binary format as the momenta and selected by 'dump End L'.</p>
 <p>Additionally, 'dump End Q' selects output of electric quadrupole matrix elements, defined as traceless symmetric tensor of (rj pk + pj rk). Specifically, the output is a nStates x 5 x nBands x nBands complex binary file, where the 5 components in order are xy, yz, zx, xxr, yyr (where xxr = xx - rr/3). Note that zzr = -(xxr + yyr) because the trace of the tensor is removed, and this redundant component is excluded.</p>
-<h2><a class="anchor" id="autotoc_md101"></a>
+<h2><a class="anchor" id="autotoc_md100"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>

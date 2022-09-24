@@ -104,10 +104,10 @@ $(document).ready(function(){initNavTree('CommandChargedDefectCorrection.html','
 <div class="title">charged-defect-correction </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md78"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md77"></a>
 Syntax:</h2>
 <pre class="fragment">charged-defect-correction [Slab &lt;dir&gt;=100|010|001] &lt;DtotFile&gt; &lt;bulkEps&gt;|&lt;slabEpsFile&gt; &lt;rMin&gt; &lt;rSigma&gt;
-</pre> <h2><a class="anchor" id="autotoc_md79"></a>
+</pre> <h2><a class="anchor" id="autotoc_md78"></a>
 Description:</h2>
 <p>Calculate energy correction for bulk or surface charged defects <a class="el" href="citelist.html#CITEREF_ElectrostaticPotential">[33]</a> The correction is calculated assuming the defects to be model charges specified using command <a class="el" href="CommandChargedDefect.html">charged-defect</a>.</p>
 <p>By default, the defect is assumed bulk for <a class="el" href="CommandCoulombInteraction.html">coulomb-interaction</a> Periodic and surface for <a class="el" href="CommandCoulombInteraction.html">coulomb-interaction</a> Slab. However, for the Periodic case, the optional [Slab &lt;dir&gt;] overrides this to calculate surface defects without truncated <a class="el" href="classCoulomb.html" title="Abstract base class for the (optionally truncated) Coulomb interaction.">Coulomb</a> potentials. Note that <a class="el" href="CommandCoulombTruncationEmbed.html">coulomb-truncation-embed</a> must be specified when using truncated coulomb potentials in Slab mode. In Periodic mode, the correction assumes a slab centered at the origin (i.e. analogous to using xCenter 0 0 0 in the truncated mode).</p>
@@ -115,7 +115,7 @@ Description:</h2>
 <p>For bulk defect calculations, &lt;bulkEps&gt; is the bulk dielectric constant.</p>
 <p>For surface defect calculations, &lt;slabEpsFile&gt; specifies a dielectric profile calculated using command <a class="el" href="CommandSlabEpsilon.html">slab-epsilon</a> in a similar geometry (the number of points along the slab normal direction must match exactly). Optionally, the &lt;slabEpsFile&gt; may contain an additional column for the in-plane response (which is not computed by command <a class="el" href="CommandSlabEpsilon.html">slab-epsilon</a>), in which case an anisotropic dielectric model is used.</p>
 <p>&lt;rMin&gt; specifies the distance away from the defect center to use in the determination of the alignment potential, with rSigma specifying an error function turn-on distance. The code wil generate a text file with the spherically averaged model and DFT electrostatic potentials, which can be used to check the calculated alignment and refine rMin and rSigma.</p>
-<h2><a class="anchor" id="autotoc_md80"></a>
+<h2><a class="anchor" id="autotoc_md79"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandCoordsType.html">coords-type</a> &#160;&#160;&#160; <a class="el" href="CommandCoulombInteraction.html">coulomb-interaction</a> &#160;&#160;&#160; <a class="el" href="CommandLattScale.html">latt-scale</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>

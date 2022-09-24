@@ -115,7 +115,7 @@ $(document).ready(function(){initNavTree('OxideSurfaces.html',''); initResizable
  </td></tr>
 </table>
 </center><p>This tutorial introduces the setup of more complex surfaces, and demonstrates bound charge and electrostatic potential visualization, using the example of Rutile TiO<sub>2</sub>(110) in vacuum and solution.</p>
-<h2><a class="anchor" id="autotoc_md44"></a>
+<h2><a class="anchor" id="autotoc_md43"></a>
 Bulk Rutile TiO&lt;sub&gt;2&lt;/sub&gt;</h2>
 <p>Let's start with a calculation of the bulk titanium dixoide, which has a Rutile crystal structure consisting of a tetragonal unit cell with parameters a = 4.59 Angstroms (8.67 bohrs) and c = 2.96 Angstroms (5.59 bohrs). Each unit cell contains two TiO<sub>2</sub> units, with one Ti at a vertex and the other at the body center. To speed up the calculations, we skip geometry optimization in this tutorial, and I directly list the optimized ionic positions below. </p><pre class="fragment">#Save the following to bulk.in:
 ion-species GBRV/$ID_pbe.uspp
@@ -137,7 +137,7 @@ dump End None
 <img src="TiO2bulk.png" alt=""/>
 </div>
 <p>Note that each Ti atom is surrounded by six O atoms in a (distorted) octahedron, and that each O atom connects to three Ti atoms in a plane. Record the total energy of the bulk unit cell, as we will need it later for calculating surface energies.</p>
-<h2><a class="anchor" id="autotoc_md45"></a>
+<h2><a class="anchor" id="autotoc_md44"></a>
 Rutile TiO&lt;sub&gt;2&lt;/sub&gt;(110) surface: setup</h2>
 <p>We will follow the procedure introduced in the <a class="el" href="Pt100.html">Pt(100) setup</a> page to setup the surface geometry, with a few additions to account for the differences. This time, we will make a slab with three layers (to keep the calculations quicker) and include a vacuum spacing of approximately 15 bohrs as before. For production calculations, converge the results with number of layers.</p>
 <p>The original tetragonal lattice vectors (in columns) are: </p><pre class="fragment">    / a 0 0 \
@@ -205,7 +205,7 @@ ion  O   0.0000  0.0  0.25852  1
 </pre><p> with the lattice vectors: </p><pre class="fragment">#Save the following to Rutile110.lattice:
 lattice Orthorhombic 12.26123 5.59 33   #Respectively sqrt(2)a, c and chosen height with spacing
 </pre><p> Use testGeometry.in from the <a class="el" href="Pt100.html">Pt(100) setup</a> page to visualize the geometry via a JDFTx dry run. You should see a structure as shown at the top of the page (except without the bound charge distributions, which we will calculate below).</p>
-<h2><a class="anchor" id="autotoc_md46"></a>
+<h2><a class="anchor" id="autotoc_md45"></a>
 Rutile TiO&lt;sub&gt;2&lt;/sub&gt;(110) surface: calculations</h2>
 <p>Now we can create input files for vacuum and solvated surface calculations, exactly as in the <a class="el" href="MetalSurfaces.html">Metal surfaces</a> tutorial, with a few minor tweaks: we can use fewer k-points and don't need Fermi fillings since this is an insulator, and we will output electrostatic potentials and bound charge for visualization. </p><pre class="fragment">#Save the following to common.in:
 include Rutile110.lattice
@@ -257,7 +257,7 @@ createXSF Solvated.out Solvated.xsf nbound
 <li>Not parametrized for transition metal atoms exposed to solution</li>
 </ol>
 <p>By starting from the non-empirical and nonlocally-determined SaLSA cavity, CANDLE and SaLSA address both these issues. The non-locality ensures that an entire water molecule must fit in the voids, significantly minimizing the probability of unphysical leakage. Additionally, the density-product cavity determination is calibrated to work on all atoms in the periodic table, and not just organic solutes.</p>
-<h2><a class="anchor" id="autotoc_md47"></a>
+<h2><a class="anchor" id="autotoc_md46"></a>
 Electrostatic potentials</h2>
 <p>We will now extract the electrostatic potential output from both the vacuum and solvated calculations (Vacuum.d_tot and Solvated.d_tot). The difference between these electrostatic potentials goes to zero far away from the slab, and approaches a constant value towards the center of the slab. This potential shift in the center fo the slab corresponds to the shift in the bulk energy levels of the solid due to the interfacial potential at the solid-liquid interface, which is the solvation VBM shift we seek.</p>
 <p>The following python script extracts the potentials, planarly averages them perpendicular to the slab normal (z) direction, plots the difference and reports the VBM shift. </p><pre class="fragment">import numpy as np

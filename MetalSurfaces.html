@@ -120,7 +120,7 @@ $(document).ready(function(){initNavTree('MetalSurfaces.html',''); initResizable
 <td style="text-align:center"><b>Pt(100)</b> </td><td style="text-align:center"><b>Pt(110)</b> </td><td style="text-align:center"><b>Pt(111)</b> </td></tr>
 </table>
 </center><p>Constructing a slab-geometry calculation (specifically graphene) from graphite in the <a class="el" href="TwoDmaterials.html">Two-dimensional materials</a> tutorial was easy: graphite already consisted of distinct layers. This tutorial shows you how to manually set up single-crystal platinum surfaces of various orientations, starting from supercell transformations, and then shows examples of surface property calculations in vacuum and solution.</p>
-<h2><a class="anchor" id="autotoc_md42"></a>
+<h2><a class="anchor" id="autotoc_md41"></a>
 Geometry setup</h2>
 <p>Let's start with the geometry of bulk platinum, written using explicit lattice vectors rather than the shorthand lattice name: </p><pre class="fragment">set aBy2 3.705   #a/2 in bohrs
 lattice \
@@ -138,7 +138,7 @@ ion Pt 0. 0. 0.  1
 <li><a class="el" href="Pt111.html">Pt(111) setup</a></li>
 </ul>
 <p>After following through these pages you will have x.lattice and x.ionpos files for each x in 100, 110 and 111.</p>
-<h2><a class="anchor" id="autotoc_md43"></a>
+<h2><a class="anchor" id="autotoc_md42"></a>
 Calculations</h2>
 <p>Now that we have the geometry - lattice and fractional coordinates - of the surfaces, setting up the calculations is rather straightforward. We will run vacuum and solvated calculations for each surface, and our input files will closely resemble those in the <a class="el" href="SolvationMolecule.html">Solvation of molecules</a> tutorial; the differences for the slab geometry will be familiar from the <a class="el" href="TwoDmaterials.html">Two-dimensional materials</a> tutorial.</p>
 <p>First we combine most of the setup in a common input file: </p><pre class="fragment">#Save the following to common.in:

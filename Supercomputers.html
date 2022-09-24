@@ -105,28 +105,11 @@ $(document).ready(function(){initNavTree('Supercomputers.html',''); initResizabl
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><h2><a class="anchor" id="autotoc_md19"></a>
-Compiling on NERSC Perlmutter</h2>
-<p>Compiling JDFTx to use the NVIDIA A100 GPUs on <a href="http://www.nersc.gov">NERSC Perlmutter</a> should work with default compilers within the GNU programming environment. Make sure to pull the latest code from git, as support for these GPUs and the Cray libraries is recent. Additional flags below are required to link non-threaded Cray libsci and avoid a crash within libsci during cleanup. The following commands may be used to invoke cmake (assuming bash shell): </p><pre class="fragment">module load PrgEnv-gnu
-module load cmake cray-fftw cudatoolkit gsl
-export CRAY_ACCEL_TARGET=nvidia80  # needed for CUDA-aware MPI support
-
-CC=cc CXX=CC cmake \
-        -D EnableProfiling=yes \
-        -D FFTW3_PATH=${FFTW_ROOT} \
-        -D GSL_PATH=${GSL_ROOT} \
-        -D CBLAS_LIBRARY=${GSL_ROOT}/lib/libgslcblas.so \
-        -D EnableCUDA=yes \
-        -D EnableCuSolver=yes \
-        -D CudaAwareMPI=yes \
-        -D PinnedHostMemory=yes \
-        -D CUDA_NVCC_FLAGS="-Wno-deprecated-gpu-targets -allow-unsupported-compiler -std=c++14" \
-        -D CUDA_ARCH=compute_80 \
-        -D CUDA_CODE=sm_80 \
-        -D EXTRA_CXX_FLAGS="-DDONT_FINALIZE_MPI -L/opt/cray/pe/lib64 -lsci_gnu_82" \
-        -D CMAKE_LIBRARY_PATH="${LD_LIBRARY_PATH//:/;}" \
-        ../jdftx-git/jdftx
-</pre><p>If you put the above in a script file, make sure to source it (rather than run it) because the CRAY_ACCEL_TARGET export needs to be set during make as well.</p>
-<p>When running jobs on perlmutter, make sure the same modules are loaded (module load lines in the compile script above) before launching a job. Here's an example job script using two nodes with four GPUs each: </p><pre class="fragment">#!/bin/bash
+Compiling on NERSC</h2>
+<p>JDFTx is available on NERSC as a module, which can be loaded as </p><pre class="fragment">module use /global/cfs/cdirs/m4025/Software/Perlmutter/modules
+module load jdftx/gpu   # or jdftx/cpu for the CPU partition
+</pre><p> for Perlmutter. To build a customized copy of JDFTx, please see the <code>run-cmake*.sh</code> scripts in the build directories loaded by these modules as the build instructions often need adjustment after every Cray update.</p>
+<p>An example job for Perlmutter using two GPU nodes with four GPUs each: </p><pre class="fragment">#!/bin/bash
 #SBATCH -A account_g      # replace with valid account
 #SBATCH -t 10             # replace with suitable time limit
 #SBATCH -C gpu
@@ -136,35 +119,33 @@ CC=cc CXX=CC cmake \
 #SBATCH --ntasks-per-node=4
 #SBATCH -c 32
 #SBATCH --gpus-per-task=1
+#SBATCH --gpu-bind=none
+
+module use /global/cfs/cdirs/m4025/Software/Perlmutter/modules
+module load jdftx/gpu
 
 export SLURM_CPU_BIND="cores"
 export JDFTX_MEMPOOL_SIZE=8192      # adjust as needed (in MB)
-export MPICH_GPU_SUPPORT_ENABLED=1  # needed for CUDA-aware MPI support
 
-srun /path/to/jdftx_gpu -i inputfile.in
-</pre><p> Please report any issues with building or running JDFTx on Perlmutter. In particular, we may need to select specific module versions after Cray updates, and hence may need to update these instructions.</p>
+srun jdftx_gpu -i inputfile.in
+</pre><p> Similarly, to use two CPU nodes fully: </p><pre class="fragment">#!/bin/bash
+#SBATCH -A account    # replace with valid account
+#SBATCH -t 20         # replace with suitable time limit
+#SBATCH -C cpu
+#SBATCH -N 2
+#SBATCH -n 4
+#SBATCH --ntasks-per-node=2
+#SBATCH -c 64
+#SBATCH --hint=nomultithread
+
+module use /global/cfs/cdirs/m4025/Software/Perlmutter/modules 
+module load jdftx/cpu
+
+export SLURM_CPU_BIND="cores"
+
+srun jdftx -i inputfile.in
+</pre><p> (Replace Perlmutter by Cori and <code>module load jdftx</code> on Cori.) If the builds don't work for you, please report an issue, as it may mean that the dependency modules have changed and we need to update the build.</p>
 <h2><a class="anchor" id="autotoc_md20"></a>
-Compiling on NERSC Edison/Cori</h2>
-<p>Use the gnu compiler and MKL to compile JDFTx on <a href="http://www.nersc.gov">NERSC Edison/Cori</a>. The following commands may be used to invoke cmake (assuming bash shell): </p><pre class="fragment">#Select the right compiler and load necessary modules
-module swap PrgEnv-intel PrgEnv-gnu
-module load gcc cmake gsl cray-fftw
-module unload darshan
-export CRAYPE_LINK_TYPE="dynamic"
-
-#From inside your build directory
-#(assuming relative paths as in the generic instructions above)
-CC="cc -dynamic -lmpich" CXX="CC -dynamic -lmpich" cmake \
-    -D EnableProfiling=yes \
-    -D EnableMKL=yes \
-    -D ForceFFTW=yes \
-    -D ThreadedBLAS=no \
-    -D GSL_PATH=${GSL_DIR} \
-    -D FFTW3_PATH=${FFTW_DIR} \
-    -D CMAKE_INCLUDE_PATH=${FFTW_INC} \
-    ../jdftx-VERSION/jdftx
-make -j12
-</pre><p> The optional ThreadedBLAS=no line above uses single-threaded MKL with threads managed by JDFTx instead. This slightly reduces performance (around 5%) compared to using MKL threads, but MKL threads frequently lead to a crash when trying to create pthreads elsewhere in JDFTx on NERSC.</p>
-<h2><a class="anchor" id="autotoc_md21"></a>
 Compiling on TACC</h2>
 <p>Use the GNU compilers and MKL for the easiest compilation on <a href="https://www.tacc.utexas.edu/stampede">TACC Stampede</a>. The following commands may be used to invoke cmake (assuming bash shell): </p><pre class="fragment">#Select gcc as the compiler:
 module load gcc/4.7.1

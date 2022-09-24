@@ -104,7 +104,7 @@ $(document).ready(function(){initNavTree('GettingStarted.html',''); initResizabl
 <div class="title">Getting started </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md40"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md39"></a>
 Running the code</h2>
 <p>Now that you have a working jdftx executable (and optionally jdftx_gpu) in the directory &lt;path-to-JDFTx&gt;/build, add the directory <b>&lt;path-to-JDFTx&gt;/build</b> to your <a href="http://www.linfo.org/path_env_var.html">PATH variable</a>. You might also want to add the scripts directory <b>&lt;path-to-JDFTx&gt;</b>/jdftx/scripts (or <b>&lt;path-to-JDFTx&gt;/jdftx-git/jdftx/scripts</b>) to the PATH variable. Note that if you choose not to add these directories to your PATH, you should specify the full path to the jdftx executable (or scripts) when trying out the tutorials.</p>
 <p>The command-line usage information can be retrieved using <b>jdftx -h</b>. Note that all command-line arguments follow the standard unix long/short option conventions. The typical usage of this program would be of the form: </p><pre class="fragment"> jdftx -i input.in -o output.out
@@ -114,7 +114,7 @@ Running the code</h2>
 </pre><p> The code can also be run without arguments, and the input can be typed from the command line. <br  />
  See <a class="el" href="Commands.html">Input file documentation</a> or the output of <b>jdftx -t</b> for the list of available input file commands with detailed documentation.</p>
 <p>JDFTx provides the option to terminate calculations gracefully, with Ctrl-c. This command allows the user to decide if the program should quit immediately, or after the current iteration, or to ignore the command.</p>
-<h2><a class="anchor" id="autotoc_md41"></a>
+<h2><a class="anchor" id="autotoc_md40"></a>
 Running the code on compute clusters</h2>
 <p>The basic invocation above is sufficient to take advantage of all the compute power of one computer. JDFTx will, by default, launch as many threads as cores on your computer.</p>
 <p>You need to use MPI to run JDFTx over a cluster of computers. For example, if you have a cluster with two computers called node1 and node2 with 8 compute cores each, you should run JDFTx as </p><pre class="fragment"> mpirun -n 2 --host node1,node2 jdftx -c 8 -i input.in -o output.out

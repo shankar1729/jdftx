@@ -1,6 +1,5 @@
 var NAVTREEINDEX5 =
 {
-"classFunctionalLDA.html#a635dd4dfa3dfb165ea9bbda3c5c706fa":[2,2,1,2,15,6],
 "classFunctionalLDA.html#ab4babf3add04efa71f0a3355a952dbe6":[2,2,1,2,15,1],
 "classFunctionalLDA.html#ac6d084f9bf7d77d1ee80e20a646387ed":[2,2,1,2,15,0],
 "classFunctionalLDA.html#ad1089fdd16daeae077c2f8b6d5773410":[2,2,1,2,15,3],
@@ -249,5 +248,6 @@ var NAVTREEINDEX5 =
 "classLongRangeSum2D.html#af80931f9442c2c6d31b7b75bee91b3ea":[2,2,1,4,30,2],
 "classMPIUtil.html":[2,2,0,3,22],
 "classMPIUtil.html#a000c052a4306b27d83aa179a69b04504":[2,2,0,3,22,48],
-"classMPIUtil.html#a03071303622416522710a6d701e0f553":[2,2,0,3,22,11]
+"classMPIUtil.html#a03071303622416522710a6d701e0f553":[2,2,0,3,22,11],
+"classMPIUtil.html#a088aad6a58b65f650300dda3d64560f8":[2,2,0,3,22,16]
 };
