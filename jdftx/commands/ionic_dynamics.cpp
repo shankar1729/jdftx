@@ -232,6 +232,7 @@ struct CommandIonicGaussianPotential : public Command
 			"+ Spherical: The potential is 0-D and confined near the origin.\n"
 			"+ Cylindrical: The potential is 1-D and extends along the z-direction.\n"
 			"+ Planar: The potential is 2-D and extends in the xy-plane.\n"
+			"\n"
 			"Note that the coordinates of the atoms are taken in minimum-image convention\n"
 			"for the unit cell centered at the origin for the potential and force calculation.\n"
 			"This command is intended primarily for applying perturbations in ionic dynamics.";
