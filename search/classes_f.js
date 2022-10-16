@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['quantumnumber_2285',['QuantumNumber',['../classQuantumNumber.html',1,'']]]
+  ['quantumnumber_2289',['QuantumNumber',['../classQuantumNumber.html',1,'']]]
 ];

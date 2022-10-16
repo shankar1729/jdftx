@@ -116,6 +116,7 @@ var annotated_dup =
     [ "InvertKS", "classInvertKS.html", "classInvertKS" ],
     [ "IonicDynamics", "classIonicDynamics.html", "classIonicDynamics" ],
     [ "IonicDynamicsParams", "structIonicDynamicsParams.html", "structIonicDynamicsParams" ],
+    [ "IonicGaussianPotential", "structIonicGaussianPotential.html", "structIonicGaussianPotential" ],
     [ "IonicGradient", "structIonicGradient.html", "structIonicGradient" ],
     [ "IonicMinimizer", "classIonicMinimizer.html", "classIonicMinimizer" ],
     [ "IonInfo", "classIonInfo.html", "classIonInfo" ],

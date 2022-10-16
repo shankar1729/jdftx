@@ -88,6 +88,7 @@ var group__IonicSystem =
       [ "coreOverlapCondition", "classIonInfo.html#a14ba4776a7f258e6609a5c237fe60d2e", null ],
       [ "forces", "classIonInfo.html#a9878631a33ae059352c4a61ef2f14340", null ],
       [ "forcesOutputCoords", "classIonInfo.html#ad56b2c7a36dc7eb1add127d9441285f3", null ],
+      [ "ionicGaussianPotentials", "classIonInfo.html#a66969eb649c4f5be4ee65877cfcee820", null ],
       [ "ionWidth", "classIonInfo.html#a374553bf484839a6613c83fc0e7f964f", null ],
       [ "ionWidthMethod", "classIonInfo.html#af15687dd2aec9380f2861c62a35a341a", null ],
       [ "ljOverride", "classIonInfo.html#a11cc8ad1ccfa19f7571955b48c70da6a", null ],

@@ -1,17 +1,17 @@
 var CommandIndex =
 [
-    [ "Input file format", "Commands.html#autotoc_md389", null ],
-    [ "Commands allowed in jdftx input files", "Commands.html#autotoc_md390", [
-      [ "%Coulomb interactions", "Commands.html#autotoc_md391", null ],
-      [ "%Electronic", "Commands.html#autotoc_md392", null ],
-      [ "%Fluid", "Commands.html#autotoc_md393", null ],
-      [ "%Initialization", "Commands.html#autotoc_md394", null ],
-      [ "%Ionic", "Commands.html#autotoc_md395", null ],
-      [ "%Miscellaneous", "Commands.html#autotoc_md396", null ],
-      [ "%Output", "Commands.html#autotoc_md397", null ]
+    [ "Input file format", "Commands.html#autotoc_md392", null ],
+    [ "Commands allowed in jdftx input files", "Commands.html#autotoc_md393", [
+      [ "%Coulomb interactions", "Commands.html#autotoc_md394", null ],
+      [ "%Electronic", "Commands.html#autotoc_md395", null ],
+      [ "%Fluid", "Commands.html#autotoc_md396", null ],
+      [ "%Initialization", "Commands.html#autotoc_md397", null ],
+      [ "%Ionic", "Commands.html#autotoc_md398", null ],
+      [ "%Miscellaneous", "Commands.html#autotoc_md399", null ],
+      [ "%Output", "Commands.html#autotoc_md400", null ]
     ] ],
-    [ "Additional commands in phonon input files", "Commands.html#autotoc_md398", null ],
-    [ "Additional commands in wannier input files", "Commands.html#autotoc_md399", null ],
+    [ "Additional commands in phonon input files", "Commands.html#autotoc_md401", null ],
+    [ "Additional commands in wannier input files", "Commands.html#autotoc_md402", null ],
     [ "add-U", "CommandAddU.html", null ],
     [ "band-unfold", "CommandBandUnfold.html", null ],
     [ "barostat-velocity", "CommandBarostatVelocity.html", null ],
@@ -82,6 +82,7 @@ var CommandIndex =
     [ "initial-state", "CommandInitialState.html", null ],
     [ "ion", "CommandIon.html", null ],
     [ "ionic-dynamics", "CommandIonicDynamics.html", null ],
+    [ "ionic-gaussian-potential", "CommandIonicGaussianPotential.html", null ],
     [ "ionic-minimize", "CommandIonicMinimize.html", null ],
     [ "ion-species", "CommandIonSpecies.html", null ],
     [ "ion-width", "CommandIonWidth.html", null ],

@@ -1,5 +1,10 @@
 var NAVTREEINDEX18 =
 {
+"namespaceD3.html#ad80e19610c5e989706671a7086182e6ea8ef1505b1f146d196a7445a59465ea67":[2,3,0,2,2,17],
+"namespaceD3.html#ad80e19610c5e989706671a7086182e6ea9b8066cae82c26e03f1d955669a1fa7b":[2,3,0,2,2,24],
+"namespaceD3.html#ad80e19610c5e989706671a7086182e6ea9c59a15c6684ac3c5007e3bb0dbb1459":[2,3,0,2,2,18],
+"namespaceD3.html#ad80e19610c5e989706671a7086182e6eaa35636615905f909961611527556ed22":[2,3,0,2,2,16],
+"namespaceD3.html#ad80e19610c5e989706671a7086182e6eaaa615c89f2ca1af6114fd696f41a523c":[2,3,0,2,2,25],
 "namespaceD3.html#ad80e19610c5e989706671a7086182e6eaae25e14c7ff12eff94b7ed6b27f67c4b":[2,3,0,2,2,13],
 "namespaceD3.html#ad80e19610c5e989706671a7086182e6eab7a7ab567ea4c0dc8adb436c073aab55":[2,3,0,2,2,7],
 "namespaceD3.html#ad80e19610c5e989706671a7086182e6eac7b11d9239b7b55a78e8931c28210527":[2,3,0,2,2,27],
@@ -244,10 +249,5 @@ var NAVTREEINDEX18 =
 "structDOS_1_1Weight_1_1OrbitalDesc.html#a31bda72f4f5dbc214962cfa9e24b8723":[2,2,1,4,9,0,0,5],
 "structDOS_1_1Weight_1_1OrbitalDesc.html#a59ebce5ecb9266464eda71a84da94d02":[2,2,1,4,9,0,0,7],
 "structDOS_1_1Weight_1_1OrbitalDesc.html#a76eec3e41588a96b12598dc2560d5eea":[2,2,1,4,9,0,0,2],
-"structDOS_1_1Weight_1_1OrbitalDesc.html#a9705a72ad7ee4449234f1243d5550d88":[2,2,1,4,9,0,0,3],
-"structDOS_1_1Weight_1_1OrbitalDesc.html#ade5a89868862e5eced2a4ae9d0bb53ad":[2,2,1,4,9,0,0,4],
-"structDOS_1_1Weight_1_1OrbitalDesc.html#ae70fbb867684fbd54e6021749992db9c":[2,2,1,4,9,0,0,6],
-"structDOS_1_1Weight_1_1OrbitalDesc.html#aedddd090500849e37228f8489c04396b":[2,2,1,4,9,0,0,8],
-"structDefectSupercell_1_1CachedProjections.html":[2,4,0,38,0],
-"structDefectSupercell_1_1CachedProjections.html#a10466d3dadec8f359daa75daa184af47":[2,4,0,38,0,1]
+"structDOS_1_1Weight_1_1OrbitalDesc.html#a9705a72ad7ee4449234f1243d5550d88":[2,2,1,4,9,0,0,3]
 };

@@ -125,6 +125,7 @@ var hierarchy =
     [ "InitParams", "structInitParams.html", null ],
     [ "IonicDynamics", "classIonicDynamics.html", null ],
     [ "IonicDynamicsParams", "structIonicDynamicsParams.html", null ],
+    [ "IonicGaussianPotential", "structIonicGaussianPotential.html", null ],
     [ "IonInfo", "classIonInfo.html", null ],
     [ "std::ios_base", null, [
       [ "std::basic_ios< Char >", null, [

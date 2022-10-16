@@ -1,5 +1,9 @@
 var NAVTREEINDEX2 =
 {
+"CoulombKernel_8h.html":[2,5,0,1,5],
+"CoulombPeriodic_8h.html":[2,5,0,1,6],
+"CoulombSlab_8h.html":[2,5,0,1,7],
+"CoulombTrunc.html":[1,0,1,2],
 "CoulombWire_8h.html":[2,5,0,1,8],
 "Coulomb_8h.html":[2,5,0,1,2],
 "Coulomb__internal_8h.html":[2,5,0,1,3],
@@ -245,9 +249,5 @@ var NAVTREEINDEX2 =
 "classColumnBundle.html#a49309530f18eae81b6527062091d252f":[2,2,0,0,43,0],
 "classColumnBundle.html#a687f2f57c24abd973d7cf6bfac01cacd":[2,2,0,0,43,19],
 "classColumnBundle.html#a720408a499181108d187c2d8a1323d8c":[2,2,0,0,43,6],
-"classColumnBundle.html#a7fd9f7c4d61b9ae63a6189c3107af174":[2,2,0,0,43,11],
-"classColumnBundle.html#a8a7c775c0859303cee0348d4122718af":[2,2,0,0,43,17],
-"classColumnBundle.html#a93b3398919293736a41c4d0c1bf8838c":[2,2,0,0,43,21],
-"classColumnBundle.html#a93c0c208c70dad9a111f9f8d981fb9a7":[2,2,0,0,43,13],
-"classColumnBundle.html#a9b0c9b468b17da0ade0ddeac9657a2fb":[2,2,0,0,43,7]
+"classColumnBundle.html#a7fd9f7c4d61b9ae63a6189c3107af174":[2,2,0,0,43,11]
 };

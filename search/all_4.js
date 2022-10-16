@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['e_388',['e',['../classTetrahedralDOS.html#a830ca50ce9c67d78447e3810a00d90a8',1,'TetrahedralDOS::e(int iState, int iBand) const'],['../classTetrahedralDOS.html#a8d7ec66f3b2d29e8bfc0cf4ba4d22dde',1,'TetrahedralDOS::e(int iState, int iBand)'],['../classPhonon.html#a0fe61d3a2a5346502a082b3e66ae756b',1,'Phonon::e()'],['../structInitParams.html#a5afb0f59a3f92279b82ab4ce075bcf19',1,'InitParams::e()']]],
-  ['e_389',['E',['../structRadialSchrodinger_1_1Outputs.html#aaef3f546ba3071d8ae714a480727a6bb',1,'RadialSchrodinger::Outputs::E()'],['../classEnergies.html#a2b9951d03e5f9bfed49c9707aaa8a7fb',1,'Energies::E()']]],
+  ['e_388',['E',['../structRadialSchrodinger_1_1Outputs.html#aaef3f546ba3071d8ae714a480727a6bb',1,'RadialSchrodinger::Outputs::E()'],['../classEnergies.html#a2b9951d03e5f9bfed49c9707aaa8a7fb',1,'Energies::E()']]],
+  ['e_389',['e',['../classTetrahedralDOS.html#a830ca50ce9c67d78447e3810a00d90a8',1,'TetrahedralDOS::e(int iState, int iBand) const'],['../classTetrahedralDOS.html#a8d7ec66f3b2d29e8bfc0cf4ba4d22dde',1,'TetrahedralDOS::e(int iState, int iBand)'],['../classPhonon.html#a0fe61d3a2a5346502a082b3e66ae756b',1,'Phonon::e()'],['../structInitParams.html#a5afb0f59a3f92279b82ab4ce075bcf19',1,'InitParams::e()']]],
   ['eband_390',['Eband',['../classEnergies.html#a9c98ca35cbf5d3a9cb87c5f266051dd6',1,'Energies']]],
   ['eblas_5faccumnorm_391',['eblas_accumNorm',['../group__Operators.html#ga6c1b03241b133beaed04728d26a086e3',1,'BlasExtra.h']]],
   ['eblas_5faccumnorm_5fgpu_392',['eblas_accumNorm_gpu',['../group__Operators.html#ga4990759337c29d9752c444b78e3930db',1,'BlasExtra.h']]],
@@ -177,8 +177,8 @@ var searchData=
   ['exchangeeval_562',['ExchangeEval',['../structExchangeEval.html',1,'']]],
   ['exchangeperiodic_5fcalc_563',['ExchangePeriodic_calc',['../structExchangePeriodic__calc.html',1,'']]],
   ['exchangeperiodicscreened_5fcalc_564',['ExchangePeriodicScreened_calc',['../structExchangePeriodicScreened__calc.html',1,'']]],
-  ['exchangeregularization_565',['exchangeRegularization',['../structCoulombParams.html#adc02818f2b4158d4bf49f1686e62d404',1,'CoulombParams']]],
-  ['exchangeregularization_566',['ExchangeRegularization',['../structCoulombParams.html#a4c748577e8daa85d6c37203d93842dac',1,'CoulombParams']]],
+  ['exchangeregularization_565',['ExchangeRegularization',['../structCoulombParams.html#a4c748577e8daa85d6c37203d93842dac',1,'CoulombParams']]],
+  ['exchangeregularization_566',['exchangeRegularization',['../structCoulombParams.html#adc02818f2b4158d4bf49f1686e62d404',1,'CoulombParams']]],
   ['exchangeslab_5fcalc_567',['ExchangeSlab_calc',['../structExchangeSlab__calc.html',1,'']]],
   ['exchangespherical_5fcalc_568',['ExchangeSpherical_calc',['../structExchangeSpherical__calc.html',1,'']]],
   ['exchangesphericalscreened_5fcalc_569',['ExchangeSphericalScreened_calc',['../structExchangeSphericalScreened__calc.html',1,'']]],

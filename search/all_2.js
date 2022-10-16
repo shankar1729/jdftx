@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['c_126',['c',['../classManagedMemoryBase.html#a7aba48af2ddbf8bf87f6c1d7f0ee861d',1,'ManagedMemoryBase']]],
-  ['c_127',['C',['../structElecGradient.html#afa6a3913df126bd453666a03c81426a5',1,'ElecGradient::C()'],['../classElecVars.html#a7c54b33f9d886ce9a4ba57af68a915c0',1,'ElecVars::C()'],['../structIncludeTXC.html#ad27100efaa404b8f86d44cbfedddcc25',1,'IncludeTXC::C()']]],
+  ['c_126',['C',['../structElecGradient.html#afa6a3913df126bd453666a03c81426a5',1,'ElecGradient::C()'],['../classElecVars.html#a7c54b33f9d886ce9a4ba57af68a915c0',1,'ElecVars::C()'],['../structIncludeTXC.html#ad27100efaa404b8f86d44cbfedddcc25',1,'IncludeTXC::C()']]],
+  ['c_127',['c',['../classManagedMemoryBase.html#a7aba48af2ddbf8bf87f6c1d7f0ee861d',1,'ManagedMemoryBase']]],
   ['c6_128',['C6',['../structD3_1_1PairParams.html#a30ae732ad42ed910e3f36559d01e3186',1,'D3::PairParams']]],
   ['cache_2dprojectors_129',['cache-projectors',['../CommandCacheProjectors.html',1,'CommandIndex']]],
   ['cachedprojections_130',['CachedProjections',['../structDefectSupercell_1_1CachedProjections.html',1,'DefectSupercell']]],

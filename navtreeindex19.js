@@ -1,5 +1,10 @@
 var NAVTREEINDEX19 =
 {
+"structDOS_1_1Weight_1_1OrbitalDesc.html#ade5a89868862e5eced2a4ae9d0bb53ad":[2,2,1,4,9,0,0,4],
+"structDOS_1_1Weight_1_1OrbitalDesc.html#ae70fbb867684fbd54e6021749992db9c":[2,2,1,4,9,0,0,6],
+"structDOS_1_1Weight_1_1OrbitalDesc.html#aedddd090500849e37228f8489c04396b":[2,2,1,4,9,0,0,8],
+"structDefectSupercell_1_1CachedProjections.html":[2,4,0,38,0],
+"structDefectSupercell_1_1CachedProjections.html#a10466d3dadec8f359daa75daa184af47":[2,4,0,38,0,1],
 "structDefectSupercell_1_1CachedProjections.html#a49909674be07775a1ca5bc99d1c40386":[2,4,0,38,0,0],
 "structDumpCprime.html":[2,2,1,4,15],
 "structDumpCprime.html#a00e19e7cac668fb65b6ad5541ac472cb":[2,2,1,4,15,5],
@@ -244,10 +249,5 @@ var NAVTREEINDEX19 =
 "structFluidSolverParams.html#a3089166840fce194fe0fcb13cf0d39a0":[2,2,2,7,20],
 "structFluidSolverParams.html#a342bba0659e996782806dde899bd6bd5":[2,2,2,7,39],
 "structFluidSolverParams.html#a343eeb9da18fcb4f9618c89ad28a776a":[2,2,2,7,28],
-"structFluidSolverParams.html#a355e8e1fc05929d61ddeee896c34f614":[2,2,2,7,29],
-"structFluidSolverParams.html#a3b59ea89277326c823237b224516f1f4":[2,2,2,7,33],
-"structFluidSolverParams.html#a459747a667a9db7d1f2baf9de5a5b288":[2,2,2,7,19],
-"structFluidSolverParams.html#a496f98ddcf73b03d41d2da5eab38c061":[2,2,2,7,18],
-"structFluidSolverParams.html#a4b82e46dca7a11bb618f3d7be10f9cbc":[2,2,2,7,8],
-"structFluidSolverParams.html#a55c92f9664d4eec864f86f75d41d6b5c":[2,2,2,7,32]
+"structFluidSolverParams.html#a355e8e1fc05929d61ddeee896c34f614":[2,2,2,7,29]
 };
