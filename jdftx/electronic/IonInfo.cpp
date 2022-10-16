@@ -219,7 +219,7 @@ double IonInfo::ionicEnergyAndGrad()
 		calcEpulay(&E_RRT); //Pulay stress
 	}
 	
-	//---------- Pair potential terms (Ewald etc.) ---------
+	//---------- Pair and external potential terms (Ewald etc.) ---------
 	IonicGradient forcesPairPot; forcesPairPot.init(*this);
 	pairPotentialsAndGrad(0, &forcesPairPot, computeStress ? &E_RRT : 0);
 	e->symm.symmetrize(forcesPairPot);
@@ -603,10 +603,15 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces, matri
 	{	double scaleFac = e->vanDerWaals->getScaleFactor(e->exCorr.getName(), vdWscale);
 		EvdW = e->vanDerWaals->energyAndGrad(atoms, scaleFac, E_RRT); //vanDerWaals energy, force and/or stress
 	}
+	//Compute optional external-potential terms:
+	double EextIonic = 0.;
+	for(const IonicGaussianPotential& igp: ionicGaussianPotentials)
+		EextIonic += igp.energyAndGrad(e->gInfo, atoms, E_RRT);
 	//Store energies and/or forces if requested:
 	if(ener)
 	{	ener->E["Eewald"] = Eewald;
 		ener->E["EvdW"] = EvdW;
+		ener->E["EextIonic"] = EextIonic;
 	}
 	if(forces)
 	{	auto atom = atoms.begin();

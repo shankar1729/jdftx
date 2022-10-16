@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/ParamList.h>
 #include <electronic/Everything.h>
 #include <electronic/IonicDynamicsParams.h>
+#include <electronic/IonicGaussianPotential.h>
 #include <core/Units.h>
 
 
@@ -77,14 +78,7 @@ EnumStringMap<IonicDynamicsParamsMember> idpmDescMap
 struct CommandIonicDynamics : public Command
 {
 	CommandIonicDynamics() : Command("ionic-dynamics", "jdftx/Ionic/Optimization")
-	{	format = "<time-step> <total-time> [<kT>=0.001] [<alpha>=0.0]";
-		comments = "Applies Verlet molecular dynamics\n"
-			   "Takes the time in femtoseconds and kT is in Hartree.\n"
-			   "Give <alpha> if you want to the system to equilibrate with a heat bath at <kT>.\n"
-			   "Also make sure to turn the symmetries off if the initial velocities don't satisfy the symmetry\n"
-			   "conditions. Initial velocities will be assigned randomly if they are not given.";
-			   
-		format = "<key1> <value1> <key2> <value2> ...";
+	{	format = "<key1> <value1> <key2> <value2> ...";
 		comments = "Born-Oppenheimer molecular dynamics, controlled by keys:"
 		+ addDescriptions(idpmMap.optionList(), linkDescription(idpmMap, idpmDescMap))
 		+ "\n\nAny number of these key-value pairs may be specified in any order.\n\n"
@@ -217,3 +211,57 @@ struct CommandBarostatVelocity : public CommandStatVelocity
 	diagMatrix& target(Everything& e) { return e.iInfo.barostat; }
 }
 commandBarostatVelocity;
+
+
+//----- External forces -----
+
+EnumStringMap<IonicGaussianPotential::Geometry> igpGeometryMap
+(	IonicGaussianPotential::Spherical, "Spherical",
+	IonicGaussianPotential::Cylindrical, "Cylindrical",
+	IonicGaussianPotential::Planar, "Planar"
+);
+
+struct CommandIonicGaussianPotential : public Command
+{
+	CommandIonicGaussianPotential() : Command("ionic-gaussian-potential", "jdftx/Ionic/Optimization")
+	{	format = "<species> <U0> <sigma> <geometry>";
+		comments = "Apply external potential and forces to ions of specified <species>.\n"
+			"The potential is Gaussian with peak value <U0> Hartrees and standard\n"
+			"deviation <sigma> bohrs, and is always centered at the origin. The symmetry\n"
+			"of the potential is specified by <geometry>, which may be one of:\n"
+			"+ Spherical: The potential is 0-D and confined near the origin.\n"
+			"+ Cylindrical: The potential is 1-D and extends along the z-direction.\n"
+			"+ Planar: The potential is 2-D and extends in the xy-plane.\n"
+			"Note that the coordinates of the atoms are taken in minimum-image convention\n"
+			"for the unit cell centered at the origin for the potential and force calculation.\n"
+			"This command is intended primarily for applying perturbations in ionic dynamics.";
+		allowMultiple = true;
+		require("ion");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	IonicGaussianPotential igp;
+		//Identify species:
+		string spName;
+		pl.get(spName, string(), "species", true);
+		for(int iSpecies=0; iSpecies<int(e.iInfo.species.size()); iSpecies++)
+			if(e.iInfo.species[iSpecies]->name == spName)
+			{	igp.iSpecies = iSpecies;
+				break;
+			}
+		if(igp.iSpecies < 0) //defaults to -1 in IonicGaussianPotential()
+			throw string("<species> must match one of the atom-type names in the calculation");
+		//Potential parameters:
+		pl.get(igp.U0, 0.0, "U0", true);
+		pl.get(igp.sigma, 0.0, "sigma", true);
+		pl.get(igp.geometry, IonicGaussianPotential::Planar, igpGeometryMap, "geometry", true);
+		e.iInfo.ionicGaussianPotentials.push_back(igp);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const IonicGaussianPotential& igp = e.iInfo.ionicGaussianPotentials[iRep];
+		logPrintf("%s %lg %lg %s", e.iInfo.species[igp.iSpecies]->name.c_str(),
+			igp.U0, igp.sigma, igpGeometryMap.getString(igp.geometry));
+	}
+}
+commandIonicGaussianPotential;
