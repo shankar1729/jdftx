@@ -583,6 +583,7 @@ struct CommandDefectSupercell : public Command
 			"Optional <alignWidth> and <alignSmooth> control the width and smoothness (in bohrs) of\n"
 			"the region used for electrostatic potential alignment between the supercell and unit cell.\n"
 			"The region is specified relative to the boundary of the supercell Wigner-Seitz cell.\n"
+			"Use <alignWidth> <= 0. to skip the alignment potential altogether.\n"
 			"\n"
 			"This command may be specified multiple times to calculate elements for several defects.";
 		
