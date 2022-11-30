@@ -584,6 +584,13 @@ ColumnBundle IonInfo::getAtomicOrbitals(int q, bool applyO, int extraCols) const
 	return psi;
 }
 
+//Extract forces from atoms araay into an IonicGradient (should already be initialized to correct size):
+void getForcesFromAtoms(const std::vector<Atom>& atoms, IonicGradient& forces)
+{	auto atom = atoms.begin();
+	for(std::vector<vector3<>>& forces_sp: forces)
+		for(vector3<>& force_sp_at: forces_sp)
+			force_sp_at = (atom++)->force;
+}
 
 void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces, matrix3<>* E_RRT) const
 {
@@ -603,6 +610,12 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces, matri
 	{	double scaleFac = e->vanDerWaals->getScaleFactor(e->exCorr.getName(), vdWscale);
 		EvdW = e->vanDerWaals->energyAndGrad(atoms, scaleFac, E_RRT); //vanDerWaals energy, force and/or stress
 	}
+	//Get forces before external potential if needed:
+	IonicGradient forcesNoExt;
+	if(forces and ionicGaussianPotentials.size())
+	{	forcesNoExt.init(*this);
+		getForcesFromAtoms(atoms, forcesNoExt);
+	}
 	//Compute optional external-potential terms:
 	double EextIonic = 0.;
 	for(const IonicGaussianPotential& igp: ionicGaussianPotentials)
@@ -614,10 +627,12 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces, matri
 		ener->E["EextIonic"] = EextIonic;
 	}
 	if(forces)
-	{	auto atom = atoms.begin();
-		for(unsigned sp=0; sp<species.size(); sp++)
-			for(unsigned at=0; at<species[sp]->atpos.size(); at++)
-				(*forces)[sp][at] = (atom++)->force;
+	{	getForcesFromAtoms(atoms, *forces);
+		//Report external contribution to forces if any:
+		if(ionicGaussianPotentials.size())
+		{	IonicGradient forcesExtIonic = (*forces) - forcesNoExt;
+			forcesExtIonic.print(*e, globalLog, "forceExtIonic");
+		}
 	}
 }
 
