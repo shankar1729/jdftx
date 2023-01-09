@@ -342,12 +342,12 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 				else die("\tError in entry %d of argument# %d to pzheevx.\n", errCode%100, errCode/100)
 			}
 			if(info > 0)
-			{	string err;
-				if(info & 0x01) err += "\tSome eigenvectors failed to converge in pzheevx.\n";
-				if(info & 0x02) err += "\tSome eigenvectors could not be orthogonalized in pzheevx.\n";
-				if(info & 0x04) err += "\tInsufficeint space to compute eigenvectors in pzheevx.\n";
-				if(info & 0x08) err += "\tFailed to compute tridiagonal-matrix eigenvalues in pzheevx.\n";
-				die("%s", err.c_str());
+			{	ostringstream err;
+				if(info & 0x01) err << "\tSome eigenvectors failed to converge in pzheevx.\n";
+				if(info & 0x02) err << "\tSome eigenvectors could not be orthogonalized in pzheevx.\n";
+				if(info & 0x04) err << "\tInsufficeint space to compute eigenvectors in pzheevx.\n";
+				if(info & 0x08) err << "\tFailed to compute tridiagonal-matrix eigenvalues in pzheevx.\n";
+				die("%s", err.str().c_str());
 			}
 			if(pass) break; //done
 			//After first-pass, use results of work-space query to allocate:
