@@ -195,13 +195,16 @@ Description:</h2>
 <li>gga-x-mpw91 : mPW91 of Adamo &amp; Barone</li>
 <li>gga-x-n12 : Minnesota N12 exchange functional</li>
 <li>gga-x-ncap : Nearly correct asymptotic potential</li>
+<li>gga-x-ncapr : Nearly correct asymptotic potential revised</li>
 <li>gga-x-ol2 : Exchange form based on Ou-Yang and Levy v.2</li>
 <li>gga-x-optb86b-vdw : Becke 86 reoptimized for use with vdW functional of Dion et al</li>
 <li>gga-x-optb88-vdw : opt-Becke 88 for vdW</li>
 <li>gga-x-optpbe-vdw : Reparametrized PBE for vdW</li>
 <li>gga-x-optx : Handy &amp; Cohen OPTX 01</li>
 <li>gga-x-pbe : Perdew, Burke &amp; Ernzerhof</li>
+<li>gga-x-pbe-gaussian : Perdew, Burke &amp; Ernzerhof with parameter values used in Gaussian</li>
 <li>gga-x-pbe-jsjr : Reparametrized PBE by Pedroza, Silva &amp; Capelle</li>
+<li>gga-x-pbe-mod : Perdew, Burke &amp; Ernzerhof with less precise value for beta</li>
 <li>gga-x-pbe-mol : Reparametrized PBE by del Campo, Gazquez, Trickey &amp; Vela</li>
 <li>gga-x-pbe-r : Revised PBE from Zhang &amp; Yang</li>
 <li>gga-x-pbe-sol : Perdew, Burke &amp; Ernzerhof SOL</li>
@@ -237,6 +240,8 @@ Description:</h2>
 <li>gga-x-wc : Wu &amp; Cohen</li>
 <li>gga-x-wpbeh : short-range part of the PBE (default w=0 gives PBEh)</li>
 <li>gga-x-xpbe : Extended PBE by Xu &amp; Goddard III</li>
+<li>hyb-gga-x-cam-s12g : Swart 2012 range-separated hybrid GGA exchange</li>
+<li>hyb-gga-x-cam-s12h : Swart 2012 range-separated hybrid GGA exchange</li>
 <li>hyb-gga-x-n12-sx : Minnesota N12-SX exchange functional</li>
 <li>hyb-gga-x-s12h : Swart 2012 hybrid exchange</li>
 <li>hyb-gga-x-sogga11-x : Hybrid based on SOGGA11 form</li>
@@ -266,11 +271,11 @@ Description:</h2>
 <li>lda-x-1d-exponential : Exchange in 1D for an exponentially screened interaction</li>
 <li>lda-x-1d-soft : Exchange in 1D for an soft-Coulomb interaction</li>
 <li>lda-x-2d : Slater exchange</li>
-<li>lda-x-erf : Attenuated exchange LDA (erf)</li>
+<li>lda-x-erf : Short-range LDA exchange with error function kernel (erfc)</li>
 <li>lda-x-rae : Rae self-energy corrected exchange</li>
 <li>lda-x-rel : Slater exchange with relativistic corrections</li>
 <li>lda-x-sloc : simple local model for Slater potential</li>
-<li>lda-x-yukawa : Attenuated exchange LDA (Yukawa)</li>
+<li>lda-x-yukawa : Short-range LDA exchange with Yukawa attenuation</li>
 <li>mgga-x-2d-js17 : JS17 meta-GGA for 2D</li>
 <li>mgga-x-2d-prhg07 : Pittalis-Rasanen-Helbig-Gross 2007</li>
 <li>mgga-x-2d-prhg07-prp10: PRHG07 with Pittalis-Rasanen-Proetto 2010 correction</li>
@@ -282,6 +287,7 @@ Description:</h2>
 <li>mgga-x-br89-explicit : Becke-Roussel 89 with an explicit inversion of x(y), gamma = 0.8</li>
 <li>mgga-x-br89-explicit-1: Becke-Roussel 89 with an explicit inversion of x(y), gamma = 1.0</li>
 <li>mgga-x-edmgga : Tao 2001</li>
+<li>mgga-x-ft98 : Filatov and Thiel 1998 meta-GGA exchange</li>
 <li>mgga-x-gdme-0 : Generalized density-matrix with a=0</li>
 <li>mgga-x-gdme-kos : Generalized density-matrix with a=0.00638</li>
 <li>mgga-x-gdme-nv : Generalized density-matrix with a=1/2</li>
@@ -318,7 +324,9 @@ Description:</h2>
 <li>mgga-x-pbe-gx : PBE-GX functional of Loos</li>
 <li>mgga-x-pkzb : Perdew, Kurth, Zupan, and Blaha</li>
 <li>mgga-x-r2scan : Re-regularized SCAN exchange by Furness et al</li>
+<li>mgga-x-r2scan01 : Re-regularized SCAN exchange by Furness et al with larger value for eta</li>
 <li>mgga-x-r2scanl : Deorbitalized re-regularized SCAN (r2SCAN-L) exchange</li>
+<li>mgga-x-r4scan : r$^{4}$SCAN, a functional that satisfies the same exact constraints that SCAN does</li>
 <li>mgga-x-regtm : Regularized Tao and Mo exchange</li>
 <li>mgga-x-regtpss : Regularized TPSS</li>
 <li>mgga-x-revm06-l : Minnesota revM06-L exchange functional</li>
@@ -328,6 +336,7 @@ Description:</h2>
 <li>mgga-x-revtpss : revised Tao, Perdew, Staroverov &amp; Scuseria</li>
 <li>mgga-x-rlda : Reparametrized local-density approximation</li>
 <li>mgga-x-rpp09 : Rasanen, Pittalis &amp; Proetto 09</li>
+<li>mgga-x-rppscan : r++SCAN: rSCAN with uniform density limit and coordinate scaling behavior</li>
 <li>mgga-x-rscan : Regularized SCAN exchange by Bartok and Yates</li>
 <li>mgga-x-rtpss : TPSS for surface adsorption</li>
 <li>mgga-x-sa-tpss : TPSS with correct surface asymptotics</li>
@@ -340,6 +349,7 @@ Description:</h2>
 <li>mgga-x-tlda : LDA-type exchange with tau-dependent potential</li>
 <li>mgga-x-tm : Tao and Mo 2016 exchange</li>
 <li>mgga-x-tpss : Tao, Perdew, Staroverov &amp; Scuseria</li>
+<li>mgga-x-vcml : Exchange part of VCML-rVV10 by Trepte and Voss</li>
 <li>mgga-x-vt84 : meta-GGA version of VT{8,4} GGA</li>
 <li>x-none : no exchange,</li>
 </ul>
@@ -349,12 +359,12 @@ Description:</h2>
 <li>gga-c-acggap : acGGA+, asymptotically corrected GGA correlation+</li>
 <li>gga-c-am05 : Armiento &amp; Mattsson 05</li>
 <li>gga-c-apbe : mu fixed from the semiclassical neutral atom</li>
-<li>gga-c-bmk : Boese-Martin for kinetics</li>
+<li>gga-c-bmk : Boese-Martin correlation for kinetics</li>
 <li>gga-c-ccdf : ccDF: coupled-cluster motivated density functional</li>
 <li>gga-c-chachiyo : Chachiyo simple GGA correlation</li>
 <li>gga-c-cs1 : A dynamical correlation functional</li>
 <li>gga-c-ft97 : Filatov &amp; Thiel correlation</li>
-<li>gga-c-gam : GAM functional from Minnesota</li>
+<li>gga-c-gam : Minnesota GAM correlation functional</li>
 <li>gga-c-gapc : GapC</li>
 <li>gga-c-gaploc : Gaploc</li>
 <li>gga-c-hcth-a : HCTH-A</li>
@@ -362,8 +372,8 @@ Description:</h2>
 <li>gga-c-lyp : Lee, Yang &amp; Parr</li>
 <li>gga-c-lypr : Short-range LYP by Ai, Fang, and Su</li>
 <li>gga-c-mggac : beta fitted to LC20 to be used with MGGAC</li>
-<li>gga-c-n12 : Minnesota N12 functional</li>
-<li>gga-c-n12-sx : Minnesota N12-SX functional</li>
+<li>gga-c-n12 : Minnesota N12 correlation functional</li>
+<li>gga-c-n12-sx : Minnesota N12-SX correlation functional</li>
 <li>gga-c-op-b88 : one-parameter progressive functional (B88 version)</li>
 <li>gga-c-op-g96 : one-parameter progressive functional (G96 version)</li>
 <li>gga-c-op-pbe : one-parameter progressive functional (PBE version)</li>
@@ -375,6 +385,7 @@ Description:</h2>
 <li>gga-c-p86vwn : Perdew 86 based on VWN5 correlation</li>
 <li>gga-c-p86vwn-ft : Perdew 86 based on VWN5 correlation, with more accurate value for ftilde</li>
 <li>gga-c-pbe : Perdew, Burke &amp; Ernzerhof</li>
+<li>gga-c-pbe-gaussian : Perdew, Burke &amp; Ernzerhof with parameters from Gaussian</li>
 <li>gga-c-pbe-jrgx : Reparametrized PBE by Pedroza, Silva &amp; Capelle</li>
 <li>gga-c-pbe-mol : Reparametrized PBE by del Campo, Gazquez, Trickey &amp; Vela</li>
 <li>gga-c-pbe-sol : Perdew, Burke &amp; Ernzerhof SOL</li>
@@ -451,6 +462,8 @@ Description:</h2>
 <li>mgga-c-b88 : Meta-GGA correlation by Becke</li>
 <li>mgga-c-b94 : Becke 1994 meta-GGA correlation</li>
 <li>mgga-c-bc95 : Becke correlation 95</li>
+<li>mgga-c-cc : Self-interaction corrected correlation functional by Schmidt et al</li>
+<li>mgga-c-ccalda : Iso-orbital corrected LDA correlation by Lebeda et al</li>
 <li>mgga-c-cs : Colle and Salvetti</li>
 <li>mgga-c-dldf : Dispersionless Density <a class="el" href="classFunctional.html" title="Abstract base class for functionals.">Functional</a></li>
 <li>mgga-c-hltapw : Half-and-half meta-LDAized PW correlation by Lehtola and Marques</li>
@@ -479,10 +492,11 @@ Description:</h2>
 <li>mgga-c-revm06-l : Minnesota revM06-L correlation functional</li>
 <li>mgga-c-revm11 : Revised Minnesota M11 correlation functional</li>
 <li>mgga-c-revscan : revised SCAN</li>
-<li>mgga-c-revscan-vv10: REVSCAN + VV10 correlation</li>
+<li>mgga-c-revscan-vv10 : REVSCAN + VV10 correlation</li>
 <li>mgga-c-revtm : revised Tao and Mo 2016 exchange</li>
 <li>mgga-c-revtpss : revised TPSS correlation</li>
 <li>mgga-c-rmggac : Revised correlation energy for MGGAC exchange functional</li>
+<li>mgga-c-rppscan : r++SCAN: rSCAN with uniform density limit and coordinate scaling behavior</li>
 <li>mgga-c-rregtm : Revised regTM correlation by Jana et al</li>
 <li>mgga-c-rscan : Regularized SCAN correlation by Bartok and Yates</li>
 <li>mgga-c-scan : SCAN correlation of Sun, Ruzsinszky, and Perdew</li>
@@ -493,10 +507,12 @@ Description:</h2>
 <li>mgga-c-scanl-vv10 : SCAN-L + VV10 correlation</li>
 <li>mgga-c-tm : Tao and Mo 2016 correlation</li>
 <li>mgga-c-tpss : Tao, Perdew, Staroverov &amp; Scuseria</li>
+<li>mgga-c-tpss-gaussian: Tao, Perdew, Staroverov &amp; Scuseria with parameters from Gaussian</li>
 <li>mgga-c-tpssloc : Semilocal dynamical correlation</li>
 <li>mgga-c-vsxc : VSXC (correlation part),</li>
 </ul>
 <p>and &lt;funcXC&gt; is one of:</p><ul>
+<li>gga-b97-3c : Becke 97-3c by Grimme et. al.</li>
 <li>gga-b97-d : Becke 97-D</li>
 <li>gga-b97-gga1 : Becke 97 GGA-1</li>
 <li>gga-beefvdw : BEEF-vdW exchange-correlation</li>
@@ -543,6 +559,7 @@ Description:</h2>
 <li>hyb-gga-b3lyp5 : B3LYP with VWN functional 5 instead of RPA</li>
 <li>hyb-gga-b3lyps : B3LYP*</li>
 <li>hyb-gga-b3p86 : B3P86</li>
+<li>hyb-gga-b3p86-nwchem : B3P86, NWChem version</li>
 <li>hyb-gga-b3pw91 : The original (ACM, B3PW91) hybrid of Becke</li>
 <li>hyb-gga-b5050lyp : B5050LYP</li>
 <li>hyb-gga-b97 : Becke 97</li>
@@ -565,6 +582,7 @@ Description:</h2>
 <li>hyb-gga-camy-blyp : CAMY version of BLYP</li>
 <li>hyb-gga-camy-pbeh : CAMY hybrid screened exchange PBE version</li>
 <li>hyb-gga-cap0 : Correct Asymptotic Potential hybrid</li>
+<li>hyb-gga-case21 : CASE21: Constrained And Smoothed semi-Empirical 2021 functional</li>
 <li>hyb-gga-edf2 : EDF2</li>
 <li>hyb-gga-hapbe : Hybrid based in APBE and zvPBEloc</li>
 <li>hyb-gga-hflyp : HF + LYP correlation</li>
@@ -643,6 +661,7 @@ Description:</h2>
 <li>hyb-mgga-b94-hyb : Becke 1994 hybrid meta-GGA</li>
 <li>hyb-mgga-b98 : Becke 98</li>
 <li>hyb-mgga-bb1k : Mixture of B88 with BC95 from Zhao and Truhlar</li>
+<li>hyb-mgga-br3p86 : BR3P86 hybrid meta-GGA from Neumann and Handy</li>
 <li>hyb-mgga-edmggah : EDMGGA hybrid</li>
 <li>hyb-mgga-lc-tmlyp : Long-range corrected TM-LYP by Jana et al</li>
 <li>hyb-mgga-mpw1b95 : Mixture of mPW91 with BC95 from Zhao and Truhlar</li>
@@ -663,6 +682,7 @@ Description:</h2>
 <li>lda-1d-ehwlrg-1 : LDA constructed from slab-like systems of 1 electron</li>
 <li>lda-1d-ehwlrg-2 : LDA constructed from slab-like systems of 2 electrons</li>
 <li>lda-1d-ehwlrg-3 : LDA constructed from slab-like systems of 3 electrons</li>
+<li>lda-corrksdt : Corrected KSDT by Karasiev, Dufty and Trickey</li>
 <li>lda-gdsmfb : Groth, Dornheim, Sjostrom, Malone, Foulkes, Bonitz</li>
 <li>lda-ksdt : Karasiev, Sjostrom, Dufty &amp; Trickey</li>
 <li>lda-lp-a : Lee-Parr reparametrization A</li>
@@ -676,6 +696,7 @@ Description:</h2>
 <li>mgga-lp90 : Lee &amp; Parr, Eq. (56)</li>
 <li>mgga-otpss-d : oTPSS-D functional of Goerigk and Grimme</li>
 <li>mgga-tpsslyp1w : TPSSLYP1W</li>
+<li>mgga-vcml-rvv10 : VCML-rVV10 by Trepte and Voss</li>
 <li>mgga-zlp : Zhao, Levy &amp; Parr, Eq. (21).</li>
 </ul>
 <h2><a class="anchor" id="autotoc_md136"></a>
