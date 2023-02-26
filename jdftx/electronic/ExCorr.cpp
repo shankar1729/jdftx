@@ -185,6 +185,21 @@ void FunctionalMGGA::evaluate(int N, std::vector<const double*> n, std::vector<c
 #ifdef LIBXC_ENABLED
 #include <xc.h>
 
+#if defined(GPU_ENABLED) && defined(LIBXC_CUDA)
+	#define callXC(functionName) functionName##_gpu
+	#define dataXC dataGpu
+	bool onGpuXC = true;
+#else
+	#define callXC(functionName) functionName
+	#define dataXC data
+	bool onGpuXC = false;
+#endif
+
+template<typename T> void init_zero(ManagedArray<T>& arr, int N)
+{	arr.init(N, onGpuXC);
+	callXC(eblas_zero)(N, arr.dataXC());
+}
+
 #if XC_MAJOR_VERSION >= 4
 //Provide wrapper emulating libxc v3's interface to get XC reference:
 char const* xc_func_info_get_ref(const xc_func_info_type *info, int number)
@@ -237,74 +252,48 @@ public:
 		int sigmaCount = 2*nCount-1; //1 for unpolarized, 3 for polarized
 		int Nn = N * nCount;
 		int Nsigma = N * sigmaCount;
-		//Alloctae temporaries:
-		std::vector<double> eTemp(N, 0.);
-		std::vector<double> E_nTemp(E_n ? Nn : 0);
-		std::vector<double> E_sigmaTemp(E_n && needsSigma() ? Nsigma : 0);
-		std::vector<double> E_lapTemp(E_n && needsLap() ? Nn : 0);
-		std::vector<double> E_tauTemp(E_n && needsTau() ? Nn : 0);
+		//Allocate temporaries:
+		ManagedArray<double> eTemp, E_nTemp, E_sigmaTemp, E_lapTemp, E_tauTemp; 
+		init_zero(eTemp, N);
+		if(E_n)
+		{	init_zero(E_nTemp, Nn);
+			if(needsSigma()) init_zero(E_sigmaTemp, Nsigma);
+			if(needsLap()) init_zero(E_lapTemp, Nn);
+			if(needsTau()) init_zero(E_tauTemp, Nn);
+		}
 		//Invoke appropriate LibXC function in scratch space:
 		if(needsTau())
-		{	//Project out problematic mGGA points (not handled correctly by LibXC 4:
-			#if XC_MAJOR_VERSION >= 4
-			for(int i=0; i<N; i++)
-			{	double* nPtr = (double*)(n + i*nCount);
-				double* tauPtr = (double*)(tau + i*nCount);
-				double nTot = nCount==1 ? *nPtr : (*nPtr + *(nPtr+1));
-				double tauTot = nCount==1 ? *tauPtr : (*tauPtr + *(tauPtr+1));
-				double sigmaTot = nCount==1 ? sigma[i] : sigma[3*i]+2*sigma[3*i+1]+sigma[3*i+2];
-				bool zOffRange = 0.125*sigmaTot > (nTot * tauTot);
-				if(tauTot < tauCutoff) //Small tau
-				{	if(nCount==1)
-					{	*nPtr = 0.;
-						*tauPtr = 0.;
-					}
-					else
-					{	*nPtr = *(nPtr+1) = 0.;
-						*tauPtr = *(tauPtr+1) = 0.;
-					}
-				}
-				else if(zOffRange && nTot>nCutoff) //tauVW/tau ratio out of range
-				{	double tauTotNew = 0.125*sigmaTot/nTot; //von-Weisacker value
-					if(nCount==1)
-						*tauPtr = tauTotNew;
-					else
-					{	double tauScale = tauTotNew/tauTot;
-						*tauPtr *= tauScale;
-						*(tauPtr+1) *= tauScale;
-					}
-				}
-			}
-			#endif
-			if(E_n) //need gradient
+		{	if(E_n) //need gradient
 			{	if(hasEnergy())
 					xc_mgga_exc_vxc(&func, N, n, sigma, lap, tau,
-						&eTemp[0], &E_nTemp[0], &E_sigmaTemp[0], &E_lapTemp[0], &E_tauTemp[0]);
+						eTemp.dataXC(), E_nTemp.dataXC(), E_sigmaTemp.dataXC(), E_lapTemp.dataXC(), E_tauTemp.dataXC());
 				else
-					xc_mgga_vxc(&func, N, n, sigma, lap, tau, &E_nTemp[0], &E_sigmaTemp[0], &E_lapTemp[0], &E_tauTemp[0]);
+					xc_mgga_vxc(&func, N, n, sigma, lap, tau, E_nTemp.dataXC(), E_sigmaTemp.dataXC(), E_lapTemp.dataXC(), E_tauTemp.dataXC());
 			}
-			else if(hasEnergy()) xc_mgga_exc(&func, N, n, sigma, lap, tau, &eTemp[0]);
+			else if(hasEnergy()) xc_mgga_exc(&func, N, n, sigma, lap, tau, eTemp.dataXC());
 		}
 		else if(needsSigma())
 		{	if(E_n) //need gradient
-			{	if(hasEnergy()) xc_gga_exc_vxc(&func, N, n, sigma, &eTemp[0], &E_nTemp[0], &E_sigmaTemp[0]);
-				else xc_gga_vxc(&func, N, n, sigma, &E_nTemp[0], &E_sigmaTemp[0]);
+			{	if(hasEnergy()) xc_gga_exc_vxc(&func, N, n, sigma, eTemp.dataXC(), E_nTemp.dataXC(), E_sigmaTemp.dataXC());
+				else xc_gga_vxc(&func, N, n, sigma, E_nTemp.dataXC(), E_sigmaTemp.dataXC());
 			}
-			else if(hasEnergy()) xc_gga_exc(&func, N, n, sigma, &eTemp[0]);
+			else if(hasEnergy()) xc_gga_exc(&func, N, n, sigma, eTemp.dataXC());
 		}
 		else
 		{	if(E_n) //need gradient
-			{	if(hasEnergy()) xc_lda_exc_vxc(&func, N, n, &eTemp[0], &E_nTemp[0]);
-				else xc_lda_vxc(&func, N, n, &E_nTemp[0]);
+			{	if(hasEnergy()) xc_lda_exc_vxc(&func, N, n, eTemp.dataXC(), E_nTemp.dataXC());
+				else xc_lda_vxc(&func, N, n, E_nTemp.dataXC());
 			}
-			else if(hasEnergy()) xc_lda_exc(&func, N, n, &eTemp[0]);
+			else if(hasEnergy()) xc_lda_exc(&func, N, n, eTemp.dataXC());
 		}
 		//Accumulate onto final results
-		eblas_daxpy(N, 1., &eTemp[0], 1, e, 1);
-		if(E_nTemp.size()) eblas_daxpy(Nn, 1., &E_nTemp[0], 1, E_n, 1);
-		if(E_sigmaTemp.size()) eblas_daxpy(Nsigma, 1., &E_sigmaTemp[0], 1, E_sigma, 1);
-		if(E_lapTemp.size()) eblas_daxpy(Nn, 1., &E_lapTemp[0], 1, E_lap, 1);
-		if(E_tauTemp.size()) eblas_daxpy(Nn, 1., &E_tauTemp[0], 1, E_tau, 1);
+		callXC(eblas_daxpy)(N, 1., eTemp.dataXC(), 1, e, 1);
+		if(E_n)
+		{	callXC(eblas_daxpy)(Nn, 1., E_nTemp.dataXC(), 1, E_n, 1);
+			if(needsSigma()) callXC(eblas_daxpy)(Nsigma, 1., E_sigmaTemp.dataXC(), 1, E_sigma, 1);
+			if(needsLap()) callXC(eblas_daxpy)(Nn, 1., E_lapTemp.dataXC(), 1, E_lap, 1);
+			if(needsTau()) callXC(eblas_daxpy)(Nn, 1., E_tauTemp.dataXC(), 1, E_tau, 1);
+		}
 	}
 	
 	static void evaluate_thread(int iStart, int iStop, const FunctionalLibXC* func, int iOffset,
@@ -326,33 +315,32 @@ public:
 		double* e, double* E_n, double* E_sigma, double* E_lap, double* E_tau) const
 	{
 		int N = iStop-iStart; if(!N) return;
-		threadLaunch(FunctionalLibXC::evaluate_thread, N, this, iStart,
+		threadLaunch(onGpuXC ? 1 : nProcsAvailable,
+			FunctionalLibXC::evaluate_thread, N, this, iStart,
 			nCount, n, sigma, lap, tau, e, E_n, E_sigma, E_lap, E_tau);
 	}
 };
 
 //! Convert a collection of scalar fields into an interleaved vector field.
 //! result can be freed using delete[]
-template<unsigned M> double* transpose(const ScalarFieldArray& inVec)
-{	assert(inVec.size()==M);
-	const unsigned N = inVec[0]->nElem;
-	const double* in[M]; for(unsigned m=0; m<M; m++) in[m] = inVec[m]->data();
-	double *out = new double[M*N], *outPtr = out;
-	for(unsigned n=0; n<N; n++)
-		for(unsigned m=0; m<M; m++)
-			*(outPtr++) = in[m][n];
+template<unsigned M> ManagedArray<double> transpose(const ScalarFieldArray& in)
+{	assert(in.size()==M);
+	const unsigned N = in[0]->nElem;
+	ManagedArray<double> out;
+	init_zero(out, M*N);
+	for(unsigned m=0; m<M; m++)
+		callXC(eblas_daxpy)(N, 1., in[m]->dataXC(), 1, out.dataXC()+m, M);
 	return out;
 }
 
 //! Convert an interleaved vector field to a collection of scalar fields
-template<unsigned M> void transpose(double* in, ScalarFieldArray& outVec)
-{	assert(outVec.size()==M);
-	const unsigned N = outVec[0]->nElem;
-	double* out[M]; for(unsigned m=0; m<M; m++) out[m] = outVec[m]->data();
-	double *inPtr = in;
-	for(unsigned n=0; n<N; n++)
-		for(unsigned m=0; m<M; m++)
-			out[m][n] = *(inPtr++);
+template<unsigned M> void transpose(ManagedArray<double>& in, ScalarFieldArray& out)
+{	assert(out.size()==M);
+	const unsigned N = out[0]->nElem;
+	for(unsigned m=0; m<M; m++)
+	{	callXC(eblas_zero)(N, out[m]->dataXC());
+		callXC(eblas_daxpy)(N, 1., in.dataXC()+m, M, out[m]->dataXC(), 1);
+	}
 }
 
 #endif //LIBXC_ENABLED
@@ -761,30 +749,31 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 	//------------------ Evaluate LibXC functionals ---------------
 	if(functionals->libXC.size())
 	{	//Prepare input/output data on the CPU in transposed order (spins contiguous)
-		double *eData = E->data(), *nData=0, *sigmaData=0, *lapData=0, *tauData=0;
+		double *eData = E->dataXC(), *nData=0, *sigmaData=0, *lapData=0, *tauData=0;
 		double *E_nData=0, *E_sigmaData=0, *E_lapData=0, *E_tauData=0;
+		ManagedArray<double> nArr, sigmaArr, lapArr, tauArr, E_nArr, E_sigmaArr, E_lapArr, E_tauArr;
 		if(nCount == 1)
-		{	nData = nCapped[0]->data();
-			if(needsSigma) sigmaData = sigma[0]->data();
-			if(needsLap) lapData = lap[0]->data();
-			if(needsTau) tauData = tau[0]->data();
+		{	nData = nCapped[0]->dataXC();
+			if(needsSigma) sigmaData = sigma[0]->dataXC();
+			if(needsLap) lapData = lap[0]->dataXC();
+			if(needsTau) tauData = tau[0]->dataXC();
 			if(needGradients)
-			{	E_nData = E_n[0]->data();
-				if(needsSigma) E_sigmaData = E_sigma[0]->data();
-				if(needsLap) E_lapData = E_lap[0]->data();
-				if(needsTau) E_tauData = E_tau[0]->data();
+			{	E_nData = E_n[0]->dataXC();
+				if(needsSigma) E_sigmaData = E_sigma[0]->dataXC();
+				if(needsLap) E_lapData = E_lap[0]->dataXC();
+				if(needsTau) E_tauData = E_tau[0]->dataXC();
 			}
 		}
 		else //Need to interleave input spin-vector fields:
-		{	nData = transpose<2>(nCapped);
-			if(needsSigma) sigmaData = transpose<3>(sigma);
-			if(needsLap) lapData = transpose<2>(lap);
-			if(needsTau) tauData = transpose<2>(tau);
+		{	nArr = transpose<2>(nCapped); nData = nArr.dataXC();
+			if(needsSigma) { sigmaArr = transpose<3>(sigma); sigmaData = sigmaArr.dataXC(); }
+			if(needsLap) { lapArr = transpose<2>(lap); lapData = lapArr.dataXC(); }
+			if(needsTau) { tauArr = transpose<2>(tau); tauData = tauArr.dataXC(); }
 			if(needGradients)
-			{	E_nData = new double[2*gInfo.nr]; eblas_zero(2*gInfo.nr, E_nData);
-				if(needsSigma) { E_sigmaData = new double[3*gInfo.nr]; eblas_zero(3*gInfo.nr, E_sigmaData); }
-				if(needsLap) { E_lapData = new double[2*gInfo.nr]; eblas_zero(2*gInfo.nr, E_lapData); }
-				if(needsTau) { E_tauData = new double[2*gInfo.nr]; eblas_zero(2*gInfo.nr, E_tauData); }
+			{	init_zero(E_nArr, 2*gInfo.nr); E_nData = E_nArr.dataXC();
+				if(needsSigma) { init_zero(E_sigmaArr, 3*gInfo.nr); E_sigmaData = E_sigmaArr.dataXC(); }
+				if(needsLap) { init_zero(E_lapArr, 2*gInfo.nr); E_lapData = E_lapArr.dataXC(); }
+				if(needsTau) { init_zero(E_tauArr, 2*gInfo.nr); E_tauData = E_tauArr.dataXC(); }
 			}
 		}
 		
@@ -798,15 +787,11 @@ double ExCorr::operator()(const ScalarFieldArray& n, ScalarFieldArray* Vxc, Incl
 		
 		//Uninterleave spin-vector field results:
 		if(nCount != 1)
-		{	delete[] nData;
-			if(needsSigma) delete[] sigmaData;
-			if(needsLap) delete[] lapData;
-			if(needsTau) delete[] tauData;
-			if(needGradients)
-			{	transpose<2>(E_nData, E_n); delete[] E_nData;
-				if(needsSigma) { transpose<3>(E_sigmaData, E_sigma); delete[] E_sigmaData; }
-				if(needsLap) { transpose<2>(E_lapData, E_lap); delete[] E_lapData; }
-				if(needsTau) { transpose<2>(E_tauData, E_tau); delete[] E_tauData; }
+		{	if(needGradients)
+			{	transpose<2>(E_nArr, E_n);
+				if(needsSigma) transpose<3>(E_sigmaArr, E_sigma);
+				if(needsLap) transpose<2>(E_lapArr, E_lap);
+				if(needsTau) transpose<2>(E_tauArr, E_tau);
 			}
 		}
 	
