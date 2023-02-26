@@ -388,9 +388,6 @@ add_subdirectory(test)
 #Optional: additional auxiliary test executables, mostly related to fluid development
 add_subdirectory(aux)
 
-#Optional features: primarily interfaces to other codes
-add_subdirectory(opt)
-
 #Pseudopotential library
 add_subdirectory(pseudopotentials)
 
