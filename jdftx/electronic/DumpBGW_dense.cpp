@@ -219,10 +219,11 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		
 		//Initialize Hamiltonian matrix:
 		matrix H = zeroes(nRowsMine, nColsMine);
-		matrix Vxc = zeroes(nRowsMine, nColsMine), Vxx;
+		matrix Vxc, Vxx;
+		if(bgwp.saveVxc) Vxc = zeroes(nRowsMine, nColsMine);
 		//--- Kinetic, potential and kinetic-potential contributions:
 		{	complex* Hdata = H.data();
-			complex* VxcData = Vxc.data();
+			complex* VxcData = (bgwp.saveVxc ? Vxc.data() : NULL);
 			const vector3<int>* iGarr = basis.iGarr.data();
 			//Prepare potential in reciprocal space:
 			complexScalarFieldTilde Vtilde = Complex(J(eVars.Vscloc[qnum.index()]*(1./e.gInfo.dV)));
@@ -246,15 +247,15 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 					//Potential contributions:
 					size_t diffIndex = e.gInfo.fullGindex(iGarr[i] - iGarr[j]); //wrapped difference index into potential arrays
 					*Hdata += Vdata[diffIndex];
-					*VxcData += VxcTildeData[diffIndex]; //Hartree etc. not included here
+					if(VxcData) *VxcData += VxcTildeData[diffIndex]; //Hartree etc. not included here
 					if(VtauData)
 					{	complex VtauCur = VtauData[diffIndex] * (0.5*dot(iGarr[i]+qnum.k, gInfo.GGT * (iGarr[j]+qnum.k)));
 						*Hdata += VtauCur;
-						*VxcData += VtauCur;
+						if(VxcData) *VxcData += VtauCur;
 					}
 					//Increment pointers:
 					Hdata++;
-					VxcData++;
+					if(VxcData) VxcData++;
 				}
 			}
 		}
@@ -292,7 +293,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 					callPref(eblas_copy)(OpsiCol_a.dataPref(), OpsiCol.dataPref() + a*OpsiCol_a.nData(), OpsiCol_a.nData());
 					matrix Ucontrib = (1./(e.gInfo.detR*eInfo.spinWeight)) * OpsiRow_a * (*(U_rhoPtr++)) * dagger(OpsiCol_a);
 					H += Ucontrib;
-					Vxc += Ucontrib; //DFT+U is logically an ex-corr extension
+					if(Vxc) Vxc += Ucontrib; //DFT+U is logically an ex-corr extension
 				}
 				for(int s=qnum.index()+1; s<nSpins; s++) U_rhoPtr += nAtoms;
 			}
@@ -302,7 +303,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		{	matrix HXX = zeroes(nRowsMine, nColsMine);
 			e.exx->addHamiltonian(e.exCorr.exxFactor(), e.exCorr.exxRange(), q, HXX, iRowsMine, iColsMine);
 			H += HXX;
-			Vxc += HXX;
+			if(Vxc) Vxc += HXX;
 			//Save for Vxx if needed / applicable:
 			if(bgwp.saveVxx and (not e.exCorr.exxRange())) //must be bare exchange
 				Vxx = (1./e.exCorr.exxFactor()) * HXX; //remove hybrid scale factor
@@ -404,11 +405,12 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		watchIO.stop();
 		
 		//Transform Vxc to eigenbasis:
-		transformV(q, Vxc, evecs, VxcSub, eInfo, descH, nProcsRow, nProcsCol,
-			nRows, nEigs, nRowsMine, nColsMine, blockSize, iProcRow, iEigColsMine);
+		if(bgwp.saveVxc)
+			transformV(q, Vxc, evecs, VxcSub, eInfo, descH, nProcsRow, nProcsCol,
+				nRows, nEigs, nRowsMine, nColsMine, blockSize, iProcRow, iEigColsMine);
 		
 		if(bgwp.saveVxx)
-			//Transform Vxc to eigenbasis:
+			//Transform Vxx to eigenbasis:
 			transformV(q, Vxx, evecs, VxxSub, eInfo, descH, nProcsRow, nProcsCol,
 				nRows, nEigs, nRowsMine, nColsMine, blockSize, iProcRow, iEigColsMine);
 	}

@@ -32,9 +32,8 @@ void Dump::dumpBGW()
 {	if(!bgwParams) bgwParams = std::make_shared<BGWparams>(); //default parameters
 	BGW bgw(*e, *bgwParams);
 	bgw.writeWfn();
-	bgw.writeVxc();
-	if(bgwParams->saveVxx)
-		bgw.writeVxx();
+	if(bgwParams->saveVxc) bgw.writeVxc();
+	if(bgwParams->saveVxx) bgw.writeVxx();
 	if(bgwParams->rpaExx)
 	{	double EXX_RPA = (*e->exx)(1., 0., e->eVars.F, e->eVars.C, NULL, NULL, true, &e->eVars.Hsub_eigs);
 		logPrintf("\n EXX(RPA) = %25.16lf\n\n", EXX_RPA);
@@ -195,7 +194,7 @@ void BGW::writeVxc() const
 
 //Write exact exchange matrix elements for BGW
 void BGW::writeVxx() const
-{	if((e.exCorr.exxRange() or (not e.exCorr.exxFactor())) //writeVxc() did not prepare bare exchange
+{	if(((not bgwp.saveVxc) or e.exCorr.exxRange() or (not e.exCorr.exxFactor())) //writeVxc() did not prepare bare exchange
 			and (not bgwp.nBandsDense)) //and neither did the dense diagonalize
 		e.exx->prepareHamiltonian(0., e.eVars.F, e.eVars.C);
 	logPrintf("Computing Vxx ... "); logFlush();

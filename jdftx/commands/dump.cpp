@@ -946,6 +946,7 @@ enum BGWparamsMember
 {	BGWpm_nBandsDense,
 	BGWpm_blockSize,
 	BGWpm_clusterSize,
+	BGWpm_saveVxc,
 	BGWpm_saveVxx,
 	BGWpm_rpaExx,
 	BGWpm_EcutChiFluid,
@@ -963,6 +964,7 @@ EnumStringMap<BGWparamsMember> bgwpmMap
 (	BGWpm_nBandsDense, "nBandsDense",
 	BGWpm_blockSize, "blockSize",
 	BGWpm_clusterSize, "clusterSize",
+	BGWpm_saveVxc, "saveVxc",
 	BGWpm_saveVxx, "saveVxx",
 	BGWpm_rpaExx, "rpaExx",
 	BGWpm_EcutChiFluid, "EcutChiFluid",
@@ -979,6 +981,7 @@ EnumStringMap<BGWparamsMember> bgwpmDescMap
 (	BGWpm_nBandsDense, "If non-zero, use a dense ScaLAPACK solver to calculate more bands",
 	BGWpm_blockSize, "Block size for ScaLAPACK diagonalization (default: 32)",
 	BGWpm_clusterSize, "Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)",
+	BGWpm_saveVxc, "Whether to write exchange-correlation matrix elements (default: yes)",
 	BGWpm_saveVxx, "Whether to write exact-exchange matrix elements (default: no)",
 	BGWpm_rpaExx, "Whether to compute RPA-consistent exact-exchange energy (default: no)",
 	BGWpm_EcutChiFluid, "KE cutoff in hartrees for fluid polarizability output (default: 0; set non-zero to enable)",
@@ -1021,6 +1024,7 @@ struct CommandBGWparams : public Command
 			{	READ_AND_CHECK(nBandsDense, >=, 0)
 				READ_AND_CHECK(blockSize, >, 0)
 				READ_AND_CHECK(clusterSize, >, 0)
+				READ_BOOL(saveVxc)
 				READ_BOOL(saveVxx)
 				READ_BOOL(rpaExx)
 				READ_AND_CHECK(EcutChiFluid, >=, 0.)
@@ -1050,6 +1054,7 @@ struct CommandBGWparams : public Command
 		PRINT(nBandsDense, "%d")
 		PRINT(blockSize, "%d")
 		PRINT(clusterSize, "%d")
+		PRINT_BOOL(saveVxc)
 		PRINT_BOOL(saveVxx)
 		PRINT_BOOL(rpaExx)
 		PRINT(EcutChiFluid, "%lg")
@@ -1062,6 +1067,7 @@ struct CommandBGWparams : public Command
 		PRINT(freqPlasma, "%lg")
 		PRINT(Ecut_rALDA, "%lg")
 		#undef PRINT
+		#undef PRINT_BOOL
 	}
 }
 commandBGWparams;

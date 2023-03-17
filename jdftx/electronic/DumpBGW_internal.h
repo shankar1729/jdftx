@@ -31,6 +31,7 @@ struct BGWparams
 {	int nBandsDense; //!< if non-zero, use a dense ScaLAPACK solver to calculate more bands
 	int blockSize; //!< block size for ScaLAPACK diagonalization
 	int clusterSize; //!< maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for
+	bool saveVxc; //!< whether to write ecxhange-correlation matrix elements
 	bool saveVxx; //!< whether to write exact-exchange matrix elements
 	bool rpaExx; //!< whether to compute RPA-consistent exact-exchange energy
 
@@ -45,7 +46,8 @@ struct BGWparams
 	
 	double Ecut_rALDA; //!< KE cutoff (in Eh) for rALDA output (enabled if non-zero)
 	
-	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10), saveVxx(false), rpaExx(false),
+	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10),
+		saveVxc(true), saveVxx(false), rpaExx(false),
 		EcutChiFluid(0.), elecOnly(true),
 		freqReMax_eV(30.), freqReStep_eV(1.), freqBroaden_eV(0.1),
 		freqNimag(25), freqPlasma(1.), Ecut_rALDA(0.)
