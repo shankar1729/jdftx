@@ -172,6 +172,9 @@ IonicMinimizer::IonicMinimizer(Everything& e, bool dynamicsMode)
 			{	anyConstrained = true;
 				break;
 			}
+	//External potentials also break translational invariance:
+	if(e.iInfo.ionicGaussianPotentials.size())
+		anyConstrained = true;
 }
 
 void IonicMinimizer::step(const IonicGradient& dir, double alpha)
@@ -371,7 +374,7 @@ void IonicMinimizer::constrain(IonicGradient& x)
 	}
 
 	//Ensure zero total force (if no atom is constrained):
-	if(!anyConstrained)
+	if(not anyConstrained)
 	{	vector3<> xSum; int nAtoms = 0;
 		for(const auto& x_sp: x)
 			for(const vector3<>& x_sp_at: x_sp)
