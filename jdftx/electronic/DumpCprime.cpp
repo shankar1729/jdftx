@@ -34,16 +34,18 @@ void DumpCprime::dump(Everything& e) const
 {
 	logPrintf("\n---- dC/dk calculation with dk = %lg a0^-1 and degeneracyThreshold = %le Eh ----\n", dk, degeneracyThreshold);
 	bool needBerry = e.dump.count(std::make_pair(DumpFreq_End, DumpBerry));
+	bool needR = e.dump.count(std::make_pair(DumpFreq_End, DumpR));
 	bool needL = e.dump.count(std::make_pair(DumpFreq_End, DumpL));
 	bool needQ = e.dump.count(std::make_pair(DumpFreq_End, DumpQ));
 	int nBands = e.eInfo.nBands;
 	
 	//Compute dC/dk, Berry Curvature Omega_k = i <dC/dk| X |dC/dk>, r*[r,H] moments and hence L or Q moments for each reduced k:
-	std::vector<matrix> L(e.eInfo.nStates), Q(e.eInfo.nStates), BerryCurvature(e.eInfo.nStates);
+	std::vector<matrix> R(e.eInfo.nStates), L(e.eInfo.nStates), Q(e.eInfo.nStates), BerryCurvature(e.eInfo.nStates);
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{	//Compute dC/dk, and r*[r,H] moments using dC/dk if needed:
 		ColumnBundle Cprime[3];
 		matrix3<matrix> rrH;
+		if(needR) R[q] = zeroes(nBands, nBands*3);
 		for(int iDir=0; iDir<3; iDir++)
 		{	matrix CprimeOC;
 			ColumnBundle Cprime_i = getCprime(e, q, iDir, CprimeOC); //Compute idC/dk (effectively r*C)
@@ -52,6 +54,7 @@ void DumpCprime::dump(Everything& e) const
 			{	matrix CprimeHC = CprimeOC * e.eVars.Hsub_eigs[q]; //since C are eigenvectors
 				rrH.set_row(iDir, e.iInfo.rHcommutator(Cprime_i, e.eVars.C[q], CprimeHC)); //effectively (r*C) ^ p . C
 			}
+			if(needR) R[q].set(0, nBands, iDir*nBands, (iDir+1)*e.eInfo.nBands, CprimeOC);
 		}
 		//Compute Berry curvature if needed:
 		if (needBerry)
@@ -97,6 +100,14 @@ void DumpCprime::dump(Everything& e) const
 	{	string fname = e.dump.getFilename("BerryCurvature");
 		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 		e.eInfo.write(BerryCurvature, fname.c_str(), nBands, nBands * 3);
+		logPrintf("done.\n");
+	}
+
+	//Output R if requested:
+	if(needR)
+	{	string fname = e.dump.getFilename("R");
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		e.eInfo.write(R, fname.c_str(), nBands, nBands * 3);
 		logPrintf("done.\n");
 	}
 
