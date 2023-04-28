@@ -343,7 +343,11 @@ void dumpFCI(const Everything& e, const char* filename)
 		const ColumnBundle& Cq = e.eVars.C[q];
 		ScalarFieldArray Vloc(e.eInfo.nDensities); nullToZero(Vloc, e.gInfo);
 		for(unsigned s=0; s<Vloc.size(); s++)
-			if(s<2) Vloc[s] = Jdag(O(e.iInfo.Vlocps));
+			if(s<2)
+			{	Vloc[s] = Jdag(O(e.iInfo.Vlocps));
+				if(e.eVars.Vexternal.size())
+					Vloc[s] += JdagOJ(e.eVars.Vexternal[s]);
+			}
 		ColumnBundle H0Cq = Idag_DiagV_I(Cq, Vloc) - 0.5*L(Cq); //local PS and KE
 		{	//Add nonlocal PS contribution:
 			std::vector<matrix> HVdagCq(e.iInfo.species.size());
