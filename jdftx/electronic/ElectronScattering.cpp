@@ -44,7 +44,7 @@ double regularizedDelta(double omega, double omega0, double etaInv)
 }
 
 ElectronScattering::ElectronScattering()
-: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), slabResponse(false), EcutTransverse(0.),
+: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), ScreenedInteraction(false), slabResponse(false), EcutTransverse(0.),
 	computeRange(false), iqStart(0), iqStop(0)
 {
 }
@@ -343,6 +343,12 @@ void ElectronScattering::dump(const Everything& everything)
 				: inv(eye(nbasis) - chiKS[iOmega] * Kxc) * chiKS[iOmega];
 			chiKS[iOmega] = 0; //free to save memory
 			ImKscr[iOmega] = Im(inv(invKq - chi0));
+			if(ScreenedInteraction){
+				ostringstream screendsuffix; screendsuffix << '.' << iOmega << '.' << (iq+1);
+				string fnameScreenedInteraction = e.dump.getFilename("ScreenedCoulomb"+screendsuffix.str());
+				ImKscr[iOmega].write(fnameScreenedInteraction.c_str());
+				//e.eInfo.write(ImKscr[iOmega], fnameScreenedInteraction.c_str());
+			}
 			chi0 = 0; //free to save memory
 		}
 		chiKS.clear(); //free memory; no longer needed
