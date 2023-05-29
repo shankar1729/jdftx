@@ -337,6 +337,15 @@ void ElectronScattering::dump(const Everything& everything)
 		//Calculate Im(screened Coulomb operator):
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
 		std::vector<matrix> ImKscr(omegaGrid.nRows());
+		ostringstream DielectricBasissuffix; DielectricBasissuffix  << '.' << (iq+1);
+
+		string fnameDielectricBasis = e.dump.getFilename("DielectricBasis"+DielectricBasissuffix.str());
+		FILE* fp = fopen(fnameDielectricBasis.c_str(), "w");
+		for(const vector3<int>& iG: basisChi[iq].iGarr)
+			fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
+		fprintf(fp, "\n");
+		fclose(fp);
+
 		for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
 		{	matrix chi0 = RPA
 				? chiKS[iOmega]
@@ -344,9 +353,12 @@ void ElectronScattering::dump(const Everything& everything)
 			chiKS[iOmega] = 0; //free to save memory
 			ImKscr[iOmega] = Im(inv(invKq - chi0));
 			if(ScreenedInteraction){
-				ostringstream screendsuffix; screendsuffix << '.' << iOmega << '.' << (iq+1);
+				ostringstream screendsuffix; screendsuffix  << '.' << (iq+1) << '.' << iOmega;
 				string fnameScreenedInteraction = e.dump.getFilename("ScreenedCoulomb"+screendsuffix.str());
-				ImKscr[iOmega].write(fnameScreenedInteraction.c_str());
+
+				(eye(nbasis)-inv(invKq)*chi0).write(fnameScreenedInteraction.c_str());
+
+				//ImKscr[iOmega].write(fnameScreenedInteraction.c_str());
 				//e.eInfo.write(ImKscr[iOmega], fnameScreenedInteraction.c_str());
 			}
 			chi0 = 0; //free to save memory
