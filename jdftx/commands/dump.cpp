@@ -372,6 +372,8 @@ enum ElectronScatteringMember
 	ESM_omegaMax,
 	ESM_RPA,
 	ESM_ScreenedInteraction,
+	ESM_QMesh,
+	ESM_DielectricBasis,
 	ESM_slabResponse,
 	ESM_EcutTransverse,
 	ESM_computeRange,
@@ -383,6 +385,8 @@ EnumStringMap<ElectronScatteringMember> esmMap
 	ESM_fCut, "fCut",
 	ESM_omegaMax, "omegaMax",
 	ESM_ScreenedInteraction, "ScreenedInteraction",
+	ESM_DielectricBasis, "DielectricBasis",
+	ESM_QMesh, "QMesh",
 	ESM_RPA, "RPA",
 	ESM_slabResponse, "slabResponse",
 	ESM_EcutTransverse, "EcutTransverse",
@@ -415,6 +419,10 @@ struct CommandElectronScattering : public Command
 			"   If yes, use RPA response that ignores XC contribution. (default: no).\n"
 			"\n+ ScreenedInteraction yes|no\n\n"
 			"   If yes, dump the screened interaction. (default: no).\n"
+			"\n+ QMesh yes|no\n\n"
+			"   If yes, dump the QMesh. (default: no).\n"
+			"\n+ DielectricBasis yes|no\n\n"
+			"   If yes, dump the Gvectors corresponding to the dielectric matrix. (default: no).\n"
 			"\n+ slabResponse yes|no\n\n"
 			"   Whether to output slab-normal-direction susceptibility instead.\n"
 			"   This needs slab geometry in coulomb-interaction, and will bypass the\n"
@@ -448,6 +456,8 @@ struct CommandElectronScattering : public Command
 				case ESM_omegaMax: pl.get(es.omegaMax, 0., "omegaMax", true); break;
 				case ESM_RPA: pl.get(es.RPA, false, boolMap, "RPA", true); break;
 				case ESM_ScreenedInteraction: pl.get(es.ScreenedInteraction, false, boolMap, "ScreenedInteraction", true); break;
+				case ESM_DielectricBasis: pl.get(es.DielectricBasis, false, boolMap, "DielectricBasis", true); break;
+				case ESM_QMesh: pl.get(es.QMesh, false, boolMap, "QMesh", true); break;
 				case ESM_slabResponse: pl.get(es.slabResponse, false, boolMap, "slabResponse", true); break;
 				case ESM_EcutTransverse: pl.get(es.EcutTransverse, 0., "EcutTransverse", true); break;
 				case ESM_computeRange:
@@ -478,6 +488,8 @@ struct CommandElectronScattering : public Command
 		logPrintf(" \\\n\tomegaMax %lg", es.omegaMax);
 		logPrintf(" \\\n\tRPA      %s", boolMap.getString(es.RPA));
 		logPrintf(" \\\n\tScreenedInteraction      %s", boolMap.getString(es.ScreenedInteraction));
+		logPrintf(" \\\n\tDielectricBasis      %s", boolMap.getString(es.DielectricBasis));
+		logPrintf(" \\\n\tQMesh    %s", boolMap.getString(es.QMesh));
 		logPrintf(" \\\n\tslabResponse %s", boolMap.getString(es.slabResponse));
 		if(es.slabResponse) logPrintf(" \\\n\tEcutTransverse %lg", es.EcutTransverse);
 		if(es.computeRange)  logPrintf(" \\\n\tcomputeRange %lu %lu", es.iqStart+1, es.iqStop);

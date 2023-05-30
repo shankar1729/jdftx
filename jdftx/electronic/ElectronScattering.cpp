@@ -44,7 +44,7 @@ double regularizedDelta(double omega, double omega0, double etaInv)
 }
 
 ElectronScattering::ElectronScattering()
-: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), ScreenedInteraction(false), slabResponse(false), EcutTransverse(0.),
+: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), ScreenedInteraction(false), QMesh(false), DielectricBasis(false), slabResponse(false), EcutTransverse(0.),
 	computeRange(false), iqStart(0), iqStop(0)
 {
 }
@@ -262,7 +262,15 @@ void ElectronScattering::dump(const Everything& everything)
 		}
 	}
 	logPrintf("done.\n"); logFlush();
-
+	if(QMesh){
+		string fnameQMesh = e.dump.getFilename("QMesh");
+		FILE* fp = fopen(fnameQMesh.c_str(), "w");
+		for (size_t iq=0; iq<qmesh.size(); iq++){
+			fprintf(fp, "%f %f %f\n", qmesh[iq].k[0], qmesh[iq].k[1], qmesh[iq].k[2]);
+		}
+		fprintf(fp, "\n");
+		fclose(fp);
+	}
 	//Main loop over momentum transfers:
 	std::vector<diagMatrix> ImSigma(e.eInfo.nStates, diagMatrix(nBands,0.));
 	for(size_t iq=iqStart; iq<iqStop; iq++)
@@ -337,14 +345,16 @@ void ElectronScattering::dump(const Everything& everything)
 		//Calculate Im(screened Coulomb operator):
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
 		std::vector<matrix> ImKscr(omegaGrid.nRows());
-		ostringstream DielectricBasissuffix; DielectricBasissuffix  << '.' << (iq+1);
 
-		string fnameDielectricBasis = e.dump.getFilename("DielectricBasis"+DielectricBasissuffix.str());
-		FILE* fp = fopen(fnameDielectricBasis.c_str(), "w");
-		for(const vector3<int>& iG: basisChi[iq].iGarr)
-			fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
-		fprintf(fp, "\n");
-		fclose(fp);
+		if (DielectricBasis){
+			ostringstream DielectricBasissuffix; DielectricBasissuffix  << '.' << (iq+1);
+
+			string fnameDielectricBasis = e.dump.getFilename("DielectricBasis"+DielectricBasissuffix.str());
+			FILE* fp = fopen(fnameDielectricBasis.c_str(), "w");
+			for(const vector3<int>& iG: basisChi[iq].iGarr)
+				fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
+			fclose(fp);
+		}
 
 		for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
 		{	matrix chi0 = RPA
