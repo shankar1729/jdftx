@@ -40,7 +40,7 @@ struct ElectronScattering
 	double fCut; //!< threshold for considering states fully occupied / unoccupied (default: 1e-6)
 	double omegaMax; //!< maximum energy transfer to account for and hence maximum frequency in dielectric grid (if zero, autodetermine from available eigenvalues)
 	bool RPA; //!< if true, ignore XC (RPA response)
-	bool ScreenedInteraction;
+	bool Epsilon;
 	bool QMesh;
 	bool DielectricBasis;
 	bool slabResponse; //!< whether to work in slab response output mode

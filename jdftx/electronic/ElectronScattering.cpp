@@ -44,7 +44,7 @@ double regularizedDelta(double omega, double omega0, double etaInv)
 }
 
 ElectronScattering::ElectronScattering()
-: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), ScreenedInteraction(false), QMesh(false), DielectricBasis(false), slabResponse(false), EcutTransverse(0.),
+: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), Epsilon(false), QMesh(false), DielectricBasis(false), slabResponse(false), EcutTransverse(0.),
 	computeRange(false), iqStart(0), iqStop(0)
 {
 }
@@ -264,12 +264,14 @@ void ElectronScattering::dump(const Everything& everything)
 	logPrintf("done.\n"); logFlush();
 	if(QMesh){
 		string fnameQMesh = e.dump.getFilename("QMesh");
+		logPrintf("Outputting wavevectors in %s ... ", fnameQMesh.c_str()); logFlush();
 		FILE* fp = fopen(fnameQMesh.c_str(), "w");
 		for (size_t iq=0; iq<qmesh.size(); iq++){
 			fprintf(fp, "%f %f %f\n", qmesh[iq].k[0], qmesh[iq].k[1], qmesh[iq].k[2]);
 		}
 		fprintf(fp, "\n");
 		fclose(fp);
+		logPrintf("done.\n");
 	}
 	//Main loop over momentum transfers:
 	std::vector<diagMatrix> ImSigma(e.eInfo.nStates, diagMatrix(nBands,0.));
@@ -346,14 +348,16 @@ void ElectronScattering::dump(const Everything& everything)
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
 		std::vector<matrix> ImKscr(omegaGrid.nRows());
 
-		if (DielectricBasis){
+		if(DielectricBasis){
 			ostringstream DielectricBasissuffix; DielectricBasissuffix  << '.' << (iq+1);
-
 			string fnameDielectricBasis = e.dump.getFilename("DielectricBasis"+DielectricBasissuffix.str());
+			logPrintf("Outputting GG' basis vectors of dielectric matrix in %s ... ", fnameDielectricBasis.c_str()); logFlush();
 			FILE* fp = fopen(fnameDielectricBasis.c_str(), "w");
-			for(const vector3<int>& iG: basisChi[iq].iGarr)
+			for(const vector3<int>& iG: basisChi[iq].iGarr){
 				fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
+			}
 			fclose(fp);
+			logPrintf("done.\n");
 		}
 
 		for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
@@ -362,14 +366,23 @@ void ElectronScattering::dump(const Everything& everything)
 				: inv(eye(nbasis) - chiKS[iOmega] * Kxc) * chiKS[iOmega];
 			chiKS[iOmega] = 0; //free to save memory
 			ImKscr[iOmega] = Im(inv(invKq - chi0));
-			if(ScreenedInteraction){
-				ostringstream screendsuffix; screendsuffix  << '.' << (iq+1) << '.' << iOmega;
-				string fnameScreenedInteraction = e.dump.getFilename("ScreenedCoulomb"+screendsuffix.str());
+			if(Epsilon){
+				ostringstream epsilonsuffix; epsilonsuffix  << '.' << (iq+1) << '.' << iOmega;
+				
+				string fnameCoulombInteraction = e.dump.getFilename("CoulombInteraction"+epsilonsuffix.str());
+				logPrintf("Outputting Coulomb interaction in GG' basis in %s ... ", fnameCoulombInteraction.c_str()); logFlush();
+				(inv(invKq)).write(fnameCoulombInteraction.c_str());
+				logPrintf("done.\n");
 
-				(eye(nbasis)-inv(invKq)*chi0).write(fnameScreenedInteraction.c_str());
+				string fnameChi0 = e.dump.getFilename("Chi0"+epsilonsuffix.str());
+				logPrintf("Outputting Chi0 in GG' basis in %s ... ", fnameChi0.c_str()); logFlush();
+				(chi0).write(fnameChi0.c_str());
+				logPrintf("done.\n");
 
-				//ImKscr[iOmega].write(fnameScreenedInteraction.c_str());
-				//e.eInfo.write(ImKscr[iOmega], fnameScreenedInteraction.c_str());
+				string fnameEpsilon = e.dump.getFilename("Epsilon"+epsilonsuffix.str());
+				logPrintf("Outputting dielectric matrix in GG' basis in %s ... ", fnameEpsilon.c_str()); logFlush();
+				(eye(nbasis)-inv(invKq)*chi0).write(fnameEpsilon.c_str());
+				logPrintf("done.\n");
 			}
 			chi0 = 0; //free to save memory
 		}
