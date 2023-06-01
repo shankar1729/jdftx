@@ -368,11 +368,6 @@ void ElectronScattering::dump(const Everything& everything)
 			ImKscr[iOmega] = Im(inv(invKq - chi0));
 			if(Epsilon){
 				ostringstream epsilonsuffix; epsilonsuffix  << '.' << (iq+1) << '.' << iOmega;
-				
-				string fnameCoulombInteraction = e.dump.getFilename("CoulombInteraction"+epsilonsuffix.str());
-				logPrintf("Outputting Coulomb interaction in GG' basis in %s ... ", fnameCoulombInteraction.c_str()); logFlush();
-				(inv(invKq)).write(fnameCoulombInteraction.c_str());
-				logPrintf("done.\n");
 
 				string fnameChi0 = e.dump.getFilename("Chi0"+epsilonsuffix.str());
 				logPrintf("Outputting Chi0 in GG' basis in %s ... ", fnameChi0.c_str()); logFlush();
