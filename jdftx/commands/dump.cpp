@@ -382,7 +382,7 @@ EnumStringMap<ElectronScatteringMember> esmMap
 	ESM_Ecut, "Ecut",
 	ESM_fCut, "fCut",
 	ESM_omegaMax, "omegaMax",
-	ESM_Epsilon, "dumpEpsilon",
+	ESM_dumpEpsilon, "dumpEpsilon",
 	ESM_RPA, "RPA",
 	ESM_slabResponse, "slabResponse",
 	ESM_EcutTransverse, "EcutTransverse",
@@ -447,7 +447,7 @@ struct CommandElectronScattering : public Command
 				case ESM_fCut: pl.get(es.fCut, 0., "fCut", true); break;
 				case ESM_omegaMax: pl.get(es.omegaMax, 0., "omegaMax", true); break;
 				case ESM_RPA: pl.get(es.RPA, false, boolMap, "RPA", true); break;
-				case ESM_Epsilon: pl.get(es.dumpEpsilon, false, boolMap, "dumpEpsilon", true); break;
+				case ESM_dumpEpsilon: pl.get(es.dumpEpsilon, false, boolMap, "dumpEpsilon", true); break;
 				case ESM_slabResponse: pl.get(es.slabResponse, false, boolMap, "slabResponse", true); break;
 				case ESM_EcutTransverse: pl.get(es.EcutTransverse, 0., "EcutTransverse", true); break;
 				case ESM_computeRange:

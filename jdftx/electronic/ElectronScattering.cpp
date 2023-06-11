@@ -366,7 +366,7 @@ void ElectronScattering::dump(const Everything& everything)
 				: inv(eye(nbasis) - chiKS[iOmega] * Kxc) * chiKS[iOmega];
 			chiKS[iOmega] = 0; //free to save memory
 			ImKscr[iOmega] = Im(inv(invKq - chi0));
-			if(Epsilon){
+			if(dumpEpsilon){
 				ostringstream epsilonsuffix; epsilonsuffix  << '.' << (iq+1) << '.' << iOmega;
 
 				string fnameChi0 = e.dump.getFilename("Chi0"+epsilonsuffix.str());
