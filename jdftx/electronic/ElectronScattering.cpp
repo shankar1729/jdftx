@@ -44,7 +44,7 @@ double regularizedDelta(double omega, double omega0, double etaInv)
 }
 
 ElectronScattering::ElectronScattering()
-: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), Epsilon(false), QMesh(false), DielectricBasis(false), slabResponse(false), EcutTransverse(0.),
+: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), dumpEpsilon(false), slabResponse(false), EcutTransverse(0.),
 	computeRange(false), iqStart(0), iqStop(0)
 {
 }
@@ -262,7 +262,7 @@ void ElectronScattering::dump(const Everything& everything)
 		}
 	}
 	logPrintf("done.\n"); logFlush();
-	if(QMesh){
+	if(dumpEpsilon){
 		string fnameQMesh = e.dump.getFilename("QMesh");
 		logPrintf("Outputting wavevectors in %s ... ", fnameQMesh.c_str()); logFlush();
 		FILE* fp = fopen(fnameQMesh.c_str(), "w");
@@ -348,11 +348,11 @@ void ElectronScattering::dump(const Everything& everything)
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
 		std::vector<matrix> ImKscr(omegaGrid.nRows());
 
-		if(DielectricBasis){
-			ostringstream DielectricBasissuffix; DielectricBasissuffix  << '.' << (iq+1);
-			string fnameDielectricBasis = e.dump.getFilename("DielectricBasis"+DielectricBasissuffix.str());
-			logPrintf("Outputting GG' basis vectors of dielectric matrix in %s ... ", fnameDielectricBasis.c_str()); logFlush();
-			FILE* fp = fopen(fnameDielectricBasis.c_str(), "w");
+		if(dumpEpsilon){
+			ostringstream EpsilonBasissuffix; EpsilonBasissuffix  << '.' << (iq+1);
+			string fnameEpsilonBasis = e.dump.getFilename("EpsilonBasis"+EpsilonBasissuffix.str());
+			logPrintf("Outputting GG' basis vectors of dielectric matrix in %s ... ", fnameEpsilonBasis.c_str()); logFlush();
+			FILE* fp = fopen(fnameEpsilonBasis.c_str(), "w");
 			for(const vector3<int>& iG: basisChi[iq].iGarr){
 				fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
 			}
