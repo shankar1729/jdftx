@@ -44,7 +44,7 @@ double regularizedDelta(double omega, double omega0, double etaInv)
 }
 
 ElectronScattering::ElectronScattering()
-: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), slabResponse(false), EcutTransverse(0.),
+: eta(0.), Ecut(0.), fCut(1e-6), omegaMax(0.), RPA(false), dumpEpsilon(false), slabResponse(false), EcutTransverse(0.),
 	computeRange(false), iqStart(0), iqStop(0)
 {
 }
@@ -262,7 +262,17 @@ void ElectronScattering::dump(const Everything& everything)
 		}
 	}
 	logPrintf("done.\n"); logFlush();
-
+	if(dumpEpsilon){
+		string fnameQMesh = e.dump.getFilename("QMesh");
+		logPrintf("Outputting wavevectors in %s ... ", fnameQMesh.c_str()); logFlush();
+		FILE* fp = fopen(fnameQMesh.c_str(), "w");
+		for (size_t iq=0; iq<qmesh.size(); iq++){
+			fprintf(fp, "%f %f %f\n", qmesh[iq].k[0], qmesh[iq].k[1], qmesh[iq].k[2]);
+		}
+		fprintf(fp, "\n");
+		fclose(fp);
+		logPrintf("done.\n");
+	}
 	//Main loop over momentum transfers:
 	std::vector<diagMatrix> ImSigma(e.eInfo.nStates, diagMatrix(nBands,0.));
 	for(size_t iq=iqStart; iq<iqStop; iq++)
@@ -337,12 +347,38 @@ void ElectronScattering::dump(const Everything& everything)
 		//Calculate Im(screened Coulomb operator):
 		logPrintf("\tComputing Im(Kscreened) ... "); logFlush();
 		std::vector<matrix> ImKscr(omegaGrid.nRows());
+
+		if(dumpEpsilon){
+			ostringstream EpsilonBasissuffix; EpsilonBasissuffix  << '.' << (iq+1);
+			string fnameEpsilonBasis = e.dump.getFilename("EpsilonBasis"+EpsilonBasissuffix.str());
+			logPrintf("Outputting GG' basis vectors of dielectric matrix in %s ... ", fnameEpsilonBasis.c_str()); logFlush();
+			FILE* fp = fopen(fnameEpsilonBasis.c_str(), "w");
+			for(const vector3<int>& iG: basisChi[iq].iGarr){
+				fprintf(fp, "%d %d %d\n", iG[0], iG[1], iG[2]);
+			}
+			fclose(fp);
+			logPrintf("done.\n");
+		}
+
 		for(int iOmega=iOmegaStart; iOmega<iOmegaStop; iOmega++)
 		{	matrix chi0 = RPA
 				? chiKS[iOmega]
 				: inv(eye(nbasis) - chiKS[iOmega] * Kxc) * chiKS[iOmega];
 			chiKS[iOmega] = 0; //free to save memory
 			ImKscr[iOmega] = Im(inv(invKq - chi0));
+			if(dumpEpsilon){
+				ostringstream epsilonsuffix; epsilonsuffix  << '.' << (iq+1) << '.' << iOmega;
+
+				string fnameChi0 = e.dump.getFilename("Chi0"+epsilonsuffix.str());
+				logPrintf("Outputting Chi0 in GG' basis in %s ... ", fnameChi0.c_str()); logFlush();
+				(chi0).write(fnameChi0.c_str());
+				logPrintf("done.\n");
+
+				string fnameEpsilon = e.dump.getFilename("Epsilon"+epsilonsuffix.str());
+				logPrintf("Outputting dielectric matrix in GG' basis in %s ... ", fnameEpsilon.c_str()); logFlush();
+				(eye(nbasis)-inv(invKq)*chi0).write(fnameEpsilon.c_str());
+				logPrintf("done.\n");
+			}
 			chi0 = 0; //free to save memory
 		}
 		chiKS.clear(); //free memory; no longer needed
