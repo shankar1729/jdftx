@@ -458,7 +458,7 @@ void BGW::write_rALDA(bool write_q0) const
 				//--- loop over grid points
 				const vector3<int>& S = gInfo.S;
 				vector3<> iGdiffByS = inv(Diag(vector3<>(S))) * iGdiff; //elementwise iGdiff / S
-				size_t iStart=0, iStop=0;
+				size_t iStart=0, iStop=gInfo.nr;
 				THREAD_rLoop(
 					complex phase = cis(2*M_PI*dot(iGdiffByS, iv)); //exp(-i(G-G').r) for G in row, G' in col
 					if(qSqSym < qSqCut[i])
