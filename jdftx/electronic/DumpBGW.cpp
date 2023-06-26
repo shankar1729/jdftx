@@ -465,7 +465,7 @@ void BGW::write_rALDA(bool write_q0) const
 					if(qSqSym < qSqCut[i])
 						fxc += phase * fxLDA[i];
 					else
-						coulombS += phase * (4*M_PI/qSqSym);
+						coulombS -= phase * (4*M_PI/qSqSym);  //difference between screened and bare Coulomb parts
 				)
 				//Set spin diagonal and off-diagonal components:
 				double prefac = 1./gInfo.nr; //scale factor to convert above sum to unit cell average
