@@ -451,8 +451,9 @@ void BGW::write_rALDA(bool write_q0) const
 				if(iRow >= nBasis[iq]) continue;
 				//Current wave vectors:
 				vector3<int> iGdiff = iGarr[iq][iCol] - iGarr[iq][iRow]; //(G'-G) in recip coords for G in row, G' in col
-				double qSqSym = (q[iq] + iGarr[iq][iCol]).length() *
-								(q[iq] + iGarr[iq][iRow]).length();
+				double qSqSym = sqrt(
+					gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iCol]) *
+					gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iRow]));
 				//Collect contributions to XC and short-ranged coulomb-screening parts separately:
 				complex fxc, coulombS;
 				//--- loop over grid points
