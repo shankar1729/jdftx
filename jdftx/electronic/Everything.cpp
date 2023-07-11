@@ -214,7 +214,7 @@ void Everything::setup()
 	vptParams.energyLabel = relevantFreeEnergyName(*this);
 	vptParams.energyFormat = "%+.15lf";
 
-	vptInfo.setup(this, &eVars);
+	vptInfo.setup(*this, eVars);
 
 	logPrintf("\n"); logFlush();
 }

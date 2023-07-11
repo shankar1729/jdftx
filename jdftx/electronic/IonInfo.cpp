@@ -341,9 +341,18 @@ void IonInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, std::vec
 void IonInfo::augmentDensityInit() const
 {	for(auto sp: species) ((SpeciesInfo&)(*sp)).augmentDensityInit();
 }
-void IonInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq) const
-{	for(unsigned sp=0; sp<species.size(); sp++)
-		((SpeciesInfo&)(*species[sp])).augmentDensitySpherical(qnum, Fq, VdagCq[sp]);
+void IonInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, const std::vector<matrix>* VdagdCqL, const std::vector<matrix>* VdagdCqR) const
+{
+	if (VdagdCqR) {
+		for(unsigned sp=0; sp<species.size(); sp++)
+			((SpeciesInfo&)(*species[sp])).augmentDensitySpherical(qnum, Fq, VdagCq[sp], &((*VdagdCqL)[sp]), &((*VdagdCqR)[sp]));
+	} else if (VdagdCqL){
+		for(unsigned sp=0; sp<species.size(); sp++)
+			((SpeciesInfo&)(*species[sp])).augmentDensitySpherical(qnum, Fq, VdagCq[sp], &((*VdagdCqL)[sp]));
+	} else {
+		for(unsigned sp=0; sp<species.size(); sp++)
+			((SpeciesInfo&)(*species[sp])).augmentDensitySpherical(qnum, Fq, VdagCq[sp]);
+	}
 }
 void IonInfo::augmentDensityGrid(ScalarFieldArray& n) const
 {	for(auto sp: species) sp->augmentDensityGrid(n);

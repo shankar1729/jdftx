@@ -39,7 +39,7 @@ struct CommandDVexternal : public Command
 	void process(ParamList& pl, Everything& e)
 	{	e.vptInfo.dVexternalFilename.resize(1);
 		pl.get(e.vptInfo.dVexternalFilename[0], string(), "filename", true);
-		//Check if a second file has been specified:
+		//TODO: Check if a second file has been specified:
 		//string filenameDn;
 		//pl.get(filenameDn, string(), "filenameDn");
 		//if(filenameDn.length())
@@ -51,4 +51,51 @@ struct CommandDVexternal : public Command
 			logPrintf("%s ", filename.c_str());
 	}
 }
-commandDVexternal;
+CommandDVexternal;
+
+struct CommandSetQpoint : public Command
+{
+	CommandSetQpoint() : Command("set-qpoint", "jdftx/Electronic/Parameters")
+	{
+		format = "<q0> <q1> <q2>";
+		comments =
+			"Set the bloch phase of the perturbation potential to exp(i q*r) where q = (<q0>, <q1>, <q2>)\n";
+	}
+
+    void process(ParamList& pl, Everything& e)
+    {
+		pl.get(e.vptInfo.qvec[0], 0.0, "q0");
+		pl.get(e.vptInfo.qvec[1], 0.0, "q1");
+		pl.get(e.vptInfo.qvec[2], 0.0, "q2");
+
+		e.vptInfo.incommensurate = e.vptInfo.qvec.isNonzero();
+		//TODO: Band structure in case q=0?
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{
+		logPrintf("TODO: Print status");
+	}
+}
+CommandSetQpoint;
+
+struct CommandReadOffsetWfns : public Command
+{
+	CommandReadOffsetWfns() : Command("read-offset-wfns", "jdftx/Electronic/Parameters")
+	{
+		format = "<filename>";
+		comments =
+			"TODO: Write comment\n";
+	}
+
+    void process(ParamList& pl, Everything& e)
+    {
+		pl.get(e.vptInfo.wfnsFilename, string(), "filename", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{
+		logPrintf("TODO: Print status");
+	}
+}
+CommandReadOffsetWfns;

@@ -239,6 +239,38 @@ inline ScalarFieldArray Real(const complexScalarFieldArray X) {
 	return out;
 }
 
+inline ScalarFieldArray Imag(const complexScalarFieldArray X) {
+	ScalarFieldArray out(X.size());
+	for (int i = 0; i < int(X.size()); i++) {
+		out[i] = Imag(X[i]);
+	}
+	return out;
+}
+
+inline complexScalarFieldArray Complex(const ScalarFieldArray re, const ScalarFieldArray im) {
+	complexScalarFieldArray out(re.size());
+	for (int i = 0; i < int(re.size()); i++) {
+		out[i] = Complex(re[i],im[i]);
+	}
+	return out;
+}
+
+inline complexScalarFieldArray Complex(const ScalarFieldArray re) {
+	complexScalarFieldArray out(re.size());
+	for (int i = 0; i < int(re.size()); i++) {
+		out[i] = Complex(re[i]);
+	}
+	return out;
+}
+
+inline complexScalarFieldArray conj(const complexScalarFieldArray X) {
+	complexScalarFieldArray out(X.size());
+	for (int i = 0; i < int(X.size()); i++) {
+		out[i] = conj(X[i]);
+	}
+	return out;
+}
+
 #undef TptrCollection
 
 //! @}

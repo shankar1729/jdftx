@@ -103,7 +103,7 @@ void SpeciesInfo::augmentDensityInit()
 	E_nAug.zero();
 }
 
-void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq)
+void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, const matrix* VdagdCqL, const matrix* VdagdCqR)
 {	static StopWatch watch("augmentDensitySpherical"); watch.start(); 
 	augmentDensity_COMMON_INIT
 	int nProj = MnlAll.nRows();
@@ -113,8 +113,20 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 	//Loop over atoms:
 	for(unsigned atom=0; atom<atpos.size(); atom++)
 	{	//Get projections and calculate density matrix at this atom:
+		matrix RhoAll;
 		matrix atomVdagC = VdagCq(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols());
-		matrix RhoAll = atomVdagC * Fq * dagger(atomVdagC); //density matrix in projector basis on this atom
+		if (!VdagdCqL & ! VdagdCqR) {
+			RhoAll = atomVdagC * Fq * dagger(atomVdagC); //density matrix in projector basis on this atom
+		} else {
+			if (!VdagdCqR) {
+				matrix atomVdagdC = (*VdagdCqL)(atom*nProj,(atom+1)*nProj, 0,VdagdCqL->nCols());
+				RhoAll = atomVdagC * Fq * dagger(atomVdagdC) + atomVdagdC * Fq * dagger(atomVdagC);
+			} else {
+				matrix atomVdagdCL = (*VdagdCqL)(atom*nProj,(atom+1)*nProj, 0,VdagdCqL->nCols());
+				matrix atomVdagdCR = (*VdagdCqR)(atom*nProj,(atom+1)*nProj, 0,VdagdCqR->nCols());
+				RhoAll = atomVdagC * Fq * dagger(atomVdagdCR) + atomVdagdCL * Fq * dagger(atomVdagC);
+			}
+		}
 		if(isRelativistic()) RhoAll = fljAll * RhoAll * fljAll; //transformation for relativistic pseudopotential
 		std::vector<matrix> Rho(e->eInfo.nDensities); //RhoAll split by spin(-density-matrix) components
 		if(e->eInfo.isNoncollinear())

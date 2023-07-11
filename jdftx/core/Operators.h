@@ -83,8 +83,9 @@ matrix3<> Lstress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y); //!< La
 
 ScalarFieldTilde Linv(const ScalarFieldTilde&); //!< Inverse Laplacian
 ScalarFieldTilde Linv(ScalarFieldTilde&&); //!< Inverse Laplacian
-complexScalarFieldTilde Linv(const complexScalarFieldTilde&); //!< Inverse Laplacian
-complexScalarFieldTilde Linv(complexScalarFieldTilde&&); //!< Inverse Laplacian
+complexScalarFieldTilde Linv(const complexScalarFieldTilde&, vector3<>* k = 0); //!< Inverse Laplacian
+complexScalarFieldTilde Linv(complexScalarFieldTilde&&, vector3<>* k = 0); //!< Inverse Laplacian
+complexScalarFieldTilde Linv(const ScalarFieldTilde& in, vector3<>* k);
 matrix3<> LinvStress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y); //!< Lattice vector derivative of dot(X,Linv(Y))
 
 ScalarFieldTilde D(const ScalarFieldTilde&, int iDir); //!< compute the gradient in the iDir'th cartesian direction

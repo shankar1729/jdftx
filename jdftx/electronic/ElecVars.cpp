@@ -282,7 +282,7 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 {	static StopWatch watch("EdensityAndVscloc"); watch.start();
 	const ElecInfo& eInfo = e->eInfo;
 	const IonInfo& iInfo = e->iInfo;
-	
+
 	ScalarFieldTilde nTilde = J(get_nTot());
 	
 	// Local part of pseudopotential:
@@ -625,6 +625,10 @@ ScalarFieldArray ElecVars::KEdensity() const
 
 ScalarFieldArray ElecVars::calcDensity() const
 {	ScalarFieldArray density(n.size());
+	for (unsigned int s = 0; s < density.size(); s++) //TODO remove?
+	{	nullToZero(density[s], e->gInfo);
+		density[s] = 0*density[s];
+	}
 	//Runs over all states and accumulates density to the corresponding spin channel of the total density
 	e->iInfo.augmentDensityInit();
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)

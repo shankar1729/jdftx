@@ -99,7 +99,7 @@ public:
 	
 	//Multi-stage density augmentation and gradient propagation (see corresponding functions in SpeciesInfo)
 	void augmentDensityInit() const; //!< initialize density augmentation
-	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq) const; //!< calculate density augmentation in spherical functions
+	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, const std::vector<matrix>* dVdagCqL = 0, const std::vector<matrix>* dVdagCqR = 0) const; //!< calculate density augmentation in spherical functions
 	void augmentDensityGrid(ScalarFieldArray& n) const; //!< propagate from spherical functions to grid
 	void augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces=0, matrix3<>* Eaug_RRT=0) const; //!< propagate grid gradients to spherical functions
 	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const; //!< propagate spherical function gradients to wavefunctions

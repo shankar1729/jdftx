@@ -281,21 +281,33 @@ complexScalarFieldTilde L(const complexScalarFieldTilde& in) { return L(in->clon
 void fullLinv_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT, complex* v)
 {	THREAD_fullGspaceLoop( v[i] *= i ? (1.0/GGT.metric_length_squared(iG)) : 0.0; )
 }
+
+void fullLinv_sub_inc(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT, complex* v, vector3<> k)
+{	THREAD_fullGspaceLoop(
+		double G2 = GGT.metric_length_squared(iG+k);
+		v[i] *= (G2 != 0.0) ? (1.0/G2) : 0.0;
+	)
+}
+
 #ifdef GPU_ENABLED //implemented in Operators.cu
 void fullLinv_gpu(const vector3<int> S, const matrix3<> GGT, complex* v);
 #endif
-complexScalarFieldTilde Linv(complexScalarFieldTilde&& in)
+complexScalarFieldTilde Linv(complexScalarFieldTilde&& in, vector3<>* k)
 {	const GridInfo& gInfo = in->gInfo;
 	in *= (-1.0/gInfo.detR);
 	#ifdef GPU_ENABLED
 	fullLinv_gpu(gInfo.S, gInfo.GGT, in->dataGpu(false));
 	#else
-	threadLaunch(fullLinv_sub, gInfo.nr, gInfo.S, gInfo.GGT, in->data(false));
+	if (k)
+		threadLaunch(fullLinv_sub_inc, gInfo.nr, gInfo.S, gInfo.GGT, in->data(false), *k);
+	else
+		threadLaunch(fullLinv_sub, gInfo.nr, gInfo.S, gInfo.GGT, in->data(false));
 	#endif
 	return in;
 }
-complexScalarFieldTilde Linv(const complexScalarFieldTilde& in) { return Linv(in->clone()); }
+complexScalarFieldTilde Linv(const complexScalarFieldTilde& in, vector3<>* k) { return Linv(in->clone(), k); }
 
+complexScalarFieldTilde Linv(const ScalarFieldTilde& in, vector3<>* k) { return Linv(Complex(in), k); }
 
 void Lstress_thread(size_t iStart, size_t iStop, const vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
 {	THREAD_halfGspaceLoop

@@ -159,6 +159,12 @@ void Symmetries::symmetrize(ScalarField& x) const
 	symmetrize(xTilde);
 	x = Real(I(xTilde));
 }
+void Symmetries::symmetrize(complexScalarField& x) const
+{	if(sym.size()==1) return; // No symmetries, nothing to do
+	complexScalarFieldTilde xTilde = J(x);
+	symmetrize(xTilde);
+	x = I(xTilde);
+}
 void Symmetries::symmetrize(ScalarFieldTilde& x) const
 {	if(sym.size()==1) return; // No symmetries, nothing to do
 	complexScalarFieldTilde xComplex = Complex(x);
@@ -179,6 +185,17 @@ void Symmetries::symmetrize(ScalarFieldArray& x) const
 		for(unsigned s=0; s<x.size(); s++) xTilde[s] = J(Complex(x[s]));
 		symmetrize(xTilde);
 		for(unsigned s=0; s<x.size(); s++) x[s] = Real(I(xTilde[s]));
+	}
+}
+void Symmetries::symmetrize(complexScalarFieldArray& x) const
+{	if(sym.size()==1) return; // No symmetries, nothing to do
+	if(x.size()<=2) { for(complexScalarField& x_s: x) symmetrize(x_s); } //everything but vector-spin mode
+	else
+	{	assert(x.size() == 4); //must be vector-spin
+		std::vector<complexScalarFieldTilde> xTilde(x.size());
+		for(unsigned s=0; s<x.size(); s++) xTilde[s] = J(x[s]);
+		symmetrize(xTilde);
+		for(unsigned s=0; s<x.size(); s++) x[s] = I(xTilde[s]);
 	}
 }
 void Symmetries::symmetrize(ScalarFieldTildeArray& x) const

@@ -410,3 +410,4 @@ install(DIRECTORY
 	DESTINATION share/jdftx/pseudopotentials)
 #--- scripts
 install(DIRECTORY scripts DESTINATION share/jdftx USE_SOURCE_PERMISSIONS)
+

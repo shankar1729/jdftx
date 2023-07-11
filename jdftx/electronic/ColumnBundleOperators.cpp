@@ -231,9 +231,17 @@ inline void getVupDn(const complexScalarField& Vre, const complexScalarField& Vi
 }
 
 template<typename ScalarFieldType> //templated over ScalarField and complexScalarField
-ColumnBundle Idag_DiagV_I_apply(const ColumnBundle& C, const std::vector<ScalarFieldType>& V)
+ColumnBundle Idag_DiagV_I_apply(const ColumnBundle& C, const std::vector<ScalarFieldType>& V, ColumnBundle* Cout = 0)
 {	static StopWatch watch("Idag_DiagV_I"); watch.start();
-	ColumnBundle VC = C.similar(); VC.zero();
+	ColumnBundle VC;
+
+	if (Cout)
+		VC = Cout->similar(); //Incommensurate perturbations
+	else
+		VC = C.similar();
+
+	VC.zero();
+
 	//Convert V to wfns grid if necessary:
 	const GridInfo& gInfoWfns = *(C.basis->gInfo);
 	std::vector<ScalarFieldType> Vtmp;
@@ -263,6 +271,13 @@ ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalar
 {	return Idag_DiagV_I_apply<complexScalarField>(C, V);
 }
 
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V, ColumnBundle* Cout)
+{	return Idag_DiagV_I_apply<ScalarField>(C, V, Cout);
+}
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V, ColumnBundle* Cout)
+{	return Idag_DiagV_I_apply<complexScalarField>(C, V, Cout);
+}
+
 
 //Laplacian of a column bundle
 #ifdef GPU_ENABLED
@@ -280,6 +295,21 @@ ColumnBundle L(const ColumnBundle &Y)
 	#else
 	threadedLoop(reducedL_calc, basis.nbasis,
 		basis.nbasis, Y.nCols()*nSpinor, Y.data(), LY.data(), GGT, basis.iGarr.data(), Y.qnum->k, basis.gInfo->detR);
+	#endif
+	return LY;
+}
+
+ColumnBundle L(const ColumnBundle &Y, const vector3<> k)
+{	ColumnBundle LY = Y.similar();
+	assert(Y.basis);
+	const Basis& basis = *(Y.basis);
+	const matrix3<>& GGT = basis.gInfo->GGT;
+	int nSpinor = Y.spinorLength();
+	#ifdef GPU_ENABLED
+	reducedL_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), LY.dataGpu(), GGT, basis.iGarr.dataGpu(), Y.qnum->k, basis.gInfo->detR);
+	#else
+	threadedLoop(reducedL_calc, basis.nbasis,
+		basis.nbasis, Y.nCols()*nSpinor, Y.data(), LY.data(), GGT, basis.iGarr.data(), k, basis.gInfo->detR);
 	#endif
 	return LY;
 }

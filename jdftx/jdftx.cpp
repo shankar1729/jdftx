@@ -103,12 +103,10 @@ int main(int argc, char** argv)
 	else if(e.vptParams.nIterations)
 	{
 		PerturbationSolver ps(e);
-		logPrintf("testA");
 		ps.minimize(e.vptParams);
 	}
 	else
 	{	//Ionic minimization loop (which calls electron/fluid minimization loops)
-		std::cout <<"HERE!";
 		IonicMinimizer imin(e);
 		imin.minimize(e.ionicMinParams);
 	}

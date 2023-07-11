@@ -145,8 +145,11 @@ vector3<matrix> spinOverlap(const scaled<ColumnBundle> &sY); //!< spin-resolved 
 //! The handling of the spin structure of V parallels that of diagouterI, with V.size() taking the role of nDensities
 ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V);
 ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V); //!< Same as above for complex potentials
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V, ColumnBundle* Cout); //Incommensurate perturbation
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V, ColumnBundle* Cout);
 
 ColumnBundle L(const ColumnBundle &Y); //!< Apply Laplacian
+ColumnBundle L(const ColumnBundle &Y, const vector3<> k); //[TODO] document
 ColumnBundle Linv(const ColumnBundle &Y); //!< Apply Laplacian inverse
 matrix3<> Lstress(const ColumnBundle &Y, const diagMatrix& F); //!< Compute lattice vector derivative of Tr[Y^LYF] (used for KE stress calculation)
 ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY=0); //!< Apply overlap (and optionally retrieve pseudopotential projections for later reuse)

@@ -58,7 +58,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	//k-points are folded before symmetry setup, now reduce them under symmetries:
 	kpointsReduce();
 	nStates = qnums.size();
-	
+
 	//Determine distribution amongst processes:
 	qDivision.init(nStates, mpiWorld);
 	qDivision.myRange(qStart, qStop);
@@ -483,6 +483,25 @@ void ElecInfo::kpointsReduce()
 			qnums[ik+nkPoints].spin = -1;
 		}
 	}
+
+	//Incommensurate perturbations require bandstructure calculation
+	if (!e->vptParams.nIterations && e->vptInfo.incommensurate)
+	{
+		nStates = qnums.size();
+
+		for (int q = 0; q < nStates; q++)
+			qnums.push_back(qnums[q]);
+
+		for (int q = 0; q < nStates; q++)
+		{
+			qnums[q].k = qnums[q].k + e->vptInfo.qvec;
+			qnums[q + nStates].k = qnums[q + nStates].k - e->vptInfo.qvec;
+		}
+
+		nStates = qnums.size();
+		logPrintf("Doubling k-point grid for incommensurate bandstructure calculation.\n");
+	}
+
 	//Output the reduced kpoints:
 	if(e->cntrl.shouldPrintKpointsBasis)
 	{	logPrintf("States including spin/spin-weights:\n");

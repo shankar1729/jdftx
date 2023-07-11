@@ -775,8 +775,63 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(ShouldDump(PerturbationWfns))
 	{
 		//Dump wave functions
-		StartDump("rwfns")
+		if (e->vptInfo.incommensurate)
+			logPrintf("WARNING! Incommensurate wfns are not dumped correctly.");
+		StartDump("wfns")
 		eInfo.write(e->vptInfo.dY, fname.c_str());
+		EndDump
+	}
+
+	/*if(ShouldDump(RealSpaceWfns))
+		{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			{	int nSpinor = e->vptInfo.d[q].spinorLength();
+				for(int b=0; b<eInfo.nBands; b++) for(int s=0; s<nSpinor; s++)
+				{	ostringstream prefixStream;
+					prefixStream << "wfns_" << q << '_' << (b*nSpinor+s) << ".rs";
+					StartDump(prefixStream.str())
+					saveRawBinary(I(eVars.C[q].getColumn(b,s)), fname.c_str());
+					EndDump
+				}
+			}
+		}*/
+
+	if (ShouldDump(Dn))
+	{
+
+		if (!e->vptInfo.incommensurate) {
+			if (e->vptInfo.dn.size() != 1)
+				die("Error: Need to dump multiple spins\n");
+			StartDump("dn")
+			saveRawBinary(e->vptInfo.dn[0], fname.c_str());
+			EndDump
+		} else {
+			if (e->vptInfo.dnmq.size() != 1)
+				die("Error: Need to dump multiple spins\n");
+			{
+				StartDump("dnmq")
+					saveRawBinary(e->vptInfo.dnmq[0], fname.c_str());
+				EndDump
+			}
+			{
+				StartDump("dnpq")
+					saveRawBinary(e->vptInfo.dnpq[0], fname.c_str());
+				EndDump
+			}
+		}
+
+	}
+
+	if (ShouldDump(DVext))
+	{
+		if (e->vptInfo.dVext.size() != 1)
+			die("Error: Need to dump multiple spins\n");
+		StartDump("dvext")
+
+		if (!e->vptInfo.incommensurate) //TODO change
+			saveRawBinary(Real(1e-2 * e->vptInfo.dVext[0]), fname.c_str());
+		else
+			saveRawBinary(e->vptInfo.dVext[0], fname.c_str());
+
 		EndDump
 	}
 
