@@ -102,6 +102,7 @@ int main(int argc, char** argv)
 	}
 	else if(e.vptParams.nIterations)
 	{
+		//Variational perturbation solver
 		PerturbationSolver ps(e);
 		ps.minimize(e.vptParams);
 	}
