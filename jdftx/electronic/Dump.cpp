@@ -828,7 +828,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		StartDump("dvext")
 
 		if (!e->vptInfo.incommensurate) //TODO change
-			saveRawBinary(Real(1e-2 * e->vptInfo.dVext[0]), fname.c_str());
+			saveRawBinary(Real(e->vptInfo.dVext[0]), fname.c_str());
 		else
 			saveRawBinary(e->vptInfo.dVext[0], fname.c_str());
 

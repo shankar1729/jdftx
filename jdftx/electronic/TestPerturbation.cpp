@@ -19,40 +19,36 @@ bool TestPerturbation::compareHamiltonians() {
 	ColumnBundle tmpC;
 	Energies ener;
 
-	std::vector<ColumnBundle> H1C, H2C, H3C;
+	std::vector<ColumnBundle> H1C, H2C;
 
-	setup(H1C); setup(H2C); setup(H3C);
+	setup(H1C); setup(H2C);
 
 	setState(Cmin);
 
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		ps->applyH(eInfo.qnums[q], eVars.F[q], H1C[q], C1[q], ps->getn(C1));
+		eVars.n = ps->getn(C1);
+		ps->applyH(eInfo.qnums[q], eVars.F[q], H1C[q], C1[q]);
 	}
 
 	setState(C1);
 
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		eVars.applyHamiltonian(q, eVars.F[q], H2C[q], ener, true, false);
-		ps->applyH2(q, eVars.F[q], H3C[q]);
 	}
 
-	double delta1 = 0, delta2 = 0;
+	double delta = 0;
 
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		delta1 += nrm2(H1C[q]-H2C[q])/nrm2(H2C[q]);
-		delta2 += nrm2(H3C[q]-H2C[q])/nrm2(H2C[q]);
+		delta += nrm2(H1C[q]-H2C[q])/nrm2(H2C[q]);
 	}
 
-	mpiWorld->allReduce(delta1, MPIUtil::ReduceSum);
-	mpiWorld->allReduce(delta2, MPIUtil::ReduceSum);
+	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
 
-	delta1 /= eInfo.nStates;
-	delta2 /= eInfo.nStates;
+	delta /= eInfo.nStates;
 
-	logPrintf("Difference %g.\n", delta1);
-	logPrintf("Difference %g.\n", delta2);
+	logPrintf("Difference %g.\n", delta);
 
-	return delta1 < 1e-6 && delta2 < 1e-6;
+	return delta < 1e-6;
 }
 
 bool TestPerturbation::compareVxc() {
@@ -122,7 +118,7 @@ bool TestPerturbation::testGradientIsZero() {
 	ps->getGrad(&grad, eVars.C);
 
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		ps->applyH(eInfo.qnums[q], eVars.F[q], HC[q], Cmin[q], eVars.n);
+		ps->applyH(eInfo.qnums[q], eVars.F[q], HC[q], Cmin[q]);
 	}
 
 	logPrintf("||\u2207E|| %g.\n", nrm2(grad[0]));
@@ -144,11 +140,8 @@ bool TestPerturbation::FDTest_dVxc() {
 	nullToZero(dv, e.gInfo);
 	nullToZero(dvnum, e.gInfo);
 	setState(Cmin);
-	e.iInfo.nCore = e.iInfo.nCore*0;
 	n1 = ps->getn(C1);
-	e.iInfo.nCore = e.iInfo.nCore*0;
 	n2 = ps->getn(C2);
-	e.iInfo.nCore = e.iInfo.nCore*0;
 	dn = n2-n1;
 
 	e.exCorr.getVxcSimplified(ps->addnXC(n1), &Vxc1, false, &v1);
@@ -157,10 +150,10 @@ bool TestPerturbation::FDTest_dVxc() {
 	dVxc_num = Vxc2-Vxc1;
 	dvnum = v2-v1;
 	double delta = nrm2(dVxc_num[0]-dVxc_anal[0])/nrm2(dVxc_anal[0]);
-	double deltav = nrm2(dvnum-dv)/nrm2(dv);
+	//double deltav = nrm2(dvnum-dv)/nrm2(dv);
 
 	logPrintf("Difference %g.\n", delta);
-	logPrintf("Difference test %g.\n", deltav);
+	//logPrintf("Difference test %g.\n", deltav);
 	return delta < 1e-6;
 }
 
@@ -259,11 +252,11 @@ bool TestPerturbation::FDTest_Hamiltonian() {
 	double delta = 0;
 	setState(C1);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		ps->applyH(eInfo.qnums[q], eVars.F[q], H1Y[q], C1[q], eVars.n);
+		ps->applyH(eInfo.qnums[q], eVars.F[q], H1Y[q], C1[q]);
 	}
 	setState(C2);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		ps->applyH(eInfo.qnums[q], eVars.F[q], H2Y[q], C1[q], eVars.n);
+		ps->applyH(eInfo.qnums[q], eVars.F[q], H2Y[q], C1[q]);
 	}
 
 	setState(C1);

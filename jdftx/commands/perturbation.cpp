@@ -74,7 +74,7 @@ struct CommandSetQpoint : public Command
 
 	void printStatus(Everything& e, int iRep)
 	{
-		logPrintf("TODO: Print status");
+		logPrintf("%f %f %f", e.vptInfo.qvec[0], e.vptInfo.qvec[1], e.vptInfo.qvec[2]);
 	}
 }
 CommandSetQpoint;
@@ -85,7 +85,7 @@ struct CommandReadOffsetWfns : public Command
 	{
 		format = "<filename>";
 		comments =
-			"TODO: Write comment\n";
+			"Reads in results of band structure calculations for incommensurate perturbations\n";
 	}
 
     void process(ParamList& pl, Everything& e)
@@ -95,7 +95,28 @@ struct CommandReadOffsetWfns : public Command
 
 	void printStatus(Everything& e, int iRep)
 	{
-		logPrintf("TODO: Print status");
+		logPrintf("%s", e.vptInfo.wfnsFilename.c_str());
 	}
 }
 CommandReadOffsetWfns;
+
+struct CommandTestPerturbationOperators : public Command
+{
+	CommandTestPerturbationOperators() : Command("test-perturbation-ops", "miscellaneous")
+	{
+		comments =
+			"Perform finite difference tests of perturbation operators.\n";
+	}
+
+    void process(ParamList& pl, Everything& e)
+    {
+		e.vptInfo.testing = true;
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{
+		return;
+	}
+}
+CommandTestPerturbationOperators;
+

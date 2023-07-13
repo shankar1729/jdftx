@@ -42,7 +42,7 @@ public:
 	complexScalarFieldArray dnpq;
 	complexScalarFieldArray dnmq;
 
-	std::vector<ColumnBundle> Cinc;
+	std::vector<ColumnBundle> Cinc, HC;
 
 	vector3<> qvec;
 	bool incommensurate = false;

@@ -37,6 +37,7 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 		init(dC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		init(dGradPsi, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		init(dGradTau, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+		init(HC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		dU.resize(eInfo.nStates);
 	} else {
 		initInc(dY, 2*eInfo.nStates, eInfo.nBands, &eInfo);
@@ -248,7 +249,7 @@ void PerturbationInfo::setupkpoints(const Everything &e, const ElecInfo &eInfo)
 		Tinvk_basis[q].setup(gInfoBasis, e.iInfo, e.cntrl.Ecut, Tinvk_vectors[q].k);
 	}
 
-	logPrintf("Printing k, k+q , and k-q vectors");
+	logPrintf("Printing k, k+q , and k-q vectors\n");
 	for(int q=0; q<eInfo.nStates; q++)
 	{
 		QuantumNumber qnum = eInfo.qnums[q];

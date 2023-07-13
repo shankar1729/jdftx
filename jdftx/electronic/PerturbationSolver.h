@@ -55,7 +55,6 @@ public:
 	double compute(PerturbationGradient* grad, PerturbationGradient* Kgrad);
 	void getGrad(std::vector<ColumnBundle> *grad, std::vector<ColumnBundle> Y);
 	void step(const PerturbationGradient& dir, double alpha);
-	bool report(int iter);
 	void constrain(PerturbationGradient&);
 	double minimize(const MinimizeParams& params);
 	void computeIncommensurateWfns();
@@ -64,8 +63,8 @@ public:
 	void getdnInc(std::vector<ColumnBundle>* dC, std::vector<ColumnBundle>* C, complexScalarFieldArray& dnpq, complexScalarFieldArray& dnmq);
 	ScalarFieldArray getn(std::vector<ColumnBundle>& C);
 
-	void applyH(QuantumNumber qnum, const diagMatrix& F, ColumnBundle& HC, ColumnBundle& C, ScalarFieldArray ntot);
-	void applyH2(int q, const diagMatrix& Fq, ColumnBundle& HCq);
+	void updateHC();
+	void applyH(QuantumNumber qnum, const diagMatrix& F, ColumnBundle& HC, ColumnBundle& C);
 	void dH_Vscloc(QuantumNumber qnum, ColumnBundle& HC, ColumnBundle& C, ScalarFieldArray dVscloc);
 	void dHpsi(QuantumNumber qnum, ColumnBundle& HC, ColumnBundle& C, ScalarFieldArray dn);
 	void dHpsi(QuantumNumber qnum, ColumnBundle& HC, ColumnBundle& C, complexScalarFieldArray dn, vector3<> q);
