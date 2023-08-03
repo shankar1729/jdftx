@@ -64,6 +64,9 @@ namespace XC_Analysis
 	ScalarFieldArray sHartree(const Everything& e); //!< output spin Hartree potentials
 }
 
+//! Dump band projections to atomic orbitals or ortho-orbitals depending on ortho, and complex or real based on norm
+void dumpProjections(const Everything& e, const char* filename, bool ortho, bool norm);
+
 //---------------- Implemented in DumpChargedDefects.cpp -----------------
 
 //! Slab dielectric function calculator

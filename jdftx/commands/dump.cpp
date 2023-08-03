@@ -1081,6 +1081,30 @@ struct CommandBGWparams : public Command
 commandBGWparams;
 
 
+struct CommandBandProjectionParams : public Command
+{
+	CommandBandProjectionParams() : Command("band-projection-params", "jdftx/Output")
+	{	
+		format = "<ortho>=yes|no <norm>=yes|no";
+		comments = "Control band-projections output:\n"
+			"\t<ortho>: whether to use ortho-orbitals.\n"
+			"\t<norm>: whether to output only norm or complex amplitude.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.dump.bandProjectionOrtho, false, boolMap, "ortho", true);
+		pl.get(e.dump.bandProjectionNorm, true, boolMap, "norm", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s %s",
+			boolMap.getString(e.dump.bandProjectionOrtho),
+			boolMap.getString(e.dump.bandProjectionNorm));
+	}
+}
+commandBandProjectionParams;
+
+
 struct CommandCprimeParams : public Command
 {
 	CommandCprimeParams() : Command("Cprime-params", "jdftx/Output")

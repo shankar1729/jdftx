@@ -641,3 +641,64 @@ void Dump::dumpUnfold()
 	eInfo.write(unitWeights, fname.c_str(), nUnits*eInfo.nBands);
 	logPrintf("done\n"); logFlush();
 }
+
+
+void dumpProjections(const Everything& e, const char* filename, bool ortho, bool norm)
+{	const ElecVars& eVars = e.eVars;
+	const ElecInfo& eInfo = e.eInfo;
+	const IonInfo& iInfo = e.iInfo;
+	FILE* fp = 0;
+	if(mpiWorld->isHead())
+	{	fp = fopen(filename, "w");
+		//Write header:
+		fprintf(fp, "%d states, %d bands, %d %sorbital-projections, %lu species\n",
+			eInfo.nStates, eInfo.nBands, iInfo.nAtomicOrbitals(),
+			(ortho ? "ortho-" : ""), iInfo.species.size());
+		fprintf(fp, "# Symbol nAtoms nOrbitalsPerAtom lMax nShells(l=0) ... nShells(l=lMax)\n");
+		for(const auto& sp: iInfo.species)
+		{	int nAtoms = sp->atpos.size();
+			int nOrbitalsPerAtom = sp->nAtomicOrbitals() / nAtoms;
+			int lMax = sp->lMaxAtomicOrbitals();
+			fprintf(fp, "%s %d %d %d", sp->name.c_str(), nAtoms, nOrbitalsPerAtom, lMax);
+			for(int l=0; l<=lMax; l++)
+				fprintf(fp, " %d", sp->nAtomicOrbitals(l));
+			fprintf(fp, "\n");
+		}
+	}
+	for(int q=0; q<eInfo.nStates; q++)
+	{	matrix proj; //orbitals: nOrbitals x nBands
+		if(eInfo.isMine(q))
+		{	if(ortho)
+			{	ColumnBundle psi = iInfo.getAtomicOrbitals(q, false);
+				ColumnBundle Opsi = O(psi);
+				matrix orthoMat = invsqrt(psi ^ Opsi); //orthonormalizing matrix
+				proj = orthoMat * (Opsi ^ eVars.C[q]);
+			}
+			else proj = iInfo.getAtomicOrbitals(q, true) ^ eVars.C[q]; //dagger(Opsi).Cq
+			if(not mpiWorld->isHead()) mpiWorld->sendData(proj, 0, q); //send to head for writing
+		}
+		if(mpiWorld->isHead())
+		{	if(not eInfo.isMine(q)) //recv from process that stored q
+			{	proj.init(iInfo.nAtomicOrbitals(), eInfo.nBands);
+				mpiWorld->recvData(proj, eInfo.whose(q), q);
+			}
+			//Write projections:
+			fprintf(fp, "# ");
+			eInfo.kpointPrint(fp, q, true);
+			fprintf(fp, "; lines per band, with %s per orbital:\n",
+				norm ? "|projection|^2" : "projectionRe, projectionIm");
+			complex* projData = proj.data();
+			for(int b=0; b<proj.nCols(); b++) //bands
+			{	for(int a=0; a<proj.nRows(); a++) //orbitals
+				{	if(norm)
+						fprintf(fp, "%9.7lf ", projData->norm()); //write |projection|^2
+					else
+						fprintf(fp, "%9.7lf %9.7lf ", projData->real(), projData->imag()); //write complex projection
+					projData++;
+				}
+				fprintf(fp, "\n");
+			}
+		}
+	}
+	if(mpiWorld->isHead()) fclose(fp);
+}

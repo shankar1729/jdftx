@@ -85,6 +85,7 @@ public:
 	std::shared_ptr<struct BGWparams> bgwParams; //!< parameters for BGW calculation, if any
 	std::shared_ptr<struct DumpCprime> dumpCprime; //!< dC/dk calculator, if needed
 	bool potentialSubtraction; //!< whether to subtract neutral-atom potentials in Dvac and Dtot output
+	bool bandProjectionOrtho, bandProjectionNorm; //!< whether band projections use ortho-orbitals and are complex/norm-only
 	matrix3<int> Munfold; //!< transformation matrix for band structure unfolding
 private:
 	const Everything* e;
