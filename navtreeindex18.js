@@ -1,5 +1,10 @@
 var NAVTREEINDEX18 =
 {
+"namespaceD3.html#ad80e19610c5e989706671a7086182e6ea5c93823d4a24f83642fcc96706c72fe9":[2,3,0,2,2,3],
+"namespaceD3.html#ad80e19610c5e989706671a7086182e6ea6867b052cddfba53cc5459569e333d8a":[2,3,0,2,2,10],
+"namespaceD3.html#ad80e19610c5e989706671a7086182e6ea6868dfb796e73f0d6d295a248f24919c":[2,3,0,2,2,9],
+"namespaceD3.html#ad80e19610c5e989706671a7086182e6ea7b4562b1d9af046235f337ae9ed867ed":[2,3,0,2,2,23],
+"namespaceD3.html#ad80e19610c5e989706671a7086182e6ea7e3ee584d9414882c65d38d5c15d2503":[2,3,0,2,2,12],
 "namespaceD3.html#ad80e19610c5e989706671a7086182e6ea8ef1505b1f146d196a7445a59465ea67":[2,3,0,2,2,17],
 "namespaceD3.html#ad80e19610c5e989706671a7086182e6ea9b8066cae82c26e03f1d955669a1fa7b":[2,3,0,2,2,24],
 "namespaceD3.html#ad80e19610c5e989706671a7086182e6ea9c59a15c6684ac3c5007e3bb0dbb1459":[2,3,0,2,2,18],
@@ -86,6 +91,7 @@ var NAVTREEINDEX18 =
 "structAtom.html#aa61183df335f66b1a10b8552a1967d65":[2,2,1,3,8,0],
 "structAtom.html#ac1add4ce0b2bd4b1fb0fa8b65ace1e61":[2,2,1,3,8,4],
 "structBGWparams.html":[2,2,1,4,16],
+"structBGWparams.html#a00cdf9b6ba16ad18430ea4843ba920a4":[2,2,1,4,16,14],
 "structBGWparams.html#a1b10175bb6aa1918d3aeaeb5f007190b":[2,2,1,4,16,12],
 "structBGWparams.html#a1b58df3536d4e5db88ce055c9acfa57d":[2,2,1,4,16,3],
 "structBGWparams.html#a29fe9072f5af47b22ffca7e565dc9643":[2,2,1,4,16,11],
@@ -93,7 +99,7 @@ var NAVTREEINDEX18 =
 "structBGWparams.html#a4467718884cfb205934e3120d2912ecd":[2,2,1,4,16,2],
 "structBGWparams.html#a5004f378cd1ab8288ee93c9c3888f831":[2,2,1,4,16,7],
 "structBGWparams.html#a7ad938857e431d12c63b4ebd4588aff2":[2,2,1,4,16,13],
-"structBGWparams.html#a8478e4cce9586ecceb013dd16e0825b9":[2,2,1,4,16,14],
+"structBGWparams.html#a8478e4cce9586ecceb013dd16e0825b9":[2,2,1,4,16,15],
 "structBGWparams.html#a90a29064c17e736551ff2a0f4b99b426":[2,2,1,4,16,10],
 "structBGWparams.html#a980c67fd801aa759397eb96ee7fdcf97":[2,2,1,4,16,1],
 "structBGWparams.html#aadc06cb3cddecbfa646218300fad538a":[2,2,1,4,16,0],
@@ -243,11 +249,5 @@ var NAVTREEINDEX18 =
 "structDOS_1_1Weight.html#ae7058803a93d002b122367208acdbe65":[2,2,1,4,9,0,1],
 "structDOS_1_1Weight.html#ae7058803a93d002b122367208acdbe65a4955e8cd43c60cb59f99fcff3bf6de32":[2,2,1,4,9,0,1,0],
 "structDOS_1_1Weight.html#ae7058803a93d002b122367208acdbe65a6751bb06cd1325b65d845e79048c4412":[2,2,1,4,9,0,1,1],
-"structDOS_1_1Weight_1_1OrbitalDesc.html":[2,2,1,4,9,0,0],
-"structDOS_1_1Weight_1_1OrbitalDesc.html#a125776770b75dbb8dc7af475602b6ee1":[2,2,1,4,9,0,0,0],
-"structDOS_1_1Weight_1_1OrbitalDesc.html#a2dacdeb54eb3efcaca09542839da940d":[2,2,1,4,9,0,0,1],
-"structDOS_1_1Weight_1_1OrbitalDesc.html#a31bda72f4f5dbc214962cfa9e24b8723":[2,2,1,4,9,0,0,5],
-"structDOS_1_1Weight_1_1OrbitalDesc.html#a59ebce5ecb9266464eda71a84da94d02":[2,2,1,4,9,0,0,7],
-"structDOS_1_1Weight_1_1OrbitalDesc.html#a76eec3e41588a96b12598dc2560d5eea":[2,2,1,4,9,0,0,2],
-"structDOS_1_1Weight_1_1OrbitalDesc.html#a9705a72ad7ee4449234f1243d5550d88":[2,2,1,4,9,0,0,3]
+"structDOS_1_1Weight_1_1OrbitalDesc.html":[2,2,1,4,9,0,0]
 };

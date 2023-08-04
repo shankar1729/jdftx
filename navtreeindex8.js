@@ -1,5 +1,7 @@
 var NAVTREEINDEX8 =
 {
+"classTranslationOperatorFourier.html":[2,2,0,1,6],
+"classTranslationOperatorFourier.html#a87b28d4a268909b9504162f8036b6f03":[2,2,0,1,6,1],
 "classTranslationOperatorFourier.html#aefe87b89f9f90e0d9cd54eb26838db40":[2,2,0,1,6,0],
 "classTranslationOperatorSpline.html":[2,2,0,1,5],
 "classTranslationOperatorSpline.html#a644ba1605e99414d08b9c9f1ccde85ed":[2,2,0,1,5,1],
@@ -247,7 +249,5 @@ var NAVTREEINDEX8 =
 "classmatrix3.html#a8a0eb74be8de9cbe9bd7f743ac2639a4":[2,2,0,0,26,16],
 "classmatrix3.html#a8a752e980d0258361e5113b95fe3664b":[2,2,0,0,26,5],
 "classmatrix3.html#a9b6b937a10770c940da1c9ff65e5bfa6":[2,2,0,0,26,9],
-"classmatrix3.html#a9d4b65d8ea0f0ce8bf4b97604ea81da4":[2,2,0,0,26,14],
-"classmatrix3.html#aabdd15ac5f821aec9768e09fda967a7f":[2,2,0,0,26,3],
-"classmatrix3.html#ab3c9c2dadfb80a40508c2f4242a9a67d":[2,2,0,0,26,8]
+"classmatrix3.html#a9d4b65d8ea0f0ce8bf4b97604ea81da4":[2,2,0,0,26,14]
 };

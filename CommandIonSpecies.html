@@ -104,11 +104,11 @@ $(document).ready(function(){initNavTree('CommandIonSpecies.html',''); initResiz
 <div class="title">ion-species </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md251"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md254"></a>
 Syntax:</h2>
 <pre class="fragment">ion-species [&lt;path&gt;/]&lt;id&gt;[&lt;suffix&gt;].&lt;format&gt;
       | [&lt;path&gt;/]$ID[&lt;suffix&gt;].&lt;format&gt;
-</pre> <h2><a class="anchor" id="autotoc_md252"></a>
+</pre> <h2><a class="anchor" id="autotoc_md255"></a>
 Description:</h2>
 <p>Read pseudopotential from file [&lt;path&gt;/]&lt;id&gt;.&lt;format&gt;, which will be referred to internally by &lt;id&gt; in all other commands and in the output. Note that &lt;id&gt; is the start of the basename of the file, obtained by removing the path, extension and any suffix starting with non-aphanumeric characters eg. Br.fhi, ../Br.fhi and /home/foo/Br_theNotSoBadOne.uspp will all have &lt;id&gt; = Br.</p>
 <p>If the filename contains the string $ID, then this command specifies an entire set of pseudopotentials. Every time command ion encounters an otherwise undefined species, it will search for a pseudopotential file with this pattern (replacing $ID with the as yet undefined &lt;id&gt; needed by the ion command). If there are multiple such patterns, then they will be searched in the order that they appear in the input file.</p>
@@ -118,7 +118,7 @@ Description:</h2>
 <li>.upf Quantum Espresso Universal Pseudopotential Format (only the XML-like version 2).</li>
 </ul>
 <p>If [&lt;path&gt;/]&lt;id&gt;.pulay exists, pulay data (derivative of total energy with respect to number of planewaves per unit volume) will be read from that file. This is useful for lattice minimization at low cutoffs; see script calcPulay for generating such files.</p>
-<h2><a class="anchor" id="autotoc_md253"></a>
+<h2><a class="anchor" id="autotoc_md256"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>

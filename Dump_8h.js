@@ -58,6 +58,7 @@ var Dump_8h =
       [ "DumpMomenta", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7ad4a17203402b7598b18b5ab7c394a09a", null ],
       [ "DumpVelocities", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a846eebc4b77c61e71cbef10ac2eeb39b", null ],
       [ "DumpFermiVelocity", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a2bb7b06f31b2cd3761bf32452f9ece52", null ],
+      [ "DumpR", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a48a7827609f87a0b89cbd99f64f66c6c", null ],
       [ "DumpL", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a3b87ad71f64402dffeb9878f8ace9799", null ],
       [ "DumpQ", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a39eda1623d7269c33c93cdddf9dcdcbe", null ],
       [ "DumpBerry", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7ad6732f28a586c7b56a850f7d7ba0adbf", null ],

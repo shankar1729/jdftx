@@ -1,5 +1,7 @@
 var NAVTREEINDEX5 =
 {
+"classFunctionalGGA.html#ae346b21d9d1e23f26072339b9b7cc028":[2,2,1,2,9,6],
+"classFunctionalGGA.html#aee1fe08842eec86976c2f657ceffad58":[2,2,1,2,9,1],
 "classFunctionalLDA.html":[2,2,1,2,15],
 "classFunctionalLDA.html#a059879bead73096d0a099ca75a346775":[2,2,1,2,15,5],
 "classFunctionalLDA.html#a087a07b5c61a2e08649c42ffb2079a66":[2,2,1,2,15,8],
@@ -247,7 +249,5 @@ var NAVTREEINDEX5 =
 "classLongRangeSum.html":[2,2,1,4,29],
 "classLongRangeSum.html#a1d360ebb93613daa9294c194789636a4":[2,2,1,4,29,1],
 "classLongRangeSum.html#ac112cc4974744ea3377a4767e9aab0dd":[2,2,1,4,29,0],
-"classLongRangeSum2D.html":[2,2,1,4,30],
-"classLongRangeSum2D.html#a840d3c00d92bfc35ec0e0115b8f0055a":[2,2,1,4,30,1],
-"classLongRangeSum2D.html#a96c20db9c5549800f04f1dd9321e14cd":[2,2,1,4,30,0]
+"classLongRangeSum2D.html":[2,2,1,4,30]
 };

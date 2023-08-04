@@ -3,6 +3,7 @@ var structElectronScattering =
     [ "ElectronScattering", "structElectronScattering.html#aa328a27c6b59ffb2c3fc0c14999028e8", null ],
     [ "dump", "structElectronScattering.html#a79b764507500cbf2cdadc6ec629a4628", null ],
     [ "computeRange", "structElectronScattering.html#a1f12d6c114eefe638478820faaa7d57c", null ],
+    [ "dumpEpsilon", "structElectronScattering.html#aab68ce487af23498031f2c2645538079", null ],
     [ "Ecut", "structElectronScattering.html#a4225dceed8ed61293fe254c8585585fa", null ],
     [ "EcutTransverse", "structElectronScattering.html#a6f332d6a588684f2985833addfbf713f", null ],
     [ "eta", "structElectronScattering.html#a78b90b8f202342c4a39a9d6d2f8b0f37", null ],

@@ -1,5 +1,7 @@
 var NAVTREEINDEX4 =
 {
+"classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028a9a0e9cde48d2f999e1adbd7a66452d67":[2,2,1,0,8,2,1],
+"classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028ab33e87d552c26bfdffd850578ff7eaca":[2,2,1,0,8,2,0],
 "classElecInfo.html#ae6abeea5608f39a4dd57c8304e079028acb98ec19206c84075b4b885a0e0262e1":[2,2,1,0,8,2,2],
 "classElecInfo.html#aeb5c1fafdd93a1207a5a9b1937e98d9f":[2,2,1,0,8,26],
 "classElecInfo.html#aedb50d4e110c246a3f44ab96ed1ea50f":[2,2,1,0,8,23],
@@ -247,7 +249,5 @@ var NAVTREEINDEX4 =
 "classFunctionalGGA.html#a556828f3c95051dd312293b395cbe0ac":[2,2,1,2,9,5],
 "classFunctionalGGA.html#a5ab82b6414edc4d37b8c360925c4dac5":[2,2,1,2,9,4],
 "classFunctionalGGA.html#ab94fd1f0a3403807df070941c0a209cd":[2,2,1,2,9,8],
-"classFunctionalGGA.html#ad3743cfbd2dc7ea6f0f74c169e346b53":[2,2,1,2,9,3],
-"classFunctionalGGA.html#ae346b21d9d1e23f26072339b9b7cc028":[2,2,1,2,9,6],
-"classFunctionalGGA.html#aee1fe08842eec86976c2f657ceffad58":[2,2,1,2,9,1]
+"classFunctionalGGA.html#ad3743cfbd2dc7ea6f0f74c169e346b53":[2,2,1,2,9,3]
 };

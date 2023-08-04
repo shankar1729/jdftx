@@ -104,10 +104,10 @@ $(document).ready(function(){initNavTree('CommandInitialState.html',''); initRes
 <div class="title">initial-state </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md245"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md248"></a>
 Syntax:</h2>
 <pre class="fragment">initial-state &lt;filename-pattern&gt;
-</pre> <h2><a class="anchor" id="autotoc_md246"></a>
+</pre> <h2><a class="anchor" id="autotoc_md249"></a>
 Description:</h2>
 <p>Initialize state from a filename pattern which contains a $VAR, equivalent to invoking the following commands:</p><ul>
 <li>wavefunction read &lt;filename-pattern&gt;/$VAR/wfns</li>
@@ -116,7 +116,7 @@ Description:</h2>
 <li><a class="el" href="CommandFluidInitialState.html">fluid-initial-state</a> &lt;filename-pattern&gt;/$VAR/fluidState</li>
 </ul>
 <p>(where A/x/y is sed for 'find x in A and replace it with y'.) This command will invoke the read only for those state variables for which the corresponding files exist, leaving the rest with default initialization. When using <a class="el" href="classSCF.html" title="Self-Consistent Field method for converging electronic state.">SCF</a>, this will also read scfHistory and eigenvalues if available.</p>
-<h2><a class="anchor" id="autotoc_md247"></a>
+<h2><a class="anchor" id="autotoc_md250"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Forbids:</b> &#160;&#160;&#160; <a class="el" href="CommandElecInitialEigenvals.html">elec-initial-eigenvals</a> &#160;&#160;&#160; <a class="el" href="CommandElecInitialFillings.html">elec-initial-fillings</a> &#160;&#160;&#160; <a class="el" href="CommandFluidInitialState.html">fluid-initial-state</a> &#160;&#160;&#160; <a class="el" href="CommandWavefunction.html">wavefunction</a></p>

@@ -10,6 +10,8 @@ var classDump =
     [ "CommandDumpName", "classDump.html#a5ae384ac2e97f4efbab2677d2f37bea9", null ],
     [ "DefectSupercell", "classDump.html#a7938058f5b37d1534df69cad04126ad1", null ],
     [ "Phonon", "classDump.html#a11e682b702900987689e5aeaa68f3cbb", null ],
+    [ "bandProjectionNorm", "classDump.html#a5df40e4a06a8d9cd6ad395fe45d5a12c", null ],
+    [ "bandProjectionOrtho", "classDump.html#a8b24a174da292b7765d804ed2c2c19eb", null ],
     [ "bgwParams", "classDump.html#aa5ea4c78759f86404f90305ba8b10c9c", null ],
     [ "bulkEpsilon", "classDump.html#a57ec90fb4d588fd1378463bb539242e0", null ],
     [ "chargedDefect", "classDump.html#a8d4f14ca5471a1b582c9fc6e882ef0cd", null ],

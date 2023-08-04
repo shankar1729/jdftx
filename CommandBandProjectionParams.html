@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>JDFTx: polarizability-kdiff</title>
+<title>JDFTx: band-projection-params</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -81,7 +81,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 </div>
 <script type="text/javascript">
 /* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
-$(document).ready(function(){initNavTree('CommandPolarizabilityKdiff.html',''); initResizable(); });
+$(document).ready(function(){initNavTree('CommandBandProjectionParams.html',''); initResizable(); });
 /* @license-end */
 </script>
 <div id="doc-content">
@@ -101,19 +101,18 @@ $(document).ready(function(){initNavTree('CommandPolarizabilityKdiff.html',''); 
 
 <div class="PageDoc"><div class="header">
   <div class="headertitle">
-<div class="title">polarizability-kdiff </div>  </div>
+<div class="title">band-projection-params </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md311"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md50"></a>
 Syntax:</h2>
-<pre class="fragment">polarizability-kdiff &lt;dk0&gt; &lt;dk1&gt; &lt;dk2&gt; [&lt;dkFilenamePattern&gt;]
-</pre> <h2><a class="anchor" id="autotoc_md312"></a>
+<pre class="fragment">band-projection-params &lt;ortho&gt;=yes|no &lt;norm&gt;=yes|no
+</pre> <h2><a class="anchor" id="autotoc_md51"></a>
 Description:</h2>
-<p>Select k-point difference (in reciprocal lattice coords) for polarizability output.</p>
-<p>&lt;dkFilenamePattern&gt; may be specified to read offset band structure calcualations when &lt;dk&gt; does not belong to the k-point mesh. This string should be a filename pattern containing $VAR (to be replaced by eigenvals and wfns) and $q (to be replaced by state index)</p>
-<h2><a class="anchor" id="autotoc_md313"></a>
+<p><a class="el" href="classControl.html" title="Miscellaneous flags controlling electronic DFT.">Control</a> band-projections output: &lt;ortho&gt;: whether to use ortho-orbitals. &lt;norm&gt;: whether to output only norm or complex amplitude.</p>
+<h2><a class="anchor" id="autotoc_md52"></a>
 Properties:</h2>
-<p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandPolarizability.html">polarizability</a></p>
+<p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Allow multiple:</b>&#160;&#160;&#160; no</p>
 <p><b>Default:</b> &#160;&#160;&#160; (None)</p>
