@@ -139,7 +139,9 @@ EnumStringMap<DumpVariable> varMap
 	DumpFermiDensity, "FermiDensity",
 	DumpPerturbationWfns, "PerturbationWfns",
 	DumpDn, "Dn",
-	DumpDVext, "DVext"
+	DumpDVext, "DVext",
+	DumpDVscloc, "DVscloc",
+	DumpSpringConstants, "SpringConstants"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpNone,           "Dump nothing",
@@ -199,8 +201,10 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpEresolvedDensity, "Electron density from bands within specified energy ranges",
 	DumpFermiDensity,	"Electron density from fermi-derivative at specified energy",
 	DumpPerturbationWfns, "Perturbation Wavefunctions",
-	DumpDn, 			"First order density change",
-	DumpDVext, 			"External perturbation" //TODO increase desc detail
+	DumpDn, 			"First order change in electronic density",
+	DumpDVext, 			"External perturbation",
+	DumpDVscloc, 		"First order change in local self-consistent potential",
+	DumpSpringConstants, "Spring constant matrix for vibrational DOFs"
 );
 
 struct CommandDump : public Command

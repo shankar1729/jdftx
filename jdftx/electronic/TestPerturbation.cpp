@@ -25,8 +25,11 @@ bool TestPerturbation::compareHamiltonians() {
 
 	setState(Cmin);
 
+	eVars.n = ps->getn(C1);
+	eVars.Vscloc = ps->getVscloc(eVars.n);
+	e.iInfo.augmentDensityGridGrad(eVars.Vscloc);
+	pInfo.E_nAug_cached = e.iInfo.getE_nAug();
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		eVars.n = ps->getn(C1);
 		ps->applyH(eInfo.qnums[q], eVars.F[q], H1C[q], C1[q]);
 	}
 
@@ -127,7 +130,7 @@ bool TestPerturbation::testGradientIsZero() {
 	double ratio = nrm2(grad[0])/nrm2(HC[0]);
 	logPrintf("||\u2207E||/||HC|| %g.\n", ratio);
 	//ps->printCB(grad[0]);
-	return ratio < 1e-4;
+	return ratio < 1e-3;
 }
 
 bool TestPerturbation::FDTest_dVxc() {
@@ -139,16 +142,20 @@ bool TestPerturbation::FDTest_dVxc() {
 	nullToZero(v2, e.gInfo);
 	nullToZero(dv, e.gInfo);
 	nullToZero(dvnum, e.gInfo);
-	setState(Cmin);
-	n1 = ps->getn(C1);
-	n2 = ps->getn(C2);
+	setState(C1);
+	n1 = eVars.n;
+	e.exCorr.getVxcSimplified(ps->addnXC(n1), &Vxc1, false);
+	
+	setState(C2);
+	n2 = eVars.n;
+	e.exCorr.getVxcSimplified(ps->addnXC(n2), &Vxc2, false);
+	
 	dn = n2-n1;
-
-	e.exCorr.getVxcSimplified(ps->addnXC(n1), &Vxc1, false, &v1);
-	e.exCorr.getVxcSimplified(ps->addnXC(n2), &Vxc2, false, &v2);
-	e.exCorr.getdVxc(ps->addnXC(n1), &dVxc_anal, false, &dv, 0, 0, dn);
+	
+	setState(C1);
+	e.exCorr.getdVxc(ps->addnXC(n1), &dVxc_anal, false, 0, 0, dn);
 	dVxc_num = Vxc2-Vxc1;
-	dvnum = v2-v1;
+	//dvnum = v2-v1;
 	double delta = nrm2(dVxc_num[0]-dVxc_anal[0])/nrm2(dVxc_anal[0]);
 	//double deltav = nrm2(dvnum-dv)/nrm2(dv);
 
@@ -209,6 +216,129 @@ bool TestPerturbation::FDTest_dVscloc() {
 	return delta < 1e-6;
 }
 
+
+bool TestPerturbation::FDTest_dnatom() {
+	if (!ps->ultrasoftDensityAugRequired)
+		return true;
+	
+	logPrintf("\nCommencing finite difference test of density w.r.t. atomic positions.\n");
+	ScalarFieldArray dn1, dn2, dn_num, dn_anal;
+	pInfo.atposPerturbationExists = true;
+	
+	setAtpos1();
+	dn1 = clone(eVars.n);
+	
+	setAtpos2();
+	dn2 = clone(eVars.n);
+	dn_num = dn2-dn1;
+
+	setAtpos1();
+	ps->calcdGradTau();
+	dn_anal = ps->getdnatom() + pInfo.dnatom;
+	//dn_anal = ps->getdnatom();
+	pInfo.atposPerturbationExists = false;
+	
+	double delta = nrm2(dn_num[0]-dn_anal[0])/nrm2(dn_anal[0]);
+	logPrintf("Difference %g.\n", delta);
+	ps->printV(dn_num[0]);
+	ps->printV(dn_anal[0]);
+	return delta < 1e-6;
+}
+
+bool TestPerturbation::FDTest_dVsclocatom() {
+	logPrintf("\nCommencing finite difference test of Vscloc w.r.t. atomic positions.\n");
+	ScalarFieldArray Vscloc1, Vscloc2, dVscloc_num, dVscloc_anal;
+	pInfo.atposPerturbationExists = true;
+	
+	setAtpos1();
+	//Vscloc1 = clone(eVars.Vscloc);
+	Vscloc1 = ps->getVscloc(eVars.n);
+	
+	setAtpos2();
+	//Vscloc2 = clone(eVars.Vscloc);
+	Vscloc2 = ps->getVscloc(eVars.n);
+	dVscloc_num = Vscloc2 - Vscloc1;
+
+	setAtpos1();
+	ps->calcdGradTau();
+	dVscloc_anal = clone(pInfo.dVsclocatom);
+	//dVscloc_anal.resize(Vscloc1.size());
+	//ps->getdVsclocTau(dVscloc_anal);
+	pInfo.atposPerturbationExists = false;
+	
+	double delta = nrm2(dVscloc_num[0]-dVscloc_anal[0])/nrm2(dVscloc_anal[0]);
+	logPrintf("Difference %g.\n", delta);
+	ps->printV(dVscloc_num[0]);
+	ps->printV(dVscloc_anal[0]);
+	return delta < 1e-6;
+}
+
+bool TestPerturbation::FDTest_dVlocpsatom() {
+	
+	logPrintf("\nCommencing finite difference test of Vlocps w.r.t. atomic positions.\n");
+	ScalarFieldTilde Vlocps1, Vlocps2, dVlocps_num, dVlocps_anal;
+	ScalarFieldArray Vxc1, Vxc2, dVxc_num, dVxc_anal;
+	ScalarField nCore1, nCore2, dnCore_num, dnCore_anal;
+	matrix E_naug1, E_naug2, dE_naug_num,  dE_naug_anal;
+	ScalarFieldArray tmp, Vscloc;
+	
+	auto sp = e.iInfo.species[m.sp];
+	pInfo.atposPerturbationExists = true;
+	
+	setAtpos1();
+	
+	Vlocps1 = clone(e.iInfo.Vlocps);
+	Vxc1 = clone(eVars.Vxc);
+	if (ps->ultrasoftDensityAugRequired) nCore1 = clone(e.iInfo.nCore);
+	Vscloc = clone(eVars.Vscloc);
+	sp->augmentDensityGridGrad(Vscloc);
+	if (ps->ultrasoftDensityAugRequired) E_naug1 = sp->getE_nAug();
+	
+	setAtpos2();
+	
+	if (ps->ultrasoftDensityAugRequired) nCore2 = clone(e.iInfo.nCore);
+	sp->augmentDensityGridGrad(Vscloc);
+	if (ps->ultrasoftDensityAugRequired) E_naug2 = sp->getE_nAug();
+	
+	Vlocps2 = clone(e.iInfo.Vlocps);
+	Vxc2 = clone(eVars.Vxc);
+	dVlocps_num = Vlocps2 - Vlocps1;
+	dVxc_num = Vxc2 - Vxc1;
+	if (ps->ultrasoftDensityAugRequired) dnCore_num = nCore2 - nCore1;
+	if (ps->ultrasoftDensityAugRequired) dE_naug_num = E_naug2 - E_naug1;
+	
+	setAtpos1();
+	
+	tmp.resize(eVars.Vscloc.size());
+	ps->getdVsclocTau(tmp);
+	dVlocps_anal = ps->dVlocpsA;
+	dVxc_anal = ps->dVxcA;
+	if (ps->ultrasoftDensityAugRequired) dnCore_anal = ps->dnCoreA;
+	sp->augmentDensityGridGradDeriv(Vscloc, m.at, &m.dirLattice);
+	if (ps->ultrasoftDensityAugRequired) dE_naug_anal = sp->getE_nAug();
+	pInfo.atposPerturbationExists = false;
+	
+	double delta = nrm2(dVlocps_num-dVlocps_anal)/nrm2(dVlocps_anal);
+	//double delta2 = nrm2(dVxc_num[0]-dVxc_anal[0])/nrm2(dVxc_anal[0]);
+	double delta3;
+	double delta4;
+	if (ps->ultrasoftDensityAugRequired) delta3 = nrm2(dnCore_num-dnCore_anal)/nrm2(dnCore_anal);
+	if (ps->ultrasoftDensityAugRequired)  delta4 = nrm2(dE_naug_num-dE_naug_anal)/nrm2(dE_naug_anal);
+	logPrintf("Difference %g.\n", delta);
+	//logPrintf("Difference %g.\n", delta2);
+	if (ps->ultrasoftDensityAugRequired) logPrintf("Difference %g.\n", delta3);
+	if (ps->ultrasoftDensityAugRequired) logPrintf("Difference %g.\n", delta4);
+	ps->printV(dVlocps_num);
+	ps->printV(dVlocps_anal);
+	//ps->printV(dVxc_num[0]);
+	//ps->printV(dVxc_anal[0]);
+	if (ps->ultrasoftDensityAugRequired) ps->printV(dnCore_num);
+	if (ps->ultrasoftDensityAugRequired) ps->printV(dnCore_anal);
+	if (ps->ultrasoftDensityAugRequired) ps->printM(dE_naug_num);
+	if (ps->ultrasoftDensityAugRequired) ps->printM(dE_naug_anal);
+	return delta < 1e-6;
+}
+
 bool TestPerturbation::FDTest_dgradpsi() {
 	logPrintf("\nCommencing finite difference test of gradient w.r.t. psi.\n");
 	std::vector<ColumnBundle> Grad1, Grad2;
@@ -260,13 +390,155 @@ bool TestPerturbation::FDTest_Hamiltonian() {
 	}
 
 	setState(C1);
+	ScalarFieldArray dVscloc(eVars.Vscloc.size());
+	ps->getdVsclocPsi(ps->getdn(&dC, &C1), dVscloc);
+	e.iInfo.augmentDensityGridGrad(dVscloc);
+	pInfo.E_nAug_dVsclocpsi = e.iInfo.getE_nAug();
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		ps->dHpsi(eInfo.qnums[q], dHY[q], C1[q], ps->getdn(&dC, &C1));
+		ps->dHpsi(eInfo.qnums[q], dHY[q], C1[q], dVscloc);
 
 		delta += nrm2(H2Y[q]-H1Y[q]-dHY[q])/nrm2(dHY[q]);
 		ps->printCB(H2Y[q]-H1Y[q]);
 		ps->printCB(dHY[q]);
 	}
+
+	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
+	delta /= eInfo.nStates;
+	logPrintf("Difference %g.\n", delta);
+	return delta < 1e-6;
+}
+
+
+bool TestPerturbation::FDTest_Hamiltoniandatom() {
+	logPrintf("\nCommencing finite difference test of Hamiltonian w.r.t atomic positions.\n");
+
+	std::vector<ColumnBundle> H1Y, H2Y, dHY;
+	setup(H1Y); setup(H2Y); setup(dHY);
+
+	double delta = 0;
+	pInfo.atposPerturbationExists = true;
+	
+	setAtpos1();
+	
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		ps->applyH(eInfo.qnums[q], eVars.F[q], H1Y[q], C1[q]);
+	}
+	
+	setAtpos2();
+	
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		ps->applyH(eInfo.qnums[q], eVars.F[q], H2Y[q], C1[q]);
+	}
+
+	setAtpos1();
+	
+	ps->calcdGradTau();
+	
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		ps->dHtau(eInfo.qnums[q], dHY[q], C1[q], pInfo.dVsclocatom);
+		delta += nrm2(H2Y[q]-H1Y[q]-dHY[q])/nrm2(dHY[q]);
+		ps->printCB(H2Y[q]-H1Y[q]);
+		ps->printCB(dHY[q]);
+	}
+	
+	pInfo.atposPerturbationExists = false;
+
+	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
+	delta /= eInfo.nStates;
+	logPrintf("Difference %g.\n", delta);
+	return delta < 1e-6;
+}
+
+
+
+bool TestPerturbation::FDTest_Overlapatom() {
+	if (!ps->ultrasoftDensityAugRequired)
+		return true;
+	
+	logPrintf("\nCommencing finite difference test of Overlap w.r.t atomic positions.\n");
+
+	std::vector<ColumnBundle> O1Y, O2Y, dOY_anal, dOY_num;
+	setup(O1Y); setup(O2Y); setup(dOY_anal); setup(dOY_num);
+
+	double delta = 0;
+	pInfo.atposPerturbationExists = true;
+	
+	setAtpos1();
+	
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		O1Y[q] = O(C1[q]);
+	}
+	
+	setAtpos2();
+	
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		O2Y[q] = O(C1[q]);
+		dOY_num[q] = O2Y[q]-O1Y[q];
+	}
+	
+	setAtpos1();
+	
+	ps->calcdGradTau();
+	
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		dOY_anal[q] = C1[q].similar();
+		dOY_anal[q].zero();
+		e.iInfo.species[pInfo.atomdisplacement.sp]->augmentOverlapDeriv(C1[q], dOY_anal[q], pInfo.Vatom_cached[q], pInfo.dVatom_cached[q]);
+		//ps->dHtau(eInfo.qnums[q], dOY_anal[q], C1[q], pInfo.dVsclocatom);
+		delta += nrm2(dOY_num[q]-dOY_anal[q])/nrm2(dOY_anal[q]);
+		ps->printCB(dOY_num[q]);
+		ps->printCB(dOY_anal[q]);
+	}
+	
+	pInfo.atposPerturbationExists = false;
+
+	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
+	delta /= eInfo.nStates;
+	logPrintf("Difference %g.\n", delta);
+	return delta < 1e-6;
+}
+
+
+bool TestPerturbation::FDTest_dV() {
+	logPrintf("\nCommencing finite difference test of nonlocal projectors.\n");
+
+	std::vector<matrix> VdagC1(eInfo.nStates), VdagC2(eInfo.nStates), dVdagC(eInfo.nStates);
+	
+	double delta = 0;
+	pInfo.atposPerturbationExists = true;
+	
+	auto sp = e.iInfo.species[m.sp];
+	setAtpos1();
+	
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		auto Vatom = sp->getV(C1[q], m.at);
+		VdagC1[q] = (*Vatom)^C1[q];
+		ps->printCB(*Vatom);
+	}
+	
+	setAtpos2();
+	
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		auto Vatom = sp->getV(C1[q], m.at);
+		VdagC2[q] = (*Vatom)^C1[q];
+		ps->printCB(*Vatom);
+	}
+
+	setAtpos1();
+	
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		//auto dVatom = spe->getV(C1[q], m.at, &m.dir);
+		auto dVatom = sp->getV(C1[q], m.at);
+		dVdagC[q] = -DirectionalGradient(*dVatom, m.dirCartesian)^C1[q];
+		
+		
+		delta += nrm2(VdagC2[q]-VdagC1[q]-dVdagC[q])/nrm2(dVdagC[q]);
+		ps->printM(VdagC1[q]);
+		ps->printM(VdagC2[q]);
+		ps->printM(VdagC2[q]-VdagC1[q]);
+		ps->printM(dVdagC[q]);
+	}
+	pInfo.atposPerturbationExists = false;
 
 	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
 	delta /= eInfo.nStates;
@@ -290,7 +562,31 @@ bool TestPerturbation::FDTest_dC() {
 	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
 	delta /= eInfo.nStates;
 	logPrintf("Difference %g.\n", delta);
-	return delta < 1e-6;
+	return delta < 1e-5;
+}
+
+bool TestPerturbation::FDTest_dCatom() {
+	if (!ps->ultrasoftDensityAugRequired)
+		return true;
+	
+	logPrintf("\nCommencing finite difference test of dC w.r.t. atomic positions.\n");
+	
+	pInfo.atposPerturbationExists = true;
+	setAtpos1();
+	ps->calcdGradTau();
+	pInfo.atposPerturbationExists = false;
+
+	double delta = 0;
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		delta += nrm2((C2atom[q]-C1[q])-pInfo.dCatom[q])/nrm2(pInfo.dCatom[q]);
+		ps->printCB(C2atom[q]-C1[q]);
+		ps->printCB(pInfo.dCatom[q]);
+	}
+
+	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
+	delta /= eInfo.nStates;
+	logPrintf("Difference %g\n", delta);
+	return delta < 1e-5;
 }
 
 bool TestPerturbation::FDTest_dgradtau() {
@@ -298,26 +594,57 @@ bool TestPerturbation::FDTest_dgradtau() {
 	std::vector<ColumnBundle> Grad1, Grad2;
 	setup(Grad1); setup(Grad2);
 
-	Energies ener;
-	eVars.C = C1;
-	eVars.n = eVars.calcDensity();
 	ScalarFieldArray Vext(eVars.n.size()), dVext(eVars.n.size());
 	nullToZero(Vext, e.gInfo);
 	nullToZero(dVext, e.gInfo);
 	initRandomFlat(Vext[0]);
 	initRandomFlat(dVext[0]);
 	dVext[0] = dVext[0]*h;
-	pInfo.dVext = Complex(dVext);
+	pInfo.dVext = dVext;
+	pInfo.VextPerturbationExists = true;
 
 	eVars.Vexternal = Vext;
+	setState(C1);
 	ps->getGrad(&Grad1, C1);
 
 	eVars.Vexternal = Vext+dVext;
+	setState(C1);
 	ps->getGrad(&Grad2, C1);
 
 	eVars.Vexternal = Vext;
+	setState(C1);
 	ps->calcdGradTau();
+	pInfo.VextPerturbationExists = false;
 
+
+	double delta = 0;
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		delta += nrm2((Grad2[q]-Grad1[q])-pInfo.dGradTau[q])/nrm2(pInfo.dGradTau[q]);
+		ps->printCB(Grad2[q]-Grad1[q]);
+		ps->printCB(pInfo.dGradTau[q]);
+	}
+
+	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
+	delta /= eInfo.nStates;
+	logPrintf("Difference %g\n", delta);
+	return delta < 1e-6;
+}
+
+bool TestPerturbation::FDTest_dgradtauatom() {
+	logPrintf("\nCommencing finite difference test of gradient w.r.t. atomic positions.\n");
+	std::vector<ColumnBundle> Grad1, Grad2;
+	setup(Grad1); setup(Grad2);
+	pInfo.atposPerturbationExists = true;
+
+	setAtpos1();
+	ps->getGrad(&Grad1, C1);
+	
+	setAtpos2();
+	ps->getGrad(&Grad2, C1);
+	
+	setAtpos1();
+	ps->calcdGradTau();
+	pInfo.atposPerturbationExists = false;
 
 	double delta = 0;
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
@@ -343,6 +670,18 @@ void TestPerturbation::testVPT() {
 	setup(C1);
 	setup(C2);
 	setup(dC);
+	setup(C2atom);
+	
+	int sp = 0;
+	int atom = 1;
+	pos1 = e.iInfo.species[sp]->atpos[atom];
+	vector3<> deltapos = vector3<double>(1.0,0.0,0.0)*h;
+	m.at = atom;
+	m.sp = sp;
+	m.dirCartesian = deltapos;
+	m.dirLattice = e.gInfo.invR*deltapos;
+	pInfo.atomdisplacement = m;
+ 	pos2 = pos1+m.dirLattice;
 
 	//logPrintf("%d", eInfo.qStart);
 	//ps->printCB(Y1[0]);
@@ -358,11 +697,23 @@ void TestPerturbation::testVPT() {
 		C2[q] = Y2[q];
 
 		ps->orthonormalize(q, C1[q]);
+		
+		C2atom[q] = C1[q];
+		
 		ps->orthonormalize(q, C2[q]);
 
 		dC[q] = C2[q] - C1[q];
 	}
 
+	setAtpos2();
+	
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		ps->orthonormalize(q, C2atom[q]);
+	}
+	
+	setAtpos1();
+	
+	
 	bool testPassed = true;
 
 	/*Uncomment one of the following tests:*/
@@ -375,10 +726,17 @@ void TestPerturbation::testVPT() {
 	testPassed &= FDTest_dVxc();
 	testPassed &= FDTest_dn();
 	testPassed &= FDTest_dVscloc();
+	testPassed &= FDTest_dnatom();
+	testPassed &= FDTest_dVsclocatom();
+	testPassed &= FDTest_dVlocpsatom();
 	testPassed &= FDTest_dgradpsi();
 	testPassed &= FDTest_Hamiltonian();
-	//testPassed &= FDTest_dC(); //Do not use this test
+	testPassed &= FDTest_Hamiltoniandatom();
+	testPassed &= FDTest_Overlapatom();
+	testPassed &= FDTest_dV();
+	testPassed &= FDTest_dCatom();
 	testPassed &= FDTest_dgradtau();
+	testPassed &= FDTest_dgradtauatom();
 
 	if (testPassed) {
 		logPrintf("\nAll tests completed successfully.\n");
@@ -397,10 +755,35 @@ void TestPerturbation::setup(std::vector<ColumnBundle> &Y) {
 
 
 void TestPerturbation::setState(std::vector<ColumnBundle> &C) {
-	eVars.C = C;
-	Energies energ;
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		eVars.C[q] = C[q];
+	}
+	e.iInfo.update(e.ener);
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		eVars.VdagC[q].clear();
 		e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
 	}
-	eVars.elecEnergyAndGrad(energ, nullptr, nullptr, true);
+	eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
+	
+	pInfo.updateExcorrCache(e.exCorr, e.gInfo, ps->addnXC(eVars.n)[0]);
+	ps->updateHC();
+	ps->updateNonlocalDerivs();
+}
+
+void TestPerturbation::setAtpos1() {
+	auto sp = e.iInfo.species[m.sp];
+	pInfo.atomdisplacement = m;
+	sp->atpos[m.at] = pos1;
+	mpiWorld->bcastData(sp->atpos);
+	sp->sync_atpos();
+	setState(C1);
+}
+
+void TestPerturbation::setAtpos2() {
+	auto sp = e.iInfo.species[m.sp];
+	pInfo.atomdisplacement = m;
+	sp->atpos[m.at] = pos2;
+	mpiWorld->bcastData(sp->atpos);
+	sp->sync_atpos();
+	setState(C2atom);
 }

@@ -102,9 +102,13 @@ int main(int argc, char** argv)
 	}
 	else if(e.vptParams.nIterations)
 	{
-		//Variational perturbation solver
-		PerturbationSolver ps(e);
-		ps.minimize(e.vptParams);
+		if (e.spring) {
+			e.spring->computeMatrix();
+		} else {
+			//Variational perturbation solver
+			PerturbationSolver ps(e);
+			ps.minimize(e.vptParams);
+		}
 	}
 	else
 	{	//Ionic minimization loop (which calls electron/fluid minimization loops)

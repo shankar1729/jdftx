@@ -1064,9 +1064,9 @@ bool ExCorr::needFiniteDifferencing() const {
 }
 
 void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeTXC includeTXC,
-		ScalarField* quantity, const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, const ScalarFieldArray& dn) const
+		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, const ScalarFieldArray& dn) const
 {
-	static StopWatch watch("ExCorrTotal"), watchComm("ExCorrCommunication"), watchFunc("ExCorrFunctional");
+	static StopWatch watch("getdVxc");
 	watch.start();
 
 	const int nInCount = n.size(); assert(nInCount==1 || nInCount==2 || nInCount==4);
@@ -1093,79 +1093,56 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 
 	if (needFiniteDifferencing()) {
 		ScalarFieldArray nplusdn, Vxc, VxcplusdVxc;
-		double h = 1;
+		double h = nrm2(n[0])/nrm2(dn[0]) * 1e-7;
 		nplusdn = n+h*dn;
 		(*this)(n, &Vxc, includeTXC, tauPtr, Vtau);
 		(*this)(nplusdn, &VxcplusdVxc, includeTXC, tauPtr, Vtau);
 		*dVxc = (VxcplusdVxc-Vxc)*(1/h);
+        
+        watch.stop();
 		return;
 	}
 
+	const PerturbationInfo& pInfo = e->vptInfo;
 
+	dVxcOut[0] = pInfo.e_nn_cached * dn[0];
 
-
-	std::vector<VectorField> Dn(nInCount);
-	ScalarField sigma;
 	int iDirStart, iDirStop;
-	TaskDivision(3, mpiWorld).myRange(iDirStart, iDirStop);
-	{
-		const ScalarFieldTilde Jn = J(n[0]);
-		for(int i=iDirStart; i<iDirStop; i++)
-			Dn[0][i] = I(D(Jn,i));
-
-		nullToZero(sigma, gInfo);
-
-		for(int i=iDirStart; i<iDirStop; i++)
-			sigma += Dn[0][i] * Dn[0][i];
-		sigma->allReduceData(mpiWorld, MPIUtil::ReduceSum);
-	}
-
-
-
-
-
-	ScalarField e_nn, e_sigma, e_nsigma, e_sigmasigma;
-	getSecondDerivatives(n[0], e_nn, e_sigma, e_nsigma, e_sigmasigma, 1e-9, &sigma);
-
-	dVxcOut[0] = clone(e_nn) * dn[0];
-
-	//int iDirStart, iDirStop;
 	TaskDivision(3, mpiWorld).myRange(iDirStart, iDirStop);
 	if (needsSigma) {
 		ScalarFieldArray dsigma(sigmaCount), tmp(nCount);
+        VectorField IDJdn;
+        
 		nullToZero(dsigma, gInfo, sigmaCount);
 		nullToZero(tmp, gInfo, nCount);
-		//debugBP("Exc Norm %f", nrm2(dsigma[0]));
-		//debugBP("Exc Norm %f", nrm2(tmp[0]));
+        
 		for(int i=iDirStart; i<iDirStop; i++) {
-			dsigma[0] += 2*I(D(J(dn[0]), i))*I(D(J(n[0]), i));
+			IDJdn[i] = I(D(J(dn[0]),i));
+			dsigma[0] += 2*clone(IDJdn[i])*pInfo.IDJn_cached[i];
 		}
 		dsigma[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 
-		*quantity =  (clone(e_nn) * dn[0]) + (clone(e_nsigma)*dsigma[0]);
-		//*quantity = dsigma[0];
+		//*quantity =  (clone(pInfo.e_nn_cached) * dn[0]) + (clone(pInfo.e_nsigma_cached)*dsigma[0]);
 
 		for(int i=iDirStart; i<iDirStop; i++) {
-			ScalarField intermediate = I(D(J(dn[0]),i))*e_sigma;
-			intermediate += I(D(J(n[0]),i))*(clone(e_nsigma)*dn[0]);
-			intermediate += I(D(J(n[0]),i))*(clone(e_sigmasigma)*dsigma[0]);
+			ScalarField intermediate = IDJdn[i]*pInfo.e_sigma_cached;
+			intermediate += pInfo.IDJn_cached[i]*(pInfo.e_nsigma_cached*dn[0]);
+			intermediate += pInfo.IDJn_cached[i]*(pInfo.e_sigmasigma_cached*dsigma[0]);
 			tmp[0] -= 2*I(D(J(intermediate),i));
 		}
 
-		dVxcOut[0] += e_nsigma*dsigma[0];
-		//*quantity = clone(dVxcOut[0]);
+		dVxcOut[0] += pInfo.e_nsigma_cached*dsigma[0];
 
 		tmp[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 		dVxcOut[0] += tmp[0];
-
-		//*quantity =  (e_nn * dn[0]) + (e_nsigma*dsigma[0]);
 	}
 
 	*dVxc = dVxcOut;
+    watch.stop();
 }
 
 
-double ExCorr::getVxcSimplified(const ScalarFieldArray& n, ScalarFieldArray* Vxc, IncludeTXC includeTXC, ScalarField* quantity,
+double ExCorr::getVxcSimplified(const ScalarFieldArray& n, ScalarFieldArray* Vxc, IncludeTXC includeTXC,
 		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, matrix3<>* Exc_RRT) const
 {
 	static StopWatch watch("ExCorrTotal"), watchComm("ExCorrCommunication"), watchFunc("ExCorrFunctional");
@@ -1273,8 +1250,8 @@ double ExCorr::getVxcSimplified(const ScalarFieldArray& n, ScalarFieldArray* Vxc
 	watchComm.stop();
 
 	//TODO: What is this??
-	if (quantity)
-		*quantity = clone(E_n[0]);
+	//if (quantity)
+	//	*quantity = clone(E_n[0]);
 
 	//--------------- Gradient propagation ---------------------
 	if(needGradients)

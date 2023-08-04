@@ -215,6 +215,9 @@ void Everything::setup()
 	vptParams.energyFormat = "%+.15lf";
 
 	vptInfo.setup(*this, eVars);
+	
+	if (spring)
+		spring->setupModes();
 
 	logPrintf("\n"); logFlush();
 }

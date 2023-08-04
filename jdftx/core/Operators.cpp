@@ -417,6 +417,11 @@ ScalarFieldTilde D(const ScalarFieldTilde& in, int iDir)
 	return out;
 }
 
+ScalarFieldTilde DirectionalGradient(const ScalarFieldTilde& in, const vector3<>& dir)
+{
+	return D(in, 0)*dir[0]+D(in, 1)*dir[1]+D(in, 2)*dir[2];
+}
+
 //second cartesian derivative
 void DD_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* in, complex* out, vector3<> Ge1, vector3<> Ge2)
 {	THREAD_halfGspaceLoop( DD_calc(i, iG, in, out, Ge1, Ge2); )

@@ -823,16 +823,63 @@ void Dump::operator()(DumpFrequency freq, int iter)
 
 	if (ShouldDump(DVext))
 	{
-		if (e->vptInfo.dVext.size() != 1)
-			die("Error: Need to dump multiple spins\n");
-		StartDump("dvext")
-
-		if (!e->vptInfo.incommensurate) //TODO change
-			saveRawBinary(Real(e->vptInfo.dVext[0]), fname.c_str());
-		else
+		
+		if (!e->vptInfo.incommensurate) {
+			if (e->vptInfo.dn.size() != 1)
+				die("Error: Need to dump multiple spins\n");
+			StartDump("dvext")
 			saveRawBinary(e->vptInfo.dVext[0], fname.c_str());
-
+			EndDump
+		} else {
+			if (e->vptInfo.dnmq.size() != 1)
+				die("Error: Need to dump multiple spins\n");
+			{
+				StartDump("dvextmq")
+					saveRawBinary(e->vptInfo.dVextmq[0], fname.c_str());
+				EndDump
+			}
+			{
+				StartDump("dvextpq")
+					saveRawBinary(e->vptInfo.dVextpq[0], fname.c_str());
+				EndDump
+			}
+		}
+	}
+	
+	if (ShouldDump(DVscloc))
+    {
+		if (!e->vptInfo.incommensurate) {
+			if (e->vptInfo.dn.size() != 1)
+				die("Error: Need to dump multiple spins\n");
+			StartDump("dvscloc")
+			saveRawBinary(e->vptInfo.dVscloc[0], fname.c_str());
+			EndDump
+		} else {
+			if (e->vptInfo.dnmq.size() != 1)
+				die("Error: Need to dump multiple spins\n");
+			{
+				StartDump("dvsclocmq")
+					saveRawBinary(e->vptInfo.dVsclocmq[0], fname.c_str());
+				EndDump
+			}
+			{
+				StartDump("dvsclocpq")
+					saveRawBinary(e->vptInfo.dVsclocpq[0], fname.c_str());
+				EndDump
+			}
+		}
+    }
+    
+    if (ShouldDump(SpringConstants))
+	{
+		assert(!e->vptInfo.incommensurate);
+		StartDump("springconstants")
+		FILE* fp = fopen(fname.c_str(), "wb");
+		if(!fp) die("Could not open '%s' for writing.\n", fname.c_str())
+		e->spring->kmatrix.print(fp);
+		fclose(fp);
 		EndDump
+		
 	}
 
 	//----------------------------------------------------------------------

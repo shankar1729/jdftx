@@ -418,6 +418,11 @@ ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir)
 }
 
 
+ColumnBundle DirectionalGradient(const ColumnBundle& in, const vector3<>& dir)
+{
+	return D(in, 0)*dir[0]+D(in, 1)*dir[1]+D(in, 2)*dir[2];
+}
+
 // Multiply each column by f(0.5*|k+G|^2/KErollover)
 // with f(x) = (1+x+x^2+x^3+...+x^8)/(1+x+x^2+...+x^9) = (1-x^N)/(1-x^(N+1))
 void precond_inv_kinetic(int nbasis, int ncols, complex* Ydata,
@@ -649,6 +654,7 @@ void diagouterI2_collect(size_t iStart, size_t iStop, std::vector<complexScalarF
 				nSubData[0][i] += nSubData[j][i];
 	}
 }
+
 // Calculate diag((I*A)*F*(I*B)^) where X^ is the hermetian adjoint of X.
 complexScalarFieldArray diagouterI(const diagMatrix &F, const ColumnBundle &A, const ColumnBundle &B,  int nDensities, const GridInfo* gInfoOut)
 {	static StopWatch watch("diagouterI"); watch.start();

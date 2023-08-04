@@ -326,7 +326,7 @@ double IonInfo::ionicEnergyAndGrad()
 double IonInfo::EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const
 {	double Enlq = 0.0;
 	for(unsigned sp=0; sp<species.size(); sp++)
-		Enlq += species[sp]->EnlAndGrad(qnum, Fq, VdagCq[sp], HVdagCq[sp]);
+		Enlq += species[sp]->EnlAndGrad(qnum, Fq, VdagCq[sp], HVdagCq[sp], -1);
 	return Enlq;
 }
 
@@ -341,6 +341,7 @@ void IonInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, std::vec
 void IonInfo::augmentDensityInit() const
 {	for(auto sp: species) ((SpeciesInfo&)(*sp)).augmentDensityInit();
 }
+
 void IonInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, const std::vector<matrix>* VdagdCqL, const std::vector<matrix>* VdagdCqR) const
 {
 	if (VdagdCqR) {
@@ -364,6 +365,22 @@ void IonInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient*
 void IonInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const
 {	for(unsigned sp=0; sp<species.size(); sp++)
 		species[sp]->augmentDensitySphericalGrad(qnum, VdagCq[sp], HVdagCq[sp]);
+}
+
+void IonInfo::setE_nAug(const std::vector<matrix> E_nAug) {
+	if (!E_nAug.size())
+		return;
+	
+	for(unsigned sp=0; sp<species.size(); sp++)
+		species[sp]->setE_nAug(E_nAug[sp]);
+}
+
+const std::vector<matrix> IonInfo::getE_nAug() {
+	std::vector<matrix> E_nAug(species.size());
+	for(unsigned sp=0; sp<species.size(); sp++)
+		E_nAug[sp] = species[sp]->getE_nAug();
+	
+	return E_nAug;
 }
 
 void IonInfo::project(const ColumnBundle& Cq, std::vector<matrix>& VdagCq, matrix* rotExisting) const

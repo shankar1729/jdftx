@@ -48,6 +48,7 @@ public:
 	
 	std::vector<vector3<> > atpos; //!< array of atomic positions of this species
 	std::vector<vector3<> > velocities; //!< array of atomic velocities (NAN unless running MD) in lattice coordinates
+	std::vector<bool> perturbed; //!< Should atom be included in spring constant matrix
 	ManagedArray<vector3<>> atposManaged; //!< managed copy of atpos accessed from operator code (for auto cpu/gpu transfers)
 	void sync_atpos(); //!< update changes in atpos; call whenever atpos is changed (this will update atposManaged and invalidate cached projectors, if any)
 	
@@ -93,29 +94,39 @@ public:
 	//! If derivDir is non-null, return the derivative with respct to Cartesian k direction *derivDir instead (never cached).
 	//! If stressDir is >=0, then calculate (i,j) component of dVnl/dR . RT where stressDir = 3*i+j
 	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, const vector3<>* derivDir=0, const int stressDir=-1) const;
+	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, int atom, const vector3<>* derivDir=0, const int stressDir=-1) const;
 	int nProjectors() const { return MnlAll.nRows() * atpos.size(); } //!< total number of projectors for all atoms in this species (number of columns in result of getV)
 	
 	//! Return non-local energy for this species and quantum number q and optionally accumulate
 	//! projected electronic gradient in HVdagCq (if non-null)
-	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const;
+	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq, int atom = -1) const;
 	
 	//! Accumulate pseudopotential contribution to the overlap in OCq
 	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matrix* VdagCq=0) const;
+	
+	//TODO Document/remove
+	void augmentOverlapDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV) const;
 	
 	//! Accumulate pseudopotential contribution to spin overlap of a columnbundle
 	void augmentSpinOverlap(const ColumnBundle& Cq, vector3<matrix>& Sq) const;
 	
 	//! Clear internal data and prepare for density augmentation (call before a loop over augmentDensitySpherical per k-point)
-	void augmentDensityInit();
+	void augmentDensityInit(int atom = -1);
 	//! Accumulate the pseudopotential dependent contribution to the density in the spherical functions nAug (call once per k-point)
-	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, const matrix* VdagdCqL = 0, const matrix* VdagdCqR = 0);
+	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, const matrix* VdagdCqL = 0, const matrix* VdagdCqR = 0, int atom = -1);
 	//! Accumulate the spherical augmentation functions nAug to the grid electron density (call only once, after augmentDensitySpherical on all k-points)
-	void augmentDensityGrid(ScalarFieldArray& n) const;
+	void augmentDensityGrid(ScalarFieldArray& n, int atom=-1, const vector3<>* atposDeriv = 0) const;
 	
 	//! Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once). Optionally collect forces and stress contributions
 	void augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vector<vector3<> >* forces=0, matrix3<>* Eaug_RRT=0);
+	
+	void augmentDensityGridGradDeriv(const ScalarFieldArray& E_n, int atom, const vector3<>* atposDeriv);
+	
+	matrix getE_nAug();
+	void setE_nAug(matrix E_nAug_in);
+	
 	//! Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) 
-	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq) const;
+	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq, int atom = -1) const;
 	
 	//DFT+U functions: handle IonInfo::rhoAtom_*() for this species
 	//The rhoAtom pointers point to the start of those relevant to this species (and ends at that pointer + rhoAtom_nMatrices())
@@ -144,7 +155,7 @@ public:
 
 	//! Add contributions from this species to Vlocps, rhoIon, nChargeball and nCore/tauCore (if any)
 	void updateLocal(ScalarFieldTilde& Vlocps, ScalarFieldTilde& rhoIon, ScalarFieldTilde& nChargeball,
-		ScalarFieldTilde& nCore, ScalarFieldTilde& tauCore) const; 
+		ScalarFieldTilde& nCore, ScalarFieldTilde& tauCore, int atom = -1) const; 
 	
 	//! Return the local forces (due to Vlocps, rhoIon, nChargeball and nCore/tauCore)
 	std::vector< vector3<> > getLocalForces(const ScalarFieldTilde& ccgrad_Vlocps, const ScalarFieldTilde& ccgrad_rhoIon,

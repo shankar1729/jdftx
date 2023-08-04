@@ -35,66 +35,72 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 	if (!incommensurate) {
 		init(dY, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		init(dC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+		init(HdC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+		init(dHC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+		init(HdCatom, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+		init(dHCatom, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		init(dGradPsi, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		init(dGradTau, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		init(HC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+		init(dCatom, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+		init(OC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		dU.resize(eInfo.nStates);
+		dUsqrtinvatom.resize(eInfo.nStates);
+		dVscloc.resize(eVars.Vscloc.size());
+		dVsclocatom.resize(eVars.Vscloc.size());
+		dnatom.resize(eVars.Vscloc.size());
+		Vatom_cached.resize(eInfo.nStates);
+		dVatom_cached.resize(eInfo.nStates);
+		VdagCatom_cached.resize(eInfo.nStates);
+		dVdagCatom_cached.resize(eInfo.nStates);
 	} else {
 		initInc(dY, 2*eInfo.nStates, eInfo.nBands, &eInfo);
 		initInc(dC, 2*eInfo.nStates, eInfo.nBands, &eInfo);
 		initInc(dGradPsi, 2*eInfo.nStates, eInfo.nBands, &eInfo);
 		initInc(dGradTau, 2*eInfo.nStates, eInfo.nBands, &eInfo);
 		initInc(Cinc, 2*eInfo.nStates, eInfo.nBands, &eInfo);
+        dVsclocpq.resize(eVars.Vscloc.size());
+        dVsclocmq.resize(eVars.Vscloc.size());
 	}
-
-	//Initialize vars to random values
-	if (!incommensurate) {
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			if(dY[q]) dY[q].randomize(0, dY[q].nCols());
-	} else {
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-			if(dY[q]) dY[q].randomize(0, dY[q].nCols());
-			if(dY[q+eInfo.nStates]) dY[q+eInfo.nStates].randomize(0, dY[q+eInfo.nStates].nCols());
-		}
-	}
-
-
-
-
+	
 	if(dVexternalFilename.size())
-	{//TODO fix
-		std::vector<ScalarField> dVextReal(eVars.n.size());
-		dVextReal.resize(dVexternalFilename.size());
-		for(unsigned s=0; s<dVextReal.size(); s++)
-		{	dVextReal[s] = ScalarFieldData::alloc(e.gInfo);
-			logPrintf("Reading external potential from '%s'\n", dVexternalFilename[s].c_str());
-			loadRawBinary(dVextReal[s], dVexternalFilename[s].c_str());
-		}
-		if(dVextReal.size()==1 && eVars.n.size()==2) //Replicate potential for second spin:
-			dVextReal.push_back(dVextReal[0]->clone());
-
-		dVext.resize(dVextReal.size());
-		for(unsigned s=0; s<dVextReal.size(); s++)
+	{
+		if(!incommensurate)
 		{
-			dVext[s] = Complex(dVextReal[s]);
+			dVext.resize(dVexternalFilename.size());
+			for(unsigned s=0; s<dVext.size(); s++)
+			{	dVext[s] = ScalarFieldData::alloc(e.gInfo);
+				logPrintf("Reading external perturbation potential from '%s'\n", dVexternalFilename[s].c_str());
+				loadRawBinary(dVext[s], dVexternalFilename[s].c_str());
+			}
+			if(dVext.size()==1 && eVars.n.size()==2) //Replicate potential for second spin:
+				dVext.push_back(dVext[0]->clone());
+			
+		} else {
+			dVextpq.resize(dVexternalFilename.size());
+			for(unsigned s=0; s<dVextpq.size(); s++)
+			{	dVextpq[s] = complexScalarFieldData::alloc(e.gInfo);
+				logPrintf("Reading external perturbation potential from '%s'\n", dVexternalFilename[s].c_str());
+				loadRawBinary(dVextpq[s], dVexternalFilename[s].c_str());
+			}
+			if(dVextpq.size()==1 && eVars.n.size()==2) //Replicate potential for second spin:
+				dVextpq.push_back(dVextpq[0]->clone());
+			
+			dVextmq = conj(dVextpq);
 		}
-		if(e.iInfo.computeStress)
-			die("\nStress calculation not supported with external potentials.\n\n");
+        VextPerturbationExists = true;
 	} else {
-		std::vector<ScalarField> dVextReal(eVars.n.size());
-		dVextReal.resize(eVars.n.size());
-		nullToZero(dVextReal, e.gInfo);
-
-		dVext.resize(dVextReal.size());
-		Random::seed(71);
-
-		for(unsigned s=0; s<dVextReal.size(); s++)
-		{
-			//dVext[s] = Complex(dVextReal[s]);
-			dVext[s] = Complex(randomRealSpaceVector(dY[0], &e.gInfo));
-			dVext[s]->bcastData(mpiWorld);
+		if(!incommensurate) {
+			dVext.resize(eVars.Vexternal.size());
+			nullToZero(dVext, e.gInfo);
+		} else {
+			dVextpq.resize(eVars.Vexternal.size());
+			dVextmq.resize(eVars.Vexternal.size());
+			nullToZero(dVextpq, e.gInfo);
+			nullToZero(dVextmq, e.gInfo);
 		}
-		logPrintf("WARNING: dVext not loaded! Setting external perturbation to random.");
+        VextPerturbationExists = false;
+		logPrintf("Note: dVext not loaded. Setting external perturbation to zero.\n");
 	}
 	//assert(dVext.size() == eVars.Vexternal.size());
 
@@ -275,3 +281,22 @@ void PerturbationInfo::initInc(std::vector<ColumnBundle>& Y, int nbundles, int n
 	}
 }
 
+void PerturbationInfo::updateExcorrCache(const ExCorr& exc, const GridInfo& gInfo, const ScalarField& n)
+{
+	int iDirStart, iDirStop;
+	TaskDivision(3, mpiWorld).myRange(iDirStart, iDirStop);
+	{
+		for(int i=iDirStart; i<iDirStop; i++) {
+			IDJn_cached[i] = I(D(J(n),i));
+        }
+
+		nullToZero(sigma_cached, gInfo);
+		initZero(sigma_cached);
+
+		for(int i=iDirStart; i<iDirStop; i++)
+			sigma_cached += IDJn_cached[i] * IDJn_cached[i];
+		sigma_cached->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	}
+	
+	exc.getSecondDerivatives(n, e_nn_cached, e_sigma_cached, e_nsigma_cached, e_sigmasigma_cached, 1e-9, &sigma_cached);
+}
