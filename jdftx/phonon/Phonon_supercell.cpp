@@ -79,8 +79,15 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	eSup->dump.format = fnamePattern;
 	
 	//Apply perturbation and then setup (so that symmetries reflect perturbed state):
-	vector3<> dxPert = inv(eSup->gInfo.R) * dr * pert.dir; //perturbation in lattice coordinates
-	eSup->iInfo.species[pert.sp]->atpos[pert.at] += dxPert; //apply perturbation
+	std::shared_ptr<AtomPerturbation> vptMode;
+	if (useVPT) {
+		vptMode = std::make_shared<AtomPerturbation>(pert.at, pert.sp, pert.dir, *eSup);
+		vptMode->mode.dirLattice = inv(eSup->gInfo.R) * pert.dir; //Manually set since gInfo not initialized
+		eSup->vptInfo.datom = vptMode; //Must go before eSup->setup because of symmetry checks
+	} else {
+		vector3<> dxPert = inv(eSup->gInfo.R) * dr * pert.dir; //perturbation in lattice coordinates
+		eSup->iInfo.species[pert.sp]->atpos[pert.at] += dxPert; //apply perturbation
+	}
 	eSup->setup();
 	if(dryRun)
 	{	logPrintf("Dry run: supercell setup successful.\n");
@@ -139,15 +146,21 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 		if(saveHsub) eSup->iInfo.augmentDensityGridGrad(eSup->eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's (needed by getPerturbedHsub)
 	}
 	else
-	{	IonicGradient grad;
-		IonicMinimizer(*eSup).compute(&grad, 0);
-		dgrad_pert = (grad - grad0) * (1./dr);
-		logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
-		logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(3*nAtomsTot)));
-		//Output potentials and forces for future calculations:
-		eSup->dump.insert(std::make_pair(DumpFreq_End, DumpVscloc));
-		eSup->dump(DumpFreq_End, 0);
-		dgrad_pert.write(eSup->dump.getFilename("dforces").c_str());
+	{
+		if (useVPT) {
+			eSup->spring = std::make_shared<SpringConstant>(*eSup);
+			dgrad_pert = eSup->spring->getPhononMatrixColumn(vptMode, dr);
+		} else {	
+			IonicGradient grad;
+			IonicMinimizer(*eSup).compute(&grad, 0);
+			dgrad_pert = (grad - grad0) * (1./dr);
+			logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
+			logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(3*nAtomsTot)));
+			//Output potentials and forces for future calculations:
+			eSup->dump.insert(std::make_pair(DumpFreq_End, DumpVscloc));
+			eSup->dump(DumpFreq_End, 0);
+			dgrad_pert.write(eSup->dump.getFilename("dforces").c_str());
+		}
 	}
 	if(iPerturbation>=0) return; //remainder below not necessary except when doing a full calculation
 	
@@ -166,9 +179,15 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	//Subspace hamiltonian change:
 	std::vector<matrix> Hsub, dHsub_pert(nSpins);
 	if(saveHsub)
-	{	Hsub = getPerturbedHsub(pert, Hsub0);
-		for(size_t s=0; s<Hsub.size(); s++)
-			dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
+	{	
+		if (useVPT) {
+			if (nSpins > 1) die("Error: Multiple spins in VPT not supported yet");
+			dHsub_pert[0] = eSup->vptInfo.dHsub[0]+eSup->vptInfo.dHsubatom[0];
+		} else {
+			Hsub = getPerturbedHsub(pert, Hsub0);
+			for(size_t s=0; s<Hsub.size(); s++)
+				dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
+		}
 	}
 	
 	//Accumulate results for all symmetric images of perturbation:

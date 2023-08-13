@@ -18,7 +18,7 @@ struct CommandSolvePerturbation : public CommandMinimize
     MinimizeParams& target(Everything& e) { return e.vptParams; }
     void process(ParamList& pl, Everything& e)
     {	e.vptParams.nIterations = 0; //override default value (100) in MinimizeParams.h
-    	e.vptParams.energyDiffThreshold = 1e-6;
+    	e.vptParams.knormThreshold = 1e-4;
     	e.vptParams.dirUpdateScheme = MinimizeParams::FletcherReeves;
     	CommandMinimize::process(pl, e);
 	}
@@ -28,7 +28,7 @@ CommandSolvePerturbation;
 
 struct CommandDVexternal : public Command
 {
-	CommandDVexternal() : Command("dVexternal", "jdftx/Electronic/Parameters")
+	CommandDVexternal() : Command("perturb-Vexternal", "jdftx/Electronic/Parameters")
 	{
 		format = "<filename> | <filenameUp> <filenameDn>";
 		comments =
@@ -37,8 +37,9 @@ struct CommandDVexternal : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	e.vptInfo.dVexternalFilename.resize(1);
-		pl.get(e.vptInfo.dVexternalFilename[0], string(), "filename", true);
+	{	e.vptInfo.dVext = std::make_shared<VextPerturbation>();
+		e.vptInfo.dVext->dVexternalFilename.resize(1);
+		pl.get(e.vptInfo.dVext->dVexternalFilename[0], string(), "filename", true);
 		//TODO: Check if a second file has been specified:
 		//string filenameDn;
 		//pl.get(filenameDn, string(), "filenameDn");
@@ -47,15 +48,55 @@ struct CommandDVexternal : public Command
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	for(const string& filename: e.vptInfo.dVexternalFilename)
+	{	for(const string& filename: e.vptInfo.dVext->dVexternalFilename)
 			logPrintf("%s ", filename.c_str());
 	}
 }
 CommandDVexternal;
 
-struct CommandSetQpoint : public Command
+struct CommandDAtom : public Command
 {
-	CommandSetQpoint() : Command("set-qpoint", "jdftx/Electronic/Parameters")
+	CommandDAtom() : Command("perturb-ion", "jdftx/Electronic/Parameters")
+	{
+		format = "<species> <atom> <type>=cartesian|lattice <dx0> <dx1> <dx2>";
+		comments =
+			"Perturb atom position.\n";
+		
+		require("ion-species");
+		require("latt-scale");
+		require("coords-type");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	int sp, at;
+		string type;
+		vector3<> dx;
+		pl.get(sp, 0, "species", true);
+		pl.get(at, 0, "atom", true);
+		pl.get(type, string(), "type", true);
+		pl.get(dx[0], 0.0, "dx0", true);
+		pl.get(dx[1], 0.0, "dx1", true);
+		pl.get(dx[2], 0.0, "dx2", true);
+		
+		if (type == "lattice") dx = e.gInfo.R*dx;
+		if (type != "lattice" && type != "cartesian")
+			throw string("Invalid coordinate type. Must be lattice or cartesian");
+		
+		e.vptInfo.datom = std::make_shared<AtomPerturbation>(sp, at, dx, e);
+		e.vptInfo.datom->mode.dirLattice = inv(e.gInfo.R)*e.vptInfo.datom->mode.dirCartesian; //Constructor does not initialize dirLattice properly because gInfo not set up yet
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	
+		auto pert = e.vptInfo.datom;
+		logPrintf("%i %i %g %g %g", pert->mode.sp, pert->mode.at, pert->mode.dirCartesian[0], pert->mode.dirCartesian[1], pert->mode.dirCartesian[2]);
+	}
+}
+CommandDAtom;
+
+struct CommandSetPertPhase : public Command
+{
+	CommandSetPertPhase() : Command("set-pert-phase", "jdftx/Electronic/Parameters")
 	{
 		format = "<q0> <q1> <q2>";
 		comments =
@@ -68,7 +109,7 @@ struct CommandSetQpoint : public Command
 		pl.get(e.vptInfo.qvec[1], 0.0, "q1");
 		pl.get(e.vptInfo.qvec[2], 0.0, "q2");
 
-		e.vptInfo.incommensurate = e.vptInfo.qvec.isNonzero();
+		e.vptInfo.commensurate = !e.vptInfo.qvec.isNonzero();
 		//TODO: Band structure in case q=0?
 	}
 
@@ -77,7 +118,7 @@ struct CommandSetQpoint : public Command
 		logPrintf("%f %f %f", e.vptInfo.qvec[0], e.vptInfo.qvec[1], e.vptInfo.qvec[2]);
 	}
 }
-CommandSetQpoint;
+CommandSetPertPhase;
 
 struct CommandReadOffsetWfns : public Command
 {
@@ -102,7 +143,7 @@ CommandReadOffsetWfns;
 
 struct CommandTestPerturbationOperators : public Command
 {
-	CommandTestPerturbationOperators() : Command("test-perturbation-ops", "miscellaneous")
+	CommandTestPerturbationOperators() : Command("fdtest-vpt", "miscellaneous")
 	{
 		comments =
 			"Perform finite difference tests of perturbation operators.\n";

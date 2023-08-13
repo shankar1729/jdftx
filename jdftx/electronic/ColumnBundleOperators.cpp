@@ -393,6 +393,22 @@ ColumnBundle D(const ColumnBundle &Y, int iDir)
 	return DY;
 }
 
+ColumnBundle D(const ColumnBundle& Y, const vector3<>& dir)
+{	assert(Y.basis);
+	const Basis& basis = *(Y.basis);
+	ColumnBundle DY = Y.similar();
+	int nSpinor = Y.spinorLength();
+	const vector3<> Ge = basis.gInfo->G*dir;
+	double kdotGe = dot(Y.qnum->k, Ge);
+	#ifdef GPU_ENABLED
+	reducedD_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), DY.dataGpu(), basis.iGarr.dataGpu(), kdotGe, Ge);
+	#else
+	threadedLoop(reducedD_calc, basis.nbasis,
+		basis.nbasis, Y.nCols()*nSpinor, Y.data(), DY.data(), basis.iGarr.data(), kdotGe, Ge);
+	#endif
+	return DY;
+}
+
 
 //Compute cartesian gradient of column bundle in direction #iDir
 #ifdef GPU_ENABLED
@@ -417,11 +433,6 @@ ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir)
 	return DDY;
 }
 
-
-ColumnBundle DirectionalGradient(const ColumnBundle& in, const vector3<>& dir)
-{
-	return D(in, 0)*dir[0]+D(in, 1)*dir[1]+D(in, 2)*dir[2];
-}
 
 // Multiply each column by f(0.5*|k+G|^2/KErollover)
 // with f(x) = (1+x+x^2+x^3+...+x^8)/(1+x+x^2+...+x^9) = (1-x^N)/(1-x^(N+1))

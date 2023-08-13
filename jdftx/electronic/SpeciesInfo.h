@@ -107,6 +107,8 @@ public:
 	//TODO Document/remove
 	void augmentOverlapDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV) const;
 	
+	void augmentOverlapSecondDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV_A, ColumnBundle& dV_B, ColumnBundle& dsqV) const;
+	
 	//! Accumulate pseudopotential contribution to spin overlap of a columnbundle
 	void augmentSpinOverlap(const ColumnBundle& Cq, vector3<matrix>& Sq) const;
 	
@@ -172,6 +174,7 @@ public:
 	//! Spin-angle helper functions:
 	static matrix getYlmToSpinAngleMatrix(int l, int j2); //!< Get the ((2l+1)*2)x(j2+1) matrix that transforms the Ylm+spin to the spin-angle functions, where j2=2*j with j = l+/-0.5
 	static matrix getYlmOverlapMatrix(int l, int j2); //!< Get the ((2l+1)*2)x((2l+1)*2) overlap matrix of the spin-spherical harmonics for total angular momentum j (note j2=2*j)
+	matrix MnlAll; //!< block matrix containing Mnl for all l,m 
 private:
 	matrix3<> Rprev; void updateLatticeDependent(); //!< If Rprev differs from gInfo.R, update the lattice dependent quantities (such as the radial functions)
 
@@ -181,7 +184,7 @@ private:
 
 	std::vector< std::vector<RadialFunctionG> > VnlRadial; //!< non-local projectors (outer index l, inner index projetcor)
 	std::vector<matrix> Mnl; //!< nonlocal pseudopotential projector matrix (indexed by l)
-	matrix MnlAll; //!< block matrix containing Mnl for all l,m 
+	//matrix MnlAll; //!< block matrix containing Mnl for all l,m 
 	
 	std::vector<matrix> Qint; //!< overlap augmentation matrix (indexed by l, empty if no augmentation)
 	matrix QintAll; //!< block matrix containing Qint for all l,m 

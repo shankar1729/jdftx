@@ -375,7 +375,6 @@ std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, int atom
 			for(int m=-l; m<=l; m++)
 			{	size_t offs = iProj * basis.nbasis;
 				size_t atomStride = nProj * basis.nbasis;
-				size_t atposStride = 24;
 				callPref(Vnl)(basis.nbasis, atomStride, 1, l, m, qnum.k, basis.iGarr.dataPref(),
 					basis.gInfo->G, &atpos[atom], VnlRadial[l][p], V->dataPref()+offs, derivDir, stressDir);
 				//callPref(Vnl)(basis.nbasis, atomStride, 1, l, m, qnum.k, basis.iGarr.dataPref(),

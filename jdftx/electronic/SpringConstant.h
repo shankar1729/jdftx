@@ -19,6 +19,7 @@
 
 #include <electronic/PerturbationSolver.h>
 #include <electronic/PerturbationInfo.h>
+#include <electronic/IonicMinimizer.h>
 
 /**
  * @todo write docs
@@ -27,16 +28,31 @@ class SpringConstant
 {
 public:
 	bool calculateSpringConstant = false;
-	std::vector<PerturbationInfo::Mode> modes;
+	std::vector<std::shared_ptr<AtomPerturbation>> modes;
 	matrix kmatrix;
 	
 	SpringConstant(Everything& e);
 	void setupModes();
 	double perturbAtom(int atom);
-	double computeMatrixElement(int a, int b);
-	void getPerturbedEnergy(Energies& ener, PerturbationInfo::Mode modeA, PerturbationInfo::Mode modeB, double deltaA, double deltaB);
-	double getIonDependentEnergy(const Energies& ener);
-	void computeMatrix();
+	double computeMatrixElement(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
+	
+	
+	std::vector<ColumnBundle> dsqC;
+	std::vector<matrix> dsqVdagC;
+	ScalarFieldArray dsqn;
+	ScalarField dsqE_naug;
+	double dsqQuantities(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
+	
+	double dsqEpair(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
+	double dsqEnl(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
+	double dsqEloc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
+	double dsqExc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
+	double dsqExccore(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
+	double dsqEH(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
+	
+	void getPerturbedEnergy(Energies& ener, std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB, double deltaA, double deltaB);
+	void computeSubMatrix();
+	IonicGradient getPhononMatrixColumn(std::shared_ptr<AtomPerturbation> mode, double dr = 0.0);
 	
 private:
 	Everything& e;
@@ -46,7 +62,6 @@ private:
 	PerturbationInfo& pInfo;
 	PerturbationSolver ps;
 	
-	int lastAtomPerturbed = -1;
 	std::vector<ColumnBundle> Ctmp;
 };
 

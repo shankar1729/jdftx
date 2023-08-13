@@ -326,7 +326,7 @@ double IonInfo::ionicEnergyAndGrad()
 double IonInfo::EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const
 {	double Enlq = 0.0;
 	for(unsigned sp=0; sp<species.size(); sp++)
-		Enlq += species[sp]->EnlAndGrad(qnum, Fq, VdagCq[sp], HVdagCq[sp], -1);
+		Enlq += species[sp]->EnlAndGrad(qnum, Fq, VdagCq[sp], HVdagCq[sp]);
 	return Enlq;
 }
 

@@ -130,8 +130,6 @@ void logResume(); //!< re-enable logging after a logSuspend() call
 
 #define logPrintf(...) fprintf(globalLog, __VA_ARGS__) //!< printf() for log files
 #define logFlush() fflush(globalLog) //!< fflush() for log files
-#define dbgOn false
-#define debugBP(...) if (dbgOn) fprintf(globalLog, __VA_ARGS__) //!< printf() for log files
 
 //! @brief Quit with an error message (formatted using printf()). Must be called from all processes.
 #define die(...) \

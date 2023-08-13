@@ -13,8 +13,58 @@
 #include <electronic/ElecInfo.h>
 #include <electronic/ElecMinimizer.h>
 #include <electronic/PerturbationSolver.h>
+#include <core/LatticeUtils.h>
 
-PerturbationInfo::PerturbationInfo() {
+
+AtomPerturbation::AtomPerturbation (int sp, int at, int iDir, const Everything& e)
+{
+    AtomicMode m;
+    vector3<> dirCartesian;
+
+    dirCartesian[iDir] = 1;
+    m.sp = sp;
+    m.at = at;
+    m.dirCartesian = dirCartesian;
+
+    m.dirLattice = e.gInfo.invR*m.dirCartesian;
+    mode = m;
+    init(e, e.eVars, e.eInfo);
+}
+
+AtomPerturbation::AtomPerturbation (int sp, int at, vector3<> dirCartesian, const Everything& e)
+{
+    AtomicMode m;
+	
+    m.sp = sp;
+    m.at = at;
+    m.dirCartesian = dirCartesian;
+
+    m.dirLattice = e.gInfo.invR*m.dirCartesian;
+    mode = m;
+    init(e, e.eVars, e.eInfo);
+}
+
+bool AtomPerturbation::sameAtom(const std::shared_ptr<AtomPerturbation> pert) {
+	return pert->mode.sp == mode.sp && pert->mode.at == mode.at;
+}
+
+void AtomPerturbation::init(const Everything &e, const ElecVars& eVars, const ElecInfo& eInfo)
+{
+	Vatom_cached.resize(eInfo.nStates);
+	dVatom_cached.resize(eInfo.nStates);
+	VdagCatom_cached.resize(eInfo.nStates);
+	dVdagCatom_cached.resize(eInfo.nStates);
+	::init(dCatom, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	dnatom.resize(eVars.Vscloc.size());
+	nullToZero(dnatom, e.gInfo);
+}
+
+bool AtomPerturbation::isUltrasoft(const IonInfo& iInfo) {
+	return iInfo.species[mode.sp]->isUltrasoft();
+}
+
+PerturbationInfo::PerturbationInfo() : dVext(0), datom(0) {
+	
 }
 
 PerturbationInfo::~PerturbationInfo() {
@@ -32,84 +82,63 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 
 	//Allocate variables
 
-	if (!incommensurate) {
-		init(dY, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	if (commensurate) {
 		init(dC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
-		init(HdC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
-		init(dHC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
-		init(HdCatom, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
-		init(dHCatom, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
-		init(dGradPsi, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
-		init(dGradTau, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		init(HC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
-		init(dCatom, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		init(OC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+		init(grad, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		dU.resize(eInfo.nStates);
-		dUsqrtinvatom.resize(eInfo.nStates);
+		dUmhalfatom.resize(eInfo.nStates);
+		dHsub.resize(eInfo.nStates);
+		dHsubatom.resize(eInfo.nStates);
 		dVscloc.resize(eVars.Vscloc.size());
-		dVsclocatom.resize(eVars.Vscloc.size());
-		dnatom.resize(eVars.Vscloc.size());
-		Vatom_cached.resize(eInfo.nStates);
-		dVatom_cached.resize(eInfo.nStates);
-		VdagCatom_cached.resize(eInfo.nStates);
-		dVdagCatom_cached.resize(eInfo.nStates);
+		dVsclocTau.resize(eVars.Vscloc.size());
+		dn.resize(eVars.Vscloc.size());
+		nullToZero(dn, e.gInfo);
+		if (datom) datom->init(e, eVars, eInfo);
 	} else {
-		initInc(dY, 2*eInfo.nStates, eInfo.nBands, &eInfo);
 		initInc(dC, 2*eInfo.nStates, eInfo.nBands, &eInfo);
-		initInc(dGradPsi, 2*eInfo.nStates, eInfo.nBands, &eInfo);
-		initInc(dGradTau, 2*eInfo.nStates, eInfo.nBands, &eInfo);
 		initInc(Cinc, 2*eInfo.nStates, eInfo.nBands, &eInfo);
         dVsclocpq.resize(eVars.Vscloc.size());
         dVsclocmq.resize(eVars.Vscloc.size());
 	}
 	
-	if(dVexternalFilename.size())
+	if(dVext && dVext->dVexternalFilename.size())
 	{
-		if(!incommensurate)
+		if(commensurate)
 		{
-			dVext.resize(dVexternalFilename.size());
-			for(unsigned s=0; s<dVext.size(); s++)
-			{	dVext[s] = ScalarFieldData::alloc(e.gInfo);
-				logPrintf("Reading external perturbation potential from '%s'\n", dVexternalFilename[s].c_str());
-				loadRawBinary(dVext[s], dVexternalFilename[s].c_str());
+			dVext->dVext.resize(dVext->dVexternalFilename.size());
+			for(unsigned s=0; s<dVext->dVext.size(); s++)
+			{	dVext->dVext[s] = ScalarFieldData::alloc(e.gInfo);
+				logPrintf("Reading external perturbation potential from '%s'\n", dVext->dVexternalFilename[s].c_str());
+				loadRawBinary(dVext->dVext[s], dVext->dVexternalFilename[s].c_str());
 			}
-			if(dVext.size()==1 && eVars.n.size()==2) //Replicate potential for second spin:
-				dVext.push_back(dVext[0]->clone());
+			if(dVext->dVext.size()==1 && eVars.n.size()==2) //Replicate potential for second spin:
+				dVext->dVext.push_back(dVext->dVext[0]->clone());
 			
 		} else {
-			dVextpq.resize(dVexternalFilename.size());
-			for(unsigned s=0; s<dVextpq.size(); s++)
-			{	dVextpq[s] = complexScalarFieldData::alloc(e.gInfo);
-				logPrintf("Reading external perturbation potential from '%s'\n", dVexternalFilename[s].c_str());
-				loadRawBinary(dVextpq[s], dVexternalFilename[s].c_str());
+			dVext->dVextpq.resize(dVext->dVexternalFilename.size());
+			for(unsigned s=0; s<dVext->dVextpq.size(); s++)
+			{	dVext->dVextpq[s] = complexScalarFieldData::alloc(e.gInfo);
+				logPrintf("Reading external perturbation potential from '%s'\n", dVext->dVexternalFilename[s].c_str());
+				loadRawBinary(dVext->dVextpq[s], dVext->dVexternalFilename[s].c_str());
 			}
-			if(dVextpq.size()==1 && eVars.n.size()==2) //Replicate potential for second spin:
-				dVextpq.push_back(dVextpq[0]->clone());
+			if(dVext->dVextpq.size()==1 && eVars.n.size()==2) //Replicate potential for second spin:
+				dVext->dVextpq.push_back(dVext->dVextpq[0]->clone());
 			
-			dVextmq = conj(dVextpq);
+			dVext->dVextmq = conj(dVext->dVextpq);
 		}
-        VextPerturbationExists = true;
-	} else {
-		if(!incommensurate) {
-			dVext.resize(eVars.Vexternal.size());
-			nullToZero(dVext, e.gInfo);
-		} else {
-			dVextpq.resize(eVars.Vexternal.size());
-			dVextmq.resize(eVars.Vexternal.size());
-			nullToZero(dVextpq, e.gInfo);
-			nullToZero(dVextmq, e.gInfo);
-		}
-        VextPerturbationExists = false;
-		logPrintf("Note: dVext not loaded. Setting external perturbation to zero.\n");
 	}
-	//assert(dVext.size() == eVars.Vexternal.size());
+	//assert(dVext->dVext.size() == eVars.Vexternal.size());
 
-	if (incommensurate)
+	if (!commensurate)
 		read(e.eInfo, e, Cinc, wfnsFilename.c_str(), nullptr);
 
 	dn.resize(eVars.n.size());
 	dnpq.resize(eVars.n.size());
 	dnmq.resize(eVars.n.size());
+	
+	checkSupportedFeatures(e, e.eInfo);
 }
 
 
@@ -281,22 +310,69 @@ void PerturbationInfo::initInc(std::vector<ColumnBundle>& Y, int nbundles, int n
 	}
 }
 
-void PerturbationInfo::updateExcorrCache(const ExCorr& exc, const GridInfo& gInfo, const ScalarField& n)
+void PerturbationInfo::checkSupportedFeatures(const Everything &e, const ElecInfo &eInfo)
 {
-	int iDirStart, iDirStop;
-	TaskDivision(3, mpiWorld).myRange(iDirStart, iDirStop);
+	if(!(eInfo.fillingsUpdate==ElecInfo::FillingsConst && eInfo.scalarFillings))
+		die("Constant fillings only.");
+	if(e.exCorr.exxFactor())
+		die("Variational perturbation currently does not support exact exchange.");
+	if(e.eInfo.hasU)
+		die("Variational perturbation currently does not support DFT+U.");
+	if (e.exCorr.needsKEdensity())
+		die("Variational perturbation currently does not support KE density dependent functionals.");
+	if(!e.exCorr.hasEnergy())
+		die("Variational perturbation does not support potential functionals.");
+	if(e.exCorr.orbitalDep)
+		die("Variational perturbation currently does not support orbital dependent potential functionals.");
+	if(e.eVars.fluidParams.fluidType != FluidNone)
+		die("Variational perturbation does not support fluids.");
+	if (e.eVars.n.size() > 1)
+		die("Multiple spin channels not supported yet.");
+	if (e.coulombParams.geometry != CoulombParams::Geometry::Periodic && !commensurate)
+		die("Periodic coloumb interaction required for incommensurate perturbations.")
+
+		
+		
+	if (e.symm.mode != SymmetriesNone)
 	{
-		for(int i=iDirStart; i<iDirStop; i++) {
-			IDJn_cached[i] = I(D(J(n),i));
-        }
-
-		nullToZero(sigma_cached, gInfo);
-		initZero(sigma_cached);
-
-		for(int i=iDirStart; i<iDirStop; i++)
-			sigma_cached += IDJn_cached[i] * IDJn_cached[i];
-		sigma_cached->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+		if (!commensurate)
+			die("Symmetries are not supported with incommensurate perturbations.");
+		
+		logPrintf("Warning: VPT has not been tested with symmetries");
+		if (dVext) {
+			ScalarFieldArray dVext_sym = clone(dVext->dVext);
+			e.symm.symmetrize(dVext_sym);
+			if (nrm2(dVext_sym[0] - dVext->dVext[0])/nrm2(dVext->dVext[0]) < symmThreshold)
+			logPrintf("Warning: dVext->dVext does not obey symmetries.");
+		}
 	}
-	
-	exc.getSecondDerivatives(n, e_nn_cached, e_sigma_cached, e_nsigma_cached, e_sigmasigma_cached, 1e-9, &sigma_cached);
+		
+	for (auto sp: e.iInfo.species) {
+		if (sp->isRelativistic())
+			die("Relativistic potentials are not supported yet.");
+		if (sp->isUltrasoft() & !commensurate)
+			die("Ultrasoft potentials are compatible with commensurate perturbations only.");
+	}
+
+	if (e.exCorr.needFiniteDifferencing())
+	logPrintf("Excorr analytical derivative not available. Using finite differencing instead.\n");
+
+	if (!commensurate) {
+		if(e.eVars.wfnsFilename.empty() && wfnsFilename.empty()) {
+			die("Currently, incommensurate perturbations require ground state wavefunctions to be loaded in.\n");
+			//computeIncommensurateWfns();
+		} else if (!e.eVars.wfnsFilename.empty() && wfnsFilename.empty()) {
+			die("Please specify offset wavefunctions")
+		} else if (e.eVars.wfnsFilename.empty() && !wfnsFilename.empty()) {
+			die("Please specify ground state wavefunctions")
+		}
+	}
+}
+
+bool PerturbationInfo::densityAugRequired(const Everything &e) {
+	for (auto sp: e.iInfo.species) {
+		if (sp->isUltrasoft())
+			return true;
+	}
+	return false;
 }

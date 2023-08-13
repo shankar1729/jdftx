@@ -46,6 +46,17 @@ void SpeciesInfo::augmentOverlapDeriv(const ColumnBundle& Cq, ColumnBundle& OCq,
 	watch.stop();
 }
 
+void SpeciesInfo::augmentOverlapSecondDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV_A, ColumnBundle& dV_B, ColumnBundle& dsqV) const
+{	static StopWatch watch("augmentOverlapDeriv"); watch.start();
+	if(!atpos.size()) return; //unused species
+	if(!Qint.size()) return; //no overlap augmentation
+	OCq += V * (QintAll * (dsqV^Cq));
+	OCq += dV_A * (QintAll * (dV_B^Cq));
+	OCq += dV_B * (QintAll * (dV_A^Cq));
+	OCq += dsqV * (QintAll * (V^Cq));
+	watch.stop();
+}
+
 void SpeciesInfo::augmentSpinOverlap(const ColumnBundle& Cq, vector3<matrix>& Sq) const
 {	if(!atpos.size()) return; //unused species
 	if(!Qint.size()) return; //no overlap augmentation
@@ -119,7 +130,7 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 	const GridInfo &gInfo = e->gInfo;
 	complex* nAugData = nAug.data();
 	
-	int atoms = (atom >= 0)? 1 : atpos.size();
+	unsigned atoms = (atom >= 0)? 1 : atpos.size();
 	//Loop over atoms:
 	for(unsigned atomindex=0; atomindex<atoms; atomindex++)
 	{	//Get projections and calculate density matrix at this atom:
@@ -198,7 +209,7 @@ void SpeciesInfo::augmentDensityGrid(ScalarFieldArray& n, int atom, const vector
 	double* nAugRadialData = (double*)nAugRadial.dataPref();
 	for(unsigned s=0; s<n.size(); s++)
 	{	ScalarFieldTilde nAugTilde; nullToZero(nAugTilde, gInfo);
-		int atoms = (atom >= 0)? 1 : atpos.size();
+		unsigned atoms = (atom >= 0)? 1 : atpos.size();
 		for(unsigned atomindex=0; atomindex<atoms; atomindex++)
 		{	int atomOffs = (atom >= 0)? nCoeff * Nlm * s : nCoeff * Nlm * (atomindex + atpos.size()*s);
 			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, gInfo.iGstart, gInfo.iGstop, nCoeff, dGinv, nAugRadialData+atomOffs, atpos[(atom >= 0)? atom : atomindex], nAugTilde->dataPref(), atposDeriv);
@@ -252,7 +263,7 @@ void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vecto
 
 
 void SpeciesInfo::augmentDensityGridGradDeriv(const ScalarFieldArray& E_n, int atom, const vector3<>* atposDeriv)
-{	static StopWatch watch("augmentDensityGridGrad"); watch.start();
+{	static StopWatch watch("augmentDensityGridGradDeriv"); watch.start();
 	augmentDensityGrid_COMMON_INIT
 	if(!nAug) augmentDensityInit();
 	const GridInfo &gInfo = e->gInfo;

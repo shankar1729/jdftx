@@ -401,6 +401,29 @@ void Symmetries::calcSymmetries()
 		logPrintf("reduced to %lu space-group symmetries with electric field\n", sym.size());
 	}
 	
+	if(e->vptInfo.datom)
+	{	std::vector<SpaceGroupOp> symNew;
+		const PerturbationInfo& pInfo = e->vptInfo;
+		AtomicMode m = pInfo.datom->mode;
+		assert(m.sp >= 0 && m.sp < e->iInfo.species.size());
+		
+		auto sp = e->iInfo.species[m.sp];
+		assert(m.at >= 0 && m.at < sp->atpos.size());
+		
+		if (e->eInfo.spinType==SpinVector)
+			die("Error: Need to implement spinor symmetry checking in VPT");
+		
+		for(const SpaceGroupOp& op: sym)
+		{
+			if ((op.rot*sp->atpos[m.at]+op.a - sp->atpos[m.at]).length() > symmThreshold) continue;
+			if ((op.rot*m.dirLattice - m.dirLattice).length() > m.dirLattice.length()*symmThreshold) continue;
+			symNew.push_back(op);
+		}
+		
+		sym = symNew;
+		logPrintf("reduced to %lu space-group symmetries with atom perturbation\n", sym.size());
+	}
+	
 	//Make sure identity is the first symmetry
 	sortSymmetries();
 
@@ -629,6 +652,10 @@ void Symmetries::checkSymmetries()
 	if(isPertSup)
 	{	logPrintf("Reduced %lu manually specified symmetries of unit cell to %lu symmetries of perturbed supercell.\n", sym.size(), symReduced.size());
 		std::swap(sym, symReduced);
+	}
+	if(e->vptInfo.datom)
+	{
+		die("Error: Must implement perturbation symmetry checking for manual symmetries.");
 	}
 }
 

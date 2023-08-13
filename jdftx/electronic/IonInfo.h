@@ -131,6 +131,10 @@ public:
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
 	ColumnBundle getAtomicOrbitals(int q, bool applyO, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q, optionally with operator O pre-applied (with room for extra columns if specified)
 	
+	//TODO now public
+	//! Compute all pair-potential terms in the energy, forces or lattice derivative (E_RRT) (electrostatic, and optionally vdW)
+	void pairPotentialsAndGrad(class Energies* ener=0, IonicGradient* forces=0, matrix3<>* E_RRT=0) const;
+	
 	//! Method for determining ion charge width
 	enum IonWidthMethod
 	{	IonWidthEcut, //!< determine ion width from Ecut
@@ -145,8 +149,6 @@ private:
 	const Everything* e;
 	ScalarFieldTilde rhoIonBare; //rhoIon without ionWidth required for stress calculation
 	
-	//! Compute all pair-potential terms in the energy, forces or lattice derivative (E_RRT) (electrostatic, and optionally vdW)
-	void pairPotentialsAndGrad(class Energies* ener=0, IonicGradient* forces=0, matrix3<>* E_RRT=0) const;
 	
 	//! Compute pulay contributions to energy and optionally stress
 	double calcEpulay(matrix3<>* E_RRT=0) const;

@@ -121,7 +121,7 @@ public:
 	//! Orthonormalise wavefunctions, with an optional extra rotation
 	//! If extraRotation is present, it is applied after symmetric orthononormalization,
 	//! and on output extraRotation contains the net transformation applied to the wavefunctions.
-	void orthonormalize(int q, matrix* extraRotation=0);
+	void orthonormalize(int q, matrix* extraRotation=0, bool useInvSqrt = false);
 	
 	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, and computes Hsub if necessary, for a single quantum number
 	//! If Hsub is computed, diagonalize_Hsub controls whether it is diagonalized (no effect if need_Hsub=false).

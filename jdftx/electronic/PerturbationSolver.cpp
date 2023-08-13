@@ -13,6 +13,7 @@
 #include <electronic/ExCorr.h>
 #include <core/matrix.h>
 #include <core/Units.h>
+#include <core/Minimize.h>
 #include <core/ScalarField.h>
 #include <core/ScalarFieldIO.h>
 #include <core/Operators.h>
@@ -25,10 +26,10 @@
 void PerturbationGradient::init(const Everything& e)
 {	eInfo = &e.eInfo;
 	pInfo = &e.vptInfo;
-	if (pInfo->incommensurate)
-		dY.resize(eInfo->nStates*2);
+	if (pInfo->commensurate)
+		X.resize(eInfo->nStates);
 	else
-		dY.resize(eInfo->nStates);
+		X.resize(eInfo->nStates*2);
 }
 
 PerturbationGradient& PerturbationGradient::operator*=(double alpha)
@@ -37,8 +38,8 @@ PerturbationGradient& PerturbationGradient::operator*=(double alpha)
 
 	for(int q=eInfo->qStart; q<eInfo->qStop; q++)
 	{
-		if(dY[q]) dY[q] *= alpha;
-		if (pInfo->incommensurate) if(dY[q+nStates]) dY[q+nStates] *= alpha;
+		if( X[q]) X[q] *= alpha;
+		if (!pInfo->commensurate) if( X[q+nStates]) X[q+nStates] *= alpha;
 	}
 
 	return *this;
@@ -51,8 +52,8 @@ void axpy(double alpha, const PerturbationGradient& x, PerturbationGradient& y)
 
 	for(int q=x.eInfo->qStart; q<x.eInfo->qStop; q++)
 	{
-		if(x.dY[q]) { if(y.dY[q]) axpy(alpha, x.dY[q], y.dY[q]); else y.dY[q] = alpha*x.dY[q]; }
-		if (x.pInfo->incommensurate) if(x.dY[q+nStates]) { if(y.dY[q+nStates]) axpy(alpha, x.dY[q+nStates], y.dY[q+nStates]); else y.dY[q+nStates] = alpha*x.dY[q+nStates]; }
+		if(x.X[q]) { if(y.X[q]) axpy(alpha, x.X[q], y.X[q]); else y.X[q] = alpha*x.X[q]; }
+		if (!x.pInfo->commensurate) if(x.X[q+nStates]) { if(y.X[q+nStates]) axpy(alpha, x.X[q+nStates], y.X[q+nStates]); else y.X[q+nStates] = alpha*x.X[q+nStates]; }
 	}
 }
 
@@ -64,8 +65,8 @@ double dot(const PerturbationGradient& x, const PerturbationGradient& y)
 
 	for(int q=x.eInfo->qStart; q<x.eInfo->qStop; q++)
 	{
-		if(x.dY[q] && y.dY[q]) result += dotc(x.dY[q], y.dY[q]).real()*2.0;
-		if (x.pInfo->incommensurate) if(x.dY[q+nStates] && y.dY[q+nStates]) result += dotc(x.dY[q+nStates], y.dY[q+nStates]).real()*2.0;
+		if(x.X[q] && y.X[q]) result += dotc(x.X[q], y.X[q]).real()*2.0;
+		if (!x.pInfo->commensurate) if(x.X[q+nStates] && y.X[q+nStates]) result += dotc(x.X[q+nStates], y.X[q+nStates]).real()*2.0;
 	}
 
 	mpiWorld->allReduce(result, MPIUtil::ReduceSum);
@@ -80,7 +81,7 @@ double dot(const std::vector<ColumnBundle>& x, const std::vector<ColumnBundle>& 
 	for(int q=eInfo->qStart; q<eInfo->qStop; q++)
 	{
 		if(x[q] && y[q]) result += dotc(x[q], y[q]).real()*2.0;
-		if (pInfo->incommensurate) if(x[q+nStates] && y[q+nStates]) result += dotc(x[q+nStates], y[q+nStates]).real()*2.0;
+		if (!pInfo->commensurate) if(x[q+nStates] && y[q+nStates]) result += dotc(x[q+nStates], y[q+nStates]).real()*2.0;
 	}
 
 	mpiWorld->allReduce(result, MPIUtil::ReduceSum);
@@ -88,12 +89,13 @@ double dot(const std::vector<ColumnBundle>& x, const std::vector<ColumnBundle>& 
 }
 
 PerturbationGradient clone(const PerturbationGradient& x)
-{	return x;
+{	
+	return x;
 }
 
 void randomize(PerturbationGradient& x)
 {
-	randomize(x.dY, *x.eInfo);
+	randomize(x.X, *x.eInfo);
 }
 
 ScalarField randomRealSpaceVector(ColumnBundle& ref, const GridInfo* gInfo) {
@@ -130,236 +132,69 @@ void printVvpt(ScalarField V) {
 	logPrintf("Vector values %g %g %g %g %g %g %g %g %g %g\n", dat[0], dat[1], dat[2], dat[3], dat[4], dat[5], dat[6], dat[7], dat[8], dat[9]);
 }
 
-ScalarFieldArray PerturbationSolver::getdn(const std::vector<ColumnBundle>* dC, const std::vector<ColumnBundle>* C)
-{	static StopWatch watch("getdn"); watch.start();
-	ScalarFieldArray density(eVars.n.size());
-	nullToZero(density, e.gInfo);
-
-	//Runs over all states and accumulates density to the corresponding spin channel of the total density
-	e.iInfo.augmentDensityInit();
-	
-	std::vector<matrix> VdagdCq;
-
-	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{
-		if (ultrasoftDensityAugRequired) {
-			VdagdCq.resize(e.iInfo.species.size());
-			e.iInfo.project((*dC)[q], VdagdCq);
-		}
-		
-		if (C) {
-			std::vector<matrix> VdagCq(e.iInfo.species.size());
-			e.iInfo.project((*C)[q], VdagCq); //update the atomic projections
-			
-			density += 2.0*e.eInfo.qnums[q].weight * Real(diagouterI(eVars.F[q], (*C)[q], (*dC)[q], density.size(), &e.gInfo));
-			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], VdagCq, &VdagdCq);
-		} else {
-			density += 2.0*e.eInfo.qnums[q].weight * Real(diagouterI(eVars.F[q], eVars.C[q], (*dC)[q], density.size(), &e.gInfo));
-			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], eVars.VdagC[q], &VdagdCq);
-		}
-	}
-	e.iInfo.augmentDensityGrid(density);
-	for(ScalarField& ns: density)
-	{	nullToZero(ns, e.gInfo);
-		ns->allReduceData(mpiWorld, MPIUtil::ReduceSum);
-	}
-	e.symm.symmetrize(density);
-	watch.stop();
-	return density;
-}
-
-
-ScalarFieldArray PerturbationSolver::getdnatom()
-{	
-	/*auto m = pInfo.atomdisplacement;
-	auto sp = iInfo.species[m.sp];
-	ScalarFieldArray n1 = getn(eVars.C);
-	vector3<> pos1 = sp->atpos[m.at];
-	vector3<> pos2 = pos1 + e.gInfo.invR*m.dir;
-	
-	sp->atpos[m.at] = pos2;
-	sp->sync_atpos();
-	e.iInfo.update(e.ener);
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
-	}
-	
-	ScalarFieldArray n2 = getn(eVars.C);
-	
-	sp->atpos[m.at] = pos1;
-	sp->sync_atpos();
-	e.iInfo.update(e.ener);
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
-	}
-	
-	return (n2 - n1);*/
-	
-	static StopWatch watch("getdn"); watch.start();
-	ScalarFieldArray density(eVars.n.size());
-	
-	nullToZero(density, e.gInfo);
-	
-	if (ultrasoftDensityAugRequired && pInfo.atposPerturbationExists) {
-		PerturbationInfo::Mode m = pInfo.atomdisplacement;
-		auto sp = iInfo.species[m.sp];
-		//Runs over all states and accumulates density to the corresponding spin channel of the total density
-		sp->augmentDensityInit(m.at);
-		
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{
-			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], pInfo.VdagCatom_cached[q], &pInfo.dVdagCatom_cached[q], 0, m.at);
-		}
-		sp->augmentDensityGrid(density, m.at);
-		
-		
-		sp->augmentDensityInit(m.at);
-		
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{
-			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], pInfo.VdagCatom_cached[q], 0, 0, m.at);
-		}
-		sp->augmentDensityGrid(density, m.at, &m.dirLattice);
-		
-		for(ScalarField& ns: density)
-		{	nullToZero(ns, e.gInfo);
-			ns->allReduceData(mpiWorld, MPIUtil::ReduceSum);
-		}
-		e.symm.symmetrize(density);
-	}
-	watch.stop();
-	return density;
-}
-
-//TODO Add nonlocal density aug terms in
-void PerturbationSolver::getdnInc(const std::vector<ColumnBundle>* dC, const std::vector<ColumnBundle>* C, complexScalarFieldArray& dnpq, complexScalarFieldArray& dnmq)
-{   static StopWatch watch("getdnInc"); watch.start();
-	ScalarFieldArray dnpq_aug(dnpq.size()), dnmq_aug(dnmq.size());
-	for (unsigned int s = 0; s < dnpq_aug.size(); s++) {
-		nullToZero(dnpq_aug[s], e.gInfo);
-		nullToZero(dnpq[s], e.gInfo);
-		dnpq[s] = 0*dnpq[s];
-	}
-	for (unsigned int s = 0; s < dnmq_aug.size(); s++) {
-		nullToZero(dnmq_aug[s], e.gInfo);
-		nullToZero(dnmq[s], e.gInfo);
-		dnmq[s] = 0*dnmq[s];
-	}
-
-	if (C)
-		die("Density augmentation terms must be added to getdnInc.");
-
-	
-	std::vector<matrix> VdagdCTinvk_k, VdagdCTk_k;
-	
-	if (ultrasoftDensityAugRequired) {
-		VdagdCTinvk_k.resize(e.iInfo.species.size());
-		VdagdCTk_k.resize(e.iInfo.species.size());
-		
-		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{
-			int Tk_k = q;
-			int Tinvk_k = q+e.eInfo.nStates;
-			
-			e.iInfo.project((*dC)[Tinvk_k], VdagdCTinvk_k); //update the atomic projections
-			e.iInfo.project((*dC)[Tk_k], VdagdCTk_k); //update the atomic projections
-		}
-	}
-	
-	//Runs over all states and accumulates density to the corresponding spin channel of the total density
-	e.iInfo.augmentDensityInit();
-	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{
-		int Tk_k = q;
-		int Tinvk_k = q+e.eInfo.nStates;
-
-		dnpq += e.eInfo.qnums[q].weight * diagouterI(eVars.F[q], eVars.C[q], (*dC)[Tinvk_k], dnpq.size(), &e.gInfo);
-		dnpq += e.eInfo.qnums[q].weight * diagouterI(eVars.F[q], (*dC)[Tk_k], eVars.C[q], dnpq.size(), &e.gInfo);
-		e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], eVars.VdagC[q], &VdagdCTk_k, &VdagdCTinvk_k); //pseudopotential contribution
-	}
-
-	e.iInfo.augmentDensityGrid(dnpq_aug);
-
-	//logPrintf("testt");
-	//printV(dnpq_aug[0]);
-
-	//TODO ADD BACK
-	//dnpq += Complex(dnpq_aug);
-
-	for(complexScalarField& ns: dnpq)
-	{	nullToZero(ns, e.gInfo);
-		ns->allReduceData(mpiWorld, MPIUtil::ReduceSum);
-	}
-
-	//Redundant calculation since dnpq = dnmq* in theory
-	/*
-	e.iInfo.augmentDensityInit();
-	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{
-		int Tk_k = q;
-		int Tinvk_k = q+e.eInfo.nStates;
-
-		dnmq += e.eInfo.qnums[q].weight * diagouterI(eVars.F[q], eVars.C[q], (*dC)[Tk_k], dnmq.size(), &e.gInfo);
-		dnmq += e.eInfo.qnums[q].weight * diagouterI(eVars.F[q], (*dC)[Tinvk_k], eVars.C[q], dnmq.size(), &e.gInfo);
-		e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], eVars.VdagC[q], &VdagdCTinvk_k, &VdagdCTk_k); //pseudopotential contribution
-	}
-
-	e.iInfo.augmentDensityGrid(dnmq_aug);
-
-	//TODO ADD BACK
-	//dnmq += Complex(dnmq_aug);
-	for(complexScalarField& ns: dnmq)
-	{	nullToZero(ns, e.gInfo);
-		ns->allReduceData(mpiWorld, MPIUtil::ReduceSum);
-	}*/
-
-	e.symm.symmetrize(dnpq);
-	//e.symm.symmetrize(dnmq);
-	
-	dnmq = conj(dnpq);
-	
-	watch.stop();
-}
-
-
-ScalarFieldArray PerturbationSolver::getn(const std::vector<ColumnBundle>& C)
-{	static StopWatch watch("getn"); watch.start();
-	ScalarFieldArray density(eVars.n.size());
-	nullToZero(density, e.gInfo);
-
-	//Runs over all states and accumulates density to the corresponding spin channel of the total density
-	e.iInfo.augmentDensityInit();
-	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-	{
-		std::vector<matrix> VdagCq(e.iInfo.species.size());
-		e.iInfo.project(C[q], VdagCq); //update the atomic projections
-
-		density += e.eInfo.qnums[q].weight * diagouterI(eVars.F[q], C[q], density.size(), &e.gInfo);
-		e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], VdagCq); //pseudopotential contribution
-	} //TODO get rid of eVars.VdagC and compute nl pp from C
-	e.iInfo.augmentDensityGrid(density);
-	for(ScalarField& ns: density)
-	{	nullToZero(ns, e.gInfo);
-		ns->allReduceData(mpiWorld, MPIUtil::ReduceSum);
-	}
-	e.symm.symmetrize(density);
-	watch.stop();
-	return density;
-}
-
-
 PerturbationSolver::PerturbationSolver(Everything& e) : e(e), eVars(e.eVars), eInfo(e.eInfo), iInfo(e.iInfo), pInfo(e.vptInfo) {}
 
-double PerturbationSolver::compute(PerturbationGradient* grad, PerturbationGradient* Kgrad)
-{
-	if(grad) grad->init(e);
-	if(Kgrad) Kgrad->init(e);
 
-	if (!pInfo.incommensurate) {
+//TODO Implement GPU code for ultrasoft derivs
+//TODO Eliminate redundant zeros
+//TODO Test symmetries (some more)
+//TODO Test multiple nSpins
+void PerturbationSolver::solvePerturbation() {
+	if (!e.vptParams.nIterations)
+		die("Error: Must specify nIterations for variational perturbation solver.\n")
+		
+	logPrintf("Variational perturbation solver is starting.\n");
+	
+	if(pInfo.commensurate && e.eVars.wfnsFilename.empty() && !e.eVars.skipWfnsInit) {
+		logPrintf("No input wavefunctions given. Performing electronic structure calculation first.\n");
+		elecFluidMinimize(e);
+	}
+	
+	state.init(e);
+	init(state.X, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+	if (pInfo.commensurate) {
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+			state.X[q].zero();
+	} else {
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+			state.X[q].zero();
+			state.X[q+eInfo.nStates].zero();
+		}
+	}
+	
+	eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
+
+	updateExcorrCache();
+	updateHC();
+	updateNonlocalDerivs();
+	
+	pInfo.dGradTau.init(e);
+	pInfo.dGradPsi.init(e);
+	
+	calcdGradTau();
+	
+	solve(pInfo.dGradTau, e.vptParams);
+	
+	hessian(pInfo.dGradPsi, state);
+}
+
+void PerturbationSolver::precondition(PerturbationGradient& v) {
+	//Apply inverse kinetic preconditioner
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		precond_inv_kinetic(v.X[q], 1);
+		if (!pInfo.commensurate) precond_inv_kinetic(v.X[q + eInfo.nStates], 1);
+	}
+}
+
+void PerturbationSolver::hessian(PerturbationGradient& Av, const PerturbationGradient& v) {
+	static StopWatch watch("dGradPsi"); watch.start();
+	Av.init(e);
+	
+	if (pInfo.commensurate) {
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 			//pInfo.dU[q] = (pInfo.dY[q]^O(eVars.C[q])) + (eVars.C[q]^O(pInfo.dY[q]));
-			pInfo.dU[q] = 2*dagger_symmetrize(pInfo.dY[q]^pInfo.OC[q]);
-			pInfo.dC[q] = pInfo.dY[q];
+			pInfo.dU[q] = 2*dagger_symmetrize(v.X[q]^pInfo.OC[q]);
+			pInfo.dC[q] = v.X[q];
 			pInfo.dC[q] -= 0.5*(eVars.C[q]*pInfo.dU[q]);
 		}
 	} else {
@@ -369,13 +204,12 @@ double PerturbationSolver::compute(PerturbationGradient* grad, PerturbationGradi
 			int Tk = q ;
 			int Tinvk = q + e.eInfo.nStates;
 
-			pInfo.dC[Tk_k] = pInfo.dY[Tk_k] - O(pInfo.Cinc[Tk]*(pInfo.Cinc[Tk]^pInfo.dY[Tk_k]));
-			pInfo.dC[Tinvk_k] = pInfo.dY[Tinvk_k] - O(pInfo.Cinc[Tinvk]*(pInfo.Cinc[Tinvk]^pInfo.dY[Tinvk_k]));
+			pInfo.dC[Tk_k] = v.X[Tk_k] - O(pInfo.Cinc[Tk]*(pInfo.Cinc[Tk]^v.X[Tk_k]));
+			pInfo.dC[Tinvk_k] = v.X[Tinvk_k] - O(pInfo.Cinc[Tinvk]*(pInfo.Cinc[Tinvk]^v.X[Tinvk_k]));
 		}
 	}
-
-	if (!pInfo.incommensurate) {
-		pInfo.dn = getdn(&pInfo.dC);
+	if (pInfo.commensurate) {
+		getdn(pInfo.dn, &pInfo.dC);
 		getdVsclocPsi(pInfo.dn, pInfo.dVscloc);
 		e.iInfo.augmentDensityGridGrad(pInfo.dVscloc);
 		pInfo.E_nAug_dVsclocpsi = iInfo.getE_nAug();
@@ -385,27 +219,26 @@ double PerturbationSolver::compute(PerturbationGradient* grad, PerturbationGradi
 		pInfo.dVsclocmq = conj(pInfo.dVsclocpq);
 	}
 
-	if (!pInfo.incommensurate) {
+	if (pInfo.commensurate) {
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 			const QuantumNumber& qnum = e.eInfo.qnums[q];
-			ColumnBundle dwGradEq;
-			matrix dHtilde;
-			dwGradEq.zero(); 
+			ColumnBundle dwGradEq, dHCq = eVars.C[q].similar(), HdCq = eVars.C[q].similar();
 
 			diagMatrix F = eVars.F[q];
-			applyH(e.eInfo.qnums[q], eVars.F[q], pInfo.HdC[q], pInfo.dC[q]);
-			dHpsi(e.eInfo.qnums[q], pInfo.dHC[q], eVars.C[q], pInfo.dVscloc, &eVars.VdagC[q]);
+			applyH(e.eInfo.qnums[q], eVars.F[q], HdCq, pInfo.dC[q]);
+			dHpsi(e.eInfo.qnums[q], dHCq, eVars.C[q], pInfo.dVscloc, &eVars.VdagC[q]);
 
-			dHtilde = (pInfo.dC[q]^pInfo.HC[q]) + (eVars.C[q]^pInfo.dHC[q]) + (eVars.C[q]^pInfo.HdC[q]);
+			pInfo.dHsub[q] = (pInfo.dC[q]^pInfo.HC[q]) + (eVars.C[q]^dHCq) + (eVars.C[q]^HdCq);
 
-			dwGradEq = pInfo.dHC[q];
-			dwGradEq += pInfo.HdC[q];
-			//dwGradEq -= O(eVars.C[q]*dHtilde);
-			//dwGradEq -= O(pInfo.dC[q]*eVars.Hsub[q]);
-			dwGradEq -= O(eVars.C[q]*dHtilde+pInfo.dC[q]*eVars.Hsub[q]);
-			//dU correction term?
+			dwGradEq = dHCq;
+			dwGradEq += HdCq;
+			dwGradEq -= O(eVars.C[q]*pInfo.dHsub[q]+pInfo.dC[q]*eVars.Hsub[q]);
+			
+			dwGradEq = dwGradEq*eVars.F[q];
+			
+			dwGradEq += (-0.5)*pInfo.grad[q]*eVars.F[q]*pInfo.dU[q]; //Second order correction term to be used if C does not minimize energy exactly
 
-			pInfo.dGradPsi[q] = dwGradEq*F*qnum.weight;
+			Av.X[q] = dwGradEq*qnum.weight;
 		}
 	} else {
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
@@ -441,102 +274,78 @@ double PerturbationSolver::compute(PerturbationGradient* grad, PerturbationGradi
 			dwGradEq_Tinvk_k -= O(pInfo.Cinc[Tinvk]*(pInfo.Cinc[Tinvk]^dHC_Tinvk_k));
 			dwGradEq_Tinvk_k -= O(pInfo.dC[Tinvk_k]*eVars.Hsub[q]);
 
-			pInfo.dGradPsi[Tk_k] = (dwGradEq_Tk_k - O(pInfo.Cinc[Tk]*(pInfo.Cinc[Tk]^dwGradEq_Tk_k)))*F*qnum.weight;
-			pInfo.dGradPsi[Tinvk_k] = (dwGradEq_Tinvk_k - O(pInfo.Cinc[Tinvk]*(pInfo.Cinc[Tinvk]^dwGradEq_Tinvk_k)))*F*qnum.weight;
+			Av.X[Tk_k] = (dwGradEq_Tk_k - O(pInfo.Cinc[Tk]*(pInfo.Cinc[Tk]^dwGradEq_Tk_k)))*F*qnum.weight;
+			Av.X[Tinvk_k] = (dwGradEq_Tinvk_k - O(pInfo.Cinc[Tinvk]*(pInfo.Cinc[Tinvk]^dwGradEq_Tinvk_k)))*F*qnum.weight;
 		}
 	}
-
-	//Objective function is 1/2 x^T*A*x + b^T*x whose derivative is A*x+b
-	double ener = 0.5*dot(pInfo.dY, pInfo.dGradPsi, &pInfo, &e.eInfo) + dot(pInfo.dY, pInfo.dGradTau, &pInfo, &e.eInfo);
-
-	//logPrintf("x^Ax = %f\n", dot(pInfo.dY, pInfo.dGradPsi, &pInfo, &e.eInfo));
-	//logPrintf("b^x = %f\n", dot(pInfo.dY, pInfo.dGradTau, &pInfo, &e.eInfo));
-
-	//Apply preconditioner
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		if (grad) {
-			grad->dY[q] = pInfo.dGradPsi[q] + pInfo.dGradTau[q];
-			if (pInfo.incommensurate) grad->dY[q + eInfo.nStates] = pInfo.dGradPsi[q + eInfo.nStates] + pInfo.dGradTau[q + eInfo.nStates];
-
-			if (Kgrad) {
-				Kgrad->dY[q] = grad->dY[q];
-				precond_inv_kinetic(Kgrad->dY[q], 1);
-
-				if (pInfo.incommensurate) {
-					Kgrad->dY[q + eInfo.nStates] = grad->dY[q + eInfo.nStates];
-					precond_inv_kinetic(Kgrad->dY[q + eInfo.nStates], 1);
-				}
-			}
-		}
-	}
-
-	return ener;
+	
+	watch.stop();
 }
 
 void PerturbationSolver::calcdGradTau() {
-
-	if (!pInfo.incommensurate) {
+	static StopWatch watch("dGradTau"); watch.start();
+	if (pInfo.commensurate) {
 		
-		nullToZero(pInfo.dVsclocatom, e.gInfo);
-		getdVsclocTau(pInfo.dVsclocatom);
-		
-		if (pInfo.atposPerturbationExists && ultrasoftDensityAugRequired) {
+		if (pInfo.datom && pInfo.datom->isUltrasoft(iInfo)) {
+			getdnatom(pInfo.datom->dnatom);
+			
 			for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 				ColumnBundle dOC = eVars.C[q].similar();
 				dOC.zero();
 				
-				iInfo.species[pInfo.atomdisplacement.sp]->augmentOverlapDeriv(eVars.C[q], dOC, pInfo.Vatom_cached[q], pInfo.dVatom_cached[q]);
-				pInfo.dUsqrtinvatom[q] = (-0.5)*eVars.C[q]^dOC;
+				iInfo.species[pInfo.datom->mode.sp]->augmentOverlapDeriv(eVars.C[q], dOC, pInfo.datom->Vatom_cached[q], pInfo.datom->dVatom_cached[q]);
+				pInfo.dUmhalfatom[q] = (-0.5)*eVars.C[q]^dOC;
 				
-				pInfo.dCatom[q] = eVars.C[q]*pInfo.dUsqrtinvatom[q];
+				pInfo.datom->dCatom[q] = eVars.C[q]*pInfo.dUmhalfatom[q];
 			}
 			
-			pInfo.dnatom = getdn(&pInfo.dCatom);
-			ScalarFieldArray dVsclocTmp;
-			dVsclocTmp.resize(pInfo.dVsclocatom.size());
-			getdVsclocPsi(pInfo.dnatom, dVsclocTmp);
-			pInfo.dVsclocatom += dVsclocTmp;
+			ScalarFieldArray dnCatom(eVars.n.size());
+			nullToZero(dnCatom, e.gInfo);
+			getdn(dnCatom, &pInfo.datom->dCatom);
+			pInfo.datom->dnatom += dnCatom;
 		}
 		
-		iInfo.augmentDensityGridGrad(pInfo.dVsclocatom);
+		nullToZero(pInfo.dVsclocTau, e.gInfo);
+		
+		if (pInfo.datom && pInfo.datom->isUltrasoft(iInfo))
+			getdVsclocTau(pInfo.dVsclocTau, &pInfo.datom->dnatom);
+		else
+			getdVsclocTau(pInfo.dVsclocTau);
+		
+		iInfo.augmentDensityGridGrad(pInfo.dVsclocTau);
 		pInfo.E_nAug_dVscloctau = iInfo.getE_nAug();
 			
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 			const QuantumNumber& qnum = e.eInfo.qnums[q];
-			ColumnBundle dwGradEq;
-			matrix dHtilde;
+			ColumnBundle dwGradEq, dHCq = eVars.C[q].similar(), HdCq = eVars.C[q].similar();
 			diagMatrix F = eVars.F[q];
 
-			dHtau(e.eInfo.qnums[q], pInfo.dHCatom[q], eVars.C[q], pInfo.dVsclocatom);
-			dHtilde = eVars.C[q]^pInfo.dHCatom[q];
-
-			dwGradEq = pInfo.dHCatom[q]*F;
-			dwGradEq -= pInfo.OC[q]*(dHtilde*F);
+			dHtau(e.eInfo.qnums[q], dHCq, eVars.C[q], pInfo.dVsclocTau);
+			pInfo.dHsubatom[q] = eVars.C[q]^dHCq;
 			
-			if(pInfo.atposPerturbationExists && ultrasoftDensityAugRequired) {
+			if(pInfo.datom && pInfo.datom->isUltrasoft(iInfo)) {
+				applyH(e.eInfo.qnums[q], eVars.F[q], HdCq, pInfo.datom->dCatom[q]);
+				pInfo.dHsubatom[q] += (pInfo.datom->dCatom[q]^pInfo.HC[q]) + (eVars.C[q]^HdCq);
+			}
+
+			dwGradEq = dHCq;
+			dwGradEq -= pInfo.OC[q]*pInfo.dHsubatom[q];
+			
+			if(pInfo.datom && pInfo.datom->isUltrasoft(iInfo)) {
 				//Atom perturbation causes wfns to become unnormalized, so dC needs to be factored in the gradient
-
-				applyH(e.eInfo.qnums[q], eVars.F[q], pInfo.HdCatom[q], pInfo.dCatom[q]);
-				dHtilde = (pInfo.dCatom[q]^pInfo.HC[q]) + (eVars.C[q]^pInfo.HdCatom[q]);
-
-				dwGradEq += pInfo.HdCatom[q]*F;
-				dwGradEq -= pInfo.OC[q]*(dHtilde*F);
-				dwGradEq -= O(pInfo.dCatom[q]*(eVars.Hsub[q]*F));
-				
+				dwGradEq += HdCq;
+				dwGradEq -= O(pInfo.datom->dCatom[q]*eVars.Hsub[q]);
 				
 				//Derivative of overlap operator w.r.t atpos
-				
-				ColumnBundle CCdagHCF, grad;
-				
-				CCdagHCF = (-1)*eVars.C[q]*(eVars.C[q]^(pInfo.HC[q]*F));
-				grad = pInfo.HC[q]*F;
-				grad -= pInfo.OC[q]*(eVars.Hsub[q]*F);
-				
-				iInfo.species[pInfo.atomdisplacement.sp]->augmentOverlapDeriv(CCdagHCF, dwGradEq, pInfo.Vatom_cached[q], pInfo.dVatom_cached[q]);
-				dwGradEq += grad*pInfo.dUsqrtinvatom[q]; //Correction term 
+				iInfo.species[pInfo.datom->mode.sp]->augmentOverlapDeriv((-1)*eVars.C[q]*eVars.Hsub[q], dwGradEq, pInfo.datom->Vatom_cached[q], pInfo.datom->dVatom_cached[q]);
 			}
 			
-			pInfo.dGradTau[q] = dwGradEq*qnum.weight;
+			dwGradEq = dwGradEq*F;
+			
+			if(pInfo.datom && pInfo.datom->isUltrasoft(iInfo))
+				dwGradEq += pInfo.grad[q]*(pInfo.dUmhalfatom[q]*F); //Correction term 
+			
+			pInfo.dGradTau.X[q] = dwGradEq*qnum.weight;
 		}
 	} else {
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
@@ -561,16 +370,17 @@ void PerturbationSolver::calcdGradTau() {
 			dHtau(pInfo.Tinvk_vectors[q], dHC_Tinvk_k, eVars.C[q], -1);
 			dwGradEq_Tinvk_k = dHC_Tinvk_k - O(pInfo.Cinc[Tinvk]*(pInfo.Cinc[Tinvk]^dHC_Tinvk_k));
 
-			pInfo.dGradTau[Tk_k] = dwGradEq_Tk_k*F*qnum.weight;
-			pInfo.dGradTau[Tinvk_k] = dwGradEq_Tinvk_k*F*qnum.weight;
+			pInfo.dGradTau.X[Tk_k] = dwGradEq_Tk_k*F*qnum.weight;
+			pInfo.dGradTau.X[Tinvk_k] = dwGradEq_Tinvk_k*F*qnum.weight;
 		}
 	}
+	
+	watch.stop();
 }
 
 void PerturbationSolver::getGrad(std::vector<ColumnBundle> *grad, std::vector<ColumnBundle> Y) {
-	if (!pInfo.testing)
-		die("This was not supposed to happen.");
-
+	assert(pInfo.testing);
+	
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		const QuantumNumber& qnum = e.eInfo.qnums[q];
 		ColumnBundle HC, gradq, HCFUmhalf;
@@ -583,120 +393,14 @@ void PerturbationSolver::getGrad(std::vector<ColumnBundle> *grad, std::vector<Co
 
 		applyH(qnum, F, HC, eVars.C[q]);
 
-		HtildeCommF = eVars.Hsub[q]*F - F*eVars.Hsub[q];
+		//HtildeCommF = eVars.Hsub[q]*F - F*eVars.Hsub[q];
 		matrix Usqrtinv = invsqrt(Y[q]^O(Y[q]));
-		ColumnBundle HCFUsqrtinv = HC*(F*Usqrtinv);
+		//ColumnBundle HCFUsqrtinv = HC*(F*Usqrtinv);
 		gradq = HC;
 		gradq -= O(eVars.C[q]*eVars.Hsub[q]);
 		//gradq += 0.5*O(eVars.C[q]*HtildeCommF);
 		(*grad)[q]  = gradq*F*Usqrtinv*qnum.weight;
 	}
-}
-
-void PerturbationSolver::step(const PerturbationGradient& dir, double alpha)
-{	assert(dir.eInfo == &eInfo);
-
-	int nStates = eInfo.nStates;
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		axpy(alpha, dir.dY[q], e.vptInfo.dY[q]);
-		if (pInfo.incommensurate) axpy(alpha, dir.dY[q+nStates], e.vptInfo.dY[q+nStates]);
-	}
-}
-
-void PerturbationSolver::constrain(PerturbationGradient&)
-{
-	return;
-}
-
-//TODO Move checks to command section and use forbid
-//TODO Implement GPU code for ultrasoft derivs
-double PerturbationSolver::minimize(const MinimizeParams& params)
-{
-	logPrintf("VPT solver is starting.\n");
-	if(!(eInfo.fillingsUpdate==ElecInfo::FillingsConst && eInfo.scalarFillings))
-		die("Constant fillings only.");
-	if(e.exCorr.exxFactor())
-		die("Variational perturbation currently does not support exact exchange.");
-	if(e.eInfo.hasU)
-		die("Variational perturbation currently does not support DFT+U.");
-	if (e.exCorr.needsKEdensity())
-		die("Variational perturbation currently does not support KE density dependent functionals.");
-	if(!e.exCorr.hasEnergy())
-		die("Variational perturbation does not support potential functionals.");
-	if(e.exCorr.orbitalDep)
-		die("Variational perturbation currently does not support orbital dependent potential functionals.");
-	if(eVars.fluidParams.fluidType != FluidNone)
-		die("Variational perturbation does not support fluids.");
-	if (e.symm.mode != SymmetriesNone)
-		die("Variational perturbation has not been tested with symmetries yet.");
-	if (eVars.n.size() > 1)
-		die("Multiple spin channels not supported yet.");
-	if (e.coulombParams.geometry != CoulombParams::Geometry::Periodic && pInfo.incommensurate)
-		die("Periodic coloumb interaction required for incommensurate perturbations.")
-
-	for (auto sp: e.iInfo.species) {
-		if (sp->isRelativistic())
-			die("Relativistic potentials are not supported yet.");
-		if (sp->isUltrasoft() & pInfo.incommensurate)
-			die("Ultrasoft potentials are compatible with commensurate perturbations only.");
-		
-		ultrasoftDensityAugRequired |= sp->isUltrasoft();
-	}
-
-	if (e.exCorr.needFiniteDifferencing())
-	logPrintf("Excorr analytical derivative not available. Using finite differencing instead.\n");
-
-
-	if (!pInfo.incommensurate) {
-		if(eVars.wfnsFilename.empty()) {
-			logPrintf("No input wavefunctions given. Performing electronic structure calculation.\n");
-			elecFluidMinimize(e);
-		}
-	} else {
-		if(eVars.wfnsFilename.empty() && pInfo.wfnsFilename.empty()) {
-			die("Currently, incommensurate perturbations require prior specification of ground state wavefunctions.\n");
-			//computeIncommensurateWfns();
-		} else if (!eVars.wfnsFilename.empty() && pInfo.wfnsFilename.empty()) {
-			die("Please specify offset wavefunctions")
-		} else if (eVars.wfnsFilename.empty() && !pInfo.wfnsFilename.empty()) {
-			die("Please specify ground state wavefunctions")
-		}
-	}
-	
-	//Initialize vars to random values
-	if (!pInfo.incommensurate) {
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			pInfo.dY[q].randomize(0, pInfo.dY[q].nCols());
-	} else {
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-			pInfo.dY[q].randomize(0, pInfo.dY[q].nCols());
-			pInfo.dY[q+eInfo.nStates].randomize(0, pInfo.dY[q+eInfo.nStates].nCols());
-		}
-	}
-
-	if (!eVars.wfnsFilename.empty()) {
-		Energies ener;
-		eVars.elecEnergyAndGrad(ener, 0, 0, true);
-	}
-
-	//e.iInfo.augmentDensityGridGrad(eVars.Vscloc);
-	pInfo.updateExcorrCache(e.exCorr, e.gInfo, eVars.get_nXC()[0]);
-	updateHC();
-	updateNonlocalDerivs();
-	
-	calcdGradTau();
-
-	if (pInfo.testing) {
-		TestPerturbation t(e);
-		t.ps = this;
-		t.testVPT();
-		return 0;
-	}
-
-	double E = Minimizable<PerturbationGradient>::minimize(params);
-	logPrintf("VPT minimization completed.\n");
-
-	return E;
 }
 
 void PerturbationSolver::computeIncommensurateWfns()
@@ -705,8 +409,33 @@ void PerturbationSolver::computeIncommensurateWfns()
 	//TODO: Implement
 }
 
+void PerturbationSolver::updateExcorrCache()
+{
+	ScalarFieldArray nXC = eVars.get_nXC();
+	
+	if (nXC.size() > 1)
+		return;
+	
+	int iDirStart, iDirStop;
+	TaskDivision(3, mpiWorld).myRange(iDirStart, iDirStop);
+	{
+		for(int i=iDirStart; i<iDirStop; i++) {
+			pInfo.IDJn_cached[i] = I(D(J(nXC[0]),i));
+        }
+
+		nullToZero(pInfo.sigma_cached, e.gInfo);
+		initZero(pInfo.sigma_cached);
+
+		for(int i=iDirStart; i<iDirStop; i++)
+			pInfo.sigma_cached += pInfo.IDJn_cached[i] * pInfo.IDJn_cached[i];
+		pInfo.sigma_cached->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	}
+	
+	e.exCorr.getSecondDerivatives(nXC[0], pInfo.e_nn_cached, pInfo.e_sigma_cached, pInfo.e_nsigma_cached, pInfo.e_sigmasigma_cached, 1e-9, &pInfo.sigma_cached);
+}
+
 void PerturbationSolver::updateHC() {
-	if (pInfo.incommensurate) return;
+	if (!pInfo.commensurate) return;
 	
 	iInfo.augmentDensityGridGrad(eVars.Vscloc);
 	pInfo.E_nAug_cached = iInfo.getE_nAug();
@@ -715,48 +444,158 @@ void PerturbationSolver::updateHC() {
 		QuantumNumber qnum = eInfo.qnums[q];
 		applyH(qnum, eVars.F[q], pInfo.HC[q], eVars.C[q]);
 		pInfo.OC[q] = O(eVars.C[q]);
+		
+		pInfo.grad[q] = pInfo.HC[q];
+		pInfo.grad[q] -= pInfo.OC[q]*(eVars.Hsub[q]);
 	}
 }
 
 void PerturbationSolver::updateNonlocalDerivs()
 {
-	if (!pInfo.atposPerturbationExists || pInfo.incommensurate) return;
+	if (!pInfo.datom || !pInfo.commensurate) return;
 	
-	PerturbationInfo::Mode m = pInfo.atomdisplacement;
+	AtomicMode m = pInfo.datom->mode;
     auto sp = iInfo.species[m.sp];
 
     for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-        pInfo.Vatom_cached[q] = *sp->getV(eVars.C[q], m.at);
-        pInfo.dVatom_cached[q] = -DirectionalGradient(pInfo.Vatom_cached[q], m.dirCartesian);
+        pInfo.datom->Vatom_cached[q] = *sp->getV(eVars.C[q], m.at);
+        pInfo.datom->dVatom_cached[q] = -D(pInfo.datom->Vatom_cached[q], m.dirCartesian);
 
-        pInfo.VdagCatom_cached[q] = pInfo.Vatom_cached[q]^eVars.C[q];
-        pInfo.dVdagCatom_cached[q] = pInfo.dVatom_cached[q]^eVars.C[q];
+        pInfo.datom->VdagCatom_cached[q] = pInfo.datom->Vatom_cached[q]^eVars.C[q];
+        pInfo.datom->dVdagCatom_cached[q] = pInfo.datom->dVatom_cached[q]^eVars.C[q];
     }
 
     sp->augmentDensityGridGradDeriv(eVars.Vscloc, m.at, &m.dirLattice);
-    pInfo.E_nAug_datom = sp->getE_nAug();
+    pInfo.datom->E_nAug_datom = sp->getE_nAug();
+}
+
+
+
+void PerturbationSolver::getdn(ScalarFieldArray& dn, const std::vector<ColumnBundle>* dC, const std::vector<ColumnBundle>* C)
+{	static StopWatch watch("getdn"); watch.start();
+
+	initZero(dn);
+	//Runs over all states and accumulates density to the corresponding spin channel of the total density
+	e.iInfo.augmentDensityInit();
+	
+	std::vector<matrix> VdagdCq;
+
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{
+		if (pInfo.densityAugRequired(e)) {
+			VdagdCq.resize(e.iInfo.species.size());
+			e.iInfo.project((*dC)[q], VdagdCq);
+		}
+		
+		if (C) {
+			std::vector<matrix> VdagCq(e.iInfo.species.size());
+			e.iInfo.project((*C)[q], VdagCq); //update the atomic projections
+			
+			dn += 2.0*e.eInfo.qnums[q].weight * Real(diagouterI(eVars.F[q], (*C)[q], (*dC)[q], dn.size(), &e.gInfo));
+			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], VdagCq, &VdagdCq);
+		} else {
+			dn += 2.0*e.eInfo.qnums[q].weight * Real(diagouterI(eVars.F[q], eVars.C[q], (*dC)[q], dn.size(), &e.gInfo));
+			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], eVars.VdagC[q], &VdagdCq);
+		}
+	}
+	e.iInfo.augmentDensityGrid(dn);
+	for(ScalarField& ns: dn)
+	{	nullToZero(ns, e.gInfo);
+		ns->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	}
+	e.symm.symmetrize(dn);
+	watch.stop();
+}
+
+//TODO Add nonlocal density aug terms in
+void PerturbationSolver::getdnInc(const std::vector<ColumnBundle>* dC, const std::vector<ColumnBundle>* C, complexScalarFieldArray& dnpq, complexScalarFieldArray& dnmq)
+{   static StopWatch watch("getdnInc"); watch.start();
+	ScalarFieldArray dnpq_aug(dnpq.size()), dnmq_aug(dnmq.size());
+	for (unsigned int s = 0; s < dnpq_aug.size(); s++) {
+		nullToZero(dnpq_aug[s], e.gInfo);
+		nullToZero(dnpq[s], e.gInfo);
+		dnpq[s] = 0*dnpq[s];
+	}
+	for (unsigned int s = 0; s < dnmq_aug.size(); s++) {
+		nullToZero(dnmq_aug[s], e.gInfo);
+		nullToZero(dnmq[s], e.gInfo);
+		dnmq[s] = 0*dnmq[s];
+	}
+
+	if (C)
+		die("Density augmentation terms must be added to getdnInc.");
+
+	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+	{
+		int Tk_k = q;
+		int Tinvk_k = q+e.eInfo.nStates;
+
+		dnpq += e.eInfo.qnums[q].weight * diagouterI(eVars.F[q], eVars.C[q], (*dC)[Tinvk_k], dnpq.size(), &e.gInfo);
+		dnpq += e.eInfo.qnums[q].weight * diagouterI(eVars.F[q], (*dC)[Tk_k], eVars.C[q], dnpq.size(), &e.gInfo);
+	}
+
+	for(complexScalarField& ns: dnpq)
+	{	nullToZero(ns, e.gInfo);
+		ns->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+	}
+
+	e.symm.symmetrize(dnpq);
+	
+	dnmq = conj(dnpq);
+	
+	watch.stop();
+}
+
+void PerturbationSolver::getdnatom(ScalarFieldArray& dnatom)
+{	static StopWatch watch("getdn"); watch.start();
+	nullToZero(dnatom, e.gInfo, eVars.n.size());
+	for (unsigned s = 0; s < dnatom.size(); s++)
+		initZero(dnatom[s]);
+	
+	if (pInfo.datom && pInfo.datom->isUltrasoft(iInfo)) {
+		AtomicMode m = pInfo.datom->mode;
+		auto sp = iInfo.species[m.sp];
+		//Runs over all states and accumulates density to the corresponding spin channel of the total density
+		sp->augmentDensityInit(m.at);
+		
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{
+			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], pInfo.datom->VdagCatom_cached[q], &pInfo.datom->dVdagCatom_cached[q], 0, m.at);
+		}
+		sp->augmentDensityGrid(dnatom, m.at);
+		
+		
+		sp->augmentDensityInit(m.at);
+		
+		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
+		{
+			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], pInfo.datom->VdagCatom_cached[q], 0, 0, m.at);
+		}
+		sp->augmentDensityGrid(dnatom, m.at, &m.dirLattice);
+		
+		for(ScalarField& ns: dnatom)
+		{	nullToZero(ns, e.gInfo);
+			ns->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+		}
+		e.symm.symmetrize(dnatom);
+	}
+	watch.stop();
 }
 
 
 void PerturbationSolver::applyH(const QuantumNumber& qnum, const diagMatrix& Fq, ColumnBundle& HCq, const ColumnBundle& Cq)
 {	static StopWatch watch("applyH"); watch.start();
 	assert(Cq); //make sure wavefunction is available for this state
+	
 	std::vector<matrix> HVdagCq(e.iInfo.species.size());
 	std::vector<matrix> VdagCq(e.iInfo.species.size());
+	
 	HCq.zero();
-
-	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
-	//ScalarFieldArray Vscloc = getVscloc(eVars.n);
-	//e.iInfo.augmentDensityGridGrad(Vscloc);
 	
 	iInfo.setE_nAug(pInfo.E_nAug_cached);
 
-	//logPrintf("Vscloc\n");
-	//printV(Vscloc[0]);
-
 	HCq += Idag_DiagV_I(Cq, eVars.Vscloc);
 
-	//TODO track how augment/project depends on q num
 	e.iInfo.project(Cq, VdagCq); //update the atomic projections
 	e.iInfo.augmentDensitySphericalGrad(qnum, VdagCq, HVdagCq);
 
@@ -770,61 +609,11 @@ void PerturbationSolver::applyH(const QuantumNumber& qnum, const diagMatrix& Fq,
 	watch.stop();
 }
 
-/*void PerturbationSolver::dAugatom(QuantumNumber qnum, ColumnBundle& HC, ColumnBundle& C) {
-	
-	matrix HVdagCq1;
-	matrix HVdagCq2;
-	matrix VdagCq;
-	ColumnBundle tmp1, tmp2;
-
-	
-	auto m = pInfo.atomdisplacement;
-	auto sp = iInfo.species[m.sp];
-	vector3<> pos1 = sp->atpos[m.at];
-	vector3<> pos2 = pos1 + m.dirLattice;
-	
-	sp->atpos[m.at] = pos2;
-	sp->sync_atpos();
-	e.iInfo.update(e.ener);
-	//for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-	//	e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
-	//}
-	
-	e.iInfo.augmentDensityGridGrad(eVars.Vscloc);
-	auto V =sp->getV(C);
-	VdagCq = (*V) ^ C;
-	sp->augmentDensitySphericalGrad(qnum, VdagCq, HVdagCq2);
-	sp->EnlAndGrad(qnum, eVars.F[0], VdagCq, HVdagCq2);
-	tmp2 = (*V)*(HVdagCq2);
-	
-	sp->atpos[m.at] = pos1;
-	sp->sync_atpos();
-	e.iInfo.update(e.ener);
-	//for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-	//	e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
-	//}
-	
-	e.iInfo.augmentDensityGridGrad(eVars.Vscloc);
-	V =sp->getV(C);
-	VdagCq = (*V) ^ C;
-	sp->augmentDensitySphericalGrad(qnum, VdagCq, HVdagCq1);
-	sp->EnlAndGrad(qnum, eVars.F[0], VdagCq, HVdagCq1);
-	tmp1 = (*V)*(HVdagCq1);
-	
-	
-	
-	HC += (tmp2-tmp1);
-}*/
-
 void PerturbationSolver::dH_Vscloc(const QuantumNumber& qnum, ColumnBundle& HCq, const ColumnBundle& Cq, const ScalarFieldArray& dVscloc, const std::vector<matrix>* VdagCq)
 {	static StopWatch watch("dH_Vscloc"); watch.start();
 	assert(Cq);
 
 	std::vector<matrix> HVdagCq(e.iInfo.species.size());
-
-	//e.iInfo.augmentDensityGridGrad(dVscloc);
-
-	//TODO fix derivative w.r.t. Vscloc
 
 	HCq.zero();
 
@@ -874,22 +663,22 @@ void PerturbationSolver::dHpsi(const QuantumNumber& qnum, ColumnBundle& HCq, con
 
 void PerturbationSolver::dHtau(const QuantumNumber& qnum, ColumnBundle& HCq, const ColumnBundle& Cq, const ScalarFieldArray& dVscloc)
 {   static StopWatch watch("dHtau"); watch.start();
-	assert(!pInfo.incommensurate);
+	assert(pInfo.commensurate);
 
 	iInfo.setE_nAug(pInfo.E_nAug_dVscloctau);
 	
 	dH_Vscloc(qnum, HCq, Cq, dVscloc);
 	
-	if (pInfo.atposPerturbationExists) {
+	if (pInfo.datom) {
 		//dAugatom(qnum, HC, C);
 		
 		matrix VatomdagCq, dVatomdagCq, HVatomdagCq, HdVatomdagCq;
 		ColumnBundle dVHVdagCq, VHdVdagCq;
 		
-		PerturbationInfo::Mode m = pInfo.atomdisplacement;
+		AtomicMode m = pInfo.datom->mode;
 		auto sp = iInfo.species[m.sp];
 		auto Vatom = sp->getV(Cq, m.at);
-		ColumnBundle dVatom = -DirectionalGradient(*Vatom, m.dirCartesian);
+		ColumnBundle dVatom = -D(*Vatom, m.dirCartesian);
 		
 		VatomdagCq = (*Vatom)^Cq;
 		dVatomdagCq = dVatom^Cq;
@@ -907,9 +696,9 @@ void PerturbationSolver::dHtau(const QuantumNumber& qnum, ColumnBundle& HCq, con
 		HCq += VHdVdagCq;
 		HCq += dVHVdagCq;
 		
-		if (ultrasoftDensityAugRequired) {
+		if (pInfo.datom->isUltrasoft(iInfo)) {
 			matrix dHVatomdagCq;
-			sp->setE_nAug(pInfo.E_nAug_datom);
+			sp->setE_nAug(pInfo.datom->E_nAug_datom);
 			sp->augmentDensitySphericalGrad(qnum, VatomdagCq, dHVatomdagCq, m.at);
 			HCq += (*Vatom)*dHVatomdagCq;
 		}
@@ -934,61 +723,18 @@ void PerturbationSolver::dHtau(const QuantumNumber& qnum, ColumnBundle& HCq, con
 	dH_Vscloc(qnum, HCr, Cq, Real(dVscloc));
 	dH_Vscloc(qnum, HCi, Cq, Imag(dVscloc));
 	
-	assert(!pInfo.atposPerturbationExists);
+	assert(!pInfo.datom);
 
 	HCq = HCr;
 	HCq += complex(0,1)*HCi;
 	watch.stop();
 }
 
-//simplified version
-ScalarFieldArray PerturbationSolver::getVscloc(ScalarFieldArray ntot)
-{	static StopWatch watch("getVscloc"); watch.start();
-	const IonInfo& iInfo = e.iInfo;
-
-	ScalarFieldArray Vscloc(eVars.Vscloc.size());
-
-	ScalarFieldTilde nTilde = J(ntot[0]);
-
-	// Local part of pseudopotential:
-	ScalarFieldTilde VsclocTilde = clone(iInfo.Vlocps);
-
-	// Hartree term:
-	ScalarFieldTilde dH = (*e.coulomb)(nTilde); //Note: external charge and nuclear charge contribute to d_vac as well (see below)
-	VsclocTilde += dH;
-
-	// External charge:
-	if(eVars.rhoExternal)
-	{	ScalarFieldTilde phiExternal = (*e.coulomb)(eVars.rhoExternal);
-		VsclocTilde += phiExternal;
-		logPrintf("EXTERNAL CHARGE");
-	}
-
-	// Exchange and correlation, and store the real space Vscloc with the odd historic normalization factor of JdagOJ:
-	e.exCorr(eVars.get_nXC(&ntot), &eVars.Vxc, false, &eVars.tau, &eVars.Vtau);
-
-	for(unsigned s=0; s<Vscloc.size(); s++)
-	{	Vscloc[s] = JdagOJ(eVars.Vxc[s]);
-		if(s<2) //Include all the spin-independent contributions along the diagonal alone
-			Vscloc[s] += Jdag(O(VsclocTilde), true);
-
-		//External potential contributions:
-		if(eVars.Vexternal.size())
-			Vscloc[s] += JdagOJ(eVars.Vexternal[s]);
-	}
-	e.symm.symmetrize(Vscloc);
-	if(eVars.Vtau[0]) e.symm.symmetrize(eVars.Vtau);
-	watch.stop();
-
-	return Vscloc;
-}
-
-
 void PerturbationSolver::getdVsclocPsi(const ScalarFieldArray dn, ScalarFieldArray& dVscloc)
 {	static StopWatch watch("getdVsclocPsi"); watch.start();
-	assert(!pInfo.incommensurate);
+	assert(pInfo.commensurate);
 
-	ScalarFieldTilde dnTilde = J(dn[0]);
+	ScalarFieldTilde dnTilde = J(get_nTot(dn));
 	//TODO implement get_nTot
 
 	// Hartree term:
@@ -1013,9 +759,9 @@ void PerturbationSolver::getdVsclocPsi(const ScalarFieldArray dn, ScalarFieldArr
 void PerturbationSolver::getdVsclocPsi(const complexScalarFieldArray dn, complexScalarFieldArray& dVscloc, vector3<>* q)
 {	static StopWatch watch("getdVsclocPsi"); watch.start();
 
-	assert(pInfo.incommensurate);
+	assert(!pInfo.commensurate);
 
-	complexScalarFieldTilde dnTilde = J(dn[0]);
+	complexScalarFieldTilde dnTilde = J(get_nTot(dn));
 	//TODO implement get_nTot
 
 	// Hartree term:
@@ -1042,7 +788,7 @@ void PerturbationSolver::getdVsclocPsi(const complexScalarFieldArray dn, complex
 }
 
 
-void PerturbationSolver::getdVsclocTau(ScalarFieldArray& dVscloc)
+void PerturbationSolver::getdVsclocTau(ScalarFieldArray& dVscloc, ScalarFieldArray* dn)
 {   static StopWatch watch("getdVsclocTau"); watch.start();
 	
 	nullToZero(dVscloc, e.gInfo);
@@ -1050,58 +796,59 @@ void PerturbationSolver::getdVsclocTau(ScalarFieldArray& dVscloc)
 	
 	assert(!e.exCorr.orbitalDep);
 		
-	if (pInfo.atposPerturbationExists && ultrasoftDensityAugRequired) {
-		ScalarFieldArray dn_tau;
-		dn_tau = getdnatom();
-		printV(dn_tau[0]);
-		
-		getdVsclocPsi(dn_tau, dVscloc);
+	if (pInfo.datom && pInfo.datom->isUltrasoft(iInfo)) {
+		assert(dn);
+		getdVsclocPsi(*dn, dVscloc);
 	}
 	
-	for(unsigned s=0; s<eVars.Vscloc.size(); s++)
-	{
+	if (pInfo.dVext) 
+		for(unsigned s=0; s<eVars.Vscloc.size(); s++)
+			dVscloc[s] += JdagOJ(pInfo.dVext->dVext[s]);
+	
+	if (pInfo.datom) {
+		ScalarField dVlocps, drhoIon, dnCore;
+		nullToZero(dVlocps, e.gInfo);
+		nullToZero(drhoIon, e.gInfo);
 		
-		if (pInfo.VextPerturbationExists) 
-			dVscloc[s] += JdagOJ(pInfo.dVext[s]);
+		assert(!iInfo.nChargeball);
 		
-		if (pInfo.atposPerturbationExists) {
-			ScalarField dVlocps, drhoIon, dnCore;
-			nullToZero(dVlocps, e.gInfo);
-            nullToZero(drhoIon, e.gInfo);
+		ScalarFieldTilde rhoIon, nCoreTilde, tauCoreTilde, nChargeball;
+		nullToZero(pInfo.datom->Vlocps, e.gInfo);
+		initZero(pInfo.datom->Vlocps);
+		nullToZero(rhoIon, e.gInfo);
+		
+		AtomicMode m = pInfo.datom->mode;
+		auto sp = iInfo.species[m.sp];
+		sp->updateLocal(pInfo.datom->Vlocps, rhoIon, nChargeball, nCoreTilde, tauCoreTilde, m.at);
+		
+		//Add long-range part to Vlocps and smoothen rhoIon:
+		pInfo.datom->Vlocps += (*(e.coulomb))(rhoIon, Coulomb::PointChargeRight);
+		assert(!(iInfo.computeStress and iInfo.ionWidth));
+		//rhoIon = gaussConvolve(rhoIon, ionWidth);
+		
+		assert(!tauCoreTilde);
+		
+		//Process partial core density:
+		if(nCoreTilde) {
+			dnCore = -I(D(nCoreTilde, m.dirCartesian));
+			ScalarFieldArray dVxc(eVars.Vxc.size());
+			e.exCorr.getdVxc(eVars.get_nXC(), &dVxc, false, &eVars.tau, &eVars.Vtau, getdnXC(dnCore));
 			
-            assert(!iInfo.nChargeball);
 			
-            ScalarFieldTilde Vlocps, rhoIon, nCoreTilde, tauCoreTilde, nChargeball;
-			nullToZero(Vlocps, e.gInfo);
-			nullToZero(rhoIon, e.gInfo);
+			for(unsigned s=0; s<eVars.Vscloc.size(); s++)
+				dVscloc[s] += JdagOJ(dVxc[s]);
 			
-			PerturbationInfo::Mode m = pInfo.atomdisplacement;
-            auto sp = iInfo.species[m.sp];
-			sp->updateLocal(Vlocps, rhoIon, nChargeball, nCoreTilde, tauCoreTilde, m.at);
-			
-            //Add long-range part to Vlocps and smoothen rhoIon:
-            Vlocps += (*(e.coulomb))(rhoIon, Coulomb::PointChargeRight);
-            assert(!(iInfo.computeStress and iInfo.ionWidth));
-            //rhoIon = gaussConvolve(rhoIon, ionWidth);
-			
-			assert(!tauCoreTilde);
-			
-            //Process partial core density:
-			if(nCoreTilde) {
-				dnCore = -I(DirectionalGradient(nCoreTilde, m.dirCartesian));
-				ScalarFieldArray dVxc(eVars.Vxc.size());
-				e.exCorr.getdVxc(eVars.get_nXC(), &dVxc, false, &eVars.tau, &eVars.Vtau, getdnXC(dnCore));
-				dVscloc[s] += JdagOJ(dVxc[0]);
-				dnCoreA = dnCore;
-				dVxcA = dVxc;
-			}
-			
-			dVscloc[s] += -Jdag(O(DirectionalGradient(Vlocps, m.dirCartesian)), true);
-			nullToZero(dVlocpsA, e.gInfo);
-			initZero(dVlocpsA, e.gInfo);
-			dVlocpsA = -DirectionalGradient(Vlocps, m.dirCartesian);
-        }
-    }
+			pInfo.dnCoreA = dnCore;
+			//dVxcA = dVxc;
+		}
+		
+		for(unsigned s=0; s<eVars.Vscloc.size(); s++)
+			dVscloc[s] += -Jdag(O(D(pInfo.datom->Vlocps, m.dirCartesian)), true);
+		
+		//nullToZero(dVlocpsA, e.gInfo);
+		//initZero(dVlocpsA, e.gInfo);
+		//dVlocpsA = -D(Vlocps, m.dirCartesian);
+	}
 
 	e.symm.symmetrize(dVscloc);
 	watch.stop();
@@ -1110,21 +857,17 @@ void PerturbationSolver::getdVsclocTau(ScalarFieldArray& dVscloc)
 void PerturbationSolver::getdVsclocTau(complexScalarFieldArray& dVscloc, int qsign)
 {	static StopWatch watch("getdVsclocTau"); watch.start();
 
-	assert(!pInfo.atposPerturbationExists);
-	
-	//debugBP("Vscloc size %d ", eVars.Vscloc.size());
-	//debugBP("Dvext size %d ", pInfo.dVext.size());
-
+	assert(!pInfo.commensurate && !pInfo.datom);
 	
 	for(unsigned s=0; s<eVars.Vscloc.size(); s++)
 	{
 		initZero(dVscloc[s]);
 		
-		if (pInfo.VextPerturbationExists) {
+		if (pInfo.dVext) {
 			if (qsign == 1)
-				dVscloc[s] = JdagOJ(pInfo.dVextpq[s]);
+				dVscloc[s] = JdagOJ(pInfo.dVext->dVextpq[s]);
 			else if (qsign == -1)
-				dVscloc[s] = JdagOJ(pInfo.dVextmq[s]);
+				dVscloc[s] = JdagOJ(pInfo.dVext->dVextmq[s]);
 		}
 	}
 
@@ -1132,28 +875,7 @@ void PerturbationSolver::getdVsclocTau(complexScalarFieldArray& dVscloc, int qsi
 	watch.stop();
 }
 
-void PerturbationSolver::orthonormalize(int q, ColumnBundle& Cq)
-{	assert(e.eInfo.isMine(q));
-	//VdagC[q].clear();
-	//matrix rot = orthoMatrix(Cq^O(Cq)); //Compute matrix that orthonormalizes wavefunctions
-	matrix rot = invsqrt(Cq^O(Cq));
-	Cq = Cq * rot;
-//	e->iInfo.project(C[q], VdagC[q], &rot); //update the atomic projections
-}
-
-
-ScalarFieldArray PerturbationSolver::addnXC(const ScalarFieldArray n)
-{	if(e.iInfo.nCore)
-	{	ScalarFieldArray nXC = clone(n);
-		int nSpins = std::min(int(nXC.size()), 2); //1 for unpolarized and 2 for polarized
-		for(int s=0; s<nSpins; s++) //note that off-diagonal components of spin-density matrix are excluded
-			nXC[s] += (1./nSpins) * e.iInfo.nCore; //add core density
-		return nXC;
-	}
-	else return n; //no cores
-}
-
-ScalarFieldArray PerturbationSolver::getdnXC(const ScalarField dnCore)
+ScalarFieldArray PerturbationSolver::getdnXC(const ScalarField dnCore) const
 {
 	ScalarFieldArray dnXC(eVars.n.size());
 	nullToZero(dnXC, e.gInfo);

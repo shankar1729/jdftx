@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <electronic/PerturbationInfo.h>
+#include <electronic/SpringConstant.h>
 class Everything;
 class ElecInfo;
 class ColumnBundle;
@@ -18,12 +19,13 @@ class PerturbationSolver;
 
 class TestPerturbation {
 public:
-	TestPerturbation(Everything &e);
+	TestPerturbation(Everything &e, PerturbationSolver& ps);
 	Everything& e;
 	ElecVars& eVars;
 	ElecInfo& eInfo;
 	PerturbationInfo& pInfo;
-	PerturbationSolver* ps = 0;
+	PerturbationSolver& ps;
+	SpringConstant spring;
 
 	std::vector<ColumnBundle> Cmin;
 	std::vector<ColumnBundle> Y1;
@@ -33,7 +35,10 @@ public:
 	std::vector<ColumnBundle> C2;
 	std::vector<ColumnBundle> C2atom;
 	std::vector<ColumnBundle> dC;
-	PerturbationInfo::Mode m;
+	std::shared_ptr<AtomPerturbation> mode;
+	std::shared_ptr<AtomPerturbation> modeA;
+	std::shared_ptr<AtomPerturbation> modeB;
+	std::shared_ptr<VextPerturbation> VextMode;
 	vector3<> pos1;
 	vector3<> pos2;
 
@@ -43,13 +48,16 @@ public:
 	void setState(std::vector<ColumnBundle> &C);
 	void setAtpos1();
 	void setAtpos2();
+	
+	void setdsqpos0();
+	void setdsqposnn();
+	void setdsqposnp();
+	void setdsqpospn();
+	void setdsqpospp();
 
 	void testVPT();
 
 	bool compareHamiltonians();
-	bool compareVxc();
-	bool compareVscloc();
-	bool compareGetn();
 	bool testGradientIsZero();
 	bool FDTest_dVxc();
 	bool FDTest_dn();
@@ -66,6 +74,12 @@ public:
 	bool FDTest_dCatom();
 	bool FDTest_dgradtau();
 	bool FDTest_dgradtauatom();
+	bool FDTest_dsqV();
+	bool FDTest_dsqEnl();
+	bool FDTest_dsqEloc();
+	bool FDTest_dsqEH();
+	bool FDTest_dsqExc();
+	bool FDTest_dsqExccore();
 };
 
 #endif /* ELECTRONIC_TESTPERTURBATION_H_ */

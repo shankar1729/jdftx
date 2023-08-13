@@ -417,9 +417,15 @@ ScalarFieldTilde D(const ScalarFieldTilde& in, int iDir)
 	return out;
 }
 
-ScalarFieldTilde DirectionalGradient(const ScalarFieldTilde& in, const vector3<>& dir)
-{
-	return D(in, 0)*dir[0]+D(in, 1)*dir[1]+D(in, 2)*dir[2];
+ScalarFieldTilde D(const ScalarFieldTilde& in, const vector3<>& dir)
+{	const GridInfo& gInfo = in->gInfo;
+	ScalarFieldTilde out(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
+	#ifdef GPU_ENABLED
+	D_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), gInfo.G*dir);
+	#else
+	threadLaunch(D_sub, gInfo.nG, gInfo.S, in->data(), out->data(), gInfo.G*dir);
+	#endif
+	return out;
 }
 
 //second cartesian derivative

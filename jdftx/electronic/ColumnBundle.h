@@ -155,7 +155,7 @@ matrix3<> Lstress(const ColumnBundle &Y, const diagMatrix& F); //!< Compute latt
 ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY=0); //!< Apply overlap (and optionally retrieve pseudopotential projections for later reuse)
 ColumnBundle D(const ColumnBundle &Y, int iDir); //!< Compute the cartesian gradient of a column bundle in direction# iDir
 ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir); //!< Compute second spatial derivative of a column bundle along directions# iDir, jDir
-ColumnBundle DirectionalGradient(const ColumnBundle& in, const vector3<>& dir); //!< TODO document
+ColumnBundle D(const ColumnBundle& in, const vector3<>& dir); //!< TODO document
 
 //! Apply inverse kinetic preconditioner (Roughly inv((k+G)^2/2)) in-place
 void precond_inv_kinetic(ColumnBundle &Y, double KErollover); 

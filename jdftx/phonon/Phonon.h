@@ -63,6 +63,7 @@ public:
 	int iPerturbation; //!< if >=0, only run one supercell calculation
 	bool collectPerturbations; //!< if true, collect results of previously computed perturbations (skips supercell SCF/Minimize)
 	bool saveHsub; //!< whether to compute / output electron-phonon matrix elements
+	bool useVPT; //!< enables the use of variational perturbation theory
 	
 	Phonon();
 	void setup(bool printDefaults); //!< setup unit cell and basis modes for perturbations

@@ -625,10 +625,8 @@ ScalarFieldArray ElecVars::KEdensity() const
 
 ScalarFieldArray ElecVars::calcDensity() const
 {	ScalarFieldArray density(n.size());
-	for (unsigned int s = 0; s < density.size(); s++) //TODO remove?
-	{	nullToZero(density[s], e->gInfo);
-		density[s] = 0*density[s];
-	}
+	
+	nullToZero(density, e->gInfo);
 	//Runs over all states and accumulates density to the corresponding spin channel of the total density
 	e->iInfo.augmentDensityInit();
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
@@ -644,11 +642,10 @@ ScalarFieldArray ElecVars::calcDensity() const
 	return density;
 }
 
-void ElecVars::orthonormalize(int q, matrix* extraRotation)
+void ElecVars::orthonormalize(int q, matrix* extraRotation, bool useInvSqrt)
 {	assert(e->eInfo.isMine(q));
 	VdagC[q].clear();
-	matrix rot = orthoMatrix(C[q]^O(C[q], &VdagC[q])); //Compute matrix that orthonormalizes wavefunctions
-	//matrix rot = invsqrt(C[q]^O(C[q])); //TODO remove this
+	matrix rot = useInvSqrt? invsqrt(C[q]^O(C[q], &VdagC[q])) : orthoMatrix(C[q]^O(C[q], &VdagC[q])); //Compute matrix that orthonormalizes wavefunctions
 	if(extraRotation) *extraRotation = (rot = rot * (*extraRotation)); //set rot and extraRotation to the net transformation
 	C[q] = C[q] * rot;
 	e->iInfo.project(C[q], VdagC[q], &rot); //update the atomic projections

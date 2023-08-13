@@ -101,6 +101,31 @@ template<typename Vector> struct LinearSolvable
 	int solve(const Vector& rhs, const MinimizeParams& params);
 };
 
+/** Interface for symmetric (possibly indefinite) linear systems of the form Ax+b = 0.
+	Choose between conjugate gradient or MINRES algorithms. Used in variational perturbation solver.
+	Is also more memory-efficient compared to LinearSolvable.
+	@tparam Vector Same requirements as the Vector for #Minimizable
+*/
+template<typename Vector> struct LinearSolvableIndefinite 
+{
+	Vector state; //!< Solution to the system A.state+b = 0
+	
+	//! Linear operator A applied to the vector v.
+	virtual void hessian(Vector& Av, const Vector& v) = 0;
+	
+	//! Apply precondioner to vector v.
+	virtual void precondition(Vector& v) = 0;
+	
+	//! Override to synchronize scalars over MPI processes (if the same minimization is happening in sync over many processes)
+	virtual double sync(double x) const { return x; }
+	
+	//! Solve Ax+b=0 using linear conjugate gradients.
+	//! @return the number of iterations taken to achieve target tolerance
+	int solve(const Vector& b, const MinimizeParams& params);
+	
+	//TODO implement MINRES
+};
+
 
 //! Energy difference convergence check
 class EdiffCheck : std::deque<double>
@@ -337,6 +362,78 @@ template<typename Vector> int LinearSolvable<Vector>::solve(const Vector& rhs, c
 			p.linePrefix, iter, rzNorm, alpha, beta, clock_sec()); fflush(p.fpLog);
 		//Check convergence:
 		if(rzNorm<p.knormThreshold) { fprintf(p.fpLog, "%sConverged sqrt(r.z)<%le\n", p.linePrefix, p.knormThreshold); fflush(p.fpLog); return iter; }
+	}
+	fprintf(p.fpLog, "%sGradient did not converge within threshold in %d iterations\n", p.linePrefix, iter); fflush(p.fpLog);
+	return iter;
+}
+
+
+
+
+template<typename Vector> int LinearSolvableIndefinite<Vector>::solve(const Vector& b, const MinimizeParams& p)
+{	//Initialize:
+	Vector r; hessian(r, state); axpy(1.0, b, r); r *= -1.0; //residual r = -(A.state + b);
+	Vector z = clone(r); precondition(z);
+	Vector d; //the preconditioned residual and search direction
+	Vector w;
+	double beta=0.0, rdotzPrev=0.0, rdotz = sync(dot(r, z));
+
+	int consecErrIncreases = 0;
+	
+	double rKr;
+	{
+		Vector Kb = clone(b);
+		precondition(Kb);
+		rKr = sync(dot(b, Kb));
+		//rKr = sync(dot(b, b));
+	}
+	
+	
+	//Check initial residual
+	double relErr = sqrt(fabs(rdotz)/fabs(rKr));
+	double relErrPrev = relErr;
+	fprintf(p.fpLog, "%sInitial:  ||r||_k / ||b||_k: %12.6le\n", p.linePrefix, relErr); fflush(p.fpLog);
+	if(relErr<p.knormThreshold) { fprintf(p.fpLog, "%sConverged ||r||_k / ||b||_k<%le\n", p.linePrefix, p.knormThreshold); fflush(p.fpLog); return 0; }
+
+	//Main loop:
+	int iter;
+	for(iter=0; iter<p.nIterations && !killFlag; iter++)
+	{	//Update search direction:
+		if(rdotzPrev)
+		{	beta = rdotz/rdotzPrev;
+			d *= beta; axpy(1.0, z, d); // d = z + beta*d
+		}
+		else d = clone(z); //fresh search direction (along gradient)
+		//Step:
+		hessian(w, d);
+		double alpha = rdotz/sync(dot(w,d));
+		axpy(alpha, d, state);
+		axpy(-alpha, w, r);
+		
+		if (iter > 1 && iter % 10 == 0) {
+			hessian(r, state); axpy(1.0, b, r); r *= -1.0;
+			logPrintf("Recomputing residual.\n");
+		}
+		
+		z = clone(r);
+		precondition(z);
+		rdotzPrev = rdotz;
+		rdotz = sync(dot(r, z));
+		//Print info:
+		double relErr = sqrt(fabs(rdotz)/fabs(rKr));
+		//double relErr = sqrt(fabs(sync(dot(z,z)))/fabs(rKr));
+		fprintf(p.fpLog, "%sIter: %3d  ||r||_k / ||b||_k: %12.6le  alpha: %12.6le  beta: %13.6le  t[s]: %9.2lf\n",
+			p.linePrefix, iter, relErr, alpha, beta, clock_sec()); fflush(p.fpLog);
+		//Check convergence:
+		if(relErr<p.knormThreshold) { fprintf(p.fpLog, "%sConverged ||r||_k / ||b||_k<%le\n", p.linePrefix, p.knormThreshold); fflush(p.fpLog); return iter; }
+		
+		if(relErr > relErrPrev)
+			consecErrIncreases++;
+		else
+			consecErrIncreases = 0;
+		
+		if (consecErrIncreases >= 3) { logPrintf("Terminating solver as relative error has increased 3 times in a row.\n"); axpy(-alpha, d, state); fflush(p.fpLog); break; }
+		relErrPrev = relErr;
 	}
 	fprintf(p.fpLog, "%sGradient did not converge within threshold in %d iterations\n", p.linePrefix, iter); fflush(p.fpLog);
 	return iter;

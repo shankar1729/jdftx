@@ -15,14 +15,40 @@
 #include <core/matrix.h>
 #include <electronic/ElecInfo.h>
 #include <electronic/ExCorr.h>
+#include <electronic/PerturbationSolver.h>
 
 class Everything;
-//class ElecInfo;
 class ElecVars;
-//class ColumnBundleReadConversion;
 
-//class ColumnBundle;
-//#include <electronic/Everything.h>
+struct AtomicMode
+{	int sp, at; //!< species and atom number (within first unit cell)
+	vector3<> dirLattice; //!< dx in lattice coords
+	vector3<> dirCartesian; //!< dx in Cartesian coords
+};
+
+class AtomPerturbation {
+public:
+	AtomPerturbation(int sp, int at, int iDir, const Everything& e);
+	AtomPerturbation(int sp, int at, vector3<> dirCartesian, const Everything& e);
+	bool sameAtom(const std::shared_ptr<AtomPerturbation> pert);
+	void init(const Everything &e, const ElecVars& eVars, const ElecInfo& eInfo);
+    bool isUltrasoft(const IonInfo& iInfo); //!< Does species use ultrasoft pp
+	
+	AtomicMode mode; //Used for atomic perturbations
+	std::vector<ColumnBundle> Vatom_cached, dVatom_cached;
+	std::vector<matrix> VdagCatom_cached, dVdagCatom_cached;
+	matrix E_nAug_datom;
+	ScalarFieldTilde Vlocps;
+	ScalarFieldArray dnatom;
+	std::vector<ColumnBundle> dCatom;
+};
+
+class VextPerturbation {
+public:
+	std::vector<string> dVexternalFilename; //!< External potential filename (read in real space)
+	ScalarFieldArray dVext;
+	complexScalarFieldArray dVextpq, dVextmq;
+};
 
 class PerturbationInfo {
 public:
@@ -31,54 +57,43 @@ public:
 	void setup(const Everything &e, const ElecVars &eVars);
 	void read(const ElecInfo &eInfo, const Everything &e, std::vector<ColumnBundle>& C, const char *fname, const ElecInfo::ColumnBundleReadConversion* conversion=0) const;
 	void setupkpoints(const Everything &e, const ElecInfo &eInfo);
-	void initInc(std::vector<ColumnBundle>& Y, int nbundles, int ncols, const ElecInfo* eInfo);
-    void updateExcorrCache(const ExCorr& exc, const GridInfo& gInfo, const ScalarField& n);
+	void initInc(std::vector<ColumnBundle>& Y, int nbundles, int ncols, const ElecInfo* eInfo); //!< Setup incommensurate ColumnBundles
+	void checkSupportedFeatures(const Everything &e, const ElecInfo &eInfo);
+	bool densityAugRequired(const Everything &e);
 
-	std::vector<string> dVexternalFilename; //!< external potential filename (read in real space)
-	string wfnsFilename;
+	bool commensurate = true; //!< Is the perturbation lattice periodic
+	bool testing = false; //!< Whether or not a FD test is being conducted
+	
+	std::shared_ptr<VextPerturbation> dVext; //!< Is there a perturbation of Vext
+    std::shared_ptr<AtomPerturbation> datom;
+	
+	vector3<> qvec; //!< Bloch wavevector of perturbation. Equal to zero if perturbation is commensurate
+	
+	std::vector<QuantumNumber> Tk_vectors; //!< List of k+q vectors
+	std::vector<QuantumNumber> Tinvk_vectors; //!< List of k-q vectors
+	std::vector<Basis> Tk_basis; //!< List of k+q basis elements
+	std::vector<Basis> Tinvk_basis; //!< List of k-q basis elements
+	
+	string wfnsFilename; //!< Name of ground state wavefunctions
 
-	std::vector<ColumnBundle> dGradTau, dGradPsi;
-	std::vector<ColumnBundle> dY, dC, HdC, dHC, Cinc;
-	std::vector<ColumnBundle> dCatom, HdCatom, dHCatom;
-	std::vector<matrix> dU, dUsqrtinvatom;
+	/* Gradients and wavefunction shifts */
+	PerturbationGradient dGradTau, dGradPsi;
+	std::vector<ColumnBundle> dC, Cinc;
+	std::vector<matrix> dU, dUmhalfatom, dHsub, dHsubatom;
     
-	ScalarFieldArray dVext;
-	complexScalarFieldArray dVextpq, dVextmq;
-    bool VextPerturbationExists = false;
-    bool atposPerturbationExists = false;
-    
-	ScalarFieldArray dn, dnatom;
+    /* Intermediate scalar field derivs */
+	ScalarFieldArray dn;
+	ScalarField dnCoreA;
 	complexScalarFieldArray dnpq, dnmq;
-	ScalarFieldArray dVscloc, dVsclocatom;
+	ScalarFieldArray dVscloc, dVsclocTau;
 	complexScalarFieldArray dVsclocpq, dVsclocmq;
     
     /* Cached quantities */
-	std::vector<ColumnBundle> HC, OC;
-    ScalarField sigma_cached, e_nn_cached, e_sigma_cached, e_nsigma_cached, e_sigmasigma_cached; //Excorr second derivs
+	std::vector<ColumnBundle> grad, HC, OC;
+    ScalarField sigma_cached, e_nn_cached, e_sigma_cached, e_nsigma_cached, e_sigmasigma_cached; //LDA and GGA second derivs
     VectorField IDJn_cached;
 	
-	std::vector<ColumnBundle> Vatom_cached, dVatom_cached;
-	std::vector<matrix> VdagCatom_cached, dVdagCatom_cached;
-	
 	std::vector<matrix> E_nAug_cached, E_nAug_dVsclocpsi, E_nAug_dVscloctau;
-	matrix E_nAug_datom;
-
-	vector3<> qvec;
-	std::vector<QuantumNumber> Tk_vectors;
-	std::vector<QuantumNumber> Tinvk_vectors;
-	std::vector<Basis> Tk_basis;
-	std::vector<Basis> Tinvk_basis;
-
-	bool incommensurate = false;
-	bool testing = false;
-	
-	struct Mode
-	{	int sp, at; //!< species and atom number (within first unit cell)
-		vector3<> dirLattice; //!< 
-		vector3<> dirCartesian; //!< 
-	};
-	
-	Mode atomdisplacement;
 };
 
 #endif /* ELECTRONIC_PERTURBATIONINFO_H_ */
