@@ -299,21 +299,6 @@ ColumnBundle L(const ColumnBundle &Y)
 	return LY;
 }
 
-ColumnBundle L(const ColumnBundle &Y, const vector3<> k)
-{	ColumnBundle LY = Y.similar();
-	assert(Y.basis);
-	const Basis& basis = *(Y.basis);
-	const matrix3<>& GGT = basis.gInfo->GGT;
-	int nSpinor = Y.spinorLength();
-	#ifdef GPU_ENABLED
-	reducedL_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), LY.dataGpu(), GGT, basis.iGarr.dataGpu(), Y.qnum->k, basis.gInfo->detR);
-	#else
-	threadedLoop(reducedL_calc, basis.nbasis,
-		basis.nbasis, Y.nCols()*nSpinor, Y.data(), LY.data(), GGT, basis.iGarr.data(), k, basis.gInfo->detR);
-	#endif
-	return LY;
-}
-
 //Inverse-Laplacian of a column bundle
 #ifdef GPU_ENABLED
 void reducedLinv_gpu(int nbasis, int ncols, const complex* Y, complex* LinvY,
@@ -437,21 +422,21 @@ ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir)
 // Multiply each column by f(0.5*|k+G|^2/KErollover)
 // with f(x) = (1+x+x^2+x^3+...+x^8)/(1+x+x^2+...+x^9) = (1-x^N)/(1-x^(N+1))
 void precond_inv_kinetic(int nbasis, int ncols, complex* Ydata,
-	double KErollover, const matrix3<>& GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR)
+	double KErollover, const matrix3<>& GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR, bool sqrtop)
 {
-	threadedLoop(precond_inv_kinetic_calc, nbasis, nbasis, ncols, Ydata, KErollover, GGT, iGarr, k, invdetR);
+	threadedLoop(precond_inv_kinetic_calc, nbasis, nbasis, ncols, Ydata, KErollover, GGT, iGarr, k, invdetR, sqrtop);
 }
 #ifdef GPU_ENABLED
 void precond_inv_kinetic_gpu(int nbasis, int ncols, complex* Ydata,
-	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR);
+	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR, bool sqrtop); //TODO gpu ver
 #endif
-void precond_inv_kinetic(ColumnBundle &Y, double KErollover)
+void precond_inv_kinetic(ColumnBundle &Y, double KErollover, bool sqrtop)
 {	assert(Y.basis);
 	const Basis& basis = *Y.basis;
 	const matrix3<>& GGT = basis.gInfo->GGT;
 	int  nSpinor = Y.spinorLength();
 	callPref(precond_inv_kinetic)(basis.nbasis, Y.nCols()*nSpinor, Y.dataPref(),
-		KErollover, GGT, basis.iGarr.dataPref(), Y.qnum->k, 1./basis.gInfo->detR);
+		KErollover, GGT, basis.iGarr.dataPref(), Y.qnum->k, 1./basis.gInfo->detR, sqrtop);
 }
 
 diagMatrix diagDot(const ColumnBundle& X, const ColumnBundle& Y)
@@ -565,7 +550,7 @@ void diagouterI_sub(int iThread, int nThreads, const diagMatrix *F, const Column
 	ScalarFieldArray& nLocal = (*nSub)[iThread];
 	nullToZero(nLocal, *(X->basis->gInfo)); //sets to zero
 	int nDensities = nLocal.size();
-	if(nDensities==1) //Note that nDensities==2 below will also enter this branch sinc eonly one component is non-zero
+	if(nDensities==1) //Note that nDensities==2 below will also enter this branch since only one component is non-zero
 	{	int nSpinor = X->spinorLength();
 		for(int i=colStart; i<colStop; i++)
 			for(int s=0; s<nSpinor; s++)
@@ -631,8 +616,7 @@ ScalarFieldArray diagouterI(const diagMatrix &F,const ColumnBundle &X,  int nDen
 
 
 // Compute the density from a subset of columns of a ColumnBundle
-//TODO rename
-void diagouterI2_sub(int iThread, int nThreads, const diagMatrix *F, const ColumnBundle *A, const ColumnBundle *B, std::vector<complexScalarFieldArray>* nSub)
+void diagouterIbinary_sub(int iThread, int nThreads, const diagMatrix *F, const ColumnBundle *A, const ColumnBundle *B, std::vector<complexScalarFieldArray>* nSub)
 {
 	//Determine column range:
 	int colStart = (( iThread ) * A->nCols())/nThreads;
@@ -644,14 +628,12 @@ void diagouterI2_sub(int iThread, int nThreads, const diagMatrix *F, const Colum
 	assert(nDensities==1);
 	int nSpinor = A->spinorLength();
 	for(int i=colStart; i<colStop; i++)
-		for(int s=0; s<nSpinor; s++) {
-			//nlocal[0]->accumColumn(col,s, Idag(Vs * I(C->getColumn(col,s)))); //note VC is zero'd just before
-			callPref(eblas_accumProdComplex)(A->basis->gInfo->nr, (*F)[i], I(A->getColumn(i,s))->dataPref(), I(B->getColumn(i,s))->dataPref(), nLocal[0]->dataPref()); //Re and Im parts of UpDn
-		}
+		for(int s=0; s<nSpinor; s++)
+			callPref(eblas_accumProdComplex)(A->basis->gInfo->nr, (*F)[i], I(A->getColumn(i,s))->dataPref(), I(B->getColumn(i,s))->dataPref(), nLocal[0]->dataPref());
 }
 
 // Collect all contributions from nSub into the first entry
-void diagouterI2_collect(size_t iStart, size_t iStop, std::vector<complexScalarFieldArray>* nSub)
+void diagouterIbinary_collect(size_t iStart, size_t iStop, std::vector<complexScalarFieldArray>* nSub)
 {	assert(!isGpuEnabled()); // this is needed and should be called only in CPU mode
 	for(size_t s=0; s<(*nSub)[0].size(); s++)
 	{	//Get the data pointers for each piece in nSub:
@@ -666,22 +648,24 @@ void diagouterI2_collect(size_t iStart, size_t iStop, std::vector<complexScalarF
 	}
 }
 
-// Calculate diag((I*A)*F*(I*B)^) where X^ is the hermetian adjoint of X.
+// Calculate diag((I*A)*F*(I*B)^) where B^ is the hermetian adjoint of B. Note: This function is not implemented for spinors.
 complexScalarFieldArray diagouterI(const diagMatrix &F, const ColumnBundle &A, const ColumnBundle &B,  int nDensities, const GridInfo* gInfoOut)
 {	static StopWatch watch("diagouterI"); watch.start();
 	//Check sizes:
 	assert(F.nRows()==A.nCols());
-	assert(A.nCols()==B.nCols());
+	assert(F.nRows()==B.nCols());
+	assert(A.basis->nbasis == B.basis->nbasis);
+	assert(A.qnum->index() == B.qnum->index());
 	assert(nDensities==1 || nDensities==2);
-	//if(nDensities==2) assert(!X.isSpinor());
+	if(nDensities==2) assert(!A.isSpinor() && !B.isSpinor());
 
 	//Collect the contributions for different sets of columns in separate scalar fields (one per thread):
 	int nThreads = isGpuEnabled() ? 1: nProcsAvailable;
 	std::vector<complexScalarFieldArray> nSub(nThreads, complexScalarFieldArray(1)); //collinear spin-polarized will have only one non-zero output channel
-	threadLaunch(nThreads, diagouterI2_sub, 0, &F, &A, &B, &nSub);
+	threadLaunch(nThreads, diagouterIbinary_sub, 0, &F, &A, &B, &nSub);
 
 	//If more than one thread, accumulate all vectors in nSub into the first:
-	if(nThreads>1) threadLaunch(diagouterI2_collect, A.basis->gInfo->nr, &nSub);
+	if(nThreads>1) threadLaunch(diagouterIbinary_collect, A.basis->gInfo->nr, &nSub);
 	watch.stop();
 
 	//Change grid if necessary:

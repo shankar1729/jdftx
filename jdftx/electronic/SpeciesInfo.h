@@ -104,9 +104,10 @@ public:
 	//! Accumulate pseudopotential contribution to the overlap in OCq
 	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matrix* VdagCq=0) const;
 	
-	//TODO Document/remove
+	//! Derivative of augmented overlap operator w.r.t. atomic position
 	void augmentOverlapDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV) const;
 	
+	//! Second derivative of augmented overlap operator w.r.t. atomic position
 	void augmentOverlapSecondDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV_A, ColumnBundle& dV_B, ColumnBundle& dsqV) const;
 	
 	//! Accumulate pseudopotential contribution to spin overlap of a columnbundle

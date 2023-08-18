@@ -35,6 +35,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaalsD2.h>
 #include <electronic/Dump.h>
 #include <electronic/SCFparams.h>
+#include <electronic/PerturbationParams.h>
 #include <electronic/IonicDynamicsParams.h>
 #include <electronic/PerturbationInfo.h>
 #include <electronic/SpringConstant.h>
@@ -61,14 +62,14 @@ public:
 	ElecInfo eInfo; //!< Auxiliary electronic information
 	ElecVars eVars; //!< Electroic variables
 	Energies ener;  //!< Energy components
-	PerturbationInfo vptInfo; //TODO
+	PerturbationInfo vptInfo; //!< Variational perturbation theory variables and parameters
 	
 	MinimizeParams elecMinParams; //!< electronic minimization parameters
 	MinimizeParams ionicMinParams; //!< ionic minimization parameters
 	MinimizeParams fluidMinParams; //!< fluid minimization parameters
 	MinimizeParams latticeMinParams; //!< lattice minimization parameters
 	MinimizeParams inverseKSminParams; //!< Inverse Kohn-sham minimization parameters
-	MinimizeParams vptParams; //TODO
+	PerturbationParams vptParams; //!< Variational perturbation solver parameters
 	IonicDynamicsParams ionicDynParams; //!< Molecular dynamics parameters
 	SCFparams scfParams; //!< Self-consistent field mixing parameters
 	
@@ -79,7 +80,7 @@ public:
 	std::shared_ptr<VanDerWaals> vanDerWaals; //! vdw correction calculator for electronic system
 	std::shared_ptr<VanDerWaalsD2> vanDerWaalsFluid; //!< vdW correction calculation for fluid coupling / solvation
 	std::shared_ptr<class Vibrations> vibrations; //! Vibrational mode calculator
-	std::shared_ptr<SpringConstant> spring; //! TODO
+	std::shared_ptr<SpringConstant> spring; //! Analytic force matrix calculator
 
 	//! Call the setup/initialize routines of all the above in the necessray order
 	void setup();

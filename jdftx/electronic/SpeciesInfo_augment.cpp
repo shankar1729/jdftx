@@ -141,11 +141,11 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 		} else {
 			if (!VdagdCqR) {
 				matrix atomVdagdC = (*VdagdCqL)(atomindex*nProj,(atomindex+1)*nProj, 0,VdagdCqL->nCols());
-				RhoAll = atomVdagC * Fq * dagger(atomVdagdC) + atomVdagdC * Fq * dagger(atomVdagC);
+				RhoAll = atomVdagC * Fq * dagger(atomVdagdC) + atomVdagdC * Fq * dagger(atomVdagC); //Compute and store first derivative of RhoAll in place of itself
 			} else {
 				matrix atomVdagdCL = (*VdagdCqL)(atomindex*nProj,(atomindex+1)*nProj, 0,VdagdCqL->nCols());
 				matrix atomVdagdCR = (*VdagdCqR)(atomindex*nProj,(atomindex+1)*nProj, 0,VdagdCqR->nCols());
-				RhoAll = atomVdagC * Fq * dagger(atomVdagdCR) + atomVdagdCL * Fq * dagger(atomVdagC);
+				RhoAll = atomVdagC * Fq * dagger(atomVdagdCR) + atomVdagdCL * Fq * dagger(atomVdagC); //Compute and store first derivative of RhoAll in place of itself
 			}
 		}
 		if(isRelativistic()) RhoAll = fljAll * RhoAll * fljAll; //transformation for relativistic pseudopotential

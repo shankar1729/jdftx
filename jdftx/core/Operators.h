@@ -89,7 +89,7 @@ complexScalarFieldTilde Linv(const ScalarFieldTilde& in, vector3<>* k);
 matrix3<> LinvStress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y); //!< Lattice vector derivative of dot(X,Linv(Y))
 
 ScalarFieldTilde D(const ScalarFieldTilde&, int iDir); //!< compute the gradient in the iDir'th cartesian direction
-ScalarFieldTilde D(const ScalarFieldTilde& in, const vector3<>& dir); //!< TODO document
+ScalarFieldTilde D(const ScalarFieldTilde& in, const vector3<>& dir); //!< directional derivative of scalar field along (cartesian direction) dir
 ScalarFieldTilde DD(const ScalarFieldTilde&, int iDir, int jDir); //!< second derivative along iDir'th and jDir'th cartesian directions
 
 void zeroNyquist(RealKernel& Gdata); //!< zeros out all the nyquist components of a real G-kernel

@@ -1,9 +1,21 @@
-/*
- * PerturbationInfo.cpp
- *
- *  Created on: Jul 25, 2022
- *      Author: brandon
- */
+/*-------------------------------------------------------------------
+Copyright 2022 Brandon Li
+
+This file is part of JDFTx.
+
+JDFTx is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+JDFTx is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
+-------------------------------------------------------------------*/
 
 #include "PerturbationInfo.h"
 #include <core/Random.h>
@@ -16,7 +28,7 @@
 #include <core/LatticeUtils.h>
 
 
-AtomPerturbation::AtomPerturbation (int sp, int at, int iDir, const Everything& e)
+AtomPerturbation::AtomPerturbation (unsigned int sp, unsigned int at, int iDir, const Everything& e)
 {
     AtomicMode m;
     vector3<> dirCartesian;
@@ -31,7 +43,7 @@ AtomPerturbation::AtomPerturbation (int sp, int at, int iDir, const Everything& 
     init(e, e.eVars, e.eInfo);
 }
 
-AtomPerturbation::AtomPerturbation (int sp, int at, vector3<> dirCartesian, const Everything& e)
+AtomPerturbation::AtomPerturbation (unsigned int sp, unsigned int at, vector3<> dirCartesian, const Everything& e)
 {
     AtomicMode m;
 	
@@ -42,10 +54,6 @@ AtomPerturbation::AtomPerturbation (int sp, int at, vector3<> dirCartesian, cons
     m.dirLattice = e.gInfo.invR*m.dirCartesian;
     mode = m;
     init(e, e.eVars, e.eInfo);
-}
-
-bool AtomPerturbation::sameAtom(const std::shared_ptr<AtomPerturbation> pert) {
-	return pert->mode.sp == mode.sp && pert->mode.at == mode.at;
 }
 
 void AtomPerturbation::init(const Everything &e, const ElecVars& eVars, const ElecInfo& eInfo)
@@ -59,17 +67,7 @@ void AtomPerturbation::init(const Everything &e, const ElecVars& eVars, const El
 	nullToZero(dnatom, e.gInfo);
 }
 
-bool AtomPerturbation::isUltrasoft(const IonInfo& iInfo) {
-	return iInfo.species[mode.sp]->isUltrasoft();
-}
-
-PerturbationInfo::PerturbationInfo() : dVext(0), datom(0) {
-	
-}
-
-PerturbationInfo::~PerturbationInfo() {
-	// TODO Auto-generated destructor stub
-}
+bool AtomPerturbation::isUltrasoft(const IonInfo& iInfo) { return iInfo.species[mode.sp]->isUltrasoft(); } //!< Does this atom use an ultrasoft potential
 
 void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 
@@ -78,7 +76,8 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 
 	const ElecInfo &eInfo = e.eInfo;
 
-	setupkpoints(e, eInfo);
+	if (!commensurate)
+		setupkpoints(e, eInfo);
 
 	//Allocate variables
 
@@ -87,10 +86,14 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 		init(HC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		init(OC, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		init(grad, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
+		
 		dU.resize(eInfo.nStates);
 		dUmhalfatom.resize(eInfo.nStates);
 		dHsub.resize(eInfo.nStates);
 		dHsubatom.resize(eInfo.nStates);
+		CdagdHC.resize(eInfo.nStates);
+		CdagdHCatom.resize(eInfo.nStates);
+		
 		dVscloc.resize(eVars.Vscloc.size());
 		dVsclocTau.resize(eVars.Vscloc.size());
 		dn.resize(eVars.Vscloc.size());
@@ -105,31 +108,20 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 	
 	if(dVext && dVext->dVexternalFilename.size())
 	{
-		if(commensurate)
-		{
-			dVext->dVext.resize(dVext->dVexternalFilename.size());
-			for(unsigned s=0; s<dVext->dVext.size(); s++)
-			{	dVext->dVext[s] = ScalarFieldData::alloc(e.gInfo);
-				logPrintf("Reading external perturbation potential from '%s'\n", dVext->dVexternalFilename[s].c_str());
-				loadRawBinary(dVext->dVext[s], dVext->dVexternalFilename[s].c_str());
-			}
-			if(dVext->dVext.size()==1 && eVars.n.size()==2) //Replicate potential for second spin:
-				dVext->dVext.push_back(dVext->dVext[0]->clone());
-			
+		if(commensurate) {
+			dVext->dVext.resize(1);
+			dVext->dVext[0] = ScalarFieldData::alloc(e.gInfo);
+			logPrintf("Reading external perturbation potential from '%s'\n", dVext->dVexternalFilename[0].c_str());
+			loadRawBinary(dVext->dVext[0], dVext->dVexternalFilename[0].c_str());
 		} else {
-			dVext->dVextpq.resize(dVext->dVexternalFilename.size());
-			for(unsigned s=0; s<dVext->dVextpq.size(); s++)
-			{	dVext->dVextpq[s] = complexScalarFieldData::alloc(e.gInfo);
-				logPrintf("Reading external perturbation potential from '%s'\n", dVext->dVexternalFilename[s].c_str());
-				loadRawBinary(dVext->dVextpq[s], dVext->dVexternalFilename[s].c_str());
-			}
-			if(dVext->dVextpq.size()==1 && eVars.n.size()==2) //Replicate potential for second spin:
-				dVext->dVextpq.push_back(dVext->dVextpq[0]->clone());
+			dVext->dVext.resize(1);
+			dVext->dVextpq[0] = complexScalarFieldData::alloc(e.gInfo);
+			logPrintf("Reading external perturbation potential from '%s'\n", dVext->dVexternalFilename[0].c_str());
+			loadRawBinary(dVext->dVextpq[0], dVext->dVexternalFilename[0].c_str());
 			
 			dVext->dVextmq = conj(dVext->dVextpq);
 		}
 	}
-	//assert(dVext->dVext.size() == eVars.Vexternal.size());
 
 	if (!commensurate)
 		read(e.eInfo, e, Cinc, wfnsFilename.c_str(), nullptr);
@@ -145,154 +137,142 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 void PerturbationInfo::read(const ElecInfo &eInfo, const Everything &e, std::vector<ColumnBundle>& C, const char *fname, const ElecInfo::ColumnBundleReadConversion* conversion) const
 {	if(conversion && conversion->realSpace)
 	{
-		die("Please use fourier space wavefunctions")
+		die("Real space incommensurate wavefunctions are required.\n")
 	}
 	else
 	{	//Check if a conversion is actually needed:
-		std::vector<ColumnBundle> Ytmp_Tk(eInfo.qStop);
-		std::vector<ColumnBundle> Ytmp_Tinvk(eInfo.qStop);
-		std::vector<Basis> basisTmp_Tk(eInfo.qStop);
-		std::vector<Basis> basisTmp_Tinvk(eInfo.qStop);
-		std::vector<long> nBytes_Tk(mpiWorld->nProcesses(), 0); //total bytes to be read on each process
-		std::vector<long> nBytes_Tinvk(mpiWorld->nProcesses(), 0);
+		std::vector<ColumnBundle> Ctmp_kplusq(eInfo.qStop);
+		std::vector<ColumnBundle> Ctmp_kminusq(eInfo.qStop);
+		std::vector<Basis> basisTmp_kplusq(eInfo.qStop);
+		std::vector<Basis> basisTmp_kminusq(eInfo.qStop);
+		std::vector<long> nBytes_kplusq(mpiWorld->nProcesses(), 0); //total bytes to be read on each process
+		std::vector<long> nBytes_kminusq(mpiWorld->nProcesses(), 0);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{
-			int Tk = q ;
-			int Tinvk = q + eInfo.nStates;
+			int kpq = q;
+			int kmq = q + eInfo.nStates;
 			bool needTmp = false, customBasis = false;
-			int nCols = C[Tk].nCols();
+			int nCols = C[kpq].nCols();
 			if(conversion)
-			{	if(conversion->nBandsOld && conversion->nBandsOld!=nCols)
-				{	nCols = conversion->nBandsOld;
-					needTmp = true;
-				}
+			{
 				double EcutOld = conversion->EcutOld ? conversion->EcutOld : conversion->Ecut;
 				customBasis = (EcutOld!=conversion->Ecut);
 				if(customBasis)
 				{	needTmp = true;
 					logSuspend();
-					basisTmp_Tk[q].setup(*(C[Tk].basis->gInfo), *(C[Tk].basis->iInfo), EcutOld, C[Tk].qnum->k);
-					basisTmp_Tinvk[q].setup(*(C[Tinvk].basis->gInfo), *(C[Tinvk].basis->iInfo), EcutOld, C[Tinvk].qnum->k);
+					basisTmp_kplusq[q].setup(*(C[kpq].basis->gInfo), *(C[kpq].basis->iInfo), EcutOld, C[kpq].qnum->k);
+					basisTmp_kminusq[q].setup(*(C[kmq].basis->gInfo), *(C[kmq].basis->iInfo), EcutOld, C[kmq].qnum->k);
 					logResume();
 				}
 			}
-			const Basis* basis = customBasis ? &basisTmp_Tk[q] : C[Tk].basis;
-			int nSpinor = C[Tk].spinorLength();
-			if(needTmp) Ytmp_Tk[q].init(nCols, basis->nbasis*nSpinor, basis, C[Tk].qnum);
-			nBytes_Tk[mpiWorld->iProcess()] += nCols * basis->nbasis*nSpinor * sizeof(complex);
+			const Basis* basis = customBasis ? &basisTmp_kplusq[q] : C[kpq].basis;
+			int nSpinor = C[kpq].spinorLength();
+			if(needTmp) Ctmp_kplusq[q].init(nCols, basis->nbasis*nSpinor, basis, C[kpq].qnum);
+			nBytes_kplusq[mpiWorld->iProcess()] += nCols * basis->nbasis*nSpinor * sizeof(complex);
 
-			basis = customBasis ? &basisTmp_Tinvk[q] : C[Tinvk].basis;
-			nSpinor = C[Tinvk].spinorLength();
-			if(needTmp) Ytmp_Tinvk[q].init(nCols, basis->nbasis*nSpinor, basis, C[Tinvk].qnum);
-			nBytes_Tinvk[mpiWorld->iProcess()] += nCols * basis->nbasis*nSpinor * sizeof(complex);
+			basis = customBasis ? &basisTmp_kminusq[q] : C[kmq].basis;
+			nSpinor = C[kmq].spinorLength();
+			if(needTmp) Ctmp_kminusq[q].init(nCols, basis->nbasis*nSpinor, basis, C[kmq].qnum);
+			nBytes_kminusq[mpiWorld->iProcess()] += nCols * basis->nbasis*nSpinor * sizeof(complex);
 		}
 		//Sync nBytes:
 		if(mpiWorld->nProcesses()>1)
 			for(int iSrc=0; iSrc<mpiWorld->nProcesses(); iSrc++) {
-				mpiWorld->bcast(nBytes_Tk[iSrc], iSrc);
-				mpiWorld->bcast(nBytes_Tinvk[iSrc], iSrc);
+				mpiWorld->bcast( nBytes_kplusq[iSrc], iSrc);
+				mpiWorld->bcast( nBytes_kminusq[iSrc], iSrc);
 			}
 		//Compute offset of current process, and expected file length:
-		long offset_Tk=0, fsize=0;
+		long offset_kpq=0, fsize=0;
 		for(int iSrc=0; iSrc<mpiWorld->nProcesses(); iSrc++)
-		{	if(iSrc<mpiWorld->iProcess()) offset_Tk += nBytes_Tk[iSrc];
-			fsize += nBytes_Tk[iSrc];
+		{	if(iSrc<mpiWorld->iProcess()) offset_kpq += nBytes_kplusq[iSrc];
+			fsize += nBytes_kplusq[iSrc];
 		}
 
-		long offset_Tinvk=fsize;
+		long offset_kmq=fsize;
 		for(int iSrc=0; iSrc<mpiWorld->nProcesses(); iSrc++)
-		{	if(iSrc<mpiWorld->iProcess()) offset_Tinvk += nBytes_Tinvk[iSrc];
-			fsize += nBytes_Tinvk[iSrc];
+		{	if(iSrc<mpiWorld->iProcess()) offset_kmq += nBytes_kminusq[iSrc];
+			fsize += nBytes_kminusq[iSrc];
 		}
 
 		//Read data into Ytmp or Y as appropriate, and convert if necessary:
-		MPIUtil::File fp; mpiWorld->fopenRead(fp, fname, fsize,
-			(e.vibrations and eInfo.qnums.size()>1)
-			? "Hint: Vibrations requires wavefunctions without symmetries:\n"
-				"either don't read in state, or consider using phonon instead.\n"
-			: "Hint: Did you specify the correct nBandsOld, EcutOld and kdepOld?\n");
-		mpiWorld->fseek(fp, offset_Tk, SEEK_SET);
+		MPIUtil::File fp; mpiWorld->fopenRead(fp, fname, fsize, "Hint: Did you specify the correct EcutOld?\n");
+		mpiWorld->fseek(fp, offset_kpq, SEEK_SET);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{
-			int Tk = q ;
-			ColumnBundle& Ycur = Ytmp_Tk[q] ? Ytmp_Tk[q] : C[Tk];
+			int kpq = q;
+			ColumnBundle& Ycur = Ctmp_kplusq[q] ? Ctmp_kplusq[q] : C[kpq];
 			mpiWorld->freadData(Ycur, fp);
-			if(Ytmp_Tk[q]) //apply conversions:
-			{	if(Ytmp_Tk[q].basis!=C[Tk].basis)
-				{	int nSpinor = C[Tk].spinorLength();
-					for(int b=0; b<std::min(C[Tk].nCols(), Ytmp_Tk[q].nCols()); b++)
+			if(Ctmp_kplusq[q]) //apply conversions:
+			{	if(Ctmp_kplusq[q].basis!=C[kpq].basis)
+				{	int nSpinor = C[kpq].spinorLength();
+					for(int b=0; b<std::min(C[kpq].nCols(), Ctmp_kplusq[q].nCols()); b++)
 						for(int s=0; s<nSpinor; s++)
-							C[Tk].setColumn(b,s, Ytmp_Tk[q].getColumn(b,s)); //convert using the full G-space as an intermediate
+							C[kpq].setColumn(b,s, Ctmp_kplusq[q].getColumn(b,s)); //convert using the full G-space as an intermediate
 				}
 				else
-				{	if(Ytmp_Tk[q].nCols()<C[Tk].nCols()) C[Tk].setSub(0, Ytmp_Tk[q]);
-					else C[Tk] = Ytmp_Tk[q].getSub(0, C[Tk].nCols());
+				{	if(Ctmp_kplusq[q].nCols()<C[kpq].nCols()) C[kpq].setSub(0, Ctmp_kplusq[q]);
+					else C[kpq] = Ctmp_kplusq[q].getSub(0, C[kpq].nCols());
 				}
-				Ytmp_Tk[q].free();
+				Ctmp_kplusq[q].free();
 			}
 		}
 
-		mpiWorld->fseek(fp, offset_Tinvk, SEEK_SET);
+		mpiWorld->fseek(fp, offset_kmq, SEEK_SET);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{
-			int Tinvk = q + eInfo.nStates;
-			ColumnBundle& Ycur = Ytmp_Tinvk[q] ? Ytmp_Tinvk[q] : C[Tinvk];
+			int kmq = q + eInfo.nStates;
+			ColumnBundle& Ycur = Ctmp_kminusq[q] ? Ctmp_kminusq[q] : C[kmq];
 			mpiWorld->freadData(Ycur, fp);
-			if(Ytmp_Tinvk[q]) //apply conversions:
-			{	if(Ytmp_Tinvk[q].basis!=C[Tinvk].basis)
-				{	int nSpinor = C[Tinvk].spinorLength();
-					for(int b=0; b<std::min(C[Tinvk].nCols(), Ytmp_Tinvk[q].nCols()); b++)
+			if(Ctmp_kminusq[q]) //apply conversions:
+			{	if(Ctmp_kminusq[q].basis!=C[kmq].basis)
+				{	int nSpinor = C[kmq].spinorLength();
+					for(int b=0; b<std::min(C[kmq].nCols(), Ctmp_kminusq[q].nCols()); b++)
 						for(int s=0; s<nSpinor; s++)
-							C[Tinvk].setColumn(b,s, Ytmp_Tinvk[q].getColumn(b,s)); //convert using the full G-space as an intermediate
+							C[kmq].setColumn(b,s, Ctmp_kminusq[q].getColumn(b,s)); //convert using the full G-space as an intermediate
 				}
 				else
-				{	if(Ytmp_Tinvk[q].nCols()<C[Tinvk].nCols()) C[Tinvk].setSub(0, Ytmp_Tinvk[q]);
-					else C[Tinvk] = Ytmp_Tinvk[q].getSub(0, C[Tinvk].nCols());
+				{	if(Ctmp_kminusq[q].nCols()<C[kmq].nCols()) C[kmq].setSub(0, Ctmp_kminusq[q]);
+					else C[kmq] = Ctmp_kminusq[q].getSub(0, C[kmq].nCols());
 				}
-				Ytmp_Tinvk[q].free();
+				Ctmp_kminusq[q].free();
 			}
 		}
 		mpiWorld->fclose(fp);
 
-		logPrintf("Successfully read band minimized wavefunctions");
+		logPrintf("Successfully read band minimized wavefunctions.\n");
 	}
 }
 
 void PerturbationInfo::setupkpoints(const Everything &e, const ElecInfo &eInfo)
 {
-	Tk_vectors = eInfo.qnums;
-	Tinvk_vectors = eInfo.qnums;
+	kplusq_vectors = eInfo.qnums;
+	kminusq_vectors = eInfo.qnums;
 
 	for(int q=0; q<eInfo.nStates; q++) {
-		Tk_vectors[q].k = Tk_vectors[q].k + qvec;
-		Tinvk_vectors[q].k = Tinvk_vectors[q].k - qvec;
+		kplusq_vectors[q].k = kplusq_vectors[q].k + qvec;
+		kminusq_vectors[q].k = kminusq_vectors[q].k - qvec;
 	}
-
 
 	const GridInfo& gInfoBasis = e.gInfoWfns ? *e.gInfoWfns : e.gInfo;
 
 	if(e.cntrl.basisKdep != BasisKpointDep)
 		die("Please use k-point dependent basis.");
 
-	Tk_basis.resize(eInfo.nStates);
-	Tinvk_basis.resize(eInfo.nStates);
+	kplusq_basis.resize(eInfo.nStates);
+	kminusq_basis.resize(eInfo.nStates);
 
 	for(int q=0; q<eInfo.nStates; q++)
 	{
-		//TODO check Ecut is same
-		Tk_basis[q].setup(gInfoBasis, e.iInfo, e.cntrl.Ecut, Tk_vectors[q].k);
-		Tinvk_basis[q].setup(gInfoBasis, e.iInfo, e.cntrl.Ecut, Tinvk_vectors[q].k);
+		kplusq_basis[q].setup(gInfoBasis, e.iInfo, e.cntrl.Ecut, kplusq_vectors[q].k);
+		kminusq_basis[q].setup(gInfoBasis, e.iInfo, e.cntrl.Ecut, kminusq_vectors[q].k);
 	}
 
-	logPrintf("Printing k, k+q , and k-q vectors\n");
+	logPrintf("Printing k, k+q, and k-q vectors:\n");
 	for(int q=0; q<eInfo.nStates; q++)
 	{
-		QuantumNumber qnum = eInfo.qnums[q];
-		logPrintf("%5d  [ %+.7f %+.7f %+.7f ]  %.9f\n", q, qnum.k[0], qnum.k[1], qnum.k[2], qnum.weight);
-		qnum = Tk_vectors[q];
-		logPrintf("%5d  [ %+.7f %+.7f %+.7f ]  %.9f\n", q, qnum.k[0], qnum.k[1], qnum.k[2], qnum.weight);
-		qnum = Tinvk_vectors[q];
-		logPrintf("%5d  [ %+.7f %+.7f %+.7f ]  %.9f\n", q, qnum.k[0], qnum.k[1], qnum.k[2], qnum.weight);
+		logPrintf("index: %5d, k=[ %+.7f %+.7f %+.7f ]  weight=%.9f\n", q, eInfo.qnums[q].k[0], eInfo.qnums[q].k[1], eInfo.qnums[q].k[2], eInfo.qnums[q].weight);
+		logPrintf("index: %5d, k+q=[ %+.7f %+.7f %+.7f ]  weight=%.9f\n", q, kplusq_vectors[q].k[0], kplusq_vectors[q].k[1], kplusq_vectors[q].k[2], kplusq_vectors[q].weight);
+		logPrintf("index: %5d, k-q=[ %+.7f %+.7f %+.7f ]  weight=%.9f\n", q, kminusq_vectors[q].k[0], kminusq_vectors[q].k[1], kminusq_vectors[q].k[2], kminusq_vectors[q].weight);
 	}
 }
 
@@ -302,10 +282,10 @@ void PerturbationInfo::initInc(std::vector<ColumnBundle>& Y, int nbundles, int n
 	if(ncols && eInfo)
 	{	assert(nbundles == 2*eInfo->qStop);
 		for(int q=eInfo->qStart; q<eInfo->qStop; q++) {
-			int Tk = q ;
-			int Tinvk = q + eInfo->nStates;
-			Y[Tk].init(ncols, Tk_basis[q].nbasis * eInfo->spinorLength(), &Tk_basis[q], &Tk_vectors[q], isGpuEnabled());
-			Y[Tinvk].init(ncols, Tinvk_basis[q].nbasis * eInfo->spinorLength(), &Tinvk_basis[q], &Tinvk_vectors[q], isGpuEnabled());
+			int kpq = q ;
+			int kmq = q + eInfo->nStates;
+			Y[kpq].init(ncols, kplusq_basis[q].nbasis * eInfo->spinorLength(), &kplusq_basis[q], &kplusq_vectors[q], isGpuEnabled());
+			Y[kmq].init(ncols, kminusq_basis[q].nbasis * eInfo->spinorLength(), &kminusq_basis[q], &kminusq_vectors[q], isGpuEnabled());
 		}
 	}
 }
@@ -313,45 +293,44 @@ void PerturbationInfo::initInc(std::vector<ColumnBundle>& Y, int nbundles, int n
 void PerturbationInfo::checkSupportedFeatures(const Everything &e, const ElecInfo &eInfo)
 {
 	if(!(eInfo.fillingsUpdate==ElecInfo::FillingsConst && eInfo.scalarFillings))
-		die("Constant fillings only.");
+		die("Constant fillings only.\n");
 	if(e.exCorr.exxFactor())
-		die("Variational perturbation currently does not support exact exchange.");
+		die("Variational perturbation currently does not support exact exchange.\n");
 	if(e.eInfo.hasU)
-		die("Variational perturbation currently does not support DFT+U.");
+		die("Variational perturbation currently does not support DFT+U.\n");
 	if (e.exCorr.needsKEdensity())
-		die("Variational perturbation currently does not support KE density dependent functionals.");
+		die("Variational perturbation currently does not support KE density dependent functionals.\n");
 	if(!e.exCorr.hasEnergy())
-		die("Variational perturbation does not support potential functionals.");
+		die("Variational perturbation does not support potential functionals.\n");
 	if(e.exCorr.orbitalDep)
-		die("Variational perturbation currently does not support orbital dependent potential functionals.");
+		die("Variational perturbation currently does not support orbital dependent potential functionals.\n");
 	if(e.eVars.fluidParams.fluidType != FluidNone)
-		die("Variational perturbation does not support fluids.");
+		die("Variational perturbation does not support fluids.\n");
 	if (e.eVars.n.size() > 1)
-		die("Multiple spin channels not supported yet.");
+		die("Multiple spin channels not supported yet.\n");
 	if (e.coulombParams.geometry != CoulombParams::Geometry::Periodic && !commensurate)
-		die("Periodic coloumb interaction required for incommensurate perturbations.")
+		die("Periodic coloumb interaction required for incommensurate perturbations.\n")
 
 		
 		
 	if (e.symm.mode != SymmetriesNone)
 	{
 		if (!commensurate)
-			die("Symmetries are not supported with incommensurate perturbations.");
+			die("Symmetries are not supported with incommensurate perturbations.\n");
 		
-		logPrintf("Warning: VPT has not been tested with symmetries");
 		if (dVext) {
 			ScalarFieldArray dVext_sym = clone(dVext->dVext);
 			e.symm.symmetrize(dVext_sym);
 			if (nrm2(dVext_sym[0] - dVext->dVext[0])/nrm2(dVext->dVext[0]) < symmThreshold)
-			logPrintf("Warning: dVext->dVext does not obey symmetries.");
+			logPrintf("Warning: dVext->dVext does not obey symmetries.\n");
 		}
 	}
 		
 	for (auto sp: e.iInfo.species) {
 		if (sp->isRelativistic())
-			die("Relativistic potentials are not supported yet.");
+			die("Relativistic potentials are not supported yet.\n");
 		if (sp->isUltrasoft() & !commensurate)
-			die("Ultrasoft potentials are compatible with commensurate perturbations only.");
+			die("Ultrasoft potentials are compatible with commensurate perturbations only.\n");
 	}
 
 	if (e.exCorr.needFiniteDifferencing())
@@ -362,9 +341,9 @@ void PerturbationInfo::checkSupportedFeatures(const Everything &e, const ElecInf
 			die("Currently, incommensurate perturbations require ground state wavefunctions to be loaded in.\n");
 			//computeIncommensurateWfns();
 		} else if (!e.eVars.wfnsFilename.empty() && wfnsFilename.empty()) {
-			die("Please specify offset wavefunctions")
+			die("Please specify offset wavefunctions.\n")
 		} else if (e.eVars.wfnsFilename.empty() && !wfnsFilename.empty()) {
-			die("Please specify ground state wavefunctions")
+			die("Please specify ground state wavefunctions.\n")
 		}
 	}
 }
@@ -375,4 +354,28 @@ bool PerturbationInfo::densityAugRequired(const Everything &e) {
 			return true;
 	}
 	return false;
+}
+
+
+void PerturbationInfo::sampleCB (ColumnBundle C, std::string name) {
+	if (C.nData() < 10) return;
+	double *dat = (double*)(C.getColumn(0, 0)->dataPref());
+	logPrintf("ColumnBundle %s values: %g %g %g %g %g %g %g %g %g %g\n", name.c_str(), dat[0], dat[1], dat[2], dat[3], dat[4], dat[5], dat[6], dat[7], dat[8], dat[9]);
+}
+
+void PerturbationInfo::sampleMat (matrix C, std::string name) {
+	if (C.nRows() < 3 || C.nCols() < 3) return;
+	logPrintf("Matrix %s values %g %g %g %g %g %g %g %g %g\n", name.c_str(), C(0,0).x, C(0,1).x, C(0,2).x, C(1,0).x,C(1,1).x,C(1,2).x,C(2,0).x,C(2,1).x,C(2,2).x);
+}
+
+void PerturbationInfo::sampleField (ScalarField V, std::string name) {
+	if (V->nElem < 10) return;
+	double *dat = V->dataPref();
+	logPrintf("ScalarField %s values %g %g %g %g %g %g %g %g %g %g\n", name.c_str(), dat[0], dat[1], dat[2], dat[3], dat[4], dat[5], dat[6], dat[7], dat[8], dat[9]);
+}
+
+void PerturbationInfo::sampleField (ScalarFieldTilde V, std::string name) {
+	if (V->nElem < 10) return;
+	double *dat = (double*)(V->dataPref());
+	logPrintf("ScalarFieldTidle %s values %g %g %g %g %g %g %g %g %g %g\n", name.c_str(), dat[0], dat[1], dat[2], dat[3], dat[4], dat[5], dat[6], dat[7], dat[8], dat[9]);
 }

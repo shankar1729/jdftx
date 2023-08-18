@@ -149,16 +149,15 @@ ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V, Colu
 ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V, ColumnBundle* Cout);
 
 ColumnBundle L(const ColumnBundle &Y); //!< Apply Laplacian
-ColumnBundle L(const ColumnBundle &Y, const vector3<> k); //[TODO] document
 ColumnBundle Linv(const ColumnBundle &Y); //!< Apply Laplacian inverse
 matrix3<> Lstress(const ColumnBundle &Y, const diagMatrix& F); //!< Compute lattice vector derivative of Tr[Y^LYF] (used for KE stress calculation)
 ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY=0); //!< Apply overlap (and optionally retrieve pseudopotential projections for later reuse)
 ColumnBundle D(const ColumnBundle &Y, int iDir); //!< Compute the cartesian gradient of a column bundle in direction# iDir
 ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir); //!< Compute second spatial derivative of a column bundle along directions# iDir, jDir
-ColumnBundle D(const ColumnBundle& in, const vector3<>& dir); //!< TODO document
+ColumnBundle D(const ColumnBundle& in, const vector3<>& dir); //!< Directional derivative of column bundle along (cartesian direction) dir
 
 //! Apply inverse kinetic preconditioner (Roughly inv((k+G)^2/2)) in-place
-void precond_inv_kinetic(ColumnBundle &Y, double KErollover); 
+void precond_inv_kinetic(ColumnBundle &Y, double KErollover, bool sqrtop=false); 
 
 diagMatrix diagDot(const ColumnBundle& X, const ColumnBundle& Y); //!< compute diag(X^Y) efficiently (avoid the off-diagonals)
 void precond_inv_kinetic_band(ColumnBundle& Y, const diagMatrix& KEref); //!< In-place inverse kinetic preconditioner with band-by-band KE reference (Used by BandDavidson)

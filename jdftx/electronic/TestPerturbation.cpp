@@ -1,3 +1,22 @@
+/*-------------------------------------------------------------------
+Copyright 2022 Brandon Li
+
+This file is part of JDFTx.
+
+JDFTx is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+JDFTx is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
+-------------------------------------------------------------------*/
+
 #include <electronic/TestPerturbation.h>
 #include <electronic/PerturbationSolver.h>
 #include <electronic/Everything.h>
@@ -70,7 +89,7 @@ bool TestPerturbation::testGradientIsZero() {
 
 	double ratio = nrm2(grad[0])/nrm2(HC[0]);
 	logPrintf("||\u2207E||/||HC|| %g.\n", ratio);
-	//ps.printCB(grad[0]);
+	//pInfo.sampleCB(grad[0]);
 	return ratio < 1e-3;
 }
 
@@ -85,11 +104,11 @@ bool TestPerturbation::FDTest_dVxc() {
 	nullToZero(dvnum, e.gInfo);
 	setState(C1);
 	n1 = eVars.n;
-	e.exCorr.getVxcSimplified(eVars.get_nXC(), &Vxc1, false);
+	e.exCorr(eVars.get_nXC(), &Vxc1, false, &eVars.tau, &eVars.Vtau);
 	
 	setState(C2);
 	n2 = eVars.n;
-	e.exCorr.getVxcSimplified(eVars.get_nXC(), &Vxc2, false);
+	e.exCorr(eVars.get_nXC(), &Vxc2, false, &eVars.tau, &eVars.Vtau);
 	
 	dn = n2-n1;
 	
@@ -114,10 +133,10 @@ bool TestPerturbation::FDTest_dn() {
 	dnanal = ps.getdn(&dC, &C1);
 	double delta = nrm2(dnnum[0]-dnanal[0])/nrm2(dnnum[0]);
 	logPrintf("Difference %g.\n", delta);
-	ps.printV(dnnum[0]);
-	ps.printV(dnanal[0]);
-	ps.printCB(C1[0]);
-	ps.printCB(dC[0]);
+	pInfo.sampleField(dnnum[0]);
+	pInfo.sampleField(dnanal[0]);
+	pInfo.sampleCB(C1[0]);
+	pInfo.sampleCB(dC[0]);
 	return delta < 1e-6;*/
 
 
@@ -137,10 +156,10 @@ bool TestPerturbation::FDTest_dn() {
 	ps.getdn(dnanal, &dC, &C1);
 	double delta = nrm2(dnnum[0]-dnanal[0])/nrm2(dnnum[0]);
 	logPrintf("Difference %g.\n", delta);
-	ps.printV(dnnum[0]);
-	ps.printV(dnanal[0]);
-	ps.printCB(C1[0]);
-	ps.printCB(dC[0]);
+	pInfo.sampleField(dnnum[0], "dn_num");
+	pInfo.sampleField(dnanal[0], "dn_anal");
+	pInfo.sampleCB(C1[0], "C");
+	pInfo.sampleCB(dC[0], "dC");
 	return delta < 1e-6;
 }
 
@@ -164,8 +183,8 @@ bool TestPerturbation::FDTest_dVscloc() {
 	ps.getdVsclocPsi(dn, dVscloc_anal);
 	double delta = nrm2(dVscloc_num[0]-dVscloc_anal[0])/nrm2(dVscloc_anal[0]);
 	logPrintf("Difference %g.\n", delta);
-	ps.printV(dVscloc_num[0]);
-	ps.printV(dVscloc_anal[0]);
+	pInfo.sampleField(dVscloc_num[0], "dVscloc_num");
+	pInfo.sampleField(dVscloc_anal[0], "dVscloc_anal");
 	return delta < 1e-6;
 }
 
@@ -193,8 +212,8 @@ bool TestPerturbation::FDTest_dnatom() {
 	
 	double delta = nrm2(dn_num[0]-dn_anal[0])/nrm2(dn_anal[0]);
 	logPrintf("Difference %g.\n", delta);
-	ps.printV(dn_num[0]);
-	ps.printV(dn_anal[0]);
+	pInfo.sampleField(dn_num[0], "dn_num");
+	pInfo.sampleField(dn_anal[0], "dn_anal");
 	return delta < 1e-6;
 }
 
@@ -220,8 +239,8 @@ bool TestPerturbation::FDTest_dVsclocatom() {
 	
 	double delta = nrm2(dVscloc_num[0]-dVscloc_anal[0])/nrm2(dVscloc_anal[0]);
 	logPrintf("Difference %g.\n", delta);
-	ps.printV(dVscloc_num[0]);
-	ps.printV(dVscloc_anal[0]);
+	pInfo.sampleField(dVscloc_num[0], "dVscloc_num");
+	pInfo.sampleField(dVscloc_anal[0], "dVscloc_anal");
 	return delta < 1e-6;
 }
 
@@ -280,14 +299,14 @@ bool TestPerturbation::FDTest_dVlocpsatom() {
 	//logPrintf("Difference %g.\n", delta2);
 	if (ps.ultrasoftDensityAugRequired) logPrintf("Difference %g.\n", delta3);
 	if (ps.ultrasoftDensityAugRequired) logPrintf("Difference %g.\n", delta4);
-	ps.printV(dVlocps_num);
-	ps.printV(dVlocps_anal);
-	//ps.printV(dVxc_num[0]);
-	//ps.printV(dVxc_anal[0]);
-	if (ps.ultrasoftDensityAugRequired) ps.printV(dnCore_num);
-	if (ps.ultrasoftDensityAugRequired) ps.printV(dnCore_anal);
-	if (ps.ultrasoftDensityAugRequired) ps.printM(dE_naug_num);
-	if (ps.ultrasoftDensityAugRequired) ps.printM(dE_naug_anal);
+	pInfo.sampleField(dVlocps_num);
+	pInfo.sampleField(dVlocps_anal);
+	//pInfo.sampleField(dVxc_num[0]);
+	//pInfo.sampleField(dVxc_anal[0]);
+	if (ps.ultrasoftDensityAugRequired) pInfo.sampleField(dnCore_num);
+	if (ps.ultrasoftDensityAugRequired) pInfo.sampleField(dnCore_anal);
+	if (ps.ultrasoftDensityAugRequired) pInfo.sampleMat(dE_naug_num);
+	if (ps.ultrasoftDensityAugRequired) pInfo.sampleMat(dE_naug_anal);
 	return delta < 1e-6;*/
 	
 	return true;
@@ -296,7 +315,7 @@ bool TestPerturbation::FDTest_dVlocpsatom() {
 bool TestPerturbation::FDTest_dgradpsi() {
 	logPrintf("\nCommencing finite difference test of gradient w.r.t. psi.\n");
 	std::vector<ColumnBundle> Grad1, Grad2;
-	PerturbationGradient dGrad_anal;
+	PerturbationGradient dGrad_anal, v;
 	std::vector<ColumnBundle> dGrad_num;
 	setup(Grad1); setup(Grad2); setup(dGrad_num);
 
@@ -308,16 +327,16 @@ bool TestPerturbation::FDTest_dgradpsi() {
 	ps.getGrad(&Grad2, Y2);
 
 	setState(C1);
-	//pInfo.dY = dY;
-	
-	//TODO call Hessian
+	v.init(e);
+	v.X = dY;
+	ps.hessian(dGrad_anal, v);
 	double delta = 0;
 
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		dGrad_num[q] = Grad2[q]-Grad1[q];
-		delta += nrm2(pInfo.dGradPsi.X[q] - dGrad_num[q])/nrm2(pInfo.dGradPsi.X[q]);
-		ps.printCB(dGrad_num[q]);
-		ps.printCB(pInfo.dGradPsi.X[q]);
+		delta += nrm2(dGrad_anal.X[q] - dGrad_num[q])/nrm2(dGrad_anal.X[q]);
+		pInfo.sampleCB(dGrad_num[q], "dGrad_num");
+		pInfo.sampleCB(dGrad_anal.X[q], "dGrad_anal");
 	}
 
 
@@ -357,8 +376,8 @@ bool TestPerturbation::FDTest_Hamiltonian() {
 		ps.dHpsi(eInfo.qnums[q], dHY[q], C1[q], dVscloc);
 
 		delta += nrm2(H2Y[q]-H1Y[q]-dHY[q])/nrm2(dHY[q]);
-		ps.printCB(H2Y[q]-H1Y[q]);
-		ps.printCB(dHY[q]);
+		pInfo.sampleCB(H2Y[q]-H1Y[q], "dHC_num");
+		pInfo.sampleCB(dHY[q], "dHC_anal");
 	}
 
 	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
@@ -396,8 +415,8 @@ bool TestPerturbation::FDTest_Hamiltoniandatom() {
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		ps.dHtau(eInfo.qnums[q], dHY[q], C1[q], pInfo.dVsclocTau);
 		delta += nrm2(H2Y[q]-H1Y[q]-dHY[q])/nrm2(dHY[q]);
-		ps.printCB(H2Y[q]-H1Y[q]);
-		ps.printCB(dHY[q]);
+		pInfo.sampleCB(H2Y[q]-H1Y[q], "dHC_num");
+		pInfo.sampleCB(dHY[q], "dHC_anal");
 	}
 	
 	pInfo.datom = 0;
@@ -445,8 +464,8 @@ bool TestPerturbation::FDTest_Overlapatom() {
 		e.iInfo.species[pInfo.datom->mode.sp]->augmentOverlapDeriv(C1[q], dOY_anal[q], pInfo.datom->Vatom_cached[q], pInfo.datom->dVatom_cached[q]);
 		//ps.dHtau(eInfo.qnums[q], dOY_anal[q], C1[q], pInfo.dVsclocatom);
 		delta += nrm2(dOY_num[q]-dOY_anal[q])/nrm2(dOY_anal[q]);
-		ps.printCB(dOY_num[q]);
-		ps.printCB(dOY_anal[q]);
+		pInfo.sampleCB(dOY_num[q], "dOY_num");
+		pInfo.sampleCB(dOY_anal[q], "dOY_anal");
 	}
 	
 	pInfo.datom = 0;
@@ -472,7 +491,7 @@ bool TestPerturbation::FDTest_dV() {
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		auto Vatom = sp->getV(C1[q], mode->mode.at);
 		VdagC1[q] = (*Vatom)^C1[q];
-		ps.printCB(*Vatom);
+		pInfo.sampleCB(*Vatom, "Vatom");
 	}
 	
 	setAtpos2();
@@ -480,7 +499,7 @@ bool TestPerturbation::FDTest_dV() {
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		auto Vatom = sp->getV(C1[q], mode->mode.at);
 		VdagC2[q] = (*Vatom)^C1[q];
-		ps.printCB(*Vatom);
+		pInfo.sampleCB(*Vatom, "Vatom perturbed");
 	}
 
 	setAtpos1();
@@ -492,10 +511,8 @@ bool TestPerturbation::FDTest_dV() {
 		
 		
 		delta += nrm2(VdagC2[q]-VdagC1[q]-dVdagC[q])/nrm2(dVdagC[q]);
-		ps.printM(VdagC1[q]);
-		ps.printM(VdagC2[q]);
-		ps.printM(VdagC2[q]-VdagC1[q]);
-		ps.printM(dVdagC[q]);
+		pInfo.sampleMat(VdagC2[q]-VdagC1[q], "dVdagC_num");
+		pInfo.sampleMat(dVdagC[q], "dVdagC_anal");
 	}
 	pInfo.datom = 0;
 
@@ -514,8 +531,8 @@ bool TestPerturbation::FDTest_dC() {
 		pInfo.dC[q] = dY[q];
 		pInfo.dC[q] -= 0.5*(eVars.C[q]*pInfo.dU[q]);
 		delta += nrm2(dC[q]-pInfo.dC[q])/nrm2(pInfo.dC[q]);
-		ps.printCB(dC[q]);
-		ps.printCB(pInfo.dC[q]);
+		pInfo.sampleCB(dC[q], "dC_num");
+		pInfo.sampleCB(pInfo.dC[q], "dC_anal");
 	}
 	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
 	delta /= eInfo.nStates;
@@ -537,8 +554,8 @@ bool TestPerturbation::FDTest_dCatom() {
 	double delta = 0;
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		delta += nrm2((C2atom[q]-C1[q])-mode->dCatom[q])/nrm2(mode->dCatom[q]);
-		ps.printCB(C2atom[q]-C1[q]);
-		ps.printCB(mode->dCatom[q]);
+		pInfo.sampleCB(C2atom[q]-C1[q], "dC_num");
+		pInfo.sampleCB(mode->dCatom[q], "dC_anal");
 	}
 
 	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
@@ -573,8 +590,8 @@ bool TestPerturbation::FDTest_dgradtau() {
 	double delta = 0;
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		delta += nrm2((Grad2[q]-Grad1[q])-pInfo.dGradTau.X[q])/nrm2(pInfo.dGradTau.X[q]);
-		ps.printCB(Grad2[q]-Grad1[q]);
-		ps.printCB(pInfo.dGradTau.X[q]);
+		pInfo.sampleCB(Grad2[q]-Grad1[q], "dGrad_num");
+		pInfo.sampleCB(pInfo.dGradTau.X[q], "dGrad_anal");
 	}
 
 	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
@@ -602,8 +619,8 @@ bool TestPerturbation::FDTest_dgradtauatom() {
 	double delta = 0;
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		delta += nrm2((Grad2[q]-Grad1[q])-pInfo.dGradTau.X[q])/nrm2(pInfo.dGradTau.X[q]);
-		ps.printCB(Grad2[q]-Grad1[q]);
-		ps.printCB(pInfo.dGradTau.X[q]);
+		pInfo.sampleCB(Grad2[q]-Grad1[q], "dGrad_num");
+		pInfo.sampleCB(pInfo.dGradTau.X[q], "dGrad_anal");
 	}
 
 	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
@@ -641,8 +658,8 @@ bool TestPerturbation::FDTest_dsqV() {
 		dsqV_num[q] = V12[q]-V1[q]-V2[q]+V[q];
 		
 		delta += nrm2(dsqV_num[q] - dsqV_anal[q])/nrm2(dsqV_anal[q]);
-		ps.printCB(dsqV_num[q]);
-		ps.printCB(dsqV_anal[q]);
+		pInfo.sampleCB(dsqV_num[q], "dsqV_num");
+		pInfo.sampleCB(dsqV_anal[q], "dsqV_anal");
 	}
 	
 	mpiWorld->allReduce(delta, MPIUtil::ReduceSum);
@@ -737,6 +754,8 @@ void TestPerturbation::testVPT() {
 	setup(dC);
 	setup(C2atom);
 	
+	pInfo.dGradTau.init(e);
+	
 	int sp = 0;
 	int atom = 1;
 	pos1 = e.iInfo.species[sp]->atpos[atom];
@@ -750,7 +769,7 @@ void TestPerturbation::testVPT() {
 	modeB = std::make_shared<AtomPerturbation>(sp, atom, deltaposB, e);
 
 	//logPrintf("%d", eInfo.qStart);
-	//ps.printCB(Y1[0]);
+	//pInfo.sampleCB(Y1[0]);
 
 	randomize(Y1, eInfo);
 	randomize(dY, eInfo);

@@ -411,7 +411,7 @@ void Symmetries::calcSymmetries()
 		assert(m.at >= 0 && m.at < sp->atpos.size());
 		
 		if (e->eInfo.spinType==SpinVector)
-			die("Error: Need to implement spinor symmetry checking in VPT");
+			die("Error: Need to implement spinor symmetry checking in VPT\n");
 		
 		for(const SpaceGroupOp& op: sym)
 		{
@@ -655,7 +655,30 @@ void Symmetries::checkSymmetries()
 	}
 	if(e->vptInfo.datom)
 	{
-		die("Error: Must implement perturbation symmetry checking for manual symmetries.");
+		std::vector<SpaceGroupOp> symReduced;
+		const PerturbationInfo& pInfo = e->vptInfo;
+		AtomicMode m = pInfo.datom->mode;
+		assert(m.sp >= 0 && m.sp < e->iInfo.species.size());
+		
+		auto sp = e->iInfo.species[m.sp];
+		assert(m.at >= 0 && m.at < sp->atpos.size());
+		
+		if (e->eInfo.spinType==SpinVector)
+			die("Error: Need to implement spinor symmetry checking in VPT\n");
+		
+		for(const SpaceGroupOp& op: sym)
+		{
+			if ((op.rot*sp->atpos[m.at]+op.a - sp->atpos[m.at]).length() > symmThreshold
+				|| (op.rot*m.dirLattice - m.dirLattice).length() > m.dirLattice.length()*symmThreshold)
+			{
+				if (isPertSup) continue;
+				else die("Symmetries are not compatible with the atomic perturbation.\n");
+			}
+			if (isPertSup) symReduced.push_back(op);
+		}
+		
+		if (isPertSup) sym = symReduced;
+		logPrintf("Manual symmetries reduced to %lu space-group symmetries of supercell with atom perturbation\n", sym.size());
 	}
 }
 

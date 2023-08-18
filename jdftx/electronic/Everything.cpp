@@ -208,14 +208,13 @@ void Everything::setup()
 	latticeMinParams.energyLabel = relevantFreeEnergyName(*this);
 	latticeMinParams.energyFormat = "%+.15lf";
 
-	//TODO
+	//Set up variational perturbation solver
 	vptParams.fpLog = globalLog;
 	vptParams.linePrefix = "PerturbationSolve: ";
-	vptParams.energyLabel = relevantFreeEnergyName(*this);
-	vptParams.energyFormat = "%+.15lf";
 
 	vptInfo.setup(*this, eVars);
 	
+	//Initialize spring constant calculator
 	if (spring)
 		spring->setupModes();
 

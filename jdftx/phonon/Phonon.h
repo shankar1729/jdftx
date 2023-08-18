@@ -55,6 +55,7 @@ public:
 	
 	vector3<int> sup; //!< phonon supercell 
 	double dr; //!< perturbation amplitude in Cartesian coordinates
+	double VPTstepSize; //!< step size used when computing dforces
 	double T; //!< temperature for free energy estimation
 	double Fcut; //!< fillings cutoff for optimizing number of bands
 	double rSmooth; //!< supercell boundary width over which matrix elements are smoothed

@@ -1,9 +1,21 @@
-/*
- * PerturbationSolver.h
- *
- *  Created on: Jul 22, 2022
- *      Author: brandon
- */
+/*-------------------------------------------------------------------
+Copyright 2022 Brandon Li
+
+This file is part of JDFTx.
+
+JDFTx is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+JDFTx is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
+-------------------------------------------------------------------*/
 
 #ifndef ELECTRONIC_PERTURBATIONSOLVER_H_
 #define ELECTRONIC_PERTURBATIONSOLVER_H_
@@ -11,20 +23,12 @@
 
 #include <core/Minimize.h>
 #include <core/ScalarFieldArray.h>
-
-class Everything;
-class ElecInfo;
-class ColumnBundle;
-class ElecVars;
-class PerturbationInfo;
-class Basis;
-class QuantumNumber;
-class IonInfo;
+#include <electronic/ColumnBundle.h>
 
 struct PerturbationGradient {
 	std::vector<ColumnBundle> X; //!< First order change in unnormalized wfns
 	const ElecInfo* eInfo;
-	const PerturbationInfo* pInfo;
+	const class PerturbationInfo* pInfo;
 
 	void init(const Everything& e);
 	PerturbationGradient& operator*=(double alpha);
@@ -36,26 +40,15 @@ double dot(const std::vector<ColumnBundle>& x, const std::vector<ColumnBundle>& 
 PerturbationGradient clone(const PerturbationGradient& x); //!< create a copy
 void randomize(PerturbationGradient& x); //!< initialize with random numbers
 ScalarField randomRealSpaceVector(ColumnBundle& ref, const  GridInfo* gInfo);
-void printVvpt(ScalarField V);
 
 class PerturbationSolver : LinearSolvableIndefinite<PerturbationGradient>
 {
 public:
 	PerturbationSolver(Everything& e);
-
-	void randomize(PerturbationGradient& x);
-	void printCB(ColumnBundle C);
-	void printM(matrix C);
-	void printV(ScalarField V);
-	void printV(ScalarFieldTilde V);
-
-	//void step(const PerturbationGradient& dir, double alpha);
-	//void constrain(PerturbationGradient&);
-	//double minimize(const MinimizeParams& params);
-	//double compute(PerturbationGradient* grad, PerturbationGradient* Kgrad);
 	
 	void hessian(PerturbationGradient& Av, const PerturbationGradient& v) override;
 	void precondition(PerturbationGradient& v) override;
+	void Ksqrt(PerturbationGradient& v) override;
 	void solvePerturbation();
 	
 	void calcdGradTau(); //!< Get derivative of Grad E w.r.t. external perturbations (local potential, charge density, or atomic position)
@@ -110,7 +103,7 @@ public:
 
 private:
 	Everything& e;
-	ElecVars& eVars;
+	class ElecVars& eVars;
 	ElecInfo& eInfo;
 	IonInfo& iInfo;
 	PerturbationInfo& pInfo;

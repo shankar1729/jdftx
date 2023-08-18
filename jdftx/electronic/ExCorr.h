@@ -109,9 +109,6 @@ public:
 	void getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeTXC includeTXC,
 			const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, const ScalarFieldArray& dn) const;
 
-	double getVxcSimplified(const ScalarFieldArray& n, ScalarFieldArray* Vxc=0, IncludeTXC includeTXC=IncludeTXC(),
-			const ScalarFieldArray* tau=0, ScalarFieldArray* Vtau=0, matrix3<>* Exc_RRT=0) const;
-
 	//! Abstract base class (interface specification) for orbital-dependent potential functionals
 	struct OrbitalDep
 	{	OrbitalDep(const Everything& e) : e(e) {}

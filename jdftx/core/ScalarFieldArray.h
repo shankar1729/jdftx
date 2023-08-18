@@ -30,8 +30,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 typedef std::vector<ScalarField> ScalarFieldArray; //!< dynamic size collection of real space scalar fields
 typedef std::vector<ScalarFieldTilde> ScalarFieldTildeArray; //!< dynamic size collection of reciprocal space scalar fields
-typedef std::vector<complexScalarField> complexScalarFieldArray; //TODO
-typedef std::vector<complexScalarFieldTilde> complexScalarFieldTildeArray; //TODO
+typedef std::vector<complexScalarField> complexScalarFieldArray; //!< dynamic size collection of complex scalar fields
+typedef std::vector<complexScalarFieldTilde> complexScalarFieldTildeArray; //!< dynamic size collection of reciprocal complex scalar fields
 #define TptrCollection std::vector<std::shared_ptr<T> > //!< shorthand for templates below (undef'd at end of file)
 
 //! Extract a std::vector of data pointers from a ScalarFieldArray

@@ -99,7 +99,7 @@ public:
 	
 	//Multi-stage density augmentation and gradient propagation (see corresponding functions in SpeciesInfo)
 	void augmentDensityInit() const; //!< initialize density augmentation
-	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, const std::vector<matrix>* dVdagCqL = 0, const std::vector<matrix>* dVdagCqR = 0) const; //!< calculate density augmentation in spherical functions
+	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, const std::vector<matrix>* dVdagCqL = 0, const std::vector<matrix>* dVdagCqR = 0) const; //!< calculate density augmentation in spherical functions. Parameters dVdagCqL and/or dVdagCqR are needed for perturbation theory.
 	void augmentDensityGrid(ScalarFieldArray& n) const; //!< propagate from spherical functions to grid
 	void augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces=0, matrix3<>* Eaug_RRT=0) const; //!< propagate grid gradients to spherical functions
 	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const; //!< propagate spherical function gradients to wavefunctions
@@ -131,7 +131,6 @@ public:
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
 	ColumnBundle getAtomicOrbitals(int q, bool applyO, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q, optionally with operator O pre-applied (with room for extra columns if specified)
 	
-	//TODO now public
 	//! Compute all pair-potential terms in the energy, forces or lattice derivative (E_RRT) (electrostatic, and optionally vdW)
 	void pairPotentialsAndGrad(class Energies* ener=0, IonicGradient* forces=0, matrix3<>* E_RRT=0) const;
 	
@@ -148,7 +147,6 @@ public:
 private:
 	const Everything* e;
 	ScalarFieldTilde rhoIonBare; //rhoIon without ionWidth required for stress calculation
-	
 	
 	//! Compute pulay contributions to energy and optionally stress
 	double calcEpulay(matrix3<>* E_RRT=0) const;

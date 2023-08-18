@@ -65,7 +65,7 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	//Instead read in appropriate supercell quantities:
 	if(collectPerturbations)
 	{	//Read perturbed Vscloc and fix H below (no minimize/SCF necessary):
-		if(saveHsub) //only need Vscloc if outputting e-ph matrix elements
+		if(saveHsub && !useVPT) //only need Vscloc if outputting e-ph matrix elements
 		{	eSup->eVars.VFilenamePattern = fnamePattern;
 			eSup->cntrl.fixed_H = true;
 		}
@@ -81,7 +81,7 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	//Apply perturbation and then setup (so that symmetries reflect perturbed state):
 	std::shared_ptr<AtomPerturbation> vptMode;
 	if (useVPT) {
-		vptMode = std::make_shared<AtomPerturbation>(pert.at, pert.sp, pert.dir, *eSup);
+		vptMode = std::make_shared<AtomPerturbation>(pert.sp, pert.at, pert.dir, *eSup);
 		vptMode->mode.dirLattice = inv(eSup->gInfo.R) * pert.dir; //Manually set since gInfo not initialized
 		eSup->vptInfo.datom = vptMode; //Must go before eSup->setup because of symmetry checks
 	} else {
@@ -143,13 +143,20 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	if(collectPerturbations)
 	{	dgrad_pert.init(eSup->iInfo);
 		dgrad_pert.read(eSup->dump.getFilename("dforces").c_str());
-		if(saveHsub) eSup->iInfo.augmentDensityGridGrad(eSup->eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's (needed by getPerturbedHsub)
+		if(saveHsub && !useVPT) eSup->iInfo.augmentDensityGridGrad(eSup->eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's (needed by getPerturbedHsub)
 	}
 	else
 	{
 		if (useVPT) {
 			eSup->spring = std::make_shared<SpringConstant>(*eSup);
 			dgrad_pert = eSup->spring->getPhononMatrixColumn(vptMode, dr);
+			for (int s = 0; s < nSpins; s++) {
+				ostringstream fname;
+				if (nSpins > 1) fname << s;
+				fname << ".dHsub";
+				matrix dHsub = eSup->vptInfo.dHsub[0]+eSup->vptInfo.dHsubatom[0];
+				dHsub.write(eSup->dump.getFilename(fname.str()).c_str());
+			}
 		} else {	
 			IonicGradient grad;
 			IonicMinimizer(*eSup).compute(&grad, 0);
@@ -159,8 +166,8 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 			//Output potentials and forces for future calculations:
 			eSup->dump.insert(std::make_pair(DumpFreq_End, DumpVscloc));
 			eSup->dump(DumpFreq_End, 0);
-			dgrad_pert.write(eSup->dump.getFilename("dforces").c_str());
 		}
+		dgrad_pert.write(eSup->dump.getFilename("dforces").c_str());
 	}
 	if(iPerturbation>=0) return; //remainder below not necessary except when doing a full calculation
 	
@@ -181,8 +188,22 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	if(saveHsub)
 	{	
 		if (useVPT) {
-			if (nSpins > 1) die("Error: Multiple spins in VPT not supported yet");
-			dHsub_pert[0] = eSup->vptInfo.dHsub[0]+eSup->vptInfo.dHsubatom[0];
+			if(collectPerturbations) {
+				for (int s = 0; s < nSpins; s++) {
+					dHsub_pert[s].init(eSup->eInfo.nStates, eSup->eInfo.nStates);
+					ostringstream fname;
+					if (nSpins > 1) fname << s;
+					fname << ".dHsub";
+					dHsub_pert[s].read(eSup->dump.getFilename(fname.str()).c_str());
+				}
+			} else {
+				for (int s = 0; s < nSpins; s++) {
+					int qSup = s*(eSup->eInfo.nStates/nSpins);
+					assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0);
+					dHsub_pert[s] = eSup->vptInfo.CdagdHC[qSup]+eSup->vptInfo.dHsubatom[qSup];
+					//dHsub_pert[s] = eSup->vptInfo.dHsub[qSup]+eSup->vptInfo.dHsubatom[qSup];
+				}
+			}
 		} else {
 			Hsub = getPerturbedHsub(pert, Hsub0);
 			for(size_t s=0; s<Hsub.size(); s++)

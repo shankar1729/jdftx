@@ -1,18 +1,21 @@
-/*
- * Copyright 2023 <copyright holder> <email>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/*-------------------------------------------------------------------
+Copyright 2023 Brandon Li
+
+This file is part of JDFTx.
+
+JDFTx is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+JDFTx is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
+-------------------------------------------------------------------*/
 
 #ifndef SPRINGCONSTANT_H
 #define SPRINGCONSTANT_H
@@ -21,38 +24,29 @@
 #include <electronic/PerturbationInfo.h>
 #include <electronic/IonicMinimizer.h>
 
-/**
- * @todo write docs
- */
 class SpringConstant
 {
 public:
-	bool calculateSpringConstant = false;
-	std::vector<std::shared_ptr<AtomPerturbation>> modes;
-	matrix kmatrix;
+	bool calculateSpringConstant = false; //!< True if at least one of the atoms specified by the ion command has the 'spring' flag enabled
+	std::vector<std::shared_ptr<AtomPerturbation>> modes; //!< List of perturbations with three DOF for each perturbed atom
+	matrix kmatrix; //!< Matrix with entries containing second derivative of total energy w.r.t. pairs of modes
 	
 	SpringConstant(Everything& e);
-	void setupModes();
-	double perturbAtom(int atom);
-	double computeMatrixElement(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
+	void setupModes(); //!< Run after ion commands
+	double computeMatrixElement(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB); //!< Compute individual matrix element
+
+	//double dsqQuantities(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
 	
+	double dsqEpair(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB); //!< Second derivative of pair potentials (Ewald and VDW)
+	double dsqEnl(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB); //!< Second derivative of nonlocal energy
+	double dsqEloc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB); //!< Second derivative of local energy
+	//double dsqExc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
+	//double dsqExccore(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
+	//double dsqEH(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
 	
-	std::vector<ColumnBundle> dsqC;
-	std::vector<matrix> dsqVdagC;
-	ScalarFieldArray dsqn;
-	ScalarField dsqE_naug;
-	double dsqQuantities(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
-	
-	double dsqEpair(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
-	double dsqEnl(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
-	double dsqEloc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
-	double dsqExc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
-	double dsqExccore(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
-	double dsqEH(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
-	
-	void getPerturbedEnergy(Energies& ener, std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB, double deltaA, double deltaB);
-	void computeSubMatrix();
-	IonicGradient getPhononMatrixColumn(std::shared_ptr<AtomPerturbation> mode, double dr = 0.0);
+	void getPerturbedEnergy(Energies& ener, std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB, double deltaA, double deltaB); //!< Perturb atoms by amounts deltaA and deltaB in the directions determined by modeA and modeB respectively, then compute energy
+	void computeSubMatrix(); //!< Compute a submatrix of the spring constant matrix determined by SpringConstat::modes
+	IonicGradient getPhononMatrixColumn(std::shared_ptr<AtomPerturbation> mode, double dr = 0.0); //!< Compute part of OmegaSq corresponding to single atom perturbation, used by phonon package
 	
 private:
 	Everything& e;
@@ -62,7 +56,7 @@ private:
 	PerturbationInfo& pInfo;
 	PerturbationSolver ps;
 	
-	std::vector<ColumnBundle> Ctmp;
+	std::vector<ColumnBundle> Ctmp; //!< Temporary storage for eVars.C during phonon calculation
 };
 
 #endif // SPRINGCONSTANT_H

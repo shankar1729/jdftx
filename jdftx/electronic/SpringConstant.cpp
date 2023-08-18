@@ -1,18 +1,21 @@
-/*
- * Copyright 2023 <copyright holder> <email>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/*-------------------------------------------------------------------
+Copyright 2023 Brandon Li
+
+This file is part of JDFTx.
+
+JDFTx is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+JDFTx is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
+-------------------------------------------------------------------*/
 
 #include <electronic/SpringConstant.h>
 #include <electronic/IonInfo.h>
@@ -50,7 +53,7 @@ double SpringConstant::computeMatrixElement(std::shared_ptr<AtomPerturbation> mo
 	return Eab;
 }
 
-double SpringConstant::dsqQuantities(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
+/*double SpringConstant::dsqQuantities(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
 	dsqC.resize(eInfo.nStates);
 	if (modeA->sameAtom(modeB) && modeA->isUltrasoft(iInfo)) {
 		auto sp = e.iInfo.species[modeA->mode.sp];
@@ -61,14 +64,10 @@ double SpringConstant::dsqQuantities(std::shared_ptr<AtomPerturbation> modeA, st
             sp->augmentOverlapSecondDeriv ( eVars.C[q], OC, modeA->Vatom_cached[q], modeA->dVatom_cached[q], modeB->dVatom_cached[q], dSqV );
             dsqC[q] = -0.5 * eVars.C[q]* ( eVars.C[q]^OC );
         }
-
-
-        //for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-        //	dSqVdagC =
-        //}
 	}
-}
+}*/
 
+//TODO analytic version
 double SpringConstant::dsqEpair(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
 	static StopWatch watch("dsqEpair"); watch.start();
 	double h = 1e-3;
@@ -131,21 +130,6 @@ double SpringConstant::dsqEloc(std::shared_ptr<AtomPerturbation> modeA, std::sha
 	return dsqE;
 }
 
-double SpringConstant::dsqExc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
-	return 0;
-}
-
-double SpringConstant::dsqExccore(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
-	return 0;
-		
-}
-
-double SpringConstant::dsqEH(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
-	return 0;
-		
-}
-
-
 void SpringConstant::getPerturbedEnergy(Energies& ener, std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB, double deltaA, double deltaB) {
 	static StopWatch watch("getPerturbedEnergy"); watch.start();
 	auto spA = iInfo.species[modeA->mode.sp];
@@ -192,13 +176,12 @@ void SpringConstant::computeSubMatrix() {
 	}
 }
 
-IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturbation> modeA, double dr) {
+IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturbation> modeA, double h) {
 	pInfo.datom = modeA;
 	ps.solvePerturbation();
 	
-	if (dr > 0) {
+	if (h > 0) {
         IonicGradient Fminus, Fplus, dF;
-		double h = dr;
 		init(Ctmp, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		
 	    auto spA = iInfo.species[modeA->mode.sp];
@@ -216,9 +199,9 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
 			if (modeA->isUltrasoft(iInfo))
 				eVars.C[q] += modeA->dCatom[q]*h;
 			
-			eVars.orthonormalize(q);
-			//eVars.VdagC[q].clear();
-			//e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
+			//eVars.orthonormalize(q, 0, true);
+			eVars.VdagC[q].clear();
+			e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
 		}
 		eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 		
@@ -238,9 +221,9 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
 			if (modeA->isUltrasoft(iInfo))
 				eVars.C[q] -= modeA->dCatom[q]*h;
 			
-			eVars.orthonormalize(q);
-			//eVars.VdagC[q].clear();
-			//e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
+			//eVars.orthonormalize(q, 0, true);
+			eVars.VdagC[q].clear();
+			e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
 		}
 		eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 		
@@ -264,6 +247,9 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
 		dF = (Fplus - Fminus)*(1/(2*h));
 		return dF;
 	} else {
+		if (pInfo.densityAugRequired(e))
+			die("Analytic spring constant calculation not available for ultrasoft potentials.\n");
+		
         IonicGradient dF;
         dF.init (e.iInfo);
 		

@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_CORE_MINIMIZE_H
 
 #include <core/MinimizeParams.h>
+#include <electronic/PerturbationParams.h>
 #include <core/Util.h>
 #include <deque>
 #include <cmath>
@@ -103,7 +104,7 @@ template<typename Vector> struct LinearSolvable
 
 /** Interface for symmetric (possibly indefinite) linear systems of the form Ax+b = 0.
 	Choose between conjugate gradient or MINRES algorithms. Used in variational perturbation solver.
-	Is also more memory-efficient compared to LinearSolvable.
+	CG implementation more memory-efficient compared to LinearSolvable. MINRES uses more memory but converges smoothly.
 	@tparam Vector Same requirements as the Vector for #Minimizable
 */
 template<typename Vector> struct LinearSolvableIndefinite 
@@ -113,17 +114,26 @@ template<typename Vector> struct LinearSolvableIndefinite
 	//! Linear operator A applied to the vector v.
 	virtual void hessian(Vector& Av, const Vector& v) = 0;
 	
-	//! Apply precondioner to vector v.
+	//! Apply precondioner to vector v. Required for CG algorithm
 	virtual void precondition(Vector& v) = 0;
+	
+	//! Apply square root of preconditioner to v. Required for MINRES algorithm
+	virtual void Ksqrt(Vector& v) = 0;
 	
 	//! Override to synchronize scalars over MPI processes (if the same minimization is happening in sync over many processes)
 	virtual double sync(double x) const { return x; }
 	
+	//! Solve the linear system Ax+b=0 using algorithm specified by params
+	//! @return the number of iterations taken to achieve target tolerance
+	int solve(const Vector& b, const PerturbationParams& params);
+	
 	//! Solve Ax+b=0 using linear conjugate gradients.
 	//! @return the number of iterations taken to achieve target tolerance
-	int solve(const Vector& b, const MinimizeParams& params);
+	int CG(const Vector& b, const PerturbationParams& params);
 	
-	//TODO implement MINRES
+	//! Solve Ax+b=0 using MINRES algorithm.
+	//! @return the number of iterations taken to achieve target tolerance
+	int MINRES(const Vector& b, const PerturbationParams& params);
 };
 
 
@@ -368,16 +378,25 @@ template<typename Vector> int LinearSolvable<Vector>::solve(const Vector& rhs, c
 }
 
 
+template<typename Vector> int LinearSolvableIndefinite<Vector>::solve(const Vector& b, const PerturbationParams& p)
+{
+	switch(p.algorithm) {
+		case PerturbationParams::CG: return CG(b, p);
+		case PerturbationParams::MINRES: return MINRES(b,p);
+		default: return 0;
+	}
+}
 
-
-template<typename Vector> int LinearSolvableIndefinite<Vector>::solve(const Vector& b, const MinimizeParams& p)
-{	//Initialize:
+template<typename Vector> int LinearSolvableIndefinite<Vector>::CG(const Vector& b, const PerturbationParams& p)
+{	fprintf(p.fpLog, "\nBeginning conjugate gradient minimization.\n");
+	
+	//Initialize:
 	Vector r; hessian(r, state); axpy(1.0, b, r); r *= -1.0; //residual r = -(A.state + b);
 	Vector z = clone(r); precondition(z);
-	Vector d; //the preconditioned residual and search direction
-	Vector w;
+	Vector d, w;
 	double beta=0.0, rdotzPrev=0.0, rdotz = sync(dot(r, z));
 
+	Vector optstate; double optresidual = rdotz; int optiter = 0;
 	int consecErrIncreases = 0;
 	
 	double rKr;
@@ -385,15 +404,13 @@ template<typename Vector> int LinearSolvableIndefinite<Vector>::solve(const Vect
 		Vector Kb = clone(b);
 		precondition(Kb);
 		rKr = sync(dot(b, Kb));
-		//rKr = sync(dot(b, b));
 	}
-	
 	
 	//Check initial residual
 	double relErr = sqrt(fabs(rdotz)/fabs(rKr));
 	double relErrPrev = relErr;
-	fprintf(p.fpLog, "%sInitial:  ||r||_k / ||b||_k: %12.6le\n", p.linePrefix, relErr); fflush(p.fpLog);
-	if(relErr<p.knormThreshold) { fprintf(p.fpLog, "%sConverged ||r||_k / ||b||_k<%le\n", p.linePrefix, p.knormThreshold); fflush(p.fpLog); return 0; }
+	fprintf(p.fpLog, "%sInitial:  ||r||_k/||b||_k: %12.6le\n", p.linePrefix, relErr); fflush(p.fpLog);
+	if(relErr<p.residualTol) { fprintf(p.fpLog, "%sConverged ||r||_k/||b||_k<%le\n", p.linePrefix, p.residualTol); fflush(p.fpLog); return 0; }
 
 	//Main loop:
 	int iter;
@@ -410,7 +427,7 @@ template<typename Vector> int LinearSolvableIndefinite<Vector>::solve(const Vect
 		axpy(alpha, d, state);
 		axpy(-alpha, w, r);
 		
-		if (iter > 1 && iter % 10 == 0) {
+		if (iter > 1 && iter % 10 == 0 && p.recomputeResidual) {
 			hessian(r, state); axpy(1.0, b, r); r *= -1.0;
 			logPrintf("Recomputing residual.\n");
 		}
@@ -419,22 +436,104 @@ template<typename Vector> int LinearSolvableIndefinite<Vector>::solve(const Vect
 		precondition(z);
 		rdotzPrev = rdotz;
 		rdotz = sync(dot(r, z));
+		
 		//Print info:
 		double relErr = sqrt(fabs(rdotz)/fabs(rKr));
 		//double relErr = sqrt(fabs(sync(dot(z,z)))/fabs(rKr));
-		fprintf(p.fpLog, "%sIter: %3d  ||r||_k / ||b||_k: %12.6le  alpha: %12.6le  beta: %13.6le  t[s]: %9.2lf\n",
+		fprintf(p.fpLog, "%sIter: %3d  ||r||_k/||b||_k: %12.6le  alpha: %12.6le  beta: %13.6le  t[s]: %9.2lf\n",
 			p.linePrefix, iter, relErr, alpha, beta, clock_sec()); fflush(p.fpLog);
+
 		//Check convergence:
-		if(relErr<p.knormThreshold) { fprintf(p.fpLog, "%sConverged ||r||_k / ||b||_k<%le\n", p.linePrefix, p.knormThreshold); fflush(p.fpLog); return iter; }
+		if(relErr<p.residualTol) { fprintf(p.fpLog, "%sConverged ||r||_k/||b||_k<%le\n", p.linePrefix, p.residualTol); fflush(p.fpLog); return iter; }
 		
-		if(relErr > relErrPrev)
+		if(relErr > relErrPrev) {
+			if (consecErrIncreases == 0 && rdotzPrev < optresidual) {
+				axpy(-alpha, d, state);
+				optstate = state;
+				optiter = iter-1;
+				optresidual = rdotzPrev;
+				axpy(alpha, d, state);
+			}
+			consecErrIncreases++;
+		}
+		else
+			consecErrIncreases = 0;
+		
+		if (consecErrIncreases >= 3 && !p.CGBypass) { logPrintf("Terminating solver as relative error has increased 3 times in a row.\n"); ; fflush(p.fpLog); break; }
+		relErrPrev = relErr;
+	}
+	fprintf(p.fpLog, "%sGradient did not converge within threshold in %d iterations\n", p.linePrefix, iter); fflush(p.fpLog);
+	if (optiter > 0) {
+		state = optstate;
+		fprintf(p.fpLog, "Setting final state to output of iteration %d with |r||_k/||b||_k = %g.\n", optiter, sqrt(optresidual)/fabs(rKr));
+	}
+	return iter;
+}
+
+
+
+template<typename Vector> int LinearSolvableIndefinite<Vector>::MINRES(const Vector& b, const PerturbationParams& p)
+{	fprintf(p.fpLog, "\nBeginning MINRES solve.\n");
+	Vector r = clone(state);
+	
+	Ksqrt(r); hessian(r, r); r *= -1.0; axpy(-1.0, b, r); Ksqrt(r); //r = -Ksqrt.b - Ksqrt.A.Ksqrt.x
+	double rho=sqrt(dot(r,r));
+	Vector v = clone(r); v *= (1/rho);
+	double beta=0; double betatilde=0; double c=-1; double s=0;
+	Vector vold=clone(state); Vector w=clone(state); Vector wtt=clone(v);
+	Vector vhat, wt;
+	
+	int consecErrIncreases = 0;
+	
+	double rKr;
+	{
+		Vector Kb = clone(b);
+		precondition(Kb);
+		rKr = sync(dot(b, Kb));
+	}
+	double relErr = rho/sqrt(fabs(rKr));
+	double relErrPrev = relErr;
+	
+	int iter;
+	for(iter=0; iter<p.nIterations && !killFlag; iter++)
+	{
+		vhat = clone(v);
+		Ksqrt(vhat); hessian(vhat, vhat); Ksqrt(vhat);
+		axpy(-beta, vold, vhat);
+		
+		double alpha=dot(v,vhat);
+		axpy(-alpha, v, vhat);
+		beta=sqrt(dot(vhat,vhat));
+		vold=clone(v);
+		v = clone(vhat); v *= (1/beta);
+		double l1=s*alpha-c*betatilde;
+		double l2=s*beta;
+		double alphatilde=-s*betatilde-c*alpha;
+		betatilde=c*beta;
+		double l0=sqrt(alphatilde*alphatilde+beta*beta);
+		c=alphatilde/l0;
+		s=beta/l0;
+		wt=clone(wtt); axpy(-l1, w, wt);
+		wtt=clone(v); axpy(-l2,w, wtt);
+		w = clone(wt); w *= (1/l0);
+		axpy(rho*c,w,state);
+		rho=s*rho;
+		
+		double relErr = rho/sqrt(fabs(rKr));
+		fprintf(p.fpLog, "%sIter: %3d  ||r||_k/||b||_k: %12.6le t[s]: %9.2lf\n",
+			p.linePrefix, iter, relErr, clock_sec()); fflush(p.fpLog);
+		if (relErr < p.residualTol) { fprintf(p.fpLog, "%sConverged ||r||_k/||b||_k<%le\n", p.linePrefix, p.residualTol); fflush(p.fpLog); Ksqrt(state); return iter; }
+		
+		if((relErrPrev - relErr)/relErr < p.residualDiffThreshold)
 			consecErrIncreases++;
 		else
 			consecErrIncreases = 0;
 		
-		if (consecErrIncreases >= 3) { logPrintf("Terminating solver as relative error has increased 3 times in a row.\n"); axpy(-alpha, d, state); fflush(p.fpLog); break; }
+		if (consecErrIncreases >= 2) { logPrintf("Terminating solver since (||r_prev||-||r||)/||r||<%g for two iterations in a row.\n", p.residualTol); fflush(p.fpLog); break; }
 		relErrPrev = relErr;
 	}
+	
+	Ksqrt(state);
 	fprintf(p.fpLog, "%sGradient did not converge within threshold in %d iterations\n", p.linePrefix, iter); fflush(p.fpLog);
 	return iter;
 }
