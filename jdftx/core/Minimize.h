@@ -429,7 +429,7 @@ template<typename Vector> int LinearSolvableIndefinite<Vector>::CG(const Vector&
 		
 		if (iter > 1 && iter % 10 == 0 && p.recomputeResidual) {
 			hessian(r, state); axpy(1.0, b, r); r *= -1.0;
-			logPrintf("Recomputing residual.\n");
+			fprintf(p.fpLog, "Recomputing residual.\n");
 		}
 		
 		z = clone(r);
@@ -459,7 +459,7 @@ template<typename Vector> int LinearSolvableIndefinite<Vector>::CG(const Vector&
 		else
 			consecErrIncreases = 0;
 		
-		if (consecErrIncreases >= 3 && !p.CGBypass) { logPrintf("Terminating solver as relative error has increased 3 times in a row.\n"); ; fflush(p.fpLog); break; }
+		if (consecErrIncreases >= 3 && !p.CGBypass) { fprintf(p.fpLog, "Terminating solver as relative error has increased 3 times in a row.\n"); ; fflush(p.fpLog); break; }
 		relErrPrev = relErr;
 	}
 	fprintf(p.fpLog, "%sGradient did not converge within threshold in %d iterations\n", p.linePrefix, iter); fflush(p.fpLog);
@@ -529,7 +529,7 @@ template<typename Vector> int LinearSolvableIndefinite<Vector>::MINRES(const Vec
 		else
 			consecErrIncreases = 0;
 		
-		if (consecErrIncreases >= 2) { logPrintf("Terminating solver since (||r_prev||-||r||)/||r||<%g for two iterations in a row.\n", p.residualTol); fflush(p.fpLog); break; }
+		if (consecErrIncreases >= 2) { fprintf(p.fpLog, "Terminating solver since (||r_prev||-||r||)/||r||<%g for two iterations in a row.\n", p.residualTol); fflush(p.fpLog); break; }
 		relErrPrev = relErr;
 	}
 	
