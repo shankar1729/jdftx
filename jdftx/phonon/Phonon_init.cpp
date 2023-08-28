@@ -80,7 +80,10 @@ void Phonon::setup(bool printDefaults)
 	//Initialize state of unit cell:
 	if(e.cntrl.dumpOnly)
 	{	//Single energy calculation so that all dependent quantities have been initialized:
-		if(e.eVars.isRandom) die("Electronic state required for dump-only mode has not been read in (using initial-state or wavefunction).\n\n");
+		if(e.eVars.isRandom)
+			die("Dump-only mode requires wfns to be read in using initial-state or wavefunction.\n\n");
+		if(e.eInfo.fillingsUpdate==ElecInfo::FillingsHsub and (not e.eVars.HauxInitialized))
+			die("Dump-only mode with smearing requires eigenvals to be read in using initial-state.\n\n");
 		logPrintf("\n----------- Energy evaluation at fixed state -------------\n"); logFlush();
 		e.eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 	}
