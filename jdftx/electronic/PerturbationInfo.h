@@ -34,14 +34,23 @@ struct AtomicMode
 	vector3<> dirCartesian; //!< Perturbation in Cartesian coords
 };
 
-class AtomPerturbation {
+class Perturbation {
+public:
+	Perturbation(const Everything& e);
+private:
+	const Everything& e;
+	const class ElecVars& eVars;
+	const ElecInfo& eInfo;
+};
+
+class AtomPerturbation : public Perturbation {
 public:
 	AtomPerturbation(unsigned int sp, unsigned int at, int iDir, const Everything& e);
 	AtomPerturbation(unsigned int sp, unsigned int at, vector3<> dirCartesian, const Everything& e);
 	
 	bool sameAtom(const std::shared_ptr<AtomPerturbation> pert) { return pert->mode.sp == mode.sp && pert->mode.at == mode.at; };
 	void init(const Everything &e, const class ElecVars& eVars, const ElecInfo& eInfo); //!< Initialize variables
-    bool isUltrasoft(const class IonInfo& iInfo); //!< Does this atom use an ultrasoft potential
+	bool isUltrasoft(const class IonInfo& iInfo); //!< Does this atom use an ultrasoft potential
 	
 	AtomicMode mode; //!< Contains info about the atom and perturbation
 	std::vector<ColumnBundle> Vatom_cached, dVatom_cached; //!< Cached single atom projectors
@@ -52,11 +61,29 @@ public:
 	std::vector<ColumnBundle> dCatom; //!< Derivative of wavefunctions
 };
 
-class VextPerturbation {
+class VextPerturbation : public Perturbation {
 public:
+	VextPerturbation(const Everything& e) : Perturbation(e) {};
 	std::vector<string> dVexternalFilename; //!< External potential filename (read in real space)
 	ScalarFieldArray dVext; //!< Change in external potential
 	complexScalarFieldArray dVextpq, dVextmq; //!< Change in external potential (incommensurate)
+};
+
+class RhoPerturbation : public Perturbation {
+public:
+	RhoPerturbation(const Everything& e) : Perturbation(e) {};
+	std::vector<string> drhoExtFilename; //!< External charge filename (read in real space)
+	ScalarFieldTilde drhoExt; //!< Change in charge potential
+	complexScalarFieldTilde drhoExtpq, drhoExtmq; //!< Change in charge potential (incommensurate)
+};
+
+class ChargeBallPerturbation : public RhoPerturbation {
+public:
+	ChargeBallPerturbation(const Everything& e, double rho, vector3<> r, double width = 0.1);
+	void init();
+	double rho;
+	vector3<> r;
+	double width;
 };
 
 class PerturbationInfo {
@@ -78,8 +105,10 @@ public:
 	bool commensurate = true; //!< Is the perturbation lattice periodic
 	bool testing = false; //!< Whether or not a FD test is being conducted
 	
-	std::shared_ptr<VextPerturbation> dVext; //!< Is there a perturbation of Vext
-    std::shared_ptr<AtomPerturbation> datom;
+	std::shared_ptr<VextPerturbation> dVext;
+	std::shared_ptr<AtomPerturbation> datom;
+	std::shared_ptr<RhoPerturbation> drhoExt;
+	std::shared_ptr<ChargeBallPerturbation> dChargeBall;
 	
 	vector3<> qvec; //!< Bloch wavevector of perturbation. Equal to zero if perturbation is commensurate
 	
@@ -95,18 +124,18 @@ public:
 	PerturbationGradient dGradTau, dGradPsi;
 	std::vector<ColumnBundle> dC, Cinc;
 	std::vector<matrix> dU, dUmhalfatom, dHsub, dHsubatom, CdagdHC, CdagdHCatom;
-    
-    /* Intermediate scalar field derivs */
+	
+	/* Intermediate scalar field derivs */
 	ScalarFieldArray dn;
 	ScalarField dnCoreA;
 	complexScalarFieldArray dnpq, dnmq;
 	ScalarFieldArray dVscloc, dVsclocTau;
 	complexScalarFieldArray dVsclocpq, dVsclocmq;
-    
-    /* Cached quantities */
+	
+	/* Cached quantities */
 	std::vector<ColumnBundle> grad, HC, OC;
-    ScalarField sigma_cached, e_nn_cached, e_sigma_cached, e_nsigma_cached, e_sigmasigma_cached; //LDA and GGA second derivs
-    VectorField IDJn_cached;
+	ScalarField sigma_cached, e_nn_cached, e_sigma_cached, e_nsigma_cached, e_sigmasigma_cached; //LDA and GGA second derivs
+	VectorField IDJn_cached;
 	
 	std::vector<matrix> E_nAug_cached, E_nAug_dVsclocpsi, E_nAug_dVscloctau;
 };

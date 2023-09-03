@@ -28,32 +28,34 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 
 
-AtomPerturbation::AtomPerturbation (unsigned int sp, unsigned int at, int iDir, const Everything& e)
+Perturbation::Perturbation(const Everything& e) : e(e), eVars(e.eVars), eInfo(e.eInfo) {};
+
+AtomPerturbation::AtomPerturbation (unsigned int sp, unsigned int at, int iDir, const Everything& e) : Perturbation(e)
 {
-    AtomicMode m;
-    vector3<> dirCartesian;
+	AtomicMode m;
+	vector3<> dirCartesian;
 
-    dirCartesian[iDir] = 1;
-    m.sp = sp;
-    m.at = at;
-    m.dirCartesian = dirCartesian;
+	dirCartesian[iDir] = 1;
+	m.sp = sp;
+	m.at = at;
+	m.dirCartesian = dirCartesian;
 
-    m.dirLattice = e.gInfo.invR*m.dirCartesian;
-    mode = m;
-    init(e, e.eVars, e.eInfo);
+	m.dirLattice = e.gInfo.invR*m.dirCartesian;
+	mode = m;
+	init(e, e.eVars, e.eInfo);
 }
 
-AtomPerturbation::AtomPerturbation (unsigned int sp, unsigned int at, vector3<> dirCartesian, const Everything& e)
+AtomPerturbation::AtomPerturbation (unsigned int sp, unsigned int at, vector3<> dirCartesian, const Everything& e) : Perturbation(e)
 {
-    AtomicMode m;
+	AtomicMode m;
 	
-    m.sp = sp;
-    m.at = at;
-    m.dirCartesian = dirCartesian;
+	m.sp = sp;
+	m.at = at;
+	m.dirCartesian = dirCartesian;
 
-    m.dirLattice = e.gInfo.invR*m.dirCartesian;
-    mode = m;
-    init(e, e.eVars, e.eInfo);
+	m.dirLattice = e.gInfo.invR*m.dirCartesian;
+	mode = m;
+	init(e, e.eVars, e.eInfo);
 }
 
 void AtomPerturbation::init(const Everything &e, const ElecVars& eVars, const ElecInfo& eInfo)
@@ -68,6 +70,9 @@ void AtomPerturbation::init(const Everything &e, const ElecVars& eVars, const El
 }
 
 bool AtomPerturbation::isUltrasoft(const IonInfo& iInfo) { return iInfo.species[mode.sp]->isUltrasoft(); } //!< Does this atom use an ultrasoft potential
+
+ChargeBallPerturbation::ChargeBallPerturbation(const Everything& e, double rho, vector3<> r, double width) : RhoPerturbation(e), rho(rho), r(r), width(width) {}
+
 
 void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 
@@ -102,8 +107,8 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 	} else {
 		initInc(dC, 2*eInfo.nStates, eInfo.nBands, &eInfo);
 		initInc(Cinc, 2*eInfo.nStates, eInfo.nBands, &eInfo);
-        dVsclocpq.resize(eVars.Vscloc.size());
-        dVsclocmq.resize(eVars.Vscloc.size());
+		dVsclocpq.resize(eVars.Vscloc.size());
+		dVsclocmq.resize(eVars.Vscloc.size());
 	}
 	
 	if(dVext && dVext->dVexternalFilename.size())
@@ -120,6 +125,31 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 			loadRawBinary(dVext->dVextpq[0], dVext->dVexternalFilename[0].c_str());
 			
 			dVext->dVextmq = conj(dVext->dVextpq);
+		}
+	}
+	
+	if (dChargeBall) {
+		if (commensurate) {
+			ScalarFieldTilde delta(ScalarFieldTildeData::alloc(e.gInfo));
+			initTranslation(delta, vector3<>());
+			ScalarFieldTilde gaussian = gaussConvolve(delta*dChargeBall->rho*(1./e.gInfo.detR), dChargeBall->width);
+			translate(gaussian, dChargeBall->r);
+			
+			dChargeBall->drhoExt = gaussian;
+		} else {
+			ScalarFieldTilde delta(ScalarFieldTildeData::alloc(e.gInfo));
+			vector3<> center = 0.5*(e.gInfo.R.column(0)+e.gInfo.R.column(1)+e.gInfo.R.column(2));
+			initTranslation(delta, center);
+			ScalarFieldTilde gaussian = gaussConvolve(delta*dChargeBall->rho*(1./e.gInfo.detR), dChargeBall->width);
+			complexScalarField Igaussian = Complex(I(gaussian));
+			multiplyBlochPhase(Igaussian, -qvec);
+			cis(2*M_PI*dot(qvec, center));
+			//Igaussian *= cis(2*M_PI*dot(qvec, center));
+			complexScalarFieldTilde finalGaussian = J(Igaussian);
+			translate(finalGaussian, dChargeBall->r - center);
+			
+			dChargeBall->drhoExtpq = finalGaussian;
+			dChargeBall->drhoExtmq = conj(finalGaussian);
 		}
 	}
 

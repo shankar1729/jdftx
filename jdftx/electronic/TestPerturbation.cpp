@@ -774,7 +774,7 @@ void TestPerturbation::testVPT() {
 	randomize(Y1, eInfo);
 	randomize(dY, eInfo);
 	
-	VextMode = std::make_shared<VextPerturbation>();
+	VextMode = std::make_shared<VextPerturbation>(e);
 	ScalarFieldArray dVext(eVars.n.size());
 	nullToZero(dVext, e.gInfo);
 	initRandomFlat(dVext[0]);

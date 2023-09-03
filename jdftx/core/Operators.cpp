@@ -518,6 +518,18 @@ matrix3<> lGradientStress(const RadialFunctionG& w, const ScalarFieldTilde& X, c
 }
 
 
+void translate_sub(size_t iStart, size_t iStop, const vector3<int> S, const vector3<> Gr, complex* X)
+{	THREAD_halfGspaceLoop( X[i] *= cis(-dot(iG,Gr)); )
+}
+void translate(ScalarFieldTilde& X, const vector3<>& r)
+{	const GridInfo& gInfo = X->gInfo;
+	threadLaunch(translate_sub, gInfo.nG, gInfo.S, gInfo.G*r, X->data());
+}
+void translate(complexScalarFieldTilde& X, const vector3<>& r)
+{	const GridInfo& gInfo = X->gInfo;
+	threadLaunch(translate_sub, gInfo.nG, gInfo.S, gInfo.G*r, X->data());
+}
+
 void multiplyBlochPhase_sub(size_t iStart, size_t iStop,
 	const vector3<int>& S, const vector3<>& invS, complex* v, const vector3<>& k)
 {	THREAD_rLoop( v[i] *= blochPhase_calc(iv, invS, k); )

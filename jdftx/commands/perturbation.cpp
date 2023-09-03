@@ -106,7 +106,7 @@ struct CommandDVexternal : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	e.vptInfo.dVext = std::make_shared<VextPerturbation>();
+	{	e.vptInfo.dVext = std::make_shared<VextPerturbation>(e);
 		e.vptInfo.dVext->dVexternalFilename.resize(1);
 		pl.get(e.vptInfo.dVext->dVexternalFilename[0], string(), "filename", true);
 	}
@@ -152,6 +152,41 @@ struct CommandDAtom : public Command
 	}
 }
 CommandDAtom;
+
+//TODO
+struct CommandPointCharge : public Command
+{
+	CommandPointCharge() : Command("perturb-point-charge", "jdftx/Variational perturbation theory")
+	{
+		format = "<charge> <x0> <x1> <x2> [width]";
+		comments =
+			"Add a gaussian charge ball perturbation at (x0, x1, x2) with specified width. Coordinate system determined by coords-type\n";
+		
+		require("latt-scale");
+		require("coords-type");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	double rho, width;
+		vector3<> r;
+		pl.get(rho, 0.0, "charge", true);
+		pl.get(r[0], 0.0, "dx0", true);
+		pl.get(r[1], 0.0, "dx1", true);
+		pl.get(r[2], 0.0, "dx2", true);
+		pl.get(width, 0.1, "width");
+		
+		if(e.iInfo.coordsType == CoordsLattice) r = e.gInfo.R*r;
+		
+		e.vptInfo.dChargeBall = std::make_shared<ChargeBallPerturbation>(e, rho, r, width);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	
+		auto pert = e.vptInfo.datom;
+		logPrintf("%i %i %g %g %g", pert->mode.sp, pert->mode.at, pert->mode.dirCartesian[0], pert->mode.dirCartesian[1], pert->mode.dirCartesian[2]);
+	}
+}
+CommandPointCharge;
 
 struct CommandSetPertPhase : public Command
 {

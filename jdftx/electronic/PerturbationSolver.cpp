@@ -422,7 +422,7 @@ void PerturbationSolver::updateExcorrCache()
 	{
 		for(int i=iDirStart; i<iDirStop; i++) {
 			pInfo.IDJn_cached[i] = I(D(J(nXC[0]),i));
-        }
+		}
 
 		nullToZero(pInfo.sigma_cached, e.gInfo);
 		initZero(pInfo.sigma_cached);
@@ -456,18 +456,18 @@ void PerturbationSolver::updateNonlocalDerivs()
 	if (!pInfo.datom || !pInfo.commensurate) return;
 	
 	AtomicMode m = pInfo.datom->mode;
-    auto sp = iInfo.species[m.sp];
+	auto sp = iInfo.species[m.sp];
 
-    for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-        pInfo.datom->Vatom_cached[q] = *sp->getV(eVars.C[q], m.at);
-        pInfo.datom->dVatom_cached[q] = -D(pInfo.datom->Vatom_cached[q], m.dirCartesian);
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		pInfo.datom->Vatom_cached[q] = *sp->getV(eVars.C[q], m.at);
+		pInfo.datom->dVatom_cached[q] = -D(pInfo.datom->Vatom_cached[q], m.dirCartesian);
 
-        pInfo.datom->VdagCatom_cached[q] = pInfo.datom->Vatom_cached[q]^eVars.C[q];
-        pInfo.datom->dVdagCatom_cached[q] = pInfo.datom->dVatom_cached[q]^eVars.C[q];
-    }
+		pInfo.datom->VdagCatom_cached[q] = pInfo.datom->Vatom_cached[q]^eVars.C[q];
+		pInfo.datom->dVdagCatom_cached[q] = pInfo.datom->dVatom_cached[q]^eVars.C[q];
+	}
 
-    sp->augmentDensityGridGradDeriv(eVars.Vscloc, m.at, &m.dirLattice);
-    pInfo.datom->E_nAug_datom = sp->getE_nAug();
+	sp->augmentDensityGridGradDeriv(eVars.Vscloc, m.at, &m.dirLattice);
+	pInfo.datom->E_nAug_datom = sp->getE_nAug();
 }
 
 
@@ -674,7 +674,7 @@ void PerturbationSolver::dHtau(const QuantumNumber& qnum, ColumnBundle& HCq, con
 		VatomdagCq = (*Vatom)^Cq;
 		dVatomdagCq = dVatom^Cq;
 		
-        e.iInfo.setE_nAug(pInfo.E_nAug_cached);
+		e.iInfo.setE_nAug(pInfo.E_nAug_cached);
 		sp->augmentDensitySphericalGrad(qnum, dVatomdagCq, HdVatomdagCq, m.at);
 		sp->augmentDensitySphericalGrad(qnum, VatomdagCq, HVatomdagCq, m.at);
 		
@@ -693,8 +693,8 @@ void PerturbationSolver::dHtau(const QuantumNumber& qnum, ColumnBundle& HCq, con
 			sp->augmentDensitySphericalGrad(qnum, VatomdagCq, dHVatomdagCq, m.at);
 			HCq += (*Vatom)*dHVatomdagCq;
 		}
-    }
-    
+	}
+	
 	watch.stop();
 }
 
@@ -790,10 +790,13 @@ void PerturbationSolver::getdVsclocTau(ScalarFieldArray& dVscloc, ScalarFieldArr
 		getdVsclocPsi(*dn, dVscloc);
 	}
 	
-	if (pInfo.dVext) 
-		for(unsigned s=0; s<eVars.Vscloc.size(); s++)
-			dVscloc[s] += JdagOJ(pInfo.dVext->dVext[s]);
-	
+	for(unsigned s=0; s<eVars.Vscloc.size(); s++) {
+		if (pInfo.dVext) dVscloc[s] += JdagOJ(pInfo.dVext->dVext[s]);
+		if (pInfo.drhoExt) dVscloc[s] += Jdag(O((*e.coulomb)(pInfo.drhoExt->drhoExt)), true);
+		if (pInfo.dChargeBall) dVscloc[s] += Jdag(O((*e.coulomb)(pInfo.dChargeBall->drhoExt)), true);
+	}
+		
+		
 	if (pInfo.datom) {
 		ScalarField dVlocps, drhoIon, dnCore;
 		nullToZero(dVlocps, e.gInfo);
@@ -851,12 +854,21 @@ void PerturbationSolver::getdVsclocTau(complexScalarFieldArray& dVscloc, int qsi
 	for(unsigned s=0; s<eVars.Vscloc.size(); s++)
 	{
 		initZero(dVscloc[s]);
+		vector3<> qvec = pInfo.qvec*qsign;
 		
 		if (pInfo.dVext) {
-			if (qsign == 1)
-				dVscloc[s] = JdagOJ(pInfo.dVext->dVextpq[s]);
-			else if (qsign == -1)
-				dVscloc[s] = JdagOJ(pInfo.dVext->dVextmq[s]);
+			if (qsign == 1) dVscloc[s] = JdagOJ(pInfo.dVext->dVextpq[s]);
+			else if (qsign == -1) dVscloc[s] = JdagOJ(pInfo.dVext->dVextmq[s]);
+		}
+		
+		if (pInfo.drhoExt) {
+			if (qsign == 1) dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.drhoExt->drhoExtpq), &qvec)), true);
+			else dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.drhoExt->drhoExtmq), &qvec)), true);
+		}
+		
+		if (pInfo.dChargeBall) {
+			if (qsign == 1) dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.dChargeBall->drhoExtpq), &qvec)), true);
+			else dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.dChargeBall->drhoExtmq), &qvec)), true);
 		}
 	}
 

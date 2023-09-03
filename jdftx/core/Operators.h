@@ -102,6 +102,8 @@ void zeroNyquist(ScalarField& Rptr); //!< zeros out all the nyquist components o
 //! (Useful for getting real wavefunctions in gamma point only calculations or Wannier functions)
 void removePhase(size_t N, complex* data, double& meanPhase, double& sigmaPhase, double& rmsImagErr);
 
+void translate(ScalarFieldTilde&, const vector3<>& r); //!< Translate by vector r in Cartesian coordinates
+void translate(complexScalarFieldTilde&, const vector3<>& r); //!< Translate by vector r in Cartesian coordinates
 void multiplyBlochPhase(complexScalarField&, const vector3<>& k); //!< Multiply by Block phase for wave-vector k (in reciprocal lattice coordinates)
 ScalarField radialFunction(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0); //!< Create spherically-symmetric scalar field from radial form f, centered at lattice coordinates r0
 void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel); //!< Create a spherically-symmetric RealKernel from its radial form f 
