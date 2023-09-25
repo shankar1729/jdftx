@@ -654,8 +654,6 @@ complexScalarFieldArray diagouterI(const diagMatrix &F, const ColumnBundle &A, c
 	//Check sizes:
 	assert(F.nRows()==A.nCols());
 	assert(F.nRows()==B.nCols());
-	assert(A.basis->nbasis == B.basis->nbasis);
-	assert(A.qnum->index() == B.qnum->index());
 	assert(nDensities==1 || nDensities==2);
 	if(nDensities==2) assert(!A.isSpinor() && !B.isSpinor());
 

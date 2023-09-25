@@ -521,13 +521,16 @@ matrix3<> lGradientStress(const RadialFunctionG& w, const ScalarFieldTilde& X, c
 void translate_sub(size_t iStart, size_t iStop, const vector3<int> S, const vector3<> Gr, complex* X)
 {	THREAD_halfGspaceLoop( X[i] *= cis(-dot(iG,Gr)); )
 }
+void translate_sub_complex(size_t iStart, size_t iStop, const vector3<int> S, const vector3<> Gr, complex* X)
+{	THREAD_fullGspaceLoop( X[i] *= cis(-dot(iG,Gr)); )
+}
 void translate(ScalarFieldTilde& X, const vector3<>& r)
 {	const GridInfo& gInfo = X->gInfo;
 	threadLaunch(translate_sub, gInfo.nG, gInfo.S, gInfo.G*r, X->data());
 }
 void translate(complexScalarFieldTilde& X, const vector3<>& r)
 {	const GridInfo& gInfo = X->gInfo;
-	threadLaunch(translate_sub, gInfo.nG, gInfo.S, gInfo.G*r, X->data());
+	threadLaunch(translate_sub_complex, gInfo.nr, gInfo.S, gInfo.G*r, X->data());
 }
 
 void multiplyBlochPhase_sub(size_t iStart, size_t iStop,
@@ -724,6 +727,14 @@ ScalarField pow(ScalarField&& X, double alpha)
 	return X;
 }
 ScalarField pow(const ScalarField& X, double alpha) { return pow(X->clone(), alpha); }
+
+
+// [TODO]
+complexScalarField operator*(const complexScalarField& in, complex z)
+{	complexScalarField out = clone(in);
+	callPref(eblas_zscal)(out->nElem, z, out->dataPref(),1);
+	return out;
+}
 
 
 //------------------------------ Multiplication operators------------------------------
@@ -942,6 +953,15 @@ void initTranslation(ScalarFieldTilde& X, const vector3<>& r)
 {	const GridInfo& gInfo = X->gInfo;
 	threadLaunch(initTranslation_sub, gInfo.nG, gInfo.S, gInfo.G*r, X->data());
 }
+
+void initIncChargeball_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& GGT, const vector3<> Gr, complex* X, const vector3<> q, double sigma){
+	THREAD_fullGspaceLoop( X[i] = cis(-dot(iG+q,Gr))*exp(-0.5*sigma*sigma*GGT.metric_length_squared(iG+q)); )
+}
+void initIncChargeball(complexScalarFieldTilde& X, const vector3<>& r, double sigma, const vector3<>& q)
+{	const GridInfo& gInfo = X->gInfo;
+	threadLaunch(initIncChargeball_sub, gInfo.nr, gInfo.S, gInfo.GGT, gInfo.G*r, X->data(), q, sigma);
+}
+
 
 
 void gaussConvolve_sub(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT, complex* data, double sigma)

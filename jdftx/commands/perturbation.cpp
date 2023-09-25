@@ -118,6 +118,31 @@ struct CommandDVexternal : public Command
 }
 CommandDVexternal;
 
+
+struct CommandDRho : public Command
+{
+	CommandDRho() : Command("perturb-rhoExternal", "jdftx/Variational perturbation theory")
+	{
+		format = "<filename>";
+		comments =
+			"Introduce external charge density perturbation.\n"
+			"Must be specified as a real space field, or complex field for incommensurate perturbations.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	e.vptInfo.drhoExt = std::make_shared<RhoPerturbation>(e);
+		e.vptInfo.drhoExt->drhoExtFilename.resize(1);
+		pl.get(e.vptInfo.drhoExt->drhoExtFilename[0], string(), "filename", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	for(const string& filename: e.vptInfo.drhoExt->drhoExtFilename)
+			logPrintf("%s ", filename.c_str());
+	}
+}
+CommandDRho;
+
+
 struct CommandDAtom : public Command
 {
 	CommandDAtom() : Command("perturb-ion", "jdftx/Variational perturbation theory")
@@ -156,7 +181,7 @@ CommandDAtom;
 //TODO
 struct CommandPointCharge : public Command
 {
-	CommandPointCharge() : Command("perturb-point-charge", "jdftx/Variational perturbation theory")
+	CommandPointCharge() : Command("perturb-chargeball", "jdftx/Variational perturbation theory")
 	{
 		format = "<charge> <x0> <x1> <x2> [width]";
 		comments =
@@ -183,10 +208,35 @@ struct CommandPointCharge : public Command
 	void printStatus(Everything& e, int iRep)
 	{	
 		auto pert = e.vptInfo.datom;
-		logPrintf("%i %i %g %g %g", pert->mode.sp, pert->mode.at, pert->mode.dirCartesian[0], pert->mode.dirCartesian[1], pert->mode.dirCartesian[2]);
+		logPrintf("%g, %g, %g, %g, %g", e.vptInfo.dChargeBall->rho, e.vptInfo.dChargeBall->r[0], e.vptInfo.dChargeBall->r[1], e.vptInfo.dChargeBall->r[2], e.vptInfo.dChargeBall->width);
 	}
 }
 CommandPointCharge;
+
+
+struct CommandDElectricField : public Command
+{
+	CommandDElectricField() : Command("perturb-electric-field", "jdftx/Variational perturbation theory")
+	{
+		format = "<Ex> <Ey> <Ez>";
+		comments =
+			"Perturb external electric field. This field has the same properties as the one created by the command electric-field.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{
+		e.vptInfo.dElectricField = std::make_shared<ElectricFieldPerturbation>(e);
+		pl.get(e.vptInfo.dElectricField->Efield[0], 0., "Ex", true);
+		pl.get(e.vptInfo.dElectricField->Efield[1], 0., "Ey", true);
+		pl.get(e.vptInfo.dElectricField->Efield[2], 0., "Ez", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	for(int k=0; k<3; k++) logPrintf("%lg ", e.vptInfo.dElectricField->Efield[k]);
+	}
+}
+commandDElectricField;
+
 
 struct CommandSetPertPhase : public Command
 {
@@ -216,7 +266,7 @@ CommandSetPertPhase;
 
 struct CommandReadOffsetWfns : public Command
 {
-	CommandReadOffsetWfns() : Command("pert-incommensurate-wfns", "jdftx/Variational perturbation theory")
+	CommandReadOffsetWfns() : Command("set-pert-wfns", "jdftx/Variational perturbation theory")
 	{
 		format = "<filename> [<EcutOld>]";
 		comments =

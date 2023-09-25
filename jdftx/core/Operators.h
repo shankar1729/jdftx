@@ -258,6 +258,7 @@ void initRandom(ScalarField&, double cap=0.0); //!< initialize element-wise with
 void initRandomFlat(ScalarField&); //!< initialize element-wise with a unit-flat [0:1) random number
 void initGaussianKernel(RealKernel&, double x0); //!< initialize to gaussian kernel exp(-(G x0/2)^2)
 void initTranslation(ScalarFieldTilde&, const vector3<>& r);  //!< initialize to translation operator exp(-i G.r)
+void initIncChargeball(complexScalarFieldTilde&, const vector3<>& r, double sigma, const vector3<>& q);  //!< [TODO]]
 ScalarFieldTilde gaussConvolve(const ScalarFieldTilde&, double sigma); //!< convolve with a gaussian
 ScalarFieldTilde gaussConvolve(ScalarFieldTilde&&, double sigma); //!< convolve with a gaussian (destructible input)
 

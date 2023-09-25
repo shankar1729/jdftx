@@ -98,8 +98,8 @@ public:
 	ScalarFieldArray getdnXC(const ScalarField dnCore) const;
 	
 	//! Copy of ElecVars::get_nTot for any n
-	ScalarField get_nTot(const ScalarFieldArray n) const { return n.size()==1 ? n[0] : n[0]+n[1]; }
-	complexScalarField get_nTot(const complexScalarFieldArray n) const { return n.size()==1 ? n[0] : n[0]+n[1]; }
+	ScalarField get_nTot(const ScalarFieldArray n) const { return n.size()==1 ? clone(n[0]) : n[0]+n[1]; }
+	complexScalarField get_nTot(const complexScalarFieldArray n) const { return n.size()==1 ? clone(n[0]) : n[0]+n[1]; }
 
 private:
 	Everything& e;

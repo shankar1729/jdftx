@@ -109,6 +109,10 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 		initInc(Cinc, 2*eInfo.nStates, eInfo.nBands, &eInfo);
 		dVsclocpq.resize(eVars.Vscloc.size());
 		dVsclocmq.resize(eVars.Vscloc.size());
+		dnpq.resize(eVars.n.size());
+		dnmq.resize(eVars.n.size());
+		nullToZero(dnpq, e.gInfo);
+		nullToZero(dnmq, e.gInfo);
 	}
 	
 	if(dVext && dVext->dVexternalFilename.size())
@@ -119,12 +123,31 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 			logPrintf("Reading external perturbation potential from '%s'\n", dVext->dVexternalFilename[0].c_str());
 			loadRawBinary(dVext->dVext[0], dVext->dVexternalFilename[0].c_str());
 		} else {
-			dVext->dVext.resize(1);
+			dVext->dVextpq.resize(1);
+			dVext->dVextmq.resize(1);
 			dVext->dVextpq[0] = complexScalarFieldData::alloc(e.gInfo);
 			logPrintf("Reading external perturbation potential from '%s'\n", dVext->dVexternalFilename[0].c_str());
 			loadRawBinary(dVext->dVextpq[0], dVext->dVexternalFilename[0].c_str());
 			
 			dVext->dVextmq = conj(dVext->dVextpq);
+		}
+	}
+
+
+	if(drhoExt && drhoExt->drhoExtFilename.size())
+	{
+		if(commensurate) {
+			ScalarField temp(ScalarFieldData::alloc(e.gInfo));
+			logPrintf("Reading external charge perturbation from '%s'\n", drhoExt->drhoExtFilename[0].c_str());
+			loadRawBinary(temp, drhoExt->drhoExtFilename[0].c_str());
+			drhoExt->drhoExt = J(temp);
+		} else {
+			complexScalarField temp(complexScalarFieldData::alloc(e.gInfo));
+			logPrintf("Reading external charge perturbation from '%s'\n", drhoExt->drhoExtFilename[0].c_str());
+			loadRawBinary(temp, drhoExt->drhoExtFilename[0].c_str());
+
+			drhoExt->drhoExtpq = J(temp);
+			drhoExt->drhoExtmq = J(conj(I(drhoExt->drhoExtpq)));
 		}
 	}
 	
@@ -137,28 +160,35 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 			
 			dChargeBall->drhoExt = gaussian;
 		} else {
-			ScalarFieldTilde delta(ScalarFieldTildeData::alloc(e.gInfo));
-			vector3<> center = 0.5*(e.gInfo.R.column(0)+e.gInfo.R.column(1)+e.gInfo.R.column(2));
-			initTranslation(delta, center);
-			ScalarFieldTilde gaussian = gaussConvolve(delta*dChargeBall->rho*(1./e.gInfo.detR), dChargeBall->width);
-			complexScalarField Igaussian = Complex(I(gaussian));
-			multiplyBlochPhase(Igaussian, -qvec);
-			cis(2*M_PI*dot(qvec, center));
-			//Igaussian *= cis(2*M_PI*dot(qvec, center));
-			complexScalarFieldTilde finalGaussian = J(Igaussian);
-			translate(finalGaussian, dChargeBall->r - center);
+			/*
+				ScalarFieldTilde delta(ScalarFieldTildeData::alloc(e.gInfo));
+				vector3<> center = 0.5*(e.gInfo.R.column(0)+e.gInfo.R.column(1)+e.gInfo.R.column(2));
+				initTranslation(delta, center);
+				ScalarFieldTilde gaussian = gaussConvolve(delta*dChargeBall->rho*(1./e.gInfo.detR), dChargeBall->width);
+				complexScalarField Igaussian = Complex(I(gaussian));
+				multiplyBlochPhase(Igaussian, -qvec);
+				//cis(2*M_PI*dot(qvec, center));
+				Igaussian = Igaussian*cis(2*M_PI*dot(qvec, center));
+				complexScalarFieldTilde finalGaussian = J(Igaussian);
+				translate(finalGaussian, dChargeBall->r - center);
 			
+				dChargeBall->drhoExtpq = finalGaussian;
+				dChargeBall->drhoExtmq = J(conj(I(finalGaussian)));
+			*/
+			complexScalarFieldTilde finalGaussian;
+			nullToZero(finalGaussian, e.gInfo);
+			initIncChargeball(finalGaussian, dChargeBall->r, dChargeBall->width, qvec);
+			finalGaussian *= dChargeBall->rho*(1./e.gInfo.detR);
 			dChargeBall->drhoExtpq = finalGaussian;
-			dChargeBall->drhoExtmq = conj(finalGaussian);
+			dChargeBall->drhoExtmq = J(conj(I(finalGaussian)));
 		}
+	}
+
+	if (dElectricField) {
 	}
 
 	if (!commensurate)
 		read(e.eInfo, e, Cinc, wfnsFilename.c_str(), nullptr);
-
-	dn.resize(eVars.n.size());
-	dnpq.resize(eVars.n.size());
-	dnmq.resize(eVars.n.size());
 	
 	checkSupportedFeatures(e, e.eInfo);
 }

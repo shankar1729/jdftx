@@ -886,6 +886,36 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		
 	}
 
+	if (ShouldDump(PTest))
+	{
+		if (e->vptInfo.drhoExt) {
+			if (e->vptInfo.commensurate) {
+				StartDump("drhoExt")
+					saveRawBinary(I(e->vptInfo.drhoExt->drhoExt), fname.c_str());
+				EndDump
+			} else {
+				die("Error: not implemented");
+			}
+		} else if (e->vptInfo.dChargeBall) {
+			if (e->vptInfo.commensurate) {
+				StartDump("drhoExt")
+					saveRawBinary(I(e->vptInfo.dChargeBall->drhoExt), fname.c_str());
+				EndDump
+			} else {
+				{
+					StartDump("drhoExtmq")
+						saveRawBinary(I(e->vptInfo.dChargeBall->drhoExtmq), fname.c_str());
+					EndDump
+				}
+				{
+					StartDump("drhoExtpq")
+						saveRawBinary(I(e->vptInfo.dChargeBall->drhoExtpq), fname.c_str());
+					EndDump
+				}
+			}
+		}
+	}
+
 	//----------------------------------------------------------------------
 	//The following compute-intensive things are free to clear wavefunctions
 	//to conserve memory etc. and should therefore happen at the very end

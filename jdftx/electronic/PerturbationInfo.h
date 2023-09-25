@@ -20,11 +20,12 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef ELECTRONIC_PERTURBATIONINFO_H_
 #define ELECTRONIC_PERTURBATIONINFO_H_
 
-#include <core/ScalarField.h>
-#include <electronic/ColumnBundle.h>
 #include <vector>
 #include <string>
+#include <core/ScalarField.h>
+#include <core/Coulomb.h>
 #include <core/matrix.h>
+#include <electronic/ColumnBundle.h>
 #include <electronic/ElecInfo.h>
 #include <electronic/PerturbationSolver.h>
 
@@ -86,6 +87,14 @@ public:
 	double width;
 };
 
+class ElectricFieldPerturbation : public Perturbation {
+public:
+	ElectricFieldPerturbation(const Everything &e) : Perturbation(e) {};
+	vector3<> Efield;
+	std::shared_ptr<Coulomb> C;
+	ScalarField dVext;
+};
+
 class PerturbationInfo {
 public:
 	PerturbationInfo() : dVext(0), datom(0) {};
@@ -109,6 +118,7 @@ public:
 	std::shared_ptr<AtomPerturbation> datom;
 	std::shared_ptr<RhoPerturbation> drhoExt;
 	std::shared_ptr<ChargeBallPerturbation> dChargeBall;
+	std::shared_ptr<ElectricFieldPerturbation> dElectricField;
 	
 	vector3<> qvec; //!< Bloch wavevector of perturbation. Equal to zero if perturbation is commensurate
 	

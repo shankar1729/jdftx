@@ -142,11 +142,12 @@ void PerturbationSolver::solvePerturbation() {
 	}
 	
 	state.init(e);
-	init(state.X, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 	if (pInfo.commensurate) {
+		init(state.X, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 			state.X[q].zero();
 	} else {
+		pInfo.initInc(state.X, 2*eInfo.nStates, eInfo.nBands, &eInfo);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 			state.X[q].zero();
 			state.X[q+eInfo.nStates].zero();
@@ -511,6 +512,10 @@ void PerturbationSolver::getdn(ScalarFieldArray& dn, const std::vector<ColumnBun
 void PerturbationSolver::getdnInc(const std::vector<ColumnBundle>* dC, const std::vector<ColumnBundle>* C, complexScalarFieldArray& dnpq, complexScalarFieldArray& dnmq)
 {   static StopWatch watch("getdnInc"); watch.start();
 
+	initZero(dnpq);
+	dnpq[0] = 0*dnpq[0];
+	initZero(dnmq);
+
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{
 		int kpq_k = q;
@@ -704,7 +709,7 @@ void PerturbationSolver::dHtau(const QuantumNumber& qnum, ColumnBundle& HCq, con
 
 	complexScalarFieldArray dVscloc(eVars.Vscloc.size());
 
-	getdVsclocTau(dVscloc, qsign == -1);
+	getdVsclocTau(dVscloc, qsign);
 
 	ColumnBundle HCr, HCi;
 	HCr = HCq.similar();
@@ -794,6 +799,12 @@ void PerturbationSolver::getdVsclocTau(ScalarFieldArray& dVscloc, ScalarFieldArr
 		if (pInfo.dVext) dVscloc[s] += JdagOJ(pInfo.dVext->dVext[s]);
 		if (pInfo.drhoExt) dVscloc[s] += Jdag(O((*e.coulomb)(pInfo.drhoExt->drhoExt)), true);
 		if (pInfo.dChargeBall) dVscloc[s] += Jdag(O((*e.coulomb)(pInfo.dChargeBall->drhoExt)), true);
+		if (pInfo.dElectricField) {
+			CoulombParams params = e.coulombParams;
+			params.Efield = pInfo.dElectricField->Efield;
+			pInfo.dElectricField->C = params.createCoulomb(e.gInfo, e.gInfoWfns, e.coulombWfns);
+			dVscloc[s] += JdagOJ(pInfo.dElectricField->C->getEfieldPotential());
+		}
 	}
 		
 		
@@ -851,24 +862,26 @@ void PerturbationSolver::getdVsclocTau(complexScalarFieldArray& dVscloc, int qsi
 
 	assert(!pInfo.commensurate && !pInfo.datom);
 	
+	nullToZero(dVscloc, e.gInfo);
+	initZero(dVscloc);
+
 	for(unsigned s=0; s<eVars.Vscloc.size(); s++)
 	{
-		initZero(dVscloc[s]);
 		vector3<> qvec = pInfo.qvec*qsign;
 		
 		if (pInfo.dVext) {
-			if (qsign == 1) dVscloc[s] = JdagOJ(pInfo.dVext->dVextpq[s]);
-			else if (qsign == -1) dVscloc[s] = JdagOJ(pInfo.dVext->dVextmq[s]);
+			if (qsign == 1) dVscloc[s] += JdagOJ(pInfo.dVext->dVextpq[s]);
+			else if (qsign == -1) dVscloc[s] += JdagOJ(pInfo.dVext->dVextmq[s]);
 		}
 		
 		if (pInfo.drhoExt) {
 			if (qsign == 1) dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.drhoExt->drhoExtpq), &qvec)), true);
-			else dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.drhoExt->drhoExtmq), &qvec)), true);
+			else if (qsign == -1) dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.drhoExt->drhoExtmq), &qvec)), true);
 		}
 		
 		if (pInfo.dChargeBall) {
 			if (qsign == 1) dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.dChargeBall->drhoExtpq), &qvec)), true);
-			else dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.dChargeBall->drhoExtmq), &qvec)), true);
+			else if (qsign == -1) dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.dChargeBall->drhoExtmq), &qvec)), true);
 		}
 	}
 
