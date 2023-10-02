@@ -10,7 +10,17 @@ from scipy.special import expit
 from scipy.sparse import coo_matrix
 
 
-parser = argparse.ArgumentParser()
+class PrefixedFormatter(argparse.HelpFormatter):
+    def format_help(self):
+        lines = super().format_help().split("\n")
+        lines.insert(0, "")
+        lines.append("\n")
+        return "\n\t".join(lines)
+
+parser = argparse.ArgumentParser(
+    description="Compute circular dichroism (CD) from DFT outputs.",
+    formatter_class=PrefixedFormatter,
+)
 parser.add_argument("--dmu", type=float, help="Change in mu relative to mu (if available) or VBM of DFT calculation [eV]", required=True)
 parser.add_argument("--n_blocks", type=int, help="Read eigenvals and momenta files with prefix 1, 2, 3, ... nblocks", required=True)
 parser.add_argument("--n_bands", type=int, help="Number of bands to use for CD spectrum", required=True)
