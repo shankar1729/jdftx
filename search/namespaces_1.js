@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['minimizelinmin_2371',['MinimizeLinmin',['../namespaceMinimizeLinmin.html',1,'']]]
+  ['minimizelinmin_2387',['MinimizeLinmin',['../namespaceMinimizeLinmin.html',1,'']]]
 ];

@@ -1,5 +1,14 @@
 var NAVTREEINDEX6 =
 {
+"classLinearPCM.html#a9dca1c141c9320e28d96af282d4d37ac":[2,2,2,1,2,2],
+"classLinearPCM.html#aa39fc96b13fd56908b8c7143063d20e7":[2,2,2,1,2,3],
+"classLinearPCM.html#ab08b06c6483764d21f00f5e856f1ac90":[2,2,2,1,2,8],
+"classLinearPCM.html#af75bfc07e7699134227754863560adc0":[2,2,2,1,2,12],
+"classLinearPCM.html#af9e30516a6e99fff1cd7a4e67f9f9b2e":[2,2,2,1,2,11],
+"classLongRangeSum.html":[2,2,1,4,29],
+"classLongRangeSum.html#a1d360ebb93613daa9294c194789636a4":[2,2,1,4,29,1],
+"classLongRangeSum.html#ac112cc4974744ea3377a4767e9aab0dd":[2,2,1,4,29,0],
+"classLongRangeSum2D.html":[2,2,1,4,30],
 "classLongRangeSum2D.html#a840d3c00d92bfc35ec0e0115b8f0055a":[2,2,1,4,30,1],
 "classLongRangeSum2D.html#a96c20db9c5549800f04f1dd9321e14cd":[2,2,1,4,30,0],
 "classLongRangeSum2D.html#af80931f9442c2c6d31b7b75bee91b3ea":[2,2,1,4,30,2],
@@ -240,14 +249,5 @@ var NAVTREEINDEX6 =
 "classQuantumNumber.html#af6ed22a8d507ceaa5e38dacf7ebf5856":[2,2,1,0,7,0],
 "classRadialSchrodinger.html":[2,2,1,4,19],
 "classRadialSchrodinger.html#a898c286bc8ed2c1aa4045aec12f2ec99":[2,2,1,4,19,2],
-"classRadialSchrodinger.html#acbcb6a015c95a9e36715d0ab6029ea90":[2,2,1,4,19,1],
-"classRadialSchrodinger.html#ae1e63d9b22b1550e63473561fb4d6319":[2,2,1,4,19,3],
-"classS2__10design__60.html":[2,2,2,0,36],
-"classS2__10design__60.html#a2de82278854ed9be196f73d4df0811b1":[2,2,2,0,36,3],
-"classS2__10design__60.html#a30e8b0955d08b97da31c685ee53cbc2e":[2,2,2,0,36,1],
-"classS2__10design__60.html#a489c43f93c4718bc7082b890b84f7685":[2,2,2,0,36,2],
-"classS2__10design__60.html#a58bf144186ccf725b1afe2c1af31b45f":[2,2,2,0,36,0],
-"classS2__11design__70.html":[2,2,2,0,37],
-"classS2__11design__70.html#a2173249ed445826a2280f4cdd5beda73":[2,2,2,0,37,0],
-"classS2__11design__70.html#a3dc6afdff188032a44368a85834ab08e":[2,2,2,0,37,2]
+"classRadialSchrodinger.html#acbcb6a015c95a9e36715d0ab6029ea90":[2,2,1,4,19,1]
 };

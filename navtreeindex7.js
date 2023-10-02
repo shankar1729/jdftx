@@ -1,5 +1,14 @@
 var NAVTREEINDEX7 =
 {
+"classRadialSchrodinger.html#ae1e63d9b22b1550e63473561fb4d6319":[2,2,1,4,19,3],
+"classS2__10design__60.html":[2,2,2,0,36],
+"classS2__10design__60.html#a2de82278854ed9be196f73d4df0811b1":[2,2,2,0,36,3],
+"classS2__10design__60.html#a30e8b0955d08b97da31c685ee53cbc2e":[2,2,2,0,36,1],
+"classS2__10design__60.html#a489c43f93c4718bc7082b890b84f7685":[2,2,2,0,36,2],
+"classS2__10design__60.html#a58bf144186ccf725b1afe2c1af31b45f":[2,2,2,0,36,0],
+"classS2__11design__70.html":[2,2,2,0,37],
+"classS2__11design__70.html#a2173249ed445826a2280f4cdd5beda73":[2,2,2,0,37,0],
+"classS2__11design__70.html#a3dc6afdff188032a44368a85834ab08e":[2,2,2,0,37,2],
 "classS2__11design__70.html#a611cd9c720130f2cde6d265693f312c5":[2,2,2,0,37,3],
 "classS2__11design__70.html#af4487872c2988e2670962961c1efca1f":[2,2,2,0,37,1],
 "classS2__12design__84.html":[2,2,2,0,38],
@@ -240,14 +249,5 @@ var NAVTREEINDEX7 =
 "classTetrahedralDOS.html#ac23c9fc1b8e59ddf1cc8791345de8f0d":[2,4,0,203,7],
 "classTetrahedralDOS.html#acad4f894953e2b6c911691795b4466ce":[2,4,0,203,11],
 "classTetrahedralDOS.html#acd64ae7091fcfaabf1b33f903d3282cb":[2,4,0,203,15],
-"classTetrahedron.html":[2,2,2,0,30],
-"classTetrahedron.html#a1ca535a494b5a8f443c61a78280818c8":[2,2,2,0,30,3],
-"classTetrahedron.html#a33b6b93c4745a4d9c15adc30bd251550":[2,2,2,0,30,2],
-"classTetrahedron.html#a4269b08318aa8c8fec5d5e8944b40674":[2,2,2,0,30,1],
-"classTetrahedron.html#ae0b07b13c90b10e253b3fb9978f7d2e4":[2,2,2,0,30,0],
-"classTranslationOperator.html":[2,2,0,1,4],
-"classTranslationOperator.html#a0da983267f4fc96a1fff17ca3e6b381b":[2,2,0,1,4,1],
-"classTranslationOperator.html#a5abc9f629fd889f565f4949be0455cad":[2,2,0,1,4,3],
-"classTranslationOperator.html#a903878a02c796ecdcb7825f5aaf32a3d":[2,2,0,1,4,0],
-"classTranslationOperator.html#a959e9b996ec3be6280c440dc694981ff":[2,2,0,1,4,2]
+"classTetrahedron.html":[2,2,2,0,30]
 };

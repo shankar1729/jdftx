@@ -8,5 +8,6 @@ var SolidTutorials =
     [ "Magnetism", "Magnetism.html", null ],
     [ "DFT + U", "DFTplusU.html", null ],
     [ "Spin-orbit coupling", "SpinOrbit.html", null ],
-    [ "Dispersion (vdW) corrections", "Dispersion.html", null ]
+    [ "Dispersion (vdW) corrections", "Dispersion.html", null ],
+    [ "Circular Dichroism (CD)", "CircularDichroism.html", null ]
 ];

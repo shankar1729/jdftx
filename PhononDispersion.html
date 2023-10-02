@@ -130,7 +130,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 #Read the phonon cell map and force matrix:
-cellMap = np.loadtxt("totalE.phononCellMap")[:,0:3].astype(np.int)
+cellMap = np.loadtxt("totalE.phononCellMap")[:,0:3].astype(int)
 forceMatrix = np.fromfile("totalE.phononOmegaSq", dtype=np.float64)
 nCells = cellMap.shape[0]
 nModes = int(np.sqrt(forceMatrix.shape[0] / nCells))
@@ -167,7 +167,7 @@ try:
     kpathLabelPos = [ nInterp*int(pos.split(',')[0]) for pos in kpathLabels[4:-1:2] ]
     plt.xticks(kpathLabelPos, kpathLabelText)
 except:
-    print 'Warning: could not extract labels from bandstruct.plot'
+    print ('Warning: could not extract labels from bandstruct.plot')
 plt.show()
 </pre><p> Note that the overall strategy is exactly analogous to generating the electronic band structure from the Wannier Hamiltonian output. Using information from the cell map, we transform the force matrix to k space and diagonalize it to get the square of the phonon frequencies. Most of the lines of code above deal with input/output and beautifying the plot.</p>
 <p>Running "python PhononDispersion.py" produces the phonon dispersion curves (or band structure) shown below and at the top of this page:</p>
