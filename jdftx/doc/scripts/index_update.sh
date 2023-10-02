@@ -49,7 +49,7 @@ echo
 
 for t in "${scriptList[@]}"; do
 	echo '/** \page ' $t $t
-	echo "-----------------"
+	#echo "-----------------"
 	./$t --help
 	echo '*/'
 	echo
