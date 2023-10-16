@@ -40,9 +40,6 @@ public:
 	double dsqEpair(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB); //!< Second derivative of pair potentials (Ewald and VDW)
 	double dsqEnl(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB); //!< Second derivative of nonlocal energy
 	double dsqEloc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB); //!< Second derivative of local energy
-	//double dsqExc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
-	//double dsqExccore(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
-	//double dsqEH(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
 	
 	void getPerturbedEnergy(Energies& ener, std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB, double deltaA, double deltaB); //!< Perturb atoms by amounts deltaA and deltaB in the directions determined by modeA and modeB respectively, then compute energy
 	void computeSubMatrix(); //!< Compute a submatrix of the spring constant matrix determined by SpringConstat::modes

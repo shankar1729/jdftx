@@ -178,7 +178,6 @@ struct CommandDAtom : public Command
 }
 CommandDAtom;
 
-//TODO
 struct CommandPointCharge : public Command
 {
 	CommandPointCharge() : Command("perturb-chargeball", "jdftx/Variational perturbation theory")
@@ -244,7 +243,7 @@ struct CommandSetPertPhase : public Command
 	{
 		format = "<q0> <q1> <q2>";
 		comments =
-			"Set the bloch phase of the perturbation potential to exp(i q*r) where q = (<q0>, <q1>, <q2>)\n."
+			"Set the bloch phase of the perturbation potential to exp(iGq*r) where q = (<q0>, <q1>, <q2>) is a reciprocal lattice vector\n."
 			"If perturbation is not specified, will perform band structure calculation with k+q and k-q vectors.";
 	}
 

@@ -729,14 +729,6 @@ ScalarField pow(ScalarField&& X, double alpha)
 ScalarField pow(const ScalarField& X, double alpha) { return pow(X->clone(), alpha); }
 
 
-// [TODO]
-complexScalarField operator*(const complexScalarField& in, complex z)
-{	complexScalarField out = clone(in);
-	callPref(eblas_zscal)(out->nElem, z, out->dataPref(),1);
-	return out;
-}
-
-
 //------------------------------ Multiplication operators------------------------------
 
 ScalarField& operator*=(ScalarField& in, const ScalarField& other)

@@ -160,21 +160,6 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 			
 			dChargeBall->drhoExt = gaussian;
 		} else {
-			/*
-				ScalarFieldTilde delta(ScalarFieldTildeData::alloc(e.gInfo));
-				vector3<> center = 0.5*(e.gInfo.R.column(0)+e.gInfo.R.column(1)+e.gInfo.R.column(2));
-				initTranslation(delta, center);
-				ScalarFieldTilde gaussian = gaussConvolve(delta*dChargeBall->rho*(1./e.gInfo.detR), dChargeBall->width);
-				complexScalarField Igaussian = Complex(I(gaussian));
-				multiplyBlochPhase(Igaussian, -qvec);
-				//cis(2*M_PI*dot(qvec, center));
-				Igaussian = Igaussian*cis(2*M_PI*dot(qvec, center));
-				complexScalarFieldTilde finalGaussian = J(Igaussian);
-				translate(finalGaussian, dChargeBall->r - center);
-			
-				dChargeBall->drhoExtpq = finalGaussian;
-				dChargeBall->drhoExtmq = J(conj(I(finalGaussian)));
-			*/
 			complexScalarFieldTilde finalGaussian;
 			nullToZero(finalGaussian, e.gInfo);
 			initIncChargeball(finalGaussian, dChargeBall->r, dChargeBall->width, qvec);
@@ -182,9 +167,6 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 			dChargeBall->drhoExtpq = finalGaussian;
 			dChargeBall->drhoExtmq = J(conj(I(finalGaussian)));
 		}
-	}
-
-	if (dElectricField) {
 	}
 
 	if (!commensurate)

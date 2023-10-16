@@ -119,7 +119,6 @@ PerturbationSolver::PerturbationSolver(Everything& e) : e(e), eVars(e.eVars), eI
 
 //TODO Test GPU code for ultrasoft derivs
 //TODO Eliminate redundant zeros
-// Determine changes to existing code
 void PerturbationSolver::solvePerturbation() {
 	if (!e.vptParams.nIterations)
 		die("Error: Must specify nIterations in command solve-perturbation to enable the variational perturbation solver.\n")

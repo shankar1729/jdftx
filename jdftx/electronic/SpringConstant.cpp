@@ -53,21 +53,6 @@ double SpringConstant::computeMatrixElement(std::shared_ptr<AtomPerturbation> mo
 	return Eab;
 }
 
-/*double SpringConstant::dsqQuantities(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
-	dsqC.resize(eInfo.nStates);
-	if (modeA->sameAtom(modeB) && modeA->isUltrasoft(iInfo)) {
-		auto sp = e.iInfo.species[modeA->mode.sp];
-        for ( int q=eInfo.qStart; q<eInfo.qStop; q++ ) {
-            ColumnBundle OC = eVars.C[q].similar();
-            ColumnBundle dSqV = -D ( modeA->dVatom_cached[q], modeB->mode.dirCartesian );
-            OC.zero();
-            sp->augmentOverlapSecondDeriv ( eVars.C[q], OC, modeA->Vatom_cached[q], modeA->dVatom_cached[q], modeB->dVatom_cached[q], dSqV );
-            dsqC[q] = -0.5 * eVars.C[q]* ( eVars.C[q]^OC );
-        }
-	}
-}*/
-
-//TODO analytic version
 double SpringConstant::dsqEpair(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
 	static StopWatch watch("dsqEpair"); watch.start();
 	double h = 1e-3;
@@ -264,6 +249,10 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
                 }
             }
         }
+
+		pInfo.datom = modeA;
+		ps.calcdGradTau();
+
         return dF;
     }
 }
