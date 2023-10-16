@@ -32,7 +32,7 @@ int getPhysicalCores()
 	if(pp)
 	{	int nCores = 0;
 		fscanf(pp, "%d", &nCores);
-		fclose(pp);
+		pclose(pp);
 		if(nCores) return nCores; //should work on Linux: physical cores ignoring hyperthreading
 	}
 	return sysconf(_SC_NPROCESSORS_ONLN); //POSIX compatible fallback (does not account for hyperthreading)

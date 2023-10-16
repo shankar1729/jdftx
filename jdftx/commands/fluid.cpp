@@ -734,7 +734,7 @@ struct CommandFluidMixingFunctional : public Command
 	      pl.get(name2, fsp.components[0]->name, fluidComponentMap, "fluid2", true);
 	      
 	
-	      for(const std::shared_ptr<FluidComponent> c: fsp.components)
+	      for(const std::shared_ptr<FluidComponent>& c: fsp.components)
 	      {
 		if(c->name == name1)  fmp.fluid1 = c;
 		if(c->name == name2)  fmp.fluid2 = c;

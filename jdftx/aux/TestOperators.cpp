@@ -471,6 +471,17 @@ void testMatrixLinalg()
 	//Test invApply:
 	matrix x = invApply(A, b);
 	logPrintf("Relative error in invApply = %le\n", nrm2(A * x - b)/nrm2(b));
+	std::vector<bool> upperArr = {{false, true}};
+	for(bool upper: upperArr)
+	{	const char* upperStr = upper ? "upper" : "lower";
+		//Test Cholesky factorization:
+		matrix L = cholesky(A, upper);
+		matrix LL = upper ? (dagger(L) * L) : (L * dagger(L)); //appropriate product
+		logPrintf("Relative error in cholesky(%s) = %le\n", upperStr, nrm2(LL - A)/nrm2(A));
+		//Test triangular matrix inversion:
+		matrix invL = invTriangular(L, upper);
+		logPrintf("Relative error in invTriangular(%s) = %le\n", upperStr, nrm2(L * invL - eye(N))/sqrt(N));
+	}
 	//Test orthoMatrix:
 	matrix U = orthoMatrix(A);
 	logPrintf("Relative error in orthoMatrix = %le\n", nrm2(dagger(U) * A * U - eye(N)));

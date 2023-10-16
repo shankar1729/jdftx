@@ -1,0 +1,403 @@
+#!/usr/bin/env python3
+#CATEGORY: Visualization and post-processing
+#SYNOPSIS: Compute circular dichroism (CD) from DFT outputs
+
+import numpy as np
+import matplotlib.pyplot as plt
+import sys
+import argparse
+from scipy.special import expit
+from scipy.sparse import coo_matrix
+
+
+class PrefixedFormatter(argparse.HelpFormatter):
+    def format_help(self):
+        lines = super().format_help().split("\n")
+        lines.insert(0, "")
+        lines.append("\n")
+        return "\n\t".join(lines)
+
+parser = argparse.ArgumentParser(
+    description="Compute circular dichroism (CD) from DFT outputs.",
+    formatter_class=PrefixedFormatter,
+)
+parser.add_argument("--dmu", type=float, help="Change in mu relative to mu (if available) or VBM of DFT calculation [eV]", required=True)
+parser.add_argument("--n_blocks", type=int, help="Read eigenvals and momenta files with prefix 1, 2, 3, ... nblocks", required=True)
+parser.add_argument("--n_bands", type=int, help="Number of bands to use for CD spectrum", required=True)
+parser.add_argument("--domega", type=float, help="Bin size for histogram [eV]", default=0.1)
+parser.add_argument("--omegaMax", type=float, help="Frequency cutoff of CD signal [eV]", default=10.0)
+parser.add_argument("--T", type=float, help="Temperature at which to compute CD [K]", default=298)
+parser.add_argument("--omegaAnalysis", type=float, nargs='*', help="One or more frequencies to perform transition analysis [eV]", default = [])
+args = parser.parse_args()
+
+def main():
+
+    #Atomic unit definitions
+    eV = 1/27.21138505
+    Kelvin = 1./3.157750E5
+    Angstrom = 1/0.5291772
+    cm = 1e8 * Angstrom
+    c = 137.035999084  # speed of light in atomic units = 1/(fine structure constant)
+    
+    #Input params
+    dmu = args.dmu*eV
+    n_blocks = args.n_blocks
+    n_bands = args.n_bands
+    domega = args.domega*eV
+    omegaMax = args.omegaMax*eV
+    T = args.T*Kelvin
+    omega_analysis = [omega_eV * eV for omega_eV in args.omegaAnalysis]
+
+    # Read mu, spin weight and lattice vectors from totalE.out:
+    mu = np.nan
+    R = np.zeros((3,3))
+    refLine = -10
+    Rdone = False
+    initDone = False
+    for i_line, line in enumerate(open('Wannier/totalE.out')):
+        if line.startswith('Initialization completed'):
+            initDone = True
+        if initDone and line.find('FillingsUpdate:')>=0:
+            mu = float(line.split()[2])
+            mu_method = "Fermi level"
+        if line.startswith('spintype'):
+            n_spinor = (1 if line.split()[1] in {"no-spin", "z-spin"} else 2)
+            spinWeight = (2. if line.split()[1] == "no-spin" else 1.)
+        if (not initDone) and line.startswith('nElectrons:'):
+            nElectrons = float(line.split()[1])
+            nBandsDFT = int(line.split()[3])
+            nStates = int(line.split()[5])
+            nValence = (int(np.round(nElectrons)) * n_spinor) // 2 #number of valence bands (in SOC mode)
+            Edft = np.reshape(np.fromfile('Wannier/totalE.eigenvals'), (nStates, nBandsDFT))
+            mu = np.max(Edft[:,:nValence]) #VBM
+            mu_method = "VBM"
+        if line.find('Initializing the Grid') >= 0:
+            refLine = i_line
+        if not Rdone:
+            rowNum = i_line - (refLine+2)
+            if rowNum>=0 and rowNum<3:
+                R[rowNum,:] = np.array([ float(x) for x in line.split()[1:-1] ])
+            if rowNum==3:
+                Rdone = True
+    assert not np.isnan(mu)
+    
+    cellVolume = np.abs(np.linalg.det(R))
+    print(f'mu: {mu} ({mu_method})')
+    print(f'dmu: {dmu}')
+    print(f'T: {T}')
+    print(f'cellVolume: {cellVolume}')
+    print(f'spinWeight: {spinWeight}')
+    print(f'n_blocks: {n_blocks}')
+    print(f'n_bands: {n_bands}')
+    print(f'omega_analysis: {omega_analysis}')
+
+    #Read symmetries
+    symData = np.loadtxt('Wannier/totalE.sym').reshape((-1,4,3))
+    symTrans = symData[:,3] #translations in lattice coordinates
+    sym = symData[:,:3] #rotations in lattice coordinates
+    symCart = np.einsum('ab,sbc,cd->sad', R, sym, np.linalg.inv(R))
+
+    prefac_per_k = 4.*(np.pi/c)**2 * spinWeight / cellVolume
+    CD = Histogram(0., omegaMax, domega, 6)
+    CDmd = Histogram(0., omegaMax, domega, 6)
+    symmetric_components = (slice(None), [0, 1, 2, 1, 2, 0], [0, 1, 2, 2, 0, 1]) # get xx, yy, zz, yz, zx, xy
+    component_names = ["xx", "yy", "zz", "xy", "yz", "zx"]
+    CD_analysis = [None] * len(omega_analysis)  # transition analysis for each frequency in omega_analysis
+
+    #start collection
+    degenThreshold = 1e-4
+    n_k_tot = 0  # total k-points collected
+    for i_block in range(1, n_blocks+1):
+        E, P, L, Q, proj = read_block(
+            f"block_{i_block}", n_bands, omega_analysis
+        )
+        Q = makeQ(Q)
+        n_k_tot += len(E)
+        
+        if proj is not None:
+            shell_names, proj_shell = proj.by_shell()
+        
+        print(f'Block {i_block} ({len(E)} kpoints):', end='', flush=True)
+        for ik, (Ek, Pk, Lk, Qk) in enumerate(zip(E, P, L, Q)):
+            Fk = expit((mu + dmu - Ek)/T)
+
+            # Select events:
+            omega = Ek[:, None] - Ek[None, :]
+            deltaFk = Fk[None, :] - Fk[:, None]
+            b_sel = np.where(np.logical_and(
+                np.logical_and(omega > domega, omega < omegaMax),
+                np.abs(deltaFk) > 1E-6, 
+            ))
+            weights = (prefac_per_k * deltaFk[b_sel])[:, None]  # extra dimenion to broadcast with components below
+            # --- single band-pair dimension now:
+            omega = omega[b_sel]
+            Pk_conj = Pk[b_sel[::-1]]  #swap band dimensions
+            Lk = Lk[b_sel]
+            Qk = Qk[b_sel]
+
+            # Magnetic dipole:
+            Gmd_raw = np.einsum('ai, aj -> aij', Pk_conj, Lk).real
+            Gmd = np.identity(3)[None] * np.einsum('aii -> a', Gmd_raw)[..., None, None] - transpose_symmetrize(Gmd_raw)
+
+            # Electric quadrupole:
+            Geq = transpose_symmetrize(np.einsum('aij, ajk -> aik', Qk, epsDot_Mv(Pk_conj)).real)
+
+            # Symmetrize, weight and extract symmetric tensor components:
+            Gtot = weights * point_group_symmetrize(Gmd + Geq, symCart)[symmetric_components]
+            Gmd = weights * point_group_symmetrize(Gmd, symCart)[symmetric_components]
+
+            # Histogram:
+            CD.add_events(omega, Gtot)
+            CDmd.add_events(omega, Gmd)
+            
+            # Projections:
+            if proj is not None:
+                for i_omega, omega_i in enumerate(omega_analysis):
+                    sel_i = np.where(np.abs(omega - omega_i) < 3 * domega)[0]
+                    w_omega = np.exp(-0.5*((omega[sel_i] - omega_i)/domega)**2) / (
+                        domega * np.sqrt(2*np.pi)
+                    )  # Gaussian weights for contributing to omega_i
+                    proj_e = proj_shell[ik, b_sel[0][sel_i]]
+                    proj_h = proj_shell[ik, b_sel[1][sel_i]]
+                    contrib = np.einsum(
+                        "ai, a, ax, ay -> ixy",
+                        Gtot[sel_i], w_omega, proj_e, proj_h
+                    )
+                    if CD_analysis[i_omega] is None:
+                        CD_analysis[i_omega] = contrib
+                    else:
+                        CD_analysis[i_omega] += contrib
+            print(f' {ik+1}', end='', flush=True)
+        print(' done.', flush=True)
+    CD.hist *= (1./n_k_tot)
+    CDmd.hist *= (1./n_k_tot)
+    header = "omega[eV] " + " ".join(f"dAlpha_{comp}[cm^-1]" for comp in component_names)
+    np.savetxt(f'CDpy_{n_blocks}_{n_bands}.dat', np.hstack((CD.bins[:, None]/eV, CD.hist*cm)), header=header)
+    np.savetxt(f'CDmdpy_{n_blocks}_{n_bands}.dat', np.hstack((CDmd.bins[:, None]/eV, CDmd.hist*cm)), header=header)
+
+    # Save projections:
+    if proj is not None:
+        for omega_eV_i, CD_i in zip(omega_analysis_eV, CD_analysis):
+            CD_i *= (1./n_k_tot)  # normalize for total blocks computed
+            prefix = f"CD_analysis_{omega_eV_i:.1f}eV"
+            print(f"Saving {prefix}")
+            np.savetxt(
+                f'{prefix}.dat',
+                CD_i.reshape(-1, len(shell_names)) * cm,  # (component * e-orb) x h-orb in cm^-1
+                header=" ".join(shell_names)
+            )
+            for comp, CD_comp in zip(component_names, CD_i):
+                max_abs = np.abs(CD_comp).max() * cm
+                plt.matshow(CD_comp * cm, cmap="RdBu", vmin=-max_abs, vmax=max_abs)
+                tick_pos = np.arange(len(shell_names))
+                tick_labels = [name.replace("_", " ") for name in shell_names]
+                plt.xticks(tick_pos, tick_labels, rotation="vertical")
+                plt.yticks(tick_pos, tick_labels)
+                plt.xlabel("Conduction orbital")
+                plt.ylabel("Valence orbital")
+                plt.colorbar(label=r"$\Delta\alpha_{\mathrm{" + comp + r"}}$ contribution [cm$^{-1}$]")
+                plt.title(r"Net $\Delta\alpha_{\mathrm{" + comp + r"}}$ = " + f"{CD_comp.sum() * cm:.3g}" + " cm$^{-1}$")
+                plt.savefig(f"{prefix}_{comp}.pdf", bbox_inches="tight")
+
+
+def read_block(prefix, n_bands, need_projections=False):
+    E = np.fromfile(f'{prefix}/bandstruct.eigenvals', dtype=np.float64)
+    P = np.fromfile(f'{prefix}/bandstruct.momenta', dtype=np.complex128)
+    L = np.fromfile(f'{prefix}/bandstruct.L', dtype=np.complex128)
+    Q = np.fromfile(f'{prefix}/bandstruct.Q', dtype=np.complex128)
+    # Determine size:
+    n_bands_file = len(P) // (3 * len(E))
+    n_k = len(E) // n_bands_file
+    assert n_bands <= n_bands_file
+    # Reshape and select requested band count:
+    E = E.reshape(n_k, n_bands_file)[:, :n_bands]
+    P = P.reshape(n_k, 3, n_bands_file, n_bands_file).swapaxes(1, 3)[:, :n_bands, :n_bands, :]  # k, b1, b2, dir
+    L = L.reshape(n_k, 3, n_bands_file, n_bands_file).swapaxes(1, 3)[:, :n_bands, :n_bands, :]  # k, b1, b2, dir
+    Q = Q.reshape(n_k, 5, n_bands_file, n_bands_file).swapaxes(1, 3)[:, :n_bands, :n_bands, :]  # k, b1, b2, dir
+    # Read projections if needed:
+    if need_projections:
+        proj = Projections(f'{prefix}/bandstruct.bandProjections', n_bands)
+    else:
+        proj = None
+    return E, P, L, Q, proj
+
+
+def getEdiffAndInv(Ek, degenThreshold=1E-6):
+    """Get 1/(Ei - Ej), with 0 within degenerate subspaces.
+    The band dimension is assumed to be last in input.
+    At output, i is the penultimate index and j is the final index."""
+    EkDiff = Ek[..., None] - Ek[..., None, :]
+    EkInv = np.zeros_like(EkDiff)
+    np.reciprocal(EkDiff, out=EkInv, where=(np.abs(EkDiff) > degenThreshold))
+    return EkDiff, EkInv
+
+
+def makeQ(Q):
+    """Make tensor out from components ordered as in jdftx/core/tensor3.h"""
+    newQ = np.zeros(Q.shape[0:3] + (3,) + (3,), dtype=np.complex128)
+    newQ[...,0,0] = Q[...,3]
+    newQ[...,1,1] = Q[...,4]
+    newQ[...,2,2] = -(Q[...,3] + Q[...,4])
+    newQ[...,0,1] = newQ[...,1,0] = Q[...,0]
+    newQ[...,1,2] = newQ[...,2,1] = Q[...,1]
+    newQ[...,2,0] = newQ[...,0,2] = Q[...,2]
+    return newQ
+
+
+def leviCivita():
+    """Get Levi-Civita tensor"""
+    eps = np.zeros((3, 3, 3))
+    eps[0, 1, 2] = eps[1, 2, 0] = eps[2, 0, 1] = +1.
+    eps[2, 1, 0] = eps[0, 2, 1] = eps[1, 0, 2] = -1.
+    return eps
+
+
+def epsDot_Mv(v):
+    M = np.zeros(v.shape + (3,), dtype=np.complex128)
+    M[:, 1, 2] = -v[:, 0]
+    M[:, 2, 1] = v[:, 0]
+    M[:, 2, 0] = -v[:, 1]
+    M[:, 0, 2] = v[:, 1]
+    M[:, 0, 1] = -v[:, 2]
+    M[:, 1, 0] = v[:, 2]
+    return M
+
+
+def epsDot_vM(M):
+    v = np.zeros(M.shape[:-1], dtype=np.complex128)
+    v[:, 0] = M[:, 1, 2] - M[:, 2, 1]
+    v[:, 1] = M[:, 2, 0] - M[:, 0, 2]
+    v[:, 2] = M[:, 0, 1] - M[:, 1, 0]
+    return v
+
+
+def transpose_symmetrize(M):
+    return 0.5 * (M + M.swapaxes(-2, -1))
+
+
+def point_group_symmetrize(M, symCart):
+    return np.einsum('aij,six,sjy->axy', M, symCart, symCart) * (1./len(symCart))
+
+
+class Histogram:
+
+    def __init__(self, x_min, x_max, dx, n_w):
+        """Initiate histogram with bins arange(x_min, x_max, dx) with n_w weight channels."""
+        self.x_min = x_min
+        self.x_max = x_max
+        self.dx_inv = 1./dx
+        self.n_w = n_w
+        self.bins = np.arange(x_min, x_max, dx)
+        self.hist = np.zeros((len(self.bins), n_w))
+        self.n_intervals = len(self.bins) - 1
+    
+    def add_events(self, x, w):
+        """Add contributions from x (array of length N) with weights w (N x n_w array)."""
+        x_frac = (x - self.x_min) * self.dx_inv  # fractional coordinate
+        i = np.floor(x_frac).astype(int)
+        # Select range of collection:
+        sel = np.where(np.logical_and(i >= 0, i < self.n_intervals))
+        i = i[sel]
+        t = (x_frac[sel] - i)[:, None]  # add dimension to broadcast with n_w weights below
+        w_by_dx = w[sel] * self.dx_inv
+        # Histogram:
+        np.add.at(self.hist, i, (1.-t) * w_by_dx)
+        np.add.at(self.hist, i + 1, t * w_by_dx)
+
+
+class Projections:
+    """Band projections, along with meta-data."""
+    n_k: int  #: number of k-points in data
+    n_bands: int  #: number of bands
+    n_proj: int  #: total number of projectors
+    species: list[str]  #: symbols for ionic species
+    n_atoms: list[int]  #: number of atoms per species
+    n_orbitals: list[int]  #: number of orbitals per atom for each species
+    n_shells: list[list[int]]  #: number of shells for each l, for each species
+    data: np.ndarray  #: n_k x n_bands x n_proj array of projections
+
+    def __init__(
+        self, fname: str, n_bands: int = 0, normalize: bool = True
+    ) -> None:
+        """Read projections, truncating to specified number of bands if nonzero.
+        If normalize is True, set relative projections on atomic orbitals,
+        so that the probabilities on atomic orbitals will add to 1."""
+        for i_line, line in enumerate(open(fname)):
+            tokens = line.split()
+            if i_line == 0:
+                self.n_k = int(tokens[0])
+                n_bands_file = int(tokens[2])
+                if n_bands:
+                    assert n_bands <= n_bands_file
+                    self.n_bands = n_bands
+                else:
+                    self.n_bands = n_bands_file
+                self.n_proj = int(tokens[4])
+                n_species = int(tokens[6])
+                self.species = []
+                self.n_atoms = []
+                self.n_orbitals = []
+                self.n_shells = []
+                self.data = np.zeros((self.n_k, self.n_bands, self.n_proj))
+            elif i_line >= 2:
+                if i_line < n_species+2:
+                    self.species.append(tokens[0])
+                    self.n_atoms.append(int(tokens[1]))
+                    self.n_orbitals.append(int(tokens[2]))
+                    self.n_shells.append([int(token) for token in tokens[4:]])
+                else:
+                    i_k, i_band = divmod(
+                        i_line - (n_species + 3), n_bands_file + 1
+                    )
+                    if (0 <= i_band < self.n_bands) and i_k < self.n_k:
+                        proj_cur = np.array([float(tok) for tok in tokens])
+                        if normalize:
+                            proj_cur *= 1.0 / proj_cur.sum()
+                        self.data[i_k, i_band] = proj_cur
+
+    def by_shell(self) -> tuple[list[str], np.ndarray]:
+        "Retrieve projections summed over atoms and m, keeping species, n, l"
+        n_shells_tot = sum(sum(n_shells_sp) for n_shells_sp in self.n_shells)
+        l_names = "spdf"
+        shell_names = []
+        proj_shell = np.zeros((self.n_k, self.n_bands, n_shells_tot))
+        n_proj_prev = 0
+        n_shells_prev = 0
+        for specie, n_atoms_sp, n_orbitals_sp, n_shells_sp in zip(
+            self.species, self.n_atoms, self.n_orbitals, self.n_shells
+        ):
+            # Sum projections on all atoms of this species:
+            n_proj_sp = n_atoms_sp * n_orbitals_sp
+            n_proj_next = n_proj_prev + n_proj_sp
+            proj_sp = self.data[..., n_proj_prev : n_proj_next].reshape(
+                self.n_k, self.n_bands, n_atoms_sp, n_orbitals_sp
+            ).sum(axis=2)  # k, b, orbitals (atom summed out)
+            n_proj_prev = n_proj_next
+
+            # Collect contributions by shell:
+            n_m_tot = sum(
+                ((2 * l + 1) * n_shells_l)
+                for l, n_shells_l in enumerate(n_shells_sp)
+            )
+            n_spinor = n_orbitals_sp // n_m_tot
+            assert n_spinor in (1, 2)
+            n_orbitals_prev = 0
+            for l, n_shells_l in enumerate(n_shells_sp):
+                n_orbitals_l = (2 * l + 1) * n_spinor
+                for i_shell in range(n_shells_l):
+                    shell_names.append(f"{specie}_{l_names[l]}")
+                    # Sum projetcions over m, s:
+                    n_orbitals_next = n_orbitals_prev + n_orbitals_l
+                    proj_shell[..., n_shells_prev] = proj_sp[
+                        ..., n_orbitals_prev : n_orbitals_next
+                    ].sum(axis=-1)
+                    n_orbitals_prev = n_orbitals_next
+                    n_shells_prev += 1
+            assert n_orbitals_prev == n_orbitals_sp
+        assert n_proj_prev == self.n_proj
+        assert n_shells_prev == n_shells_tot
+        return shell_names, proj_shell
+
+if __name__ == "__main__":
+    np.set_printoptions(linewidth=150, threshold=sys.maxsize)
+    main()

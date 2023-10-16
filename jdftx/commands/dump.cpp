@@ -127,6 +127,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpMomenta, "Momenta",
 	DumpVelocities, "Velocities",
 	DumpFermiVelocity, "FermiVelocity",
+	DumpR, "R",
 	DumpL, "L",
 	DumpQ, "Q",
 	DumpBerry, "Berry",
@@ -191,6 +192,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpMomenta,        "Momentum matrix elements in a binary file (indices outer to inner: state, cartesian direction, band1, band2)",
 	DumpVelocities,     "Diagonal momentum/velocity matrix elements in a binary file  (indices outer to inner: state, band, cartesian direction)",
 	DumpFermiVelocity,  "Fermi velocity, density of states at Fermi level and related quantities",
+	DumpR,              "Position operator matrix elements, only allowed at End (see command Cprime-params)",
 	DumpL,              "Angular momentum matrix elements, only allowed at End (see command Cprime-params)",
 	DumpQ,              "Quadrupole r*p matrix elements, only allowed at End (see command Cprime-params)",
 	DumpBerry,          "Berry curvature i <dC/dk| X |dC/dk>, only allowed at End (see command Cprime-params)",
@@ -381,6 +383,7 @@ enum ElectronScatteringMember
 	ESM_fCut,
 	ESM_omegaMax,
 	ESM_RPA,
+	ESM_dumpEpsilon,
 	ESM_slabResponse,
 	ESM_EcutTransverse,
 	ESM_computeRange,
@@ -391,6 +394,7 @@ EnumStringMap<ElectronScatteringMember> esmMap
 	ESM_Ecut, "Ecut",
 	ESM_fCut, "fCut",
 	ESM_omegaMax, "omegaMax",
+	ESM_dumpEpsilon, "dumpEpsilon",
 	ESM_RPA, "RPA",
 	ESM_slabResponse, "slabResponse",
 	ESM_EcutTransverse, "EcutTransverse",
@@ -421,6 +425,8 @@ struct CommandElectronScattering : public Command
 			"   (if zero, autodetermine from available eigenvalues)\n"
 			"\n+ RPA yes|no\n\n"
 			"   If yes, use RPA response that ignores XC contribution. (default: no).\n"
+			"\n+ dumpEpsilon yes|no\n\n"
+			"   If yes, dump dielectric function in GG' basis. (default: no).\n"
 			"\n+ slabResponse yes|no\n\n"
 			"   Whether to output slab-normal-direction susceptibility instead.\n"
 			"   This needs slab geometry in coulomb-interaction, and will bypass the\n"
@@ -453,6 +459,7 @@ struct CommandElectronScattering : public Command
 				case ESM_fCut: pl.get(es.fCut, 0., "fCut", true); break;
 				case ESM_omegaMax: pl.get(es.omegaMax, 0., "omegaMax", true); break;
 				case ESM_RPA: pl.get(es.RPA, false, boolMap, "RPA", true); break;
+				case ESM_dumpEpsilon: pl.get(es.dumpEpsilon, false, boolMap, "dumpEpsilon", true); break;
 				case ESM_slabResponse: pl.get(es.slabResponse, false, boolMap, "slabResponse", true); break;
 				case ESM_EcutTransverse: pl.get(es.EcutTransverse, 0., "EcutTransverse", true); break;
 				case ESM_computeRange:
@@ -482,6 +489,7 @@ struct CommandElectronScattering : public Command
 		logPrintf(" \\\n\tfCut     %lg", es.fCut);
 		logPrintf(" \\\n\tomegaMax %lg", es.omegaMax);
 		logPrintf(" \\\n\tRPA      %s", boolMap.getString(es.RPA));
+		logPrintf(" \\\n\tdumpEpsilon      %s", boolMap.getString(es.dumpEpsilon));
 		logPrintf(" \\\n\tslabResponse %s", boolMap.getString(es.slabResponse));
 		if(es.slabResponse) logPrintf(" \\\n\tEcutTransverse %lg", es.EcutTransverse);
 		if(es.computeRange)  logPrintf(" \\\n\tcomputeRange %lu %lu", es.iqStart+1, es.iqStop);
@@ -958,6 +966,7 @@ enum BGWparamsMember
 {	BGWpm_nBandsDense,
 	BGWpm_blockSize,
 	BGWpm_clusterSize,
+	BGWpm_saveVxc,
 	BGWpm_saveVxx,
 	BGWpm_rpaExx,
 	BGWpm_EcutChiFluid,
@@ -975,6 +984,7 @@ EnumStringMap<BGWparamsMember> bgwpmMap
 (	BGWpm_nBandsDense, "nBandsDense",
 	BGWpm_blockSize, "blockSize",
 	BGWpm_clusterSize, "clusterSize",
+	BGWpm_saveVxc, "saveVxc",
 	BGWpm_saveVxx, "saveVxx",
 	BGWpm_rpaExx, "rpaExx",
 	BGWpm_EcutChiFluid, "EcutChiFluid",
@@ -991,6 +1001,7 @@ EnumStringMap<BGWparamsMember> bgwpmDescMap
 (	BGWpm_nBandsDense, "If non-zero, use a dense ScaLAPACK solver to calculate more bands",
 	BGWpm_blockSize, "Block size for ScaLAPACK diagonalization (default: 32)",
 	BGWpm_clusterSize, "Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)",
+	BGWpm_saveVxc, "Whether to write exchange-correlation matrix elements (default: yes)",
 	BGWpm_saveVxx, "Whether to write exact-exchange matrix elements (default: no)",
 	BGWpm_rpaExx, "Whether to compute RPA-consistent exact-exchange energy (default: no)",
 	BGWpm_EcutChiFluid, "KE cutoff in hartrees for fluid polarizability output (default: 0; set non-zero to enable)",
@@ -1033,6 +1044,7 @@ struct CommandBGWparams : public Command
 			{	READ_AND_CHECK(nBandsDense, >=, 0)
 				READ_AND_CHECK(blockSize, >, 0)
 				READ_AND_CHECK(clusterSize, >, 0)
+				READ_BOOL(saveVxc)
 				READ_BOOL(saveVxx)
 				READ_BOOL(rpaExx)
 				READ_AND_CHECK(EcutChiFluid, >=, 0.)
@@ -1062,6 +1074,7 @@ struct CommandBGWparams : public Command
 		PRINT(nBandsDense, "%d")
 		PRINT(blockSize, "%d")
 		PRINT(clusterSize, "%d")
+		PRINT_BOOL(saveVxc)
 		PRINT_BOOL(saveVxx)
 		PRINT_BOOL(rpaExx)
 		PRINT(EcutChiFluid, "%lg")
@@ -1074,9 +1087,34 @@ struct CommandBGWparams : public Command
 		PRINT(freqPlasma, "%lg")
 		PRINT(Ecut_rALDA, "%lg")
 		#undef PRINT
+		#undef PRINT_BOOL
 	}
 }
 commandBGWparams;
+
+
+struct CommandBandProjectionParams : public Command
+{
+	CommandBandProjectionParams() : Command("band-projection-params", "jdftx/Output")
+	{	
+		format = "<ortho>=yes|no <norm>=yes|no";
+		comments = "Control band-projections output:\n"
+			"\t<ortho>: whether to use ortho-orbitals.\n"
+			"\t<norm>: whether to output only norm or complex amplitude.";
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	pl.get(e.dump.bandProjectionOrtho, false, boolMap, "ortho", true);
+		pl.get(e.dump.bandProjectionNorm, true, boolMap, "norm", true);
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	logPrintf("%s %s",
+			boolMap.getString(e.dump.bandProjectionOrtho),
+			boolMap.getString(e.dump.bandProjectionNorm));
+	}
+}
+commandBandProjectionParams;
 
 
 struct CommandCprimeParams : public Command

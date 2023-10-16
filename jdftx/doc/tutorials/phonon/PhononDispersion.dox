@@ -119,7 +119,7 @@ from the force matrix output using this python script:
     from scipy.interpolate import interp1d
     
     #Read the phonon cell map and force matrix:
-    cellMap = np.loadtxt("totalE.phononCellMap")[:,0:3].astype(np.int)
+    cellMap = np.loadtxt("totalE.phononCellMap")[:,0:3].astype(int)
     forceMatrix = np.fromfile("totalE.phononOmegaSq", dtype=np.float64)
     nCells = cellMap.shape[0]
     nModes = int(np.sqrt(forceMatrix.shape[0] / nCells))
@@ -156,7 +156,7 @@ from the force matrix output using this python script:
     	kpathLabelPos = [ nInterp*int(pos.split(',')[0]) for pos in kpathLabels[4:-1:2] ]
     	plt.xticks(kpathLabelPos, kpathLabelText)
     except:
-    	print 'Warning: could not extract labels from bandstruct.plot'
+    	print ('Warning: could not extract labels from bandstruct.plot')
     plt.show()
 
 Note that the overall strategy is exactly analogous to generating

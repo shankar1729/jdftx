@@ -62,7 +62,7 @@ public:
 	}
 
 	//! Convert to full matrix
-	explicit __hostanddev__ operator matrix3<scalar>()
+	explicit __hostanddev__ operator matrix3<scalar>() const
 	{	matrix3<scalar> m;
 		m(0, 1) = (m(1, 0) = xy());
 		m(1, 2) = (m(2, 1) = yz());
@@ -72,7 +72,16 @@ public:
 		m(2, 2) = -(xxr() + yyr());
 		return m;
 	}
+	
+	//Arithmetic:
+	__hostanddev__ tensor3 operator+(const tensor3 &a) const { return tensor3(v[0]+a[0], v[1]+a[1], v[2]+a[2], v[3]+a[3], v[4]+a[4]); }
+	__hostanddev__ tensor3 operator+=(const tensor3 &a) { LOOP5( v[k]+=a[k]; ) return *this; }
+	__hostanddev__ tensor3 operator-(const tensor3 &a) const { return tensor3(v[0]-a[0], v[1]-a[1], v[2]-a[2], v[3]-a[3], v[4]-a[4]); }
+	__hostanddev__ tensor3 operator-=(const tensor3 &a) { LOOP5( v[k]-=a[k]; ) return *this; }
 };
+
+template<typename scalar> __hostanddev__  tensor3<scalar> operator*(scalar s, const tensor3<scalar> &a) { tensor3<scalar> v; LOOP5(v[k]=a[k]*s;) return v; }
+template<typename scalar> __hostanddev__  tensor3<scalar> operator*(const tensor3<scalar> &a, scalar s) { tensor3<scalar> v; LOOP5(v[k]=a[k]*s;) return v; }
 
 //! Load tensor from a constant tensor field
 template<typename scalar> __hostanddev__ tensor3<scalar> loadTensor(const tensor3<const scalar*>& tArr, int i)

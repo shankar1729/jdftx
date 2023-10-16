@@ -66,5 +66,10 @@ const double Volt = Joule/Coul; //!< Volt in Hartrees
 const double Ampere = Coul/sec; //!< Ampere in electrons/inverse Hartree
 const double Ohm = Volt/Ampere; //!< Ohm in inverse conductance quanta
 
+//Magnetic:
+const double Tesla = Volt*sec/(meter*meter); //!< Tesla in atomic units
+const double bohrMagneton = 0.5;
+const double gElectron = 2.0023193043617; //!< electron gyromagnetic ratio
+
 //! @}
 #endif //JDFTX_CORE_UNITS_H

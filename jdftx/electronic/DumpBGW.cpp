@@ -32,11 +32,10 @@ void Dump::dumpBGW()
 {	if(!bgwParams) bgwParams = std::make_shared<BGWparams>(); //default parameters
 	BGW bgw(*e, *bgwParams);
 	bgw.writeWfn();
-	bgw.writeVxc();
-	if(bgwParams->saveVxx)
-		bgw.writeVxx();
+	if(bgwParams->saveVxc) bgw.writeVxc();
+	if(bgwParams->saveVxx) bgw.writeVxx();
 	if(bgwParams->rpaExx)
-	{	double EXX_RPA = (*e->exx)(1., 0., e->eVars.F, e->eVars.C, NULL, NULL, true);
+	{	double EXX_RPA = (*e->exx)(1., 0., e->eVars.F, e->eVars.C, NULL, NULL, true, &e->eVars.Hsub_eigs);
 		logPrintf("\n EXX(RPA) = %25.16lf\n\n", EXX_RPA);
 		logFlush();
 	}
@@ -195,7 +194,7 @@ void BGW::writeVxc() const
 
 //Write exact exchange matrix elements for BGW
 void BGW::writeVxx() const
-{	if((e.exCorr.exxRange() or (not e.exCorr.exxFactor())) //writeVxc() did not prepare bare exchange
+{	if(((not bgwp.saveVxc) or e.exCorr.exxRange() or (not e.exCorr.exxFactor())) //writeVxc() did not prepare bare exchange
 			and (not bgwp.nBandsDense)) //and neither did the dense diagonalize
 		e.exx->prepareHamiltonian(0., e.eVars.F, e.eVars.C);
 	logPrintf("Computing Vxx ... "); logFlush();
@@ -452,20 +451,21 @@ void BGW::write_rALDA(bool write_q0) const
 				if(iRow >= nBasis[iq]) continue;
 				//Current wave vectors:
 				vector3<int> iGdiff = iGarr[iq][iCol] - iGarr[iq][iRow]; //(G'-G) in recip coords for G in row, G' in col
-				double qSqSym = (q[iq] + iGarr[iq][iCol]).length() *
-								(q[iq] + iGarr[iq][iRow]).length();
+				double qSqSym = sqrt(
+					gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iCol]) *
+					gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iRow]));
 				//Collect contributions to XC and short-ranged coulomb-screening parts separately:
 				complex fxc, coulombS;
 				//--- loop over grid points
 				const vector3<int>& S = gInfo.S;
 				vector3<> iGdiffByS = inv(Diag(vector3<>(S))) * iGdiff; //elementwise iGdiff / S
-				size_t iStart=0, iStop=0;
+				size_t iStart=0, iStop=gInfo.nr;
 				THREAD_rLoop(
 					complex phase = cis(2*M_PI*dot(iGdiffByS, iv)); //exp(-i(G-G').r) for G in row, G' in col
 					if(qSqSym < qSqCut[i])
 						fxc += phase * fxLDA[i];
 					else
-						coulombS += phase * (4*M_PI/qSqSym);
+						coulombS -= phase * (4*M_PI/qSqSym);  //difference between screened and bare Coulomb parts
 				)
 				//Set spin diagonal and off-diagonal components:
 				double prefac = 1./gInfo.nr; //scale factor to convert above sum to unit cell average

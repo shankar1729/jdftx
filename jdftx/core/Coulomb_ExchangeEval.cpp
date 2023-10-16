@@ -480,7 +480,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 		case WignerSeitzGammaKernel:
 		{	if(abs(det(super)) != 1)
 				die("Exact-exchange in Isolated geometry should be used only with a single k-point.\n");
-			if(omega) //Create an omega-screened version (but gamma-point only):
+			if(omega or params.embedFluidMode) //Create omega-screened version (or create if skipped earlier due to fluidMode)
 			{	VcGamma = new RealKernel(gInfo);
 				symmetricMatrix3<>* VcGamma_RRTdata = 0;
 				if(params.computeStress)
@@ -488,7 +488,11 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 					VcGamma_RRT->init(gInfo.nG);
 					VcGamma_RRTdata = VcGamma_RRT->data();
 				}
-				CoulombKernel(gInfo.R, gInfo.S, params.isTruncated(), omega).compute(VcGamma->data(), ((CoulombIsolated&)coulomb).ws, VcGamma_RRTdata);
+				const WignerSeitz* ws = params.embedFluidMode
+					? (new WignerSeitz(gInfo.R))
+					: &((CoulombIsolated&)coulomb).ws;
+				CoulombKernel(gInfo.R, gInfo.S, params.isTruncated(), omega).compute(VcGamma->data(), *ws, VcGamma_RRTdata);
+				if(params.embedFluidMode) delete ws;
 			}
 			else //use the same kernel as hartree/Vloc
 			{	VcGamma = &((CoulombIsolated&)coulomb).Vc; 
@@ -496,6 +500,7 @@ ExchangeEval::ExchangeEval(const GridInfo& gInfo, const CoulombParams& params, c
 					VcGamma_RRT = &((CoulombIsolated&)coulomb).Vc_RRT; 
 				logPrintf("Using previously initialized isolated coulomb kernel.\n");
 			}
+			break;
 		}
 		case NumericalKernel:
 		{	//Create the kernel on the k-point supercell:

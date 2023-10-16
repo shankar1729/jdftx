@@ -384,6 +384,23 @@ diagMatrix inv(const diagMatrix& A)
 	return invA;
 }
 
+
+#ifdef GPU_ENABLED
+void zeroLowerTriangular_gpu(int N, complex* data); //implemented in matrixOperators.cu
+void zeroUpperTriangular_gpu(int N, complex* data); //implemented in matrixOperators.cu
+#endif
+void zeroLowerTriangular(int N, complex* data); //implemented in matrixOperators.cpp
+void zeroUpperTriangular(int N, complex* data); //implemented in matrixOperators.cpp
+
+//Zero lower/upper triangular part to make matrix upper/lower triangular based on upper=true/false
+void forceTriangular(matrix& A, bool upper)
+{	if(upper)
+		callPref(zeroLowerTriangular)(A.nRows(), A.dataPref());
+	else
+		callPref(zeroUpperTriangular)(A.nRows(), A.dataPref());
+}
+
+
 //Compute Cholesky decomposition: helper for invApply and orthoMatrix
 matrix cholesky(const matrix& A, bool upper)
 {
@@ -400,7 +417,7 @@ matrix cholesky(const matrix& A, bool upper)
 	}
 
 	//Cholesky decomposition in-place in a copy of A:
-	matrix Acopy = A; //destructible copy; routine will factorize matrix in place
+	matrix Acopy = clone(A); //destructible copy; routine will factorize matrix in place
 
 #ifdef USE_CUSOLVER
 	if(N > NcutCuSolver)
@@ -411,10 +428,12 @@ matrix cholesky(const matrix& A, bool upper)
 		ManagedArray<double2> work; work.init(lwork, true);
 		ManagedArray<int> infoArr; infoArr.init(1, true);
 		//Main call:
+		cudaDeviceSynchronize();
 		cusolverDnZpotrf(cusolverHandle, uplo, N, (double2*)Acopy.dataPref(), N, work.dataPref(), lwork, infoArr.dataPref());
 		int info = infoArr.data()[0];
 		if(info<0) { logPrintf("Argument# %d to CuSolver Cholesky routine Zpotrf is invalid.\n", -info); stackTraceExit(1); }
 		if(info>0) { logPrintf("Matrix not positive-definite at leading minor# %d in CuSolver Cholesky routine Zpotrf.\n", info); stackTraceExit(1); }
+		forceTriangular(Acopy, upper);
 		return Acopy;
 	}
 #endif
@@ -423,6 +442,7 @@ matrix cholesky(const matrix& A, bool upper)
 	zpotrf_(&uplo, &N, Acopy.data(), &N, &info);
 	if(info<0) { logPrintf("Argument# %d to LAPACK Cholesky routine ZPOTRF is invalid.\n", -info); stackTraceExit(1); }
 	if(info>0) { logPrintf("Matrix not positive-definite at leading minor# %d in LAPACK Cholesky routine ZPOTRF.\n", info); stackTraceExit(1); }
+	forceTriangular(Acopy, upper);
 	return Acopy;
 }
 
@@ -462,57 +482,36 @@ matrix invApply(const matrix& A, const matrix& b)
 	return x;
 }
 
+matrix invTriangular(const matrix& T, bool upper)
+{	int N = T.nRows();
 #ifdef GPU_ENABLED
-void zeroLowerTriangular_gpu(int N, complex* data); //implemented in matrixOperators.cu
+	//Solve triangular matrix with identity as RHS (in place):
+	matrix rhs = eye(N);
+	cublasFillMode_t uplo = (upper ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
+	complex alpha = 1.;
+	cublasZtrsm(cublasHandle, CUBLAS_SIDE_LEFT, uplo, CUBLAS_OP_N, CUBLAS_DIAG_NON_UNIT, N, N,
+		(const double2*)&alpha, (const double2*)T.dataPref(), N, (double2*)rhs.dataPref(), N);
+	return rhs;
+#else
+	//Invert triangular matrix in-place:
+	matrix Tcopy = clone(T); //work in-place on a destructible copy
+	char uplo = upper ? 'U' : 'L';
+	char diag = 'N';
+	int info = 0;
+	ztrtri_(&uplo, &diag, &N, Tcopy.data(), &N, &info);
+	if(info<0) { logPrintf("Argument# %d to LAPACK inversion routine ZTRTRI is invalid.\n", -info); stackTraceExit(1); }
+	if(info>0) { logPrintf("Diagonal entry %d is zero in LAPACK inversion routine ZTRTRI.\n", info); stackTraceExit(1); }
+	return Tcopy;
 #endif
-void zeroLowerTriangular(int N, complex* data); //implemented in matrixOperators.cpp
+}
 
 matrix orthoMatrix(const matrix& A)
 {	static StopWatch watch("orthoMatrix(matrix)");
+	bool upper = false;
 	watch.start();
-	
-	//Cholesky decomposition:
-	matrix U = cholesky(A, true); //upper-triangular Cholesky factor
-	int N = A.nRows();
-	callPref(zeroLowerTriangular)(N, U.dataPref());
-
-	//Invert triangular matrix in place:
-#ifdef USE_CUSOLVER
-	if(N > NcutCuSolver)
-	{	cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
-		cublasDiagType_t diag = CUBLAS_DIAG_NON_UNIT;
-		//Workspace query:
-		#if (CUSOLVER_VERSION < 11200)
-		int lwork = 0;
-		cusolverDnZtrtri_bufferSize(cusolverHandle, uplo, diag, N, (double2*)U.dataPref(), N, &lwork);
-		ManagedArray<double2> work; work.init(lwork, true);
-		#else
-		size_t lworkDev = 0, lworkHost = 0;
-		cusolverDnXtrtri_bufferSize(cusolverHandle, uplo, diag, N, CUDA_C_64F, U.dataPref(), N, &lworkDev, &lworkHost);
-		ManagedArray<char> workDev; workDev.init(lworkDev, true);
-		std::vector<char> workHost(lworkHost);
-		#endif
-		ManagedArray<int> infoArr; infoArr.init(1, true);
-		//Main call:
-		#if (CUSOLVER_VERSION < 11200)
-		cusolverDnZtrtri(cusolverHandle, uplo, diag, N, (double2*)U.dataPref(), N, work.dataPref(), lwork, infoArr.dataPref());
-		#else
-		cusolverDnXtrtri(cusolverHandle, uplo, diag, N, CUDA_C_64F, U.dataPref(), N, workDev.dataPref(), lworkDev, workHost.data(), lworkHost,  infoArr.dataPref());
-		cudaDeviceSynchronize();
-		#endif
-		int info = infoArr.data()[0];
-		if(info<0) { logPrintf("Argument# %d to CuSolver inversion routine Ztrtri is invalid.\n", -info); stackTraceExit(1); }
-		if(info>0) { logPrintf("Diagonal entry %d is zero in CuSolver inversion routine Ztrtri.\n", info); stackTraceExit(1); }
-		watch.stop();
-		return U;
-	}
-#endif
-	char uplo = 'U';
-	char diag = 'N';
-	int info = 0;
-	ztrtri_(&uplo, &diag, &N, U.data(), &N, &info);
-	if(info<0) { logPrintf("Argument# %d to LAPACK inversion routine ZTRTRI is invalid.\n", -info); stackTraceExit(1); }
-	if(info>0) { logPrintf("Diagonal entry %d is zero in LAPACK inversion routine ZTRTRI.\n", info); stackTraceExit(1); }
+	matrix U = invTriangular(cholesky(A, upper), upper);
 	watch.stop();
-	return U;
+	if(upper) return U;
+	else return dagger(U);
 }
+

@@ -13,10 +13,11 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ "$#" -lt "3" ] ; then
 	<dk> is the typical dimensionless separation (BZ~1) between k-points.
 	
 	The script will generate <outfilePrefix>.kpoints containing a list
-	of kpoints in JDFTx input format and a gnuplot script <outfilePrefix>.plot
-	to plot the resulting bandstructure. Note that the plot script assumes
-	that the JDFTx run will produce <outfilePrefix>.eigenvals, so you may need
-	to set the dump-name in the JDFTx run, move the file or edit the plot script.
+	of kpoints in JDFTx input format, a gnuplot script <outfilePrefix>.plot 
+	and a python script <outfilePrefix>.py to plot the resulting bandstructure. 
+	Note that the plot scripts assume that the JDFTx run will produce 
+	<outfilePrefix>.eigenvals, so you may need to set the dump-name in 
+	the JDFTx run, move the file or edit the plot scripts.
 	'
 	exit 0
 fi
@@ -74,3 +75,46 @@ EOF
 chmod +x $plotFile
 
 rm $tmpFile
+
+
+#Create the pyplot script:
+pyFile="${outPrefix}.py"
+ticsPy="$(echo $ticsCmd | cut -d'(' -f 2 | cut -d ')' -f 1)"
+cat > $pyFile << EOF
+import numpy as np
+import matplotlib.pyplot as plt
+eigvals = np.fromfile("bandstruct.eigenvals", count=-1)
+kpoints = np.loadtxt("bandstruct.kpoints", skiprows=2, usecols=(1,2,3))
+nRows = kpoints.shape[0]
+nEigvals = eigvals.shape[0]
+nCols = round(nEigvals/nRows)
+eig = np.reshape(eigvals, (nRows, nCols))
+
+# change the following accordingly
+vbm = 0.0
+eV  = 27.211386246
+tics='$ticsPy'
+tics = tics.strip()
+components = tics.split(',')
+klabels = []
+kvalues = []
+for component in components:
+    label, value = component.strip().split()
+    label = label.strip('"')
+    value = int(value)
+    klabels.append(label)
+    kvalues.append(value)
+fig, ax = plt.subplots()
+for i in range(nCols):
+        ax.plot((eig[:,i] - vbm) * eV)
+ax.set_xticks(kvalues, klabels)
+ax.set_ylabel('E (eV)')
+ax.set_xlim([0,nRows-1])
+
+#ax.set_ylim(bottom=-2, top=2)
+#fig.savefig('bandstructure.png')
+
+plt.show()
+EOF
+
+chmod +x $pyFile

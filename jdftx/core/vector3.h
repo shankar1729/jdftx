@@ -89,6 +89,7 @@ __hostanddev__ vector3<>& operator*=(vector3<>& a, int s) { LOOP3(a[k]*=s;) retu
 __hostanddev__ vector3<int>& operator*=(vector3<int>& a, int s) { LOOP3(a[k]*=s;) return a; }
 
 template<typename scalar> __hostanddev__  vector3<scalar> operator*(scalar s, const vector3<scalar> &a) { vector3<scalar> v; LOOP3(v[k]=a[k]*s;) return v; }
+template<typename scalar> __hostanddev__  vector3<scalar> operator*(const vector3<scalar> &a, scalar s) { vector3<scalar> v; LOOP3(v[k]=a[k]*s;) return v; }
 template<typename scalar> __hostanddev__  vector3<scalar> operator*(double s, const vector3<scalar> &a) { vector3<scalar> v; LOOP3(v[k]=a[k]*s;) return v; }
 template<typename scalar> __hostanddev__  vector3<scalar> operator*(const vector3<scalar> &a, double s) { vector3<scalar> v; LOOP3(v[k]=a[k]*s;) return v; }
 template<typename scalar> __hostanddev__  vector3<scalar> operator*(int s, const vector3<scalar> &a) { vector3<scalar> v; LOOP3(v[k]=a[k]*s;) return v; }

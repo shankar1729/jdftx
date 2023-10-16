@@ -120,6 +120,7 @@ LatticeGradient IonicDynamics::getVelocities()
 			v.barostat.assign(e.iInfo.barostat.begin()+6, e.iInfo.barostat.end());
 		}
 	}
+	lmin.constrain(v);
 	return v;
 }
 
@@ -227,7 +228,7 @@ LatticeGradient IonicDynamics::thermostat(const LatticeGradient& vel)
 							? ((nDOF+nFree)*1./nDOF_L) * trace((~vel.lattice)*vel.lattice) - omegaDampLsq
 							: (j==1 ? nDOF_L : 1) * std::pow(vel.barostat[j-1],2) - omegaDampLsq;
 						//Coupling to next barostat DOF:
-						if(j+1 < idp.chainLengthT)
+						if(j+1 < idp.chainLengthP)
 							accelV.barostat[j] -= vel.barostat[j] * vel.barostat[j+1];
 					}
 				}

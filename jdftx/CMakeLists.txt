@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.8.12)
+cmake_policy(VERSION 3.12)
 
 project(JDFTx)
 
@@ -113,10 +114,14 @@ if(EnableMPI)
 endif()
 
 option(EnableLibXC "Use LibXC to provide additional exchange-correlation functionals")
+option(CudaLibXC "Indicate that LibXC is built with CUDA (if so, libxc will only work from jdftx_gpu)")
 if(EnableLibXC)
 	find_package(LIBXC REQUIRED)
 	include_directories(${LIBXC_INCLUDE_DIR})
 	add_definitions("-DLIBXC_ENABLED")
+	if(CudaLibXC)
+		add_definitions("-DLIBXC_CUDA")
+	endif()
 	#Generate functional list available from LibXC:
 	execute_process(COMMAND ${CMAKE_SOURCE_DIR}/opt/indexLibXC.sh ${LIBXC_INCLUDE_DIR}/xc_funcs.h OUTPUT_FILE ${CMAKE_BINARY_DIR}/xcMap.h)
 endif()
@@ -382,9 +387,6 @@ add_subdirectory(test)
 
 #Optional: additional auxiliary test executables, mostly related to fluid development
 add_subdirectory(aux)
-
-#Optional features: primarily interfaces to other codes
-add_subdirectory(opt)
 
 #Pseudopotential library
 add_subdirectory(pseudopotentials)

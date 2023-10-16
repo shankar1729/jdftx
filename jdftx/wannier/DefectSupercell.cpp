@@ -228,6 +228,10 @@ void DefectSupercell::initialize(const Wannier* wannier)
 		)
 	}
 	Valign /= wAlign;
+	if(alignWidth <= 0.)
+	{	logPrintf("Overriding alignment potential to zero for alignWidth <= 0.\n");
+		Valign = 0.;
+	}
 	ScalarField dV = potentialSubtraction ? (-dAtomicSup) : 0; //for output / debugging alignment only
 	for(ScalarField& V: eSup->eVars.Vscloc)
 	{	V += Valign; //apply alignment correction

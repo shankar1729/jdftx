@@ -165,13 +165,16 @@ IonicMinimizer::IonicMinimizer(Everything& e, bool dynamicsMode)
 : e(e), populationAnalysisPending(false), skipWfnsDrag(false), dynamicsMode(dynamicsMode)
 {	//Check if any atoms constrained:
 	anyConstrained = false;
-	for(const auto sp: e.iInfo.species)
+	for(const auto& sp: e.iInfo.species)
 		for(const auto& constraint: sp->constraints)
 			if((constraint.getDimension()<3)
 				|| (constraint.type==SpeciesInfo::Constraint::HyperPlane))
 			{	anyConstrained = true;
 				break;
 			}
+	//External potentials also break translational invariance:
+	if(e.iInfo.ionicGaussianPotentials.size())
+		anyConstrained = true;
 }
 
 void IonicMinimizer::step(const IonicGradient& dir, double alpha)
@@ -371,7 +374,7 @@ void IonicMinimizer::constrain(IonicGradient& x)
 	}
 
 	//Ensure zero total force (if no atom is constrained):
-	if(!anyConstrained)
+	if(not anyConstrained)
 	{	vector3<> xSum; int nAtoms = 0;
 		for(const auto& x_sp: x)
 			for(const vector3<>& x_sp_at: x_sp)
