@@ -153,7 +153,7 @@ void PerturbationSolver::solvePerturbation() {
 		}
 	}
 	
-	eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
+	eVars.elecEnergyAndGrad(e.ener, nullptr, nullptr, true);
 
 	updateExcorrCache();
 	updateHC();

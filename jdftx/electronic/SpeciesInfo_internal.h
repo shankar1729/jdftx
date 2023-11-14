@@ -172,7 +172,7 @@ void nAugment(int Nlm,
 #ifdef GPU_ENABLED
 void nAugment_gpu(int Nlm,
 	const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
-	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n, const vector3<>* atposDeriv);
 #endif
 
 //Function for initializing the index arrays used by nAugmentGrad
@@ -260,7 +260,7 @@ void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
 #ifdef GPU_ENABLED
 void nAugmentGrad_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, const vector3<>* atposDeriv,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr);
 #endif
 

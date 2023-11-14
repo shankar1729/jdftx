@@ -428,7 +428,7 @@ void precond_inv_kinetic(int nbasis, int ncols, complex* Ydata,
 }
 #ifdef GPU_ENABLED
 void precond_inv_kinetic_gpu(int nbasis, int ncols, complex* Ydata,
-	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR, bool sqrtop); //TODO gpu ver
+	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR, bool sqrtop);
 #endif
 void precond_inv_kinetic(ColumnBundle &Y, double KErollover, bool sqrtop)
 {	assert(Y.basis);

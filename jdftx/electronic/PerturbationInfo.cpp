@@ -352,6 +352,8 @@ void PerturbationInfo::checkSupportedFeatures(const Everything &e, const ElecInf
 		die("Multiple spin channels not supported yet.\n");
 	if (e.coulombParams.geometry != CoulombParams::Geometry::Periodic && !commensurate)
 		die("Periodic coloumb interaction required for incommensurate perturbations.\n")
+	if (isGpuEnabled())
+		die("GPU compute is not supported in variational perturbation theory at this moment.\n")
 
 		
 		

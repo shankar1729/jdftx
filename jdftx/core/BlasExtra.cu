@@ -128,6 +128,19 @@ void eblas_accumProd_gpu(int N, const double& a, const complex* xU, const comple
 	gpuErrorCheck();
 }
 
+__global__
+void eblas_accumProdComplex_kernel(int N, double a, const complex* xU, const complex* xC, complex* y)
+{	int i = kernelIndex1D();
+	if(i<N)
+	{	y[i] += a * xU[i] * xC[i].conj();
+	}
+}
+void eblas_accumProdComplex_gpu(int N, const double& a, const complex* xU, const complex* xC, complex* y)
+{	GpuLaunchConfig1D glc(eblas_accumProdComplex_kernel, N);
+	eblas_accumProdComplex_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, a, xU, xC, y);
+	gpuErrorCheck();
+}
+
 template<typename scalar> __global__
 void eblas_symmetrize_kernel(int N, int n, const int* symmIndex, scalar* x, double nInv)
 {	int i=kernelIndex1D();

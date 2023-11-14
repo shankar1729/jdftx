@@ -202,15 +202,22 @@ void eblas_accumNorm(int N, const double& a, const complex* x, double* y);
 //! @param yRe Ouput real-part data array
 //! @param yIm Ouput imaginary-part data array
 void eblas_accumProd(int N, const double& a, const complex* xU, const complex* xC, double* yRe, double* yIm);
+//! @brief Accumulate elementwise product of two complex arrays xU and xC into y 
+//! @param N Length of array
+//! @param a scale factor
+//! @param xU Unconjugated input complex data array
+//! @param xC Conjugated input complex data array
+//! @param y Output complex data array
+void eblas_accumProdComplex(int N, const double& a, const complex* xU, const complex* xC, complex* y);
 #ifdef GPU_ENABLED
 //! @brief Equivalent of eblas_accumNorm() for GPU data pointers
 void eblas_accumNorm_gpu(int N, const double& a, const complex* x, double* y);
 //! @brief Equivalent of eblas_accumProd() for GPU data pointers
 void eblas_accumProd_gpu(int N, const double& a, const complex* xU, const complex* xC, double* yRe, double* yIm);
+//! @brief Equivalent of eblas_accumProd() for GPU data pointers
+void eblas_accumProdComplex_gpu(int N, const double& a, const complex* xU, const complex* xC, complex* y);
 #endif
 
-
-void eblas_accumProdComplex(int N, const double& a, const complex* xU, const complex* xC, complex* y);
 
 //! @brief Symmetrize an array x, using N n-fold equivalence classes in symmIndex
 //! @param N Length of array x
