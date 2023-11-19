@@ -210,21 +210,14 @@ void SpeciesInfo::updateLocal(ScalarFieldTilde& Vlocps, ScalarFieldTilde& rhoIon
 	if(Z_chargeball) { nullToZero(nChargeball, gInfo); nChargeballData = nChargeball->dataPref(); }
 	if(nCoreRadial) { nullToZero(nCore, gInfo); nCoreData = nCore->dataPref(); }
 	if(tauCoreRadial) { nullToZero(tauCore, gInfo); tauCoreData = tauCore->dataPref(); }
-	
-	int atoms = (atom >= 0)? 1 : atpos.size();
-	int atomOffset = (atom >= 0)? atom * sizeof(atpos[0]): 0;
+	int nAtoms = (atom >= 0) ? 1 : atpos.size();
+	int atomOffset = (atom >= 0) ? atom : 0;
 	
 	//Calculate in half G-space:
 	double invVol = 1.0/gInfo.detR;
-	if (atom == -1)
 	callPref(::updateLocal)(gInfo.S, gInfo.GGT,
 		Vlocps->dataPref(), rhoIon->dataPref(), nChargeballData, nCoreData, tauCoreData,
-		atoms, atposManaged.dataPref()+atomOffset, invVol, VlocRadial,
-		Z, nCoreRadial, tauCoreRadial, Z_chargeball, std::pow(width_chargeball,2));
-	else
-	callPref(::updateLocal)(gInfo.S, gInfo.GGT,
-		Vlocps->dataPref(), rhoIon->dataPref(), nChargeballData, nCoreData, tauCoreData,
-		atoms, &atpos[atom], invVol, VlocRadial,
+		nAtoms, atposManaged.dataPref()+atomOffset, invVol, VlocRadial,
 		Z, nCoreRadial, tauCoreRadial, Z_chargeball, std::pow(width_chargeball,2));
 }
 

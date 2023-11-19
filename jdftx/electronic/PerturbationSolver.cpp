@@ -464,7 +464,7 @@ void PerturbationSolver::updateNonlocalDerivs()
 		datom.VdagCatom[q] = datom.Vatom[q] ^ Cq;
 		datom.dVdagCatom[q] = datom.dVatom[q] ^ Cq;
 	}
-	sp->augmentDensityGridGradDeriv(eVars.Vscloc, m.at, &m.dirLattice);
+	sp->augmentDensityGridGradDeriv(eVars.Vscloc, m.at, ManagedArray<vector3<>>(&m.dirLattice, 1).dataPref());
 	datom.E_nAug_datom = sp->getE_nAug();
 }
 
@@ -543,26 +543,20 @@ void PerturbationSolver::getdnatom(ScalarFieldArray& dnatom)
 	for (unsigned s = 0; s < dnatom.size(); s++)
 		initZero(dnatom[s]);
 	
-	if (pInfo.datom && pInfo.datom->isUltrasoft(iInfo)) {
-		AtomicMode m = pInfo.datom->mode;
+	if (pInfo.datom && pInfo.datom->isUltrasoft(iInfo))
+	{	const AtomPerturbation& datom = *(pInfo.datom);
+		AtomicMode m = datom.mode;
 		auto sp = iInfo.species[m.sp];
 		//Runs over all states and accumulates density to the corresponding spin channel of the total density
 		sp->augmentDensityInit(m.at);
-		
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{
-			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], pInfo.datom->VdagCatom[q], &pInfo.datom->dVdagCatom[q], 0, m.at);
-		}
+			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], datom.VdagCatom[q], &datom.dVdagCatom[q], 0, m.at);
 		sp->augmentDensityGrid(dnatom, m.at);
 		
-		
 		sp->augmentDensityInit(m.at);
-		
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-		{
-			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], pInfo.datom->VdagCatom[q], 0, 0, m.at);
-		}
-		sp->augmentDensityGrid(dnatom, m.at, &m.dirLattice);
+			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], datom.VdagCatom[q], 0, 0, m.at);
+		sp->augmentDensityGrid(dnatom, m.at, ManagedArray<vector3<>>(&m.dirLattice, 1).dataPref());
 		
 		for(ScalarField& ns: dnatom)
 		{	nullToZero(ns, e.gInfo);
