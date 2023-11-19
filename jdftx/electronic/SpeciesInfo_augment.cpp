@@ -129,24 +129,24 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 	int nProj = MnlAll.nRows();
 	const GridInfo &gInfo = e->gInfo;
 	complex* nAugData = nAug.data();
+	unsigned nAtoms = (atom >= 0) ? 1 : atpos.size();
+	bool derivativeMode = (VdagdCqL or VdagdCqR);
+	if(derivativeMode) assert(VdagdCqL);
 	
-	unsigned atoms = (atom >= 0)? 1 : atpos.size();
 	//Loop over atoms:
-	for(unsigned atomindex=0; atomindex<atoms; atomindex++)
+	for(unsigned at=0; at<nAtoms; at++)
 	{	//Get projections and calculate density matrix at this atom:
 		matrix RhoAll;
-		matrix atomVdagC = VdagCq(atomindex*nProj,(atomindex+1)*nProj, 0,VdagCq.nCols());
-		if (!VdagdCqL & ! VdagdCqR) {
+		matrix atomVdagC = VdagCq(at*nProj,(at+1)*nProj, 0,VdagCq.nCols());
+		if(not derivativeMode)
 			RhoAll = atomVdagC * Fq * dagger(atomVdagC); //density matrix in projector basis on this atom
-		} else {
-			if (!VdagdCqR) {
-				matrix atomVdagdC = (*VdagdCqL)(atomindex*nProj,(atomindex+1)*nProj, 0,VdagdCqL->nCols());
-				RhoAll = atomVdagC * Fq * dagger(atomVdagdC) + atomVdagdC * Fq * dagger(atomVdagC); //Compute and store first derivative of RhoAll in place of itself
-			} else {
-				matrix atomVdagdCL = (*VdagdCqL)(atomindex*nProj,(atomindex+1)*nProj, 0,VdagdCqL->nCols());
-				matrix atomVdagdCR = (*VdagdCqR)(atomindex*nProj,(atomindex+1)*nProj, 0,VdagdCqR->nCols());
-				RhoAll = atomVdagC * Fq * dagger(atomVdagdCR) + atomVdagdCL * Fq * dagger(atomVdagC); //Compute and store first derivative of RhoAll in place of itself
-			}
+		else
+		{	//Compute and store first derivative of RhoAll instead:
+			matrix atomVdagdCL = (*VdagdCqL)(at*nProj,(at+1)*nProj, 0,VdagdCqL->nCols());
+			const matrix& atomVdagdCR = VdagdCqR
+				? matrix((*VdagdCqR)(at*nProj,(at+1)*nProj, 0,VdagdCqR->nCols()))
+				: atomVdagdCL;
+			RhoAll = atomVdagC * Fq * dagger(atomVdagdCR) + atomVdagdCL * Fq * dagger(atomVdagC); //Compute and store first 		
 		}
 		if(isRelativistic()) RhoAll = fljAll * RhoAll * fljAll; //transformation for relativistic pseudopotential
 		std::vector<matrix> Rho(e->eInfo.nDensities); //RhoAll split by spin(-density-matrix) components
@@ -168,7 +168,7 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 		
 		//Calculate spherical function contributions from density matrix:
 		for(size_t s=0; s<Rho.size(); s++) if(Rho[s])
-		{	int atomOffs = (atom >= 0)? Nlm*s : Nlm*(atomindex + s*atpos.size());
+		{	int atomOffs = Nlm * (at + s*nAtoms);
 			//Triple loop over first projector:
 			int i1 = 0;
 			for(int l1=0; l1<int(VnlRadial.size()); l1++)
