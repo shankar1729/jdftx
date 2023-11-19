@@ -461,7 +461,7 @@ bool TestPerturbation::FDTest_Overlapatom() {
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		dOY_anal[q] = C1[q].similar();
 		dOY_anal[q].zero();
-		e.iInfo.species[pInfo.datom->mode.sp]->augmentOverlapDeriv(C1[q], dOY_anal[q], pInfo.datom->Vatom_cached[q], pInfo.datom->dVatom_cached[q]);
+		e.iInfo.species[pInfo.datom->mode.sp]->augmentOverlapDeriv(C1[q], dOY_anal[q], pInfo.datom->Vatom[q], pInfo.datom->dVatom[q]);
 		//ps.dHtau(eInfo.qnums[q], dOY_anal[q], C1[q], pInfo.dVsclocatom);
 		delta += nrm2(dOY_num[q]-dOY_anal[q])/nrm2(dOY_anal[q]);
 		pInfo.sampleCB(dOY_num[q], "dOY_num");
@@ -488,28 +488,24 @@ bool TestPerturbation::FDTest_dV() {
 	auto sp = e.iInfo.species[mode->mode.sp];
 	setAtpos1();
 	
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		auto Vatom = sp->getV(C1[q], mode->mode.at);
-		VdagC1[q] = (*Vatom)^C1[q];
-		pInfo.sampleCB(*Vatom, "Vatom");
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	{	ColumnBundle Vatom = sp->getVatom(C1[q], mode->mode.at);
+		VdagC1[q] = Vatom ^ C1[q];
+		pInfo.sampleCB(Vatom, "Vatom");
 	}
 	
 	setAtpos2();
 	
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		auto Vatom = sp->getV(C1[q], mode->mode.at);
-		VdagC2[q] = (*Vatom)^C1[q];
-		pInfo.sampleCB(*Vatom, "Vatom perturbed");
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	{	ColumnBundle Vatom = sp->getVatom(C1[q], mode->mode.at);
+		VdagC2[q] = Vatom ^ C1[q];
+		pInfo.sampleCB(Vatom, "Vatom perturbed");
 	}
 
 	setAtpos1();
 	
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		//auto dVatom = spe->getV(C1[q], mode->atomdisplacement.at, &m.dir);
-		auto dVatom = sp->getV(C1[q], mode->mode.at);
-		dVdagC[q] = -D(*dVatom, mode->mode.dirCartesian)^C1[q];
-		
-		
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	{	dVdagC[q] = -D(sp->getVatom(C1[q], mode->mode.at), mode->mode.dirCartesian) ^ C1[q];
 		delta += nrm2(VdagC2[q]-VdagC1[q]-dVdagC[q])/nrm2(dVdagC[q]);
 		pInfo.sampleMat(VdagC2[q]-VdagC1[q], "dVdagC_num");
 		pInfo.sampleMat(dVdagC[q], "dVdagC_anal");
@@ -637,19 +633,19 @@ bool TestPerturbation::FDTest_dsqV() {
 	
 	setdsqposnn();
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		V[q] = *sp->getV(eVars.C[q], modeA->mode.at);
+		V[q] = sp->getVatom(eVars.C[q], modeA->mode.at);
 	
 	setdsqposnp();
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		V1[q] = *sp->getV(eVars.C[q], modeA->mode.at);
+		V1[q] = sp->getVatom(eVars.C[q], modeA->mode.at);
 	
 	setdsqpospn();
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		V2[q] = *sp->getV(eVars.C[q], modeA->mode.at);
+		V2[q] = sp->getVatom(eVars.C[q], modeA->mode.at);
 	
 	setdsqpospp();
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		V12[q] = *sp->getV(eVars.C[q], modeA->mode.at);
+		V12[q] = sp->getVatom(eVars.C[q], modeA->mode.at);
 	
 	setdsqpos0();
 	double delta = 0;

@@ -94,7 +94,7 @@ public:
 	//! If derivDir is non-null, return the derivative with respct to Cartesian k direction *derivDir instead (never cached).
 	//! If stressDir is >=0, then calculate (i,j) component of dVnl/dR . RT where stressDir = 3*i+j
 	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, const vector3<>* derivDir=0, const int stressDir=-1) const;
-	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, int atom, const vector3<>* derivDir=0, const int stressDir=-1) const;
+	ColumnBundle getVatom(const ColumnBundle& Cq, int atom) const; //!< Single atom version
 	int nProjectors() const { return MnlAll.nRows() * atpos.size(); } //!< total number of projectors for all atoms in this species (number of columns in result of getV)
 	
 	//! Return non-local energy for this species and quantum number q and optionally accumulate

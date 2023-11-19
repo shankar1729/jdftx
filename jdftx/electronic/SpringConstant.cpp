@@ -87,11 +87,11 @@ double SpringConstant::dsqEnl(std::shared_ptr<AtomPerturbation> modeA, std::shar
 	double Enl = 0;
 	if (modeA->sameAtom(modeB)) {
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-			matrix dSqVdagC = -D(modeA->dVatom_cached[q], modeB->mode.dirCartesian)^eVars.C[q];
-			Enl += real(trace(dSqVdagC*eVars.F[q]*dagger(modeA->Vatom_cached[q]^eVars.C[q])*e.iInfo.species[modeA->mode.sp]->MnlAll))*eInfo.qnums[q].weight;
-			Enl += real(trace((modeA->Vatom_cached[q]^eVars.C[q])*eVars.F[q]*dagger(dSqVdagC)*e.iInfo.species[modeA->mode.sp]->MnlAll))*eInfo.qnums[q].weight;
-			Enl += real(trace(modeA->dVdagCatom_cached[q]*eVars.F[q]*dagger(modeB->dVdagCatom_cached[q])*e.iInfo.species[modeA->mode.sp]->MnlAll))*eInfo.qnums[q].weight;
-			Enl += real(trace(modeB->dVdagCatom_cached[q]*eVars.F[q]*dagger(modeA->dVdagCatom_cached[q])*e.iInfo.species[modeA->mode.sp]->MnlAll))*eInfo.qnums[q].weight;
+			matrix dSqVdagC = -D(modeA->dVatom[q], modeB->mode.dirCartesian)^eVars.C[q];
+			Enl += real(trace(dSqVdagC*eVars.F[q]*dagger(modeA->Vatom[q]^eVars.C[q])*e.iInfo.species[modeA->mode.sp]->MnlAll))*eInfo.qnums[q].weight;
+			Enl += real(trace((modeA->Vatom[q]^eVars.C[q])*eVars.F[q]*dagger(dSqVdagC)*e.iInfo.species[modeA->mode.sp]->MnlAll))*eInfo.qnums[q].weight;
+			Enl += real(trace(modeA->dVdagCatom[q]*eVars.F[q]*dagger(modeB->dVdagCatom[q])*e.iInfo.species[modeA->mode.sp]->MnlAll))*eInfo.qnums[q].weight;
+			Enl += real(trace(modeB->dVdagCatom[q]*eVars.F[q]*dagger(modeA->dVdagCatom[q])*e.iInfo.species[modeA->mode.sp]->MnlAll))*eInfo.qnums[q].weight;
 			//Is expression hermitian
 		}
 		mpiWorld->allReduce(Enl, MPIUtil::ReduceSum);

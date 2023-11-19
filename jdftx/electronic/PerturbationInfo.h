@@ -54,8 +54,8 @@ public:
 	bool isUltrasoft(const class IonInfo& iInfo); //!< Does this atom use an ultrasoft potential
 	
 	AtomicMode mode; //!< Contains info about the atom and perturbation
-	std::vector<ColumnBundle> Vatom_cached, dVatom_cached; //!< Cached single atom projectors
-	std::vector<matrix> VdagCatom_cached, dVdagCatom_cached; //!< Cached single atom projections
+	std::vector<ColumnBundle> Vatom, dVatom; //!< Cached single atom projectors and derivatives
+	std::vector<matrix> VdagCatom, dVdagCatom; //!< Cached single atom projections and derivatives
 	matrix E_nAug_datom; //!< Derivative of augmentation density w.r.t. atom perturbation
 	ScalarFieldTilde Vlocps; //!< Local single atom pseudopotential contribution
 	ScalarFieldArray dnatom; //!< Derivative of density w.r.t. atom perturbation

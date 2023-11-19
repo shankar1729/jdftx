@@ -359,16 +359,12 @@ std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, const ve
 	return V;
 }
 
-
-std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, int atom, const vector3<>* derivDir, const int stressDir) const
+ColumnBundle SpeciesInfo::getVatom(const ColumnBundle& Cq, int atom) const
 {	const QuantumNumber& qnum = *(Cq.qnum);
 	const Basis& basis = *(Cq.basis);
-	
 	int nProj = MnlAll.nRows() / e->eInfo.spinorLength();
-	if(!nProj) return 0; //purely local psp
-	
-	//No cache / not found in cache; compute:
-	std::shared_ptr<ColumnBundle> V = std::make_shared<ColumnBundle>(nProj, basis.nbasis, &basis, &qnum, isGpuEnabled()); //not a spinor regardless of spin type
+	assert(nProj);
+	ColumnBundle V(nProj, basis.nbasis, &basis, &qnum, isGpuEnabled()); //not a spinor regardless of spin type
 	int iProj = 0;
 	for(int l=0; l<int(VnlRadial.size()); l++)
 		for(unsigned p=0; p<VnlRadial[l].size(); p++)
@@ -376,7 +372,7 @@ std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, int atom
 			{	size_t offs = iProj * basis.nbasis;
 				size_t atomStride = nProj * basis.nbasis;
 				callPref(Vnl)(basis.nbasis, atomStride, 1, l, m, qnum.k, basis.iGarr.dataPref(),
-					basis.gInfo->G, atposManaged.dataPref()+atom, VnlRadial[l][p], V->dataPref()+offs, derivDir, stressDir);
+					basis.gInfo->G, atposManaged.dataPref()+atom, VnlRadial[l][p], V.dataPref()+offs);
 				iProj++;
 			}
 	return V;

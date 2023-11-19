@@ -60,10 +60,10 @@ AtomPerturbation::AtomPerturbation (unsigned int sp, unsigned int at, vector3<> 
 
 void AtomPerturbation::init(const Everything &e, const ElecVars& eVars, const ElecInfo& eInfo)
 {
-	Vatom_cached.resize(eInfo.nStates);
-	dVatom_cached.resize(eInfo.nStates);
-	VdagCatom_cached.resize(eInfo.nStates);
-	dVdagCatom_cached.resize(eInfo.nStates);
+	   Vatom.resize(eInfo.nStates);
+	   dVatom.resize(eInfo.nStates);
+	   VdagCatom.resize(eInfo.nStates);
+	   dVdagCatom.resize(eInfo.nStates);
 	::init(dCatom, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 	dnatom.resize(eVars.Vscloc.size());
 	nullToZero(dnatom, e.gInfo);
@@ -352,10 +352,6 @@ void PerturbationInfo::checkSupportedFeatures(const Everything &e, const ElecInf
 		die("Multiple spin channels not supported yet.\n");
 	if (e.coulombParams.geometry != CoulombParams::Geometry::Periodic && !commensurate)
 		die("Periodic coloumb interaction required for incommensurate perturbations.\n")
-	if (isGpuEnabled())
-		die("GPU compute is not supported in variational perturbation theory at this moment.\n")
-
-		
 		
 	if (e.symm.mode != SymmetriesNone)
 	{

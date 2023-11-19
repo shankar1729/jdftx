@@ -293,7 +293,7 @@ void PerturbationSolver::calcdGradTau() {
 				ColumnBundle dOC = eVars.C[q].similar();
 				dOC.zero();
 				
-				iInfo.species[pInfo.datom->mode.sp]->augmentOverlapDeriv(eVars.C[q], dOC, pInfo.datom->Vatom_cached[q], pInfo.datom->dVatom_cached[q]);
+				iInfo.species[pInfo.datom->mode.sp]->augmentOverlapDeriv(eVars.C[q], dOC, pInfo.datom->Vatom[q], pInfo.datom->dVatom[q]);
 				pInfo.dUmhalfatom[q] = (-0.5)*eVars.C[q]^dOC;
 				
 				pInfo.datom->dCatom[q] = eVars.C[q]*pInfo.dUmhalfatom[q];
@@ -338,7 +338,7 @@ void PerturbationSolver::calcdGradTau() {
 				dwGradEq -= O(pInfo.datom->dCatom[q]*eVars.Hsub[q]);
 				
 				//Derivative of overlap operator w.r.t atpos
-				iInfo.species[pInfo.datom->mode.sp]->augmentOverlapDeriv((-1)*eVars.C[q]*eVars.Hsub[q], dwGradEq, pInfo.datom->Vatom_cached[q], pInfo.datom->dVatom_cached[q]);
+				iInfo.species[pInfo.datom->mode.sp]->augmentOverlapDeriv((-1)*eVars.C[q]*eVars.Hsub[q], dwGradEq, pInfo.datom->Vatom[q], pInfo.datom->dVatom[q]);
 			}
 			
 			dwGradEq = dwGradEq*F;
@@ -454,23 +454,19 @@ void PerturbationSolver::updateHC() {
 void PerturbationSolver::updateNonlocalDerivs()
 {
 	if (!pInfo.datom || !pInfo.commensurate) return;
-	
-	AtomicMode m = pInfo.datom->mode;
+	AtomPerturbation& datom = *pInfo.datom;
+	AtomicMode m = datom.mode;
 	auto sp = iInfo.species[m.sp];
-
-	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
-		pInfo.datom->Vatom_cached[q] = *sp->getV(eVars.C[q], m.at);
-		pInfo.datom->dVatom_cached[q] = -D(pInfo.datom->Vatom_cached[q], m.dirCartesian);
-
-		pInfo.datom->VdagCatom_cached[q] = pInfo.datom->Vatom_cached[q]^eVars.C[q];
-		pInfo.datom->dVdagCatom_cached[q] = pInfo.datom->dVatom_cached[q]^eVars.C[q];
+	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+	{	const ColumnBundle& Cq = eVars.C[q];
+		datom.Vatom[q] = sp->getVatom(Cq, m.at);
+		datom.dVatom[q] = -D(datom.Vatom[q], m.dirCartesian);
+		datom.VdagCatom[q] = datom.Vatom[q] ^ Cq;
+		datom.dVdagCatom[q] = datom.dVatom[q] ^ Cq;
 	}
-
 	sp->augmentDensityGridGradDeriv(eVars.Vscloc, m.at, &m.dirLattice);
-	pInfo.datom->E_nAug_datom = sp->getE_nAug();
+	datom.E_nAug_datom = sp->getE_nAug();
 }
-
-
 
 void PerturbationSolver::getdn(ScalarFieldArray& dn, const std::vector<ColumnBundle>* dC, const std::vector<ColumnBundle>* C)
 {	static StopWatch watch("getdn"); watch.start();
@@ -555,7 +551,7 @@ void PerturbationSolver::getdnatom(ScalarFieldArray& dnatom)
 		
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{
-			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], pInfo.datom->VdagCatom_cached[q], &pInfo.datom->dVdagCatom_cached[q], 0, m.at);
+			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], pInfo.datom->VdagCatom[q], &pInfo.datom->dVdagCatom[q], 0, m.at);
 		}
 		sp->augmentDensityGrid(dnatom, m.at);
 		
@@ -564,7 +560,7 @@ void PerturbationSolver::getdnatom(ScalarFieldArray& dnatom)
 		
 		for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 		{
-			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], pInfo.datom->VdagCatom_cached[q], 0, 0, m.at);
+			sp->augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], pInfo.datom->VdagCatom[q], 0, 0, m.at);
 		}
 		sp->augmentDensityGrid(dnatom, m.at, &m.dirLattice);
 		
@@ -672,11 +668,10 @@ void PerturbationSolver::dHtau(const QuantumNumber& qnum, ColumnBundle& HCq, con
 		
 		AtomicMode m = pInfo.datom->mode;
 		auto sp = iInfo.species[m.sp];
-		auto Vatom = sp->getV(Cq, m.at);
-		ColumnBundle dVatom = -D(*Vatom, m.dirCartesian);
-		
-		VatomdagCq = (*Vatom)^Cq;
-		dVatomdagCq = dVatom^Cq;
+		ColumnBundle Vatom = sp->getVatom(Cq, m.at);
+		ColumnBundle dVatom = -D(Vatom, m.dirCartesian);
+		VatomdagCq = Vatom ^ Cq;
+		dVatomdagCq = dVatom ^ Cq;
 		
 		e.iInfo.setE_nAug(pInfo.E_nAug_cached);
 		sp->augmentDensitySphericalGrad(qnum, dVatomdagCq, HdVatomdagCq, m.at);
@@ -685,8 +680,8 @@ void PerturbationSolver::dHtau(const QuantumNumber& qnum, ColumnBundle& HCq, con
 		sp->EnlAndGrad(qnum, eVars.F[qnum.index()], dVatomdagCq, HdVatomdagCq, m.at);
 		sp->EnlAndGrad(qnum, eVars.F[qnum.index()], VatomdagCq, HVatomdagCq, m.at);
 		
-		dVHVdagCq = dVatom*HVatomdagCq;
-		VHdVdagCq = (*Vatom)*HdVatomdagCq;
+		dVHVdagCq = dVatom * HVatomdagCq;
+		VHdVdagCq = Vatom * HdVatomdagCq;
 		
 		HCq += VHdVdagCq;
 		HCq += dVHVdagCq;
@@ -695,7 +690,7 @@ void PerturbationSolver::dHtau(const QuantumNumber& qnum, ColumnBundle& HCq, con
 			matrix dHVatomdagCq;
 			sp->setE_nAug(pInfo.datom->E_nAug_datom);
 			sp->augmentDensitySphericalGrad(qnum, VatomdagCq, dHVatomdagCq, m.at);
-			HCq += (*Vatom)*dHVatomdagCq;
+			HCq += Vatom * dHVatomdagCq;
 		}
 	}
 	
