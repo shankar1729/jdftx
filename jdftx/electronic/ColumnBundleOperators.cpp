@@ -362,12 +362,11 @@ ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY)
 void reducedD_gpu(int nbasis, int ncols, const complex* Ydata, complex* DYdata,
 	const vector3<int>* iGarr, double kdotGe, const vector3<> Ge);
 #endif
-ColumnBundle D(const ColumnBundle &Y, int iDir)
+inline ColumnBundle reducedD(const ColumnBundle &Y, const vector3<> Ge)
 {	assert(Y.basis);
 	const Basis& basis = *(Y.basis);
 	ColumnBundle DY = Y.similar();
 	int nSpinor = Y.spinorLength();
-	const vector3<> Ge = basis.gInfo->G.column(iDir);
 	double kdotGe = dot(Y.qnum->k, Ge);
 	#ifdef GPU_ENABLED
 	reducedD_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), DY.dataGpu(), basis.iGarr.dataGpu(), kdotGe, Ge);
@@ -377,23 +376,8 @@ ColumnBundle D(const ColumnBundle &Y, int iDir)
 	#endif
 	return DY;
 }
-
-ColumnBundle D(const ColumnBundle& Y, const vector3<>& dir)
-{	assert(Y.basis);
-	const Basis& basis = *(Y.basis);
-	ColumnBundle DY = Y.similar();
-	int nSpinor = Y.spinorLength();
-	const vector3<> Ge = basis.gInfo->G*dir;
-	double kdotGe = dot(Y.qnum->k, Ge);
-	#ifdef GPU_ENABLED
-	reducedD_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), DY.dataGpu(), basis.iGarr.dataGpu(), kdotGe, Ge);
-	#else
-	threadedLoop(reducedD_calc, basis.nbasis,
-		basis.nbasis, Y.nCols()*nSpinor, Y.data(), DY.data(), basis.iGarr.data(), kdotGe, Ge);
-	#endif
-	return DY;
-}
-
+ColumnBundle D(const ColumnBundle &Y, int iDir) {return reducedD(Y, Y.basis->gInfo->G.column(iDir));}
+ColumnBundle D(const ColumnBundle& Y, const vector3<>& dir) { return reducedD(Y, Y.basis->gInfo->G * dir);}
 
 //Compute cartesian gradient of column bundle in direction #iDir
 #ifdef GPU_ENABLED
