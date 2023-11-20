@@ -217,7 +217,5 @@ void setAvailableFilename(string filenamePattern, string varName, string& target
 //! Apply setAvailableFilename for all standard input variables (action of CommandInitialState)
 void setAvailableFilenames(string filenamePattern, Everything& e);
 
-//map<string,Command*>& updateCommandMap(Command* command=0); //TODO
-
 //! @}
 #endif // JDFTX_COMMAND_COMMAND_H

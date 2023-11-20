@@ -93,7 +93,7 @@ EnumStringMap<MinimizeParamsMember> mpmDescMap
 );
 
 
-CommandMinimize::CommandMinimize(string systemName, string path) : Command(systemName, path)
+CommandMinimize::CommandMinimize(string systemName, string path) : Command(systemName + "-minimize", path)
 {
 	format = "<key1> <value1> <key2> <value2> ...";
 	comments = "where possible keys and value types are:"
@@ -163,7 +163,7 @@ struct CommandElectronicMinimize : public CommandMinimize
 commandElectronicMinimize;
 
 struct CommandIonicMinimize : public CommandMinimize
-{	CommandIonicMinimize() : CommandMinimize("ionic-minimize", "jdftx/Ionic/Optimization")
+{	CommandIonicMinimize() : CommandMinimize("ionic", "jdftx/Ionic/Optimization")
 	{	emptyParamError =
 			"   Note: nIterations defaults to 0 for ionic minimization,\n"
 			"      and must be set manually to enable this feature.";
@@ -180,7 +180,7 @@ struct CommandIonicMinimize : public CommandMinimize
 commandIonicMinimize;
 
 struct CommandFluidMinimize : public CommandMinimize
-{	CommandFluidMinimize() : CommandMinimize("fluid-minimize", "jdftx/Fluid/Optimization")
+{	CommandFluidMinimize() : CommandMinimize("fluid", "jdftx/Fluid/Optimization")
 	{	require("fluid");
 	}
     MinimizeParams& target(Everything& e) { return e.fluidMinParams; }
@@ -208,7 +208,7 @@ struct CommandFluidMinimize : public CommandMinimize
 commandFluidMinimize;
 
 struct CommandLatticeMinimize : public CommandMinimize
-{	CommandLatticeMinimize() : CommandMinimize("lattice-minimize", "jdftx/Ionic/Optimization")
+{	CommandLatticeMinimize() : CommandMinimize("lattice", "jdftx/Ionic/Optimization")
 	{	emptyParamError =
 			"   Note: nIterations defaults to 0 for lattice minimization,\n"
 			"      and must be set manually to enable this feature.";
