@@ -151,7 +151,7 @@ void CommandMinimize::printStatus(Everything& e, int iRep)
 
 
 struct CommandElectronicMinimize : public CommandMinimize
-{	CommandElectronicMinimize() : CommandMinimize("electronic-minimize", "jdftx/Electronic/Optimization") {}
+{	CommandElectronicMinimize() : CommandMinimize("electronic", "jdftx/Electronic/Optimization") {}
     MinimizeParams& target(Everything& e) { return e.elecMinParams; }
     void process(ParamList& pl, Everything& e)
 	{	//Use default value of 100 iterations from MinimizeParams.h
