@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Vibrations.h>
 #include <electronic/DOS.h>
 #include <electronic/DumpBGW_internal.h>
-#include <electronic/SpringConstant.h>
+#include <perturb/SpringConstant.h>
 #include <core/LatticeUtils.h>
 #include <fluid/FluidSolver.h>
 

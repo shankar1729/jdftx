@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_CORE_MINIMIZE_H
 
 #include <core/MinimizeParams.h>
-#include <electronic/PerturbationParams.h>
+#include <perturb/PerturbationParams.h>
 #include <core/Util.h>
 #include <deque>
 #include <cmath>

@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/TestPerturbation.h>
-#include <electronic/PerturbationSolver.h>
+#include <perturb/TestPerturbation.h>
+#include <perturb/PerturbationSolver.h>
 #include <electronic/Everything.h>
 #include <electronic/ElecMinimizer.h>
 #include <electronic/ColumnBundle.h>

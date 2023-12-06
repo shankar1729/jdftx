@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef ELECTRONIC_PERTURBATIONSOLVER_H_
-#define ELECTRONIC_PERTURBATIONSOLVER_H_
+#ifndef PERTURB_PERTURBATIONSOLVER_H_
+#define PERTURB_PERTURBATIONSOLVER_H_
 
 
 #include <core/Minimize.h>
@@ -111,4 +111,4 @@ private:
 
 void init(std::vector<ColumnBundle>& Y, int nbundles, int ncols, const Basis* basis, const ElecInfo* eInfo);
 
-#endif /* ELECTRONIC_PERTURBATIONSOLVER_H_ */
+#endif /* PERTURB_PERTURBATIONSOLVER_H_ */

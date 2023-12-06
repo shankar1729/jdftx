@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/parser.h>
 #include <commands/command.h>
 #include <electronic/ColumnBundleTransform.h>
-#include <electronic/SpringConstant.h>
+#include <perturb/SpringConstant.h>
 
 inline bool spinEqual(const QuantumNumber& qnum1, const QuantumNumber& qnum2) { return qnum1.spin == qnum2.spin; } //for k-point mapping (in spin polarized mode)
 

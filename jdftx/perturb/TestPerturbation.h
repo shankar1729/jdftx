@@ -17,12 +17,12 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef ELECTRONIC_TESTPERTURBATION_H_
-#define ELECTRONIC_TESTPERTURBATION_H_
+#ifndef PERTURB_TESTPERTURBATION_H_
+#define PERTURB_TESTPERTURBATION_H_
 
 #include <vector>
-#include <electronic/PerturbationInfo.h>
-#include <electronic/SpringConstant.h>
+#include <perturb/PerturbationInfo.h>
+#include <perturb/SpringConstant.h>
 
 class TestPerturbation {
 public:
@@ -89,4 +89,4 @@ public:
 	bool FDTest_dsqExccore();
 };
 
-#endif /* ELECTRONIC_TESTPERTURBATION_H_ */
+#endif /* PERTURB_TESTPERTURBATION_H_ */

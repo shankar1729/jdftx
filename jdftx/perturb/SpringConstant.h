@@ -17,11 +17,11 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef SPRINGCONSTANT_H
-#define SPRINGCONSTANT_H
+#ifndef PERTURB_SPRINGCONSTANT_H
+#define PERTURB_SPRINGCONSTANT_H
 
-#include <electronic/PerturbationSolver.h>
-#include <electronic/PerturbationInfo.h>
+#include <perturb/PerturbationSolver.h>
+#include <perturb/PerturbationInfo.h>
 #include <electronic/IonicMinimizer.h>
 
 class SpringConstant
@@ -48,4 +48,4 @@ private:
 	std::vector<ColumnBundle> Ctmp; //!< Temporary storage for eVars.C during phonon calculation
 };
 
-#endif // SPRINGCONSTANT_H
+#endif // PERTURB_SPRINGCONSTANT_H

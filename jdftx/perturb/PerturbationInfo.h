@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef ELECTRONIC_PERTURBATIONINFO_H_
-#define ELECTRONIC_PERTURBATIONINFO_H_
+#ifndef PERTURB_PERTURBATIONINFO_H_
+#define PERTURB_PERTURBATIONINFO_H_
 
 #include <vector>
 #include <string>
@@ -27,7 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/matrix.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/ElecInfo.h>
-#include <electronic/PerturbationSolver.h>
+#include <perturb/PerturbationSolver.h>
 
 struct AtomicMode
 {	unsigned int sp, at; //!< species and atom number
@@ -140,7 +140,7 @@ public:
 	std::vector<matrix> E_nAug_cached, E_nAug_dVsclocpsi, E_nAug_dVscloctau;
 };
 
-#endif /* ELECTRONIC_PERTURBATIONINFO_H_ */
+#endif /* PERTURB_PERTURBATIONINFO_H_ */
 
 
 

@@ -29,7 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Thread.h>
 #include <core/GpuUtil.h>
 #include <core/VectorField.h>
-#include <electronic/PerturbationSolver.h>
+#include <perturb/PerturbationSolver.h>
 
 //---------------- Subset wrapper for MPI parallelization --------------------
 

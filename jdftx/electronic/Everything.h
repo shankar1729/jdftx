@@ -36,8 +36,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Dump.h>
 #include <electronic/SCFparams.h>
 #include <electronic/IonicDynamicsParams.h>
-#include <electronic/PerturbationInfo.h>
-#include <electronic/PerturbationParams.h>
+#include <perturb/PerturbationInfo.h>
+#include <perturb/PerturbationParams.h>
 #include <memory>
 
 //! @addtogroup ElectronicDFT

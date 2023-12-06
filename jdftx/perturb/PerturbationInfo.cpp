@@ -24,7 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/ElecVars.h>
 #include <electronic/ElecInfo.h>
 #include <electronic/ElecMinimizer.h>
-#include <electronic/PerturbationSolver.h>
+#include <perturb/PerturbationSolver.h>
 #include <core/LatticeUtils.h>
 
 

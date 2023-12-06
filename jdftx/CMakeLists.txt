@@ -243,7 +243,7 @@ else()
 endif()
 
 #Library with all the functionality:
-FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp)
+FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp perturb/*.cpp commands/*.cpp)
 add_library(jdftxlib ${LINK_TYPE} ${jdftxlibSources})
 target_link_libraries(jdftxlib ${EXTERNAL_LIBS})
 set_target_properties(jdftxlib PROPERTIES OUTPUT_NAME "jdftx")
@@ -299,7 +299,7 @@ if(EnableCUDA)
 	target_link_libraries(gpukernels ${CUDA_AUX_LIBRARIES})
 
 	#Library with all the functionality:
-	FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp commands/*.cpp)
+	FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp perturb/*.cpp commands/*.cpp)
 	add_library(jdftxlib_gpu ${LINK_TYPE} ${jdftxlibSources})
 	target_link_libraries(jdftxlib_gpu ${EXTERNAL_LIBS} gpukernels)
 	set_target_properties(jdftxlib_gpu PROPERTIES OUTPUT_NAME "jdftx_gpu")

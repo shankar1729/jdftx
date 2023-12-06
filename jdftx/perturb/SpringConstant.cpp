@@ -17,11 +17,11 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/SpringConstant.h>
+#include <perturb/SpringConstant.h>
 #include <electronic/IonInfo.h>
 #include <electronic/Energies.h>
 #include <electronic/ElecVars.h>
-#include <electronic/PerturbationSolver.h>
+#include <perturb/PerturbationSolver.h>
 #include <electronic/Everything.h>
 
 SpringConstant::SpringConstant(Everything& e) : e(e), eVars(e.eVars), eInfo(e.eInfo), iInfo(e.iInfo), pInfo(e.vptInfo), ps(e) {}

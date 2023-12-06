@@ -18,7 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <commands/minimize.h>
-#include <electronic/PerturbationParams.h>
+#include <perturb/PerturbationParams.h>
 
 //An enum entry for each configurable option of MinimizeParams
 enum VPTParamsMember

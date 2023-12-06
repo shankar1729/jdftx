@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef ELECTRONIC_PERTURBATIONPARAMS_H_
-#define ELECTRONIC_PERTURBATIONPARAMS_H_
+#ifndef PERTURB_PERTURBATIONPARAMS_H_
+#define PERTURB_PERTURBATIONPARAMS_H_
 
 #include <cstdio>
 
@@ -49,4 +49,4 @@ struct PerturbationParams
 
 //! @}
 
-#endif /* ELECTRONIC_PERTURBATIONPARAMS_H_ */
+#endif /* PERTURB_PERTURBATIONPARAMS_H_ */
