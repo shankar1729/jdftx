@@ -732,12 +732,11 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		dumpCprime->dump((Everything&)*e);
 	}
 	
-	if(ShouldDump(PerturbationWfns))
-	{
-		//Dump wave functions
+	if(ShouldDump(DWfns))
+	{	//Dump wave functions
 		if (!e->vptInfo.commensurate)
 			logPrintf("WARNING! Incommensurate wfns are not dumped correctly.");
-		StartDump("wfns")
+		StartDump("dwfns")
 		eInfo.write(e->vptInfo.dC, fname.c_str());
 		EndDump
 	}

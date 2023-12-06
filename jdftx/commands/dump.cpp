@@ -138,7 +138,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpXCanalysis, "XCanalysis",
 	DumpEresolvedDensity, "EresolvedDensity",
 	DumpFermiDensity, "FermiDensity",
-	DumpPerturbationWfns, "PerturbationWfns",
+	DumpDWfns, "DWfns",
 	DumpDn, "Dn",
 	DumpDVext, "DVext",
 	DumpDVscloc, "DVscloc"
@@ -201,7 +201,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpXCanalysis,     "Debug VW KE density, single-particle-ness and spin-polarzied Hartree potential",
 	DumpEresolvedDensity, "Electron density from bands within specified energy ranges",
 	DumpFermiDensity,	"Electron density from fermi-derivative at specified energy",
-	DumpPerturbationWfns, "Perturbation Wavefunctions",
+	DumpDWfns, "Perturbation Wavefunctions",
 	DumpDn, 			"First order change in electronic density",
 	DumpDVext, 			"External perturbation",
 	DumpDVscloc, 		"First order change in local self-consistent potential"
