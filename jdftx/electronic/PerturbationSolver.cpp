@@ -786,7 +786,6 @@ void PerturbationSolver::getdVsclocTau(ScalarFieldArray& dVscloc, ScalarFieldArr
 	for(unsigned s=0; s<eVars.Vscloc.size(); s++) {
 		if (pInfo.dVext) dVscloc[s] += JdagOJ(pInfo.dVext->dVext[s]);
 		if (pInfo.drhoExt) dVscloc[s] += Jdag(O((*e.coulomb)(pInfo.drhoExt->drhoExt)), true);
-		if (pInfo.dChargeBall) dVscloc[s] += Jdag(O((*e.coulomb)(pInfo.dChargeBall->drhoExt)), true);
 		if (pInfo.dElectricField) {
 			CoulombParams params = e.coulombParams;
 			params.Efield = pInfo.dElectricField->Efield;
@@ -865,11 +864,6 @@ void PerturbationSolver::getdVsclocTau(complexScalarFieldArray& dVscloc, int qsi
 		if (pInfo.drhoExt) {
 			if (qsign == 1) dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.drhoExt->drhoExtpq), &qvec)), true);
 			else if (qsign == -1) dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.drhoExt->drhoExtmq), &qvec)), true);
-		}
-		
-		if (pInfo.dChargeBall) {
-			if (qsign == 1) dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.dChargeBall->drhoExtpq), &qvec)), true);
-			else if (qsign == -1) dVscloc[s] += Jdag(O(-4*M_PI*Linv(O(pInfo.dChargeBall->drhoExtmq), &qvec)), true);
 		}
 	}
 

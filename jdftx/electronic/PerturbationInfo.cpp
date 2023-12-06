@@ -71,9 +71,6 @@ void AtomPerturbation::init(const Everything &e, const ElecVars& eVars, const El
 
 bool AtomPerturbation::isUltrasoft(const IonInfo& iInfo) { return iInfo.species[mode.sp]->isUltrasoft(); } //!< Does this atom use an ultrasoft potential
 
-ChargeBallPerturbation::ChargeBallPerturbation(const Everything& e, double rho, vector3<> r, double width) : RhoPerturbation(e), rho(rho), r(r), width(width) {}
-
-
 void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 
 	if (!e.vptParams.nIterations)
@@ -148,24 +145,6 @@ void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
 
 			drhoExt->drhoExtpq = J(temp);
 			drhoExt->drhoExtmq = J(conj(I(drhoExt->drhoExtpq)));
-		}
-	}
-	
-	if (dChargeBall) {
-		if (commensurate) {
-			ScalarFieldTilde delta(ScalarFieldTildeData::alloc(e.gInfo));
-			initTranslation(delta, vector3<>());
-			ScalarFieldTilde gaussian = gaussConvolve(delta*dChargeBall->rho*(1./e.gInfo.detR), dChargeBall->width);
-			translate(gaussian, dChargeBall->r);
-			
-			dChargeBall->drhoExt = gaussian;
-		} else {
-			complexScalarFieldTilde finalGaussian;
-			nullToZero(finalGaussian, e.gInfo);
-			initIncChargeball(finalGaussian, dChargeBall->r, dChargeBall->width, qvec);
-			finalGaussian *= dChargeBall->rho*(1./e.gInfo.detR);
-			dChargeBall->drhoExtpq = finalGaussian;
-			dChargeBall->drhoExtmq = J(conj(I(finalGaussian)));
 		}
 	}
 

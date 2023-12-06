@@ -78,15 +78,6 @@ public:
 	complexScalarFieldTilde drhoExtpq, drhoExtmq; //!< Change in charge potential (incommensurate)
 };
 
-class ChargeBallPerturbation : public RhoPerturbation {
-public:
-	ChargeBallPerturbation(const Everything& e, double rho, vector3<> r, double width = 0.1);
-	void init();
-	double rho;
-	vector3<> r;
-	double width;
-};
-
 class ElectricFieldPerturbation : public Perturbation {
 public:
 	ElectricFieldPerturbation(const Everything &e) : Perturbation(e) {};
@@ -117,7 +108,6 @@ public:
 	std::shared_ptr<VextPerturbation> dVext;
 	std::shared_ptr<AtomPerturbation> datom;
 	std::shared_ptr<RhoPerturbation> drhoExt;
-	std::shared_ptr<ChargeBallPerturbation> dChargeBall;
 	std::shared_ptr<ElectricFieldPerturbation> dElectricField;
 	
 	vector3<> qvec; //!< Bloch wavevector of perturbation. Equal to zero if perturbation is commensurate
