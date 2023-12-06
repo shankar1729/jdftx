@@ -27,22 +27,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 class SpringConstant
 {
 public:
-	bool calculateSpringConstant = false; //!< True if at least one of the atoms specified by the ion command has the 'spring' flag enabled
-	std::vector<std::shared_ptr<AtomPerturbation>> modes; //!< List of perturbations with three DOF for each perturbed atom
-	matrix kmatrix; //!< Matrix with entries containing second derivative of total energy w.r.t. pairs of modes
-	
 	SpringConstant(Everything& e);
-	void setupModes(); //!< Run after ion commands
 	double computeMatrixElement(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB); //!< Compute individual matrix element
-
-	//double dsqQuantities(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB);
 	
 	double dsqEpair(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB); //!< Second derivative of pair potentials (Ewald and VDW)
 	double dsqEnl(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB); //!< Second derivative of nonlocal energy
 	double dsqEloc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB); //!< Second derivative of local energy
 	
 	void getPerturbedEnergy(Energies& ener, std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB, double deltaA, double deltaB); //!< Perturb atoms by amounts deltaA and deltaB in the directions determined by modeA and modeB respectively, then compute energy
-	void computeSubMatrix(); //!< Compute a submatrix of the spring constant matrix determined by SpringConstat::modes
 	IonicGradient getPhononMatrixColumn(std::shared_ptr<AtomPerturbation> mode, double dr = 0.0); //!< Compute part of OmegaSq corresponding to single atom perturbation, used by phonon package
 	
 private:

@@ -742,22 +742,8 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 
-	/*if(ShouldDump(RealSpaceWfns))
-		{	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-			{	int nSpinor = e->vptInfo.d[q].spinorLength();
-				for(int b=0; b<eInfo.nBands; b++) for(int s=0; s<nSpinor; s++)
-				{	ostringstream prefixStream;
-					prefixStream << "wfns_" << q << '_' << (b*nSpinor+s) << ".rs";
-					StartDump(prefixStream.str())
-					saveRawBinary(I(eVars.C[q].getColumn(b,s)), fname.c_str());
-					EndDump
-				}
-			}
-		}*/
-
 	if (ShouldDump(Dn))
 	{
-
 		if (e->vptInfo.commensurate) {
 			if (e->vptInfo.dn.size() != 1)
 				die("Error: Need to dump multiple spins\n");
@@ -786,7 +772,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 
 	if (ShouldDump(DVext) && e->vptInfo.dVext)
 	{
-		
 		if (e->vptInfo.commensurate) {
 			if (e->vptInfo.dn.size() != 1)
 				die("Error: Need to dump multiple spins\n");
@@ -809,16 +794,18 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 	}
 	
-	if (ShouldDump(DVscloc))
-    {
-		if (e->vptInfo.commensurate) {
+	if(ShouldDump(DVscloc))
+	{
+		if (e->vptInfo.commensurate)
+		{
 			if (e->vptInfo.dn.size() != 1)
 				die("Error: Need to dump multiple spins\n");
 			StartDump("dvscloc")
 			saveRawBinary(e->vptInfo.dVsclocTau[0] + e->vptInfo.dVscloc[0], fname.c_str());
-			
 			EndDump
-		} else {
+		}
+		else
+		{
 			if (e->vptInfo.dnmq.size() != 1)
 				die("Error: Need to dump multiple spins\n");
 			{
@@ -830,48 +817,6 @@ void Dump::operator()(DumpFrequency freq, int iter)
 				StartDump("dvsclocpq")
 					saveRawBinary(e->vptInfo.dVsclocpq[0], fname.c_str());
 				EndDump
-			}
-		}
-    }
-    
-    if (ShouldDump(SpringConstants))
-	{
-		assert(e->vptInfo.commensurate);
-		StartDump("springconstants")
-		FILE* fp = fopen(fname.c_str(), "wb");
-		if(!fp) die("Could not open '%s' for writing.\n", fname.c_str())
-		e->spring->kmatrix.print_real(fp);
-		fclose(fp);
-		EndDump
-		
-	}
-
-	if (ShouldDump(PTest))
-	{
-		if (e->vptInfo.drhoExt) {
-			if (e->vptInfo.commensurate) {
-				StartDump("drhoExt")
-					saveRawBinary(I(e->vptInfo.drhoExt->drhoExt), fname.c_str());
-				EndDump
-			} else {
-				die("Error: not implemented");
-			}
-		} else if (e->vptInfo.dChargeBall) {
-			if (e->vptInfo.commensurate) {
-				StartDump("drhoExt")
-					saveRawBinary(I(e->vptInfo.dChargeBall->drhoExt), fname.c_str());
-				EndDump
-			} else {
-				{
-					StartDump("drhoExtmq")
-						saveRawBinary(I(e->vptInfo.dChargeBall->drhoExtmq), fname.c_str());
-					EndDump
-				}
-				{
-					StartDump("drhoExtpq")
-						saveRawBinary(I(e->vptInfo.dChargeBall->drhoExtpq), fname.c_str());
-					EndDump
-				}
 			}
 		}
 	}

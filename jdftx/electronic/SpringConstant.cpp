@@ -26,34 +26,17 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 SpringConstant::SpringConstant(Everything& e) : e(e), eVars(e.eVars), eInfo(e.eInfo), iInfo(e.iInfo), pInfo(e.vptInfo), ps(e) {}
 
-void SpringConstant::setupModes() {
-	modes.clear();
-	for (unsigned s = 0; s < iInfo.species.size(); s++) {
-		auto sp = iInfo.species[s];
-		for (unsigned i = 0; i < sp->atpos.size(); i++) {
-			if (sp->perturbed[i]) {
-				for (int iDir = 0; iDir < 3; iDir++) {
-					auto pert = std::make_shared<AtomPerturbation>(s, i, iDir, e);
-					modes.push_back(pert);
-				}
-			}
-		}
-	}
-}
-
-double SpringConstant::computeMatrixElement(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
+double SpringConstant::computeMatrixElement(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB)
+{
 	assert(pInfo.commensurate);
-	
 	pInfo.datom = modeB;
 	ps.updateNonlocalDerivs();
-	ps.calcdGradTau();
-	
-	double Eab = dot(pInfo.dGradTau.X, pInfo.dC, &pInfo, &eInfo) + dsqEpair(modeA, modeB) + dsqEnl(modeA, modeB) + dsqEloc(modeA, modeB);
-	
-	return Eab;
+	ps.calcdGradTau();	
+	return dot(pInfo.dGradTau.X, pInfo.dC, &pInfo, &eInfo) + dsqEpair(modeA, modeB) + dsqEnl(modeA, modeB) + dsqEloc(modeA, modeB);
 }
 
-double SpringConstant::dsqEpair(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
+double SpringConstant::dsqEpair(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB)
+{
 	static StopWatch watch("dsqEpair"); watch.start();
 	double h = 1e-3;
 	double k = 1e-3;
@@ -67,15 +50,16 @@ double SpringConstant::dsqEpair(std::shared_ptr<AtomPerturbation> modeA, std::sh
 	getPerturbedEnergy(Eplusplus, modeA, modeB, h/2.0, k/2.0);
 	
 	double dsqEpair = ((Eplusplus.E["Eewald"]+Eplusplus.E["EvdW"])
-			- (Eplusminus.E["Eewald"]+Eplusminus.E["EvdW"])
-			- (Eminusplus.E["Eewald"]+Eminusplus.E["EvdW"])
-			+ (Eminusminus.E["Eewald"]+Eminusminus.E["EvdW"])) / (h*k);
+		- (Eplusminus.E["Eewald"]+Eplusminus.E["EvdW"])
+		- (Eminusplus.E["Eewald"]+Eminusplus.E["EvdW"])
+		+ (Eminusminus.E["Eewald"]+Eminusminus.E["EvdW"])) / (h*k);
 
 	watch.stop();
 	return dsqEpair;
 }
 
-double SpringConstant::dsqEnl(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
+double SpringConstant::dsqEnl(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB)
+{
 	static StopWatch watch("dsqEnl"); watch.start();
 	
 	pInfo.datom = modeA;
@@ -96,26 +80,25 @@ double SpringConstant::dsqEnl(std::shared_ptr<AtomPerturbation> modeA, std::shar
 		}
 		mpiWorld->allReduce(Enl, MPIUtil::ReduceSum);
 	}
-	
 	watch.stop();
 	return Enl;
 }
 
-double SpringConstant::dsqEloc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB) {
+double SpringConstant::dsqEloc(std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB)
+{
 	static StopWatch watch("dsqEloc"); watch.start();
-	
 	double dsqE = 0;
 	if (modeA->Vlocps && modeA->sameAtom(modeB)) {
 		ScalarFieldTilde nTilde = J(eVars.get_nTot());
 		ScalarFieldTilde dsqVlocps = D(D(modeA->Vlocps, modeA->mode.dirCartesian), modeB->mode.dirCartesian);
 		dsqE += dot(nTilde, O(dsqVlocps));
 	}
-	
 	watch.stop();
 	return dsqE;
 }
 
-void SpringConstant::getPerturbedEnergy(Energies& ener, std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB, double deltaA, double deltaB) {
+void SpringConstant::getPerturbedEnergy(Energies& ener, std::shared_ptr<AtomPerturbation> modeA, std::shared_ptr<AtomPerturbation> modeB, double deltaA, double deltaB)
+{
 	static StopWatch watch("getPerturbedEnergy"); watch.start();
 	auto spA = iInfo.species[modeA->mode.sp];
 	auto spB = iInfo.species[modeB->mode.sp];
@@ -140,45 +123,29 @@ void SpringConstant::getPerturbedEnergy(Energies& ener, std::shared_ptr<AtomPert
 	
 	spB->sync_atpos();
 	spA->sync_atpos();
-	
 	watch.stop();
 }
 
-void SpringConstant::computeSubMatrix() {
-	int n = modes.size();
-	kmatrix = matrix(n, n);
-	kmatrix.zero();
-	
-	init(Ctmp, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
-	
-	for (int a = 0; a < n; a++) {
-		pInfo.datom = modes[a];
-		ps.solvePerturbation();
-				
-		for (int b = 0; b < n; b++) {
-			kmatrix.set(a, b, computeMatrixElement(modes[a], modes[b]));
-		}
-	}
-}
-
-IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturbation> modeA, double h) {
+IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturbation> modeA, double h)
+{
 	pInfo.datom = modeA;
 	ps.solvePerturbation();
 	
-	if (h > 0) {
-        IonicGradient Fminus, Fplus, dF;
+	if (h > 0)
+	{
+		IonicGradient Fminus, Fplus, dF;
 		init(Ctmp, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 		
-	    auto spA = iInfo.species[modeA->mode.sp];
-        vector3<> posA_unperturbed = spA->atpos[modeA->mode.at];
+		auto spA = iInfo.species[modeA->mode.sp];
+		vector3<> posA_unperturbed = spA->atpos[modeA->mode.at];
 		
-		
-        spA->atpos[modeA->mode.at] = posA_unperturbed + h*modeA->mode.dirLattice;
-        mpiWorld->bcastData (spA->atpos);
-        spA->sync_atpos();
+		spA->atpos[modeA->mode.at] = posA_unperturbed + h*modeA->mode.dirLattice;
+		mpiWorld->bcastData (spA->atpos);
+		spA->sync_atpos();
 		
 		iInfo.update(e.ener);
-		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{
 			Ctmp[q] = eVars.C[q];
 			eVars.C[q] += pInfo.dC[q]*h;
 			if (modeA->isUltrasoft(iInfo))
@@ -193,11 +160,9 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
 		e.iInfo.ionicEnergyAndGrad();
 		Fplus = -e.gInfo.invRT * e.iInfo.forces;
 		
-		
-		
 		spA->atpos[modeA->mode.at] = posA_unperturbed - h*modeA->mode.dirLattice;
-        mpiWorld->bcastData (spA->atpos);
-        spA->sync_atpos();
+		mpiWorld->bcastData (spA->atpos);
+		spA->sync_atpos();
 		
 		iInfo.update(e.ener);
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
@@ -231,28 +196,26 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
 		
 		dF = (Fplus - Fminus)*(1/(2*h));
 		return dF;
-	} else {
+	}
+	else
+	{
 		if (pInfo.densityAugRequired(e))
 			die("Analytic spring constant calculation not available for ultrasoft potentials.\n");
 		
-        IonicGradient dF;
-        dF.init (e.iInfo);
-		
-        for (unsigned s = 0; s < iInfo.species.size(); s++) {
-            auto sp = iInfo.species[s];
-            for (unsigned at = 0; at < sp->atpos.size(); at++) {
-                for (int iDir = 0; iDir < 3; iDir++) {
-                    std::shared_ptr<AtomPerturbation> modeB = std::make_shared<AtomPerturbation>(s, at, iDir, e);
-                    pInfo.datom = modeB;
-
-                    dF[s][at][iDir] = computeMatrixElement (modeA, modeB);
-                }
-            }
-        }
-
+		IonicGradient dF;
+		dF.init (e.iInfo);
+		for (unsigned s = 0; s < iInfo.species.size(); s++) {
+			auto sp = iInfo.species[s];
+			for (unsigned at = 0; at < sp->atpos.size(); at++) {
+				for (int iDir = 0; iDir < 3; iDir++) {
+					std::shared_ptr<AtomPerturbation> modeB = std::make_shared<AtomPerturbation>(s, at, iDir, e);
+					pInfo.datom = modeB;
+					dF[s][at][iDir] = computeMatrixElement (modeA, modeB);
+				}
+			}
+		}
 		pInfo.datom = modeA;
 		ps.calcdGradTau();
-
-        return dF;
-    }
+		return dF;
+	}
 }

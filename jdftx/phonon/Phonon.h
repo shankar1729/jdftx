@@ -44,6 +44,7 @@ public:
 //!Add reference to class Phonon to Everything (for use with the parser)
 struct PhononEverything: public Everything
 {	class Phonon& phonon;
+	std::shared_ptr<class SpringConstant> spring; //! Analytic force matrix calculator
 	PhononEverything(class Phonon& phonon);
 };
 

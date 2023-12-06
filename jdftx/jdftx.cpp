@@ -105,19 +105,13 @@ int main(int argc, char** argv)
 		lmin.minimize(e.latticeMinParams);
 	}
 	else if(e.vptParams.nIterations)
-	{
-		if (e.spring) {
-			e.spring->computeSubMatrix();
-		} else {
-			//Variational perturbation solver
-			PerturbationSolver ps(e);
-			if (e.vptInfo.testing) {
-				TestPerturbation testps(e, ps);
-				testps.testVPT();
-			} else {
-				ps.solvePerturbation();
-			}
+	{	//Variational perturbation solver
+		PerturbationSolver ps(e);
+		if (e.vptInfo.testing)
+		{	TestPerturbation testps(e, ps);
+			testps.testVPT();
 		}
+		else ps.solvePerturbation();
 	}
 	else
 	{	//Ionic minimization loop (which calls electron/fluid minimization loops)

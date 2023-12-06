@@ -33,7 +33,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 TestPerturbation::TestPerturbation(Everything& e, PerturbationSolver& ps) : e(e), eVars(e.eVars), eInfo(e.eInfo), pInfo(e.vptInfo), ps(ps), spring(e) {}
 
-bool TestPerturbation::compareHamiltonians() {
+bool TestPerturbation::compareHamiltonians()
+{
 	logPrintf("\nTesting Hamiltonian function.\n");
 	ColumnBundle tmpC;
 	Energies ener;

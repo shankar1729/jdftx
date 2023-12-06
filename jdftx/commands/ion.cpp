@@ -25,14 +25,12 @@ struct CommandIon : public Command
 {
 	CommandIon() : Command("ion", "jdftx/Ionic/Geometry")
 	{
-		format = "<species-id> <x0> <x1> <x2> [< v <vx0> <vx1> <vx2> > | spring] <moveScale> [<constraint type>="
+		format = "<species-id> <x0> <x1> <x2> [v <vx0> <vx1> <vx2>] <moveScale> [<constraint type>="
 			+ constraintTypeMap.optionList() + " <d0> <d1> <d2> [<group> [HyperPlane <d0> ...]]]";
 		comments =
 			"Add an atom of species <species-id> at coordinates (<x0>,<x1>,<x2>).\n"
 			"\n"
 			"Optionally, for dynamics, specify ion velocity <v0>,<v1>,<v2> after keyword 'v'.\n"
-			"\n"
-			"'spring' includes this atom in a spring constant calculation.\n"
 			"\n"
 			"<moveScale> preconditions the motion of this ion (set 0 to hold fixed)\n"
 			"\n"
@@ -78,7 +76,6 @@ struct CommandIon : public Command
 		//Add position to list:
 		sp->atpos.push_back(pos);
 		sp->velocities.push_back(vector3<>(NAN,NAN,NAN));
-		sp->perturbed.push_back(false);
 		
 		//Look for optional velocity and get moveScale:
 		string key;
@@ -95,17 +92,6 @@ struct CommandIon : public Command
 			if(e.iInfo.coordsType == CoordsCartesian)
 				vel = inv(e.gInfo.R) * vel;
 			//Get moveScale from command line beyond the velocity:
-			pl.get(constraint.moveScale, 0., "moveScale", true);
-		}
-		else if (key == "spring")
-		{
-			sp->perturbed.back() = true;
-			
-			if (!e.spring)
-			{
-				e.spring = std::make_shared<SpringConstant>(e);
-				e.spring->calculateSpringConstant = true;
-			}
 			pl.get(constraint.moveScale, 0., "moveScale", true);
 		}
 		else

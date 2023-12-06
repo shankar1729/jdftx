@@ -141,9 +141,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpPerturbationWfns, "PerturbationWfns",
 	DumpDn, "Dn",
 	DumpDVext, "DVext",
-	DumpDVscloc, "DVscloc",
-	DumpSpringConstants, "SpringConstants",
-	DumpPTest, "PTest"
+	DumpDVscloc, "DVscloc"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpNone,           "Dump nothing",
@@ -206,9 +204,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpPerturbationWfns, "Perturbation Wavefunctions",
 	DumpDn, 			"First order change in electronic density",
 	DumpDVext, 			"External perturbation",
-	DumpDVscloc, 		"First order change in local self-consistent potential",
-	DumpSpringConstants, "Spring constant matrix for vibrational DOFs",
-	DumpPTest,			"Test"
+	DumpDVscloc, 		"First order change in local self-consistent potential"
 );
 
 struct CommandDump : public Command

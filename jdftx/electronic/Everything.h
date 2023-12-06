@@ -35,10 +35,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaalsD2.h>
 #include <electronic/Dump.h>
 #include <electronic/SCFparams.h>
-#include <electronic/PerturbationParams.h>
 #include <electronic/IonicDynamicsParams.h>
 #include <electronic/PerturbationInfo.h>
-#include <electronic/SpringConstant.h>
+#include <electronic/PerturbationParams.h>
 #include <memory>
 
 //! @addtogroup ElectronicDFT
@@ -80,7 +79,6 @@ public:
 	std::shared_ptr<VanDerWaals> vanDerWaals; //! vdw correction calculator for electronic system
 	std::shared_ptr<VanDerWaalsD2> vanDerWaalsFluid; //!< vdW correction calculation for fluid coupling / solvation
 	std::shared_ptr<class Vibrations> vibrations; //! Vibrational mode calculator
-	std::shared_ptr<SpringConstant> spring; //! Analytic force matrix calculator
 
 	//! Call the setup/initialize routines of all the above in the necessray order
 	void setup();

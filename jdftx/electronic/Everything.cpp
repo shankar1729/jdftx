@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Vibrations.h>
 #include <electronic/DOS.h>
 #include <electronic/DumpBGW_internal.h>
+#include <electronic/SpringConstant.h>
 #include <core/LatticeUtils.h>
 #include <fluid/FluidSolver.h>
 
@@ -211,12 +212,7 @@ void Everything::setup()
 	//Set up variational perturbation solver
 	vptParams.fpLog = globalLog;
 	vptParams.linePrefix = "PerturbationSolve: ";
-
 	vptInfo.setup(*this, eVars);
-	
-	//Initialize spring constant calculator
-	if (spring)
-		spring->setupModes();
 
 	logPrintf("\n"); logFlush();
 }
