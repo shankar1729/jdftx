@@ -742,82 +742,36 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 
-	if (ShouldDump(Dn))
-	{
-		if (e->vptInfo.commensurate) {
-			if (e->vptInfo.dn.size() != 1)
-				die("Error: Need to dump multiple spins\n");
-			StartDump("dn")
-			if (e->vptInfo.datom)
-				saveRawBinary(e->vptInfo.dn[0] + e->vptInfo.datom->dnatom[0], fname.c_str());
-			else
-				saveRawBinary(e->vptInfo.dn[0], fname.c_str());
-			EndDump
-		} else {
-			if (e->vptInfo.dnmq.size() != 1)
-				die("Error: Need to dump multiple spins\n");
-			{
-				StartDump("dnmq")
-					saveRawBinary(e->vptInfo.dnmq[0], fname.c_str());
-				EndDump
-			}
-			{
-				StartDump("dnpq")
-					saveRawBinary(e->vptInfo.dnpq[0], fname.c_str());
-				EndDump
-			}
+	if(ShouldDump(Dn))
+	{	if (e->vptInfo.commensurate)
+		{	ScalarFieldArray dn = e->vptInfo.dn;
+			if(e->vptInfo.datom) dn = dn + e->vptInfo.datom->dnatom;
+			DUMP_spinCollection(dn, "dn")
 		}
-
+		else
+		{	DUMP_spinCollection(e->vptInfo.dnmq, "dn-q")
+			DUMP_spinCollection(e->vptInfo.dnpq, "dn+q")
+		}
 	}
 
 	if (ShouldDump(DVext) && e->vptInfo.dVext)
-	{
-		if (e->vptInfo.commensurate) {
-			if (e->vptInfo.dn.size() != 1)
-				die("Error: Need to dump multiple spins\n");
-			StartDump("dvext")
-			saveRawBinary(e->vptInfo.dVext->dVext[0], fname.c_str());
-			EndDump
-		} else {
-			if (e->vptInfo.dnmq.size() != 1)
-				die("Error: Need to dump multiple spins\n");
-			{
-				StartDump("dvextmq")
-					saveRawBinary(e->vptInfo.dVext->dVextmq[0], fname.c_str());
-				EndDump
-			}
-			{
-				StartDump("dvextpq")
-					saveRawBinary(e->vptInfo.dVext->dVextpq[0], fname.c_str());
-				EndDump
-			}
+	{	if (e->vptInfo.commensurate)
+		{	DUMP_spinCollection(e->vptInfo.dVext->dVext, "dVext")
+		}
+		else
+		{	DUMP_spinCollection(e->vptInfo.dVext->dVextmq, "dVext-q")
+			DUMP_spinCollection(e->vptInfo.dVext->dVextpq, "dVext+q")
 		}
 	}
 	
 	if(ShouldDump(DVscloc))
-	{
-		if (e->vptInfo.commensurate)
-		{
-			if (e->vptInfo.dn.size() != 1)
-				die("Error: Need to dump multiple spins\n");
-			StartDump("dvscloc")
-			saveRawBinary(e->vptInfo.dVsclocTau[0] + e->vptInfo.dVscloc[0], fname.c_str());
-			EndDump
+	{	if (e->vptInfo.commensurate)
+		{	ScalarFieldArray dVscloc = e->vptInfo.dVsclocTau + e->vptInfo.dVscloc;
+			DUMP_spinCollection(dVscloc, "dVscloc")
 		}
 		else
-		{
-			if (e->vptInfo.dnmq.size() != 1)
-				die("Error: Need to dump multiple spins\n");
-			{
-				StartDump("dvsclocmq")
-					saveRawBinary(e->vptInfo.dVsclocmq[0], fname.c_str());
-				EndDump
-			}
-			{
-				StartDump("dvsclocpq")
-					saveRawBinary(e->vptInfo.dVsclocpq[0], fname.c_str());
-				EndDump
-			}
+		{	DUMP_spinCollection(e->vptInfo.dVsclocmq, "dVscloc-q")
+			DUMP_spinCollection(e->vptInfo.dVsclocpq, "dVscloc+q")
 		}
 	}
 
