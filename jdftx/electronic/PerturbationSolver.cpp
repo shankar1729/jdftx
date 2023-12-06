@@ -114,12 +114,20 @@ ScalarField randomRealSpaceVector(ColumnBundle& ref, const GridInfo* gInfo) {
 }
 
 
-PerturbationSolver::PerturbationSolver(Everything& e) : e(e), eVars(e.eVars), eInfo(e.eInfo), iInfo(e.iInfo), pInfo(e.vptInfo) {}
+PerturbationSolver::PerturbationSolver(Everything& e) : e(e), eVars(e.eVars), eInfo(e.eInfo), iInfo(e.iInfo), pInfo(e.vptInfo)
+{
+}
 
 
 //TODO Test GPU code for ultrasoft derivs
 //TODO Eliminate redundant zeros
-void PerturbationSolver::solvePerturbation() {
+void PerturbationSolver::solvePerturbation()
+{
+	if (e.vptInfo.testing)
+	{	TestPerturbation(e, *this).testVPT();
+		return;
+	}
+
 	if (!e.vptParams.nIterations)
 		die("Error: Must specify nIterations in command solve-perturbation to enable the variational perturbation solver.\n")
 	

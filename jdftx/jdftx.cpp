@@ -26,7 +26,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Vibrations.h>
 #include <electronic/IonicDynamics.h>
 #include <electronic/PerturbationSolver.h>
-#include <electronic/TestPerturbation.h>
 #include <fluid/FluidSolver.h>
 #include <core/Util.h>
 #include <commands/parser.h>
@@ -107,11 +106,7 @@ int main(int argc, char** argv)
 	else if(e.vptParams.nIterations)
 	{	//Variational perturbation solver
 		PerturbationSolver ps(e);
-		if (e.vptInfo.testing)
-		{	TestPerturbation testps(e, ps);
-			testps.testVPT();
-		}
-		else ps.solvePerturbation();
+		ps.solvePerturbation();
 	}
 	else
 	{	//Ionic minimization loop (which calls electron/fluid minimization loops)
