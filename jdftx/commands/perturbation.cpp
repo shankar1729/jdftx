@@ -53,9 +53,9 @@ EnumStringMap<PerturbationParams::Algorithms> algMap
 	PerturbationParams::MINRES, "MINRES"
 );
 
-struct CommandSolvePerturbation : public Command
+struct CommandPerturbMinimize : public Command
 {
-	CommandSolvePerturbation() : Command("solve-perturbation", "jdftx/Variational perturbation theory")
+	CommandPerturbMinimize() : Command("perturb-minimize", "jdftx/Perturb")
 	{	emptyParamError =
 			"   Note: nIterations defaults to 0 and must be set manually to enable variational perturbation solver.\n";
 		format = "<key1> <value1> <key2> <value2> ...";
@@ -92,12 +92,12 @@ struct CommandSolvePerturbation : public Command
 		logPrintf(" \\\n\trecomputeResidual      %s", boolMap.getString(p.recomputeResidual));
 	}
 }
-CommandSolvePerturbation;
+commandPerturbMinimize;
 
 
-struct CommandDVexternal : public Command
+struct CommandPerturbVexternal : public Command
 {
-	CommandDVexternal() : Command("perturb-Vexternal", "jdftx/Variational perturbation theory")
+	CommandPerturbVexternal() : Command("perturb-Vexternal", "jdftx/Perturb")
 	{
 		format = "<filename>";
 		comments =
@@ -116,12 +116,12 @@ struct CommandDVexternal : public Command
 			logPrintf("%s ", filename.c_str());
 	}
 }
-CommandDVexternal;
+commandPerturbVexternal;
 
 
-struct CommandDRho : public Command
+struct CommandPerturbRhoExternal : public Command
 {
-	CommandDRho() : Command("perturb-rhoExternal", "jdftx/Variational perturbation theory")
+	CommandPerturbRhoExternal() : Command("perturb-rhoExternal", "jdftx/Perturb")
 	{
 		format = "<filename>";
 		comments =
@@ -140,12 +140,12 @@ struct CommandDRho : public Command
 			logPrintf("%s ", filename.c_str());
 	}
 }
-CommandDRho;
+commandPerturbRhoExternal;
 
 
-struct CommandDAtom : public Command
+struct CommandPerturbIon : public Command
 {
-	CommandDAtom() : Command("perturb-ion", "jdftx/Variational perturbation theory")
+	CommandPerturbIon() : Command("perturb-ion", "jdftx/Perturb")
 	{
 		format = "<species> <atom> <dx0> <dx1> <dx2>";
 		comments =
@@ -176,11 +176,11 @@ struct CommandDAtom : public Command
 		logPrintf("%i %i %g %g %g", pert->mode.sp, pert->mode.at, pert->mode.dirCartesian[0], pert->mode.dirCartesian[1], pert->mode.dirCartesian[2]);
 	}
 }
-CommandDAtom;
+commandPerturbIon;
 
-struct CommandPointCharge : public Command
+struct CommandPerturbChargeball : public Command
 {
-	CommandPointCharge() : Command("perturb-chargeball", "jdftx/Variational perturbation theory")
+	CommandPerturbChargeball() : Command("perturb-chargeball", "jdftx/Perturb")
 	{
 		format = "<charge> <x0> <x1> <x2> [width]";
 		comments =
@@ -210,12 +210,12 @@ struct CommandPointCharge : public Command
 		logPrintf("%g, %g, %g, %g, %g", e.vptInfo.dChargeBall->rho, e.vptInfo.dChargeBall->r[0], e.vptInfo.dChargeBall->r[1], e.vptInfo.dChargeBall->r[2], e.vptInfo.dChargeBall->width);
 	}
 }
-CommandPointCharge;
+commandPerturbChargeball;
 
 
-struct CommandDElectricField : public Command
+struct CommandPerturbElectricField : public Command
 {
-	CommandDElectricField() : Command("perturb-electric-field", "jdftx/Variational perturbation theory")
+	CommandPerturbElectricField() : Command("perturb-electric-field", "jdftx/Perturb")
 	{
 		format = "<Ex> <Ey> <Ez>";
 		comments =
@@ -234,12 +234,12 @@ struct CommandDElectricField : public Command
 	{	for(int k=0; k<3; k++) logPrintf("%lg ", e.vptInfo.dElectricField->Efield[k]);
 	}
 }
-commandDElectricField;
+commandPerturbElectricField;
 
 
-struct CommandSetPertPhase : public Command
+struct CommandPerturbWavevector : public Command
 {
-	CommandSetPertPhase() : Command("set-pert-phase", "jdftx/Variational perturbation theory")
+	CommandPerturbWavevector() : Command("perturb-wavevector", "jdftx/Perturb")
 	{
 		format = "<q0> <q1> <q2>";
 		comments =
@@ -261,11 +261,11 @@ struct CommandSetPertPhase : public Command
 		logPrintf("%f %f %f", e.vptInfo.qvec[0], e.vptInfo.qvec[1], e.vptInfo.qvec[2]);
 	}
 }
-CommandSetPertPhase;
+commandPerturbWavevector;
 
-struct CommandReadOffsetWfns : public Command
+struct CommandPerturbIncommensurateWavefunctions : public Command
 {
-	CommandReadOffsetWfns() : Command("set-pert-wfns", "jdftx/Variational perturbation theory")
+	CommandPerturbIncommensurateWavefunctions() : Command("perturb-incommensurate-wavefunctions", "jdftx/Perturb")
 	{
 		format = "<filename> [<EcutOld>]";
 		comments =
@@ -290,25 +290,15 @@ struct CommandReadOffsetWfns : public Command
 			logPrintf("%s %g", e.vptInfo.wfnsFilename.c_str(), e.vptInfo.readConversion->EcutOld);
 	}
 }
-CommandReadOffsetWfns;
+commandPerturbIncommensurateWavefunctions;
 
-struct CommandTestPerturbationOperators : public Command
+struct CommandPerturbTest : public Command
 {
-	CommandTestPerturbationOperators() : Command("pert-test", "jdftx/Variational perturbation theory")
-	{
-		comments =
-			"Perform finite difference tests of perturbation operators.\n";
+	CommandPerturbTest() : Command("perturb-test", "jdftx/Perturb")
+	{	comments = "Perform finite difference tests of perturbation operators.\n";
 	}
-
-    void process(ParamList& pl, Everything& e)
-    {
-		e.vptInfo.testing = true;
-	}
-
-	void printStatus(Everything& e, int iRep)
-	{
-		return;
-	}
+	void process(ParamList& pl, Everything& e) { e.vptInfo.testing = true; }
+	void printStatus(Everything& e, int iRep) { return; }
 }
-CommandTestPerturbationOperators;
+commandPerturbTest;
 
