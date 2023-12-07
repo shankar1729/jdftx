@@ -52,11 +52,12 @@ __hostanddev__ void reducedLstress_calc(int j, int nbasis, int ncols, const comp
 
 
 __hostanddev__ void precond_inv_kinetic_calc(int j, int nbasis, int ncols, complex* Ydata,
-	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR)
+	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR, bool sqrtop)
 {
 	double x = 0.5*GGT.metric_length_squared(iGarr[j]+k)/KErollover;
 	double precondFactor = 1.+x*(1.+x*(1.+x*(1.+x*(1.+x*(1.+x*(1.+x*(1.+x)))))));
 	precondFactor = precondFactor*invdetR/(1.+x*precondFactor);
+	if(sqrtop) precondFactor = sqrt(precondFactor);
 	for(int i=0; i < ncols; i++)
 		Ydata[nbasis*i+j] *= precondFactor;
 }

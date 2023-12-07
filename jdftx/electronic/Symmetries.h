@@ -46,9 +46,11 @@ public:
 	std::vector<QuantumNumber> reduceKmesh(const std::vector<QuantumNumber>& qnums) const;
 	
 	void symmetrize(ScalarField&) const; //!< symmetrize a scalar field in real space
+	void symmetrize(complexScalarField&) const; //!< symmetrize a complex scalar field in real space
 	void symmetrize(ScalarFieldTilde&) const; //!< symmetrize a scalar field in reciprocal space
 	void symmetrize(complexScalarFieldTilde&) const; //!< symmetrize a complex scalar field in reciprocal space
 	void symmetrize(ScalarFieldArray&) const; //!< symmetrize an array of scalar fields in real space representing spin density / potentials
+	void symmetrize(complexScalarFieldArray&) const; //!< symmetrize an array of complex scalar fields in real space representing spin density / potentials
 	void symmetrize(ScalarFieldTildeArray&) const; //!< symmetrize an array of scalar fields in reciprocal space representing spin density / potentials
 	void symmetrize(std::vector<complexScalarFieldTilde>&) const; //!< symmetrize an array of complex scalar fields in reciprocal space representing spin density / potentials
 	void symmetrize(struct IonicGradient&) const; //!< symmetrize forces

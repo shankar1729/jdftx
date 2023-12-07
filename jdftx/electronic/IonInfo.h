@@ -101,10 +101,13 @@ public:
 	
 	//Multi-stage density augmentation and gradient propagation (see corresponding functions in SpeciesInfo)
 	void augmentDensityInit() const; //!< initialize density augmentation
-	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq) const; //!< calculate density augmentation in spherical functions
+	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, const std::vector<matrix>* dVdagCqL = 0, const std::vector<matrix>* dVdagCqR = 0) const; //!< calculate density augmentation in spherical functions. Parameters dVdagCqL and/or dVdagCqR are needed for perturbation theory.
 	void augmentDensityGrid(ScalarFieldArray& n) const; //!< propagate from spherical functions to grid
 	void augmentDensityGridGrad(const ScalarFieldArray& E_n, IonicGradient* forces=0, matrix3<>* Eaug_RRT=0) const; //!< propagate grid gradients to spherical functions
 	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const; //!< propagate spherical function gradients to wavefunctions
+	
+	void setE_nAug(const std::vector<matrix> E_nAug);
+	const std::vector<matrix> getE_nAug();
 	
 	void project(const ColumnBundle& Cq, std::vector<matrix>& VdagCq, matrix* rotExisting=0) const; //Update pseudopotential projections (optionally retain non-zero ones with specified rotation)
 	void projectGrad(const std::vector<matrix>& HVdagCq, const ColumnBundle& Cq, ColumnBundle& HCq) const; //Propagate projected gradient (HVdagCq) to full gradient (HCq)
@@ -130,6 +133,9 @@ public:
 	int nAtomicOrbitals() const; //!< Get total number of atomic orbitals
 	ColumnBundle getAtomicOrbitals(int q, bool applyO, int extraCols=0) const; //!< Get all atomic orbitals of a given state number q, optionally with operator O pre-applied (with room for extra columns if specified)
 	
+	//! Compute all pair-potential terms in the energy, forces or lattice derivative (E_RRT) (electrostatic, and optionally vdW)
+	void pairPotentialsAndGrad(class Energies* ener=0, IonicGradient* forces=0, matrix3<>* E_RRT=0) const;
+	
 	//! Method for determining ion charge width
 	enum IonWidthMethod
 	{	IonWidthEcut, //!< determine ion width from Ecut
@@ -143,9 +149,6 @@ public:
 private:
 	const Everything* e;
 	ScalarFieldTilde rhoIonBare; //rhoIon without ionWidth required for stress calculation
-	
-	//! Compute all pair-potential terms in the energy, forces or lattice derivative (E_RRT) (electrostatic, and optionally vdW)
-	void pairPotentialsAndGrad(class Energies* ener=0, IonicGradient* forces=0, matrix3<>* E_RRT=0) const;
 	
 	//! Compute pulay contributions to energy and optionally stress
 	double calcEpulay(matrix3<>* E_RRT=0) const;

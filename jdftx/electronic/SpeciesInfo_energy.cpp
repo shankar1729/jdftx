@@ -27,7 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 
 //Return non-local energy and optionally accumulate its electronic and/or ionic gradients for a given quantum number
-double SpeciesInfo::EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const
+double SpeciesInfo::EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq, int atom) const
 {	static StopWatch watch("EnlAndGrad"); watch.start();
 	if(!atpos.size()) return 0.; //unused species
 	if(!MnlAll) return 0.; //purely local psp
@@ -35,10 +35,13 @@ double SpeciesInfo::EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, 
 	
 	matrix MVdagC = zeroes(VdagCq.nRows(), VdagCq.nCols());
 	double Enlq = 0.0;
-	for(unsigned atom=0; atom<atpos.size(); atom++)
-	{	matrix atomVdagC = VdagCq(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols());
+	
+	unsigned atoms = (atom >= 0)? 1 : atpos.size();
+	
+	for(unsigned atomindex=0; atomindex<atoms; atomindex++)
+	{	matrix atomVdagC = VdagCq(atomindex*nProj,(atomindex+1)*nProj, 0,VdagCq.nCols());
 		matrix MatomVdagC = MnlAll * atomVdagC;
-		MVdagC.set(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols(), MatomVdagC);
+		MVdagC.set(atomindex*nProj,(atomindex+1)*nProj, 0,VdagCq.nCols(), MatomVdagC);
 		Enlq += trace(Fq * dagger(atomVdagC) * MatomVdagC).real();
 	}
 	HVdagCq += MVdagC;
@@ -197,7 +200,7 @@ void SpeciesInfo::rhoAtom_getV(const ColumnBundle& Cq, const matrix* U_rhoAtomPt
 #undef U_rho_PACK
 
 void SpeciesInfo::updateLocal(ScalarFieldTilde& Vlocps, ScalarFieldTilde& rhoIon, ScalarFieldTilde& nChargeball,
-	ScalarFieldTilde& nCore, ScalarFieldTilde& tauCore) const
+	ScalarFieldTilde& nCore, ScalarFieldTilde& tauCore, int atom) const
 {	if(!atpos.size()) return; //unused species
 	((SpeciesInfo*)this)->updateLatticeDependent(); //update lattice dependent quantities (if lattice vectors have changed)
 	const GridInfo& gInfo = e->gInfo;
@@ -207,12 +210,14 @@ void SpeciesInfo::updateLocal(ScalarFieldTilde& Vlocps, ScalarFieldTilde& rhoIon
 	if(Z_chargeball) { nullToZero(nChargeball, gInfo); nChargeballData = nChargeball->dataPref(); }
 	if(nCoreRadial) { nullToZero(nCore, gInfo); nCoreData = nCore->dataPref(); }
 	if(tauCoreRadial) { nullToZero(tauCore, gInfo); tauCoreData = tauCore->dataPref(); }
+	int nAtoms = (atom >= 0) ? 1 : atpos.size();
+	int atomOffset = (atom >= 0) ? atom : 0;
 	
 	//Calculate in half G-space:
 	double invVol = 1.0/gInfo.detR;
 	callPref(::updateLocal)(gInfo.S, gInfo.GGT,
 		Vlocps->dataPref(), rhoIon->dataPref(), nChargeballData, nCoreData, tauCoreData,
-		atpos.size(), atposManaged.dataPref(), invVol, VlocRadial,
+		nAtoms, atposManaged.dataPref()+atomOffset, invVol, VlocRadial,
 		Z, nCoreRadial, tauCoreRadial, Z_chargeball, std::pow(width_chargeball,2));
 }
 
@@ -344,5 +349,24 @@ std::shared_ptr<ColumnBundle> SpeciesInfo::getV(const ColumnBundle& Cq, const ve
 	//Add to cache if necessary:
 	if(e->cntrl.cacheProjectors && (!derivDir) && (!stressDir))
 		((SpeciesInfo*)this)->cachedV[cacheKey] = V;
+	return V;
+}
+
+ColumnBundle SpeciesInfo::getVatom(const ColumnBundle& Cq, int atom) const
+{	const QuantumNumber& qnum = *(Cq.qnum);
+	const Basis& basis = *(Cq.basis);
+	int nProj = MnlAll.nRows() / e->eInfo.spinorLength();
+	assert(nProj);
+	ColumnBundle V(nProj, basis.nbasis, &basis, &qnum, isGpuEnabled()); //not a spinor regardless of spin type
+	int iProj = 0;
+	for(int l=0; l<int(VnlRadial.size()); l++)
+		for(unsigned p=0; p<VnlRadial[l].size(); p++)
+			for(int m=-l; m<=l; m++)
+			{	size_t offs = iProj * basis.nbasis;
+				size_t atomStride = nProj * basis.nbasis;
+				callPref(Vnl)(basis.nbasis, atomStride, 1, l, m, qnum.k, basis.iGarr.dataPref(),
+					basis.gInfo->G, atposManaged.dataPref()+atom, VnlRadial[l][p], V.dataPref()+offs);
+				iProj++;
+			}
 	return V;
 }

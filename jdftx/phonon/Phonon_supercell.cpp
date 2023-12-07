@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <commands/parser.h>
 #include <commands/command.h>
 #include <electronic/ColumnBundleTransform.h>
+#include <perturb/SpringConstant.h>
 
 inline bool spinEqual(const QuantumNumber& qnum1, const QuantumNumber& qnum2) { return qnum1.spin == qnum2.spin; } //for k-point mapping (in spin polarized mode)
 
@@ -65,7 +66,7 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	//Instead read in appropriate supercell quantities:
 	if(collectPerturbations)
 	{	//Read perturbed Vscloc and fix H below (no minimize/SCF necessary):
-		if(saveHsub) //only need Vscloc if outputting e-ph matrix elements
+		if(saveHsub && !useVPT) //only need Vscloc if outputting e-ph matrix elements
 		{	eSup->eVars.VFilenamePattern = fnamePattern;
 			eSup->cntrl.fixed_H = true;
 		}
@@ -79,8 +80,16 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	eSup->dump.format = fnamePattern;
 	
 	//Apply perturbation and then setup (so that symmetries reflect perturbed state):
-	vector3<> dxPert = inv(eSup->gInfo.R) * dr * pert.dir; //perturbation in lattice coordinates
-	eSup->iInfo.species[pert.sp]->atpos[pert.at] += dxPert; //apply perturbation
+	std::shared_ptr<AtomPerturbation> vptMode;
+	if (useVPT)
+	{	vptMode = std::make_shared<AtomPerturbation>(pert.sp, pert.at, pert.dir, *eSup);
+		vptMode->mode.dirLattice = inv(eSup->gInfo.R) * pert.dir; //Manually set since gInfo not initialized
+		eSup->pertInfo.datom = vptMode; //Must go before eSup->setup because of symmetry checks
+	}
+	else
+	{	vector3<> dxPert = inv(eSup->gInfo.R) * dr * pert.dir; //perturbation in lattice coordinates
+		eSup->iInfo.species[pert.sp]->atpos[pert.at] += dxPert; //apply perturbation
+	}
 	eSup->setup();
 	if(dryRun)
 	{	logPrintf("Dry run: supercell setup successful.\n");
@@ -136,17 +145,30 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	if(collectPerturbations)
 	{	dgrad_pert.init(eSup->iInfo);
 		dgrad_pert.read(eSup->dump.getFilename("dforces").c_str());
-		if(saveHsub) eSup->iInfo.augmentDensityGridGrad(eSup->eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's (needed by getPerturbedHsub)
+		if(saveHsub && !useVPT) eSup->iInfo.augmentDensityGridGrad(eSup->eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's (needed by getPerturbedHsub)
 	}
 	else
-	{	IonicGradient grad;
-		IonicMinimizer(*eSup).compute(&grad, 0);
-		dgrad_pert = (grad - grad0) * (1./dr);
-		logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
-		logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(3*nAtomsTot)));
-		//Output potentials and forces for future calculations:
-		eSup->dump.insert(std::make_pair(DumpFreq_End, DumpVscloc));
-		eSup->dump(DumpFreq_End, 0);
+	{	if(useVPT)
+		{	eSup->spring = std::make_shared<SpringConstant>(*eSup);
+			dgrad_pert = eSup->spring->getPhononMatrixColumn(vptMode, dr);
+			for (int s = 0; s < nSpins; s++) {
+				ostringstream fname;
+				if (nSpins > 1) fname << s;
+				fname << ".dHsub";
+				matrix dHsub = eSup->pertInfo.dHsub[0]+eSup->pertInfo.dHsubatom[0];
+				dHsub.write(eSup->dump.getFilename(fname.str()).c_str());
+			}
+		}
+		else
+		{	IonicGradient grad;
+			IonicMinimizer(*eSup).compute(&grad, 0);
+			dgrad_pert = (grad - grad0) * (1./dr);
+			logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
+			logPrintf("RMS force: %lg\n", sqrt(dot(grad,grad)/(3*nAtomsTot)));
+			//Output potentials and forces for future calculations:
+			eSup->dump.insert(std::make_pair(DumpFreq_End, DumpVscloc));
+			eSup->dump(DumpFreq_End, 0);
+		}
 		dgrad_pert.write(eSup->dump.getFilename("dforces").c_str());
 	}
 	if(iPerturbation>=0) return; //remainder below not necessary except when doing a full calculation
@@ -166,9 +188,30 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	//Subspace hamiltonian change:
 	std::vector<matrix> Hsub, dHsub_pert(nSpins);
 	if(saveHsub)
-	{	Hsub = getPerturbedHsub(pert, Hsub0);
-		for(size_t s=0; s<Hsub.size(); s++)
-			dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
+	{	if (useVPT)
+		{	if(collectPerturbations)
+			{	for (int s = 0; s < nSpins; s++)
+				{	dHsub_pert[s].init(eSup->eInfo.nStates, eSup->eInfo.nStates);
+					ostringstream fname;
+					if (nSpins > 1) fname << s;
+					fname << ".dHsub";
+					dHsub_pert[s].read(eSup->dump.getFilename(fname.str()).c_str());
+				}
+			}
+			else
+			{	for (int s = 0; s < nSpins; s++)
+				{	int qSup = s*(eSup->eInfo.nStates/nSpins);
+					assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0);
+					dHsub_pert[s] = eSup->pertInfo.CdagdHC[qSup]+eSup->pertInfo.dHsubatom[qSup];
+					//dHsub_pert[s] = eSup->pertInfo.dHsub[qSup]+eSup->pertInfo.dHsubatom[qSup];
+				}
+			}
+		}
+		else
+		{	Hsub = getPerturbedHsub(pert, Hsub0);
+			for(size_t s=0; s<Hsub.size(); s++)
+				dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
+		}
 	}
 	
 	//Accumulate results for all symmetric images of perturbation:

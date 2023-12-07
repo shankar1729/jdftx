@@ -102,8 +102,15 @@ public:
 	//! by finite difference (supported only for spin-unpolarized internal LDAs and GGAs).
 	//! All sigma derivatives will be null on output for LDAs.
 	//! The gradients will be set to zero for regions with n < nCut (useful to reduce numerical sensitivity in systems with empty space)
-	void getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, ScalarField& e_sigma, ScalarField& e_nsigma, ScalarField& e_sigmasigma, double nCut=1e-4) const;
+	//! By default, sigma will be computed from n, but this can be overridden by specifying sigma_alt.
+	void getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, ScalarField& e_sigma, ScalarField& e_nsigma, ScalarField& e_sigmasigma, double nCut=1e-4, ScalarField* sigma_alt = 0) const;
 	
+	//! Get change in Vxc due to change in density dn
+	void get_dVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeTXC includeTXC,
+			const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, const ScalarFieldArray& dn) const;
+
+	bool needFiniteDifference_dVxc() const;
+
 	//! Abstract base class (interface specification) for orbital-dependent potential functionals
 	struct OrbitalDep
 	{	OrbitalDep(const Everything& e) : e(e) {}

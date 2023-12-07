@@ -483,6 +483,19 @@ void ElecInfo::kpointsReduce()
 			qnums[ik+nkPoints].spin = -1;
 		}
 	}
+
+	//Offset k-point calculation for incommensurate perturbations
+	if(!e->pertInfo.solverParams.nIterations && !e->pertInfo.commensurate)
+	{	logPrintf("Switching k-points to k +/- q for incommensurate perturbations.\n");
+		nStates = qnums.size();
+		for(int q = 0; q < nStates; q++)
+		{	qnums.push_back(qnums[q]);
+			qnums[q].k += e->pertInfo.qvec;
+			qnums.back().k -= e->pertInfo.qvec;
+		}
+		nStates = qnums.size();
+	}
+
 	//Output the reduced kpoints:
 	if(e->cntrl.shouldPrintKpointsBasis)
 	{	logPrintf("States including spin/spin-weights:\n");

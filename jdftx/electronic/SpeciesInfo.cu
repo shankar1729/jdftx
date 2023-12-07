@@ -82,29 +82,29 @@ void Vnl_gpu(int nbasis, int atomStride, int nAtoms, int l, int m, vector3<> k, 
 
 //Augment electron density by spherical functions
 template<int Nlm> __global__ void nAugment_kernel(int zBlock, const vector3<int> S, const matrix3<> G, int iGstart, int iGstop,
-	int nCoeff, double dGinv, const double* nRadial, const vector3<> atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<> atpos, complex* n, const vector3<>* atposDeriv)
 {	COMPUTE_halfGindices
 	if(i<iGstart || i>=iGstop) return;
-	nAugment_calc<Nlm>(i, iG, G, nCoeff, dGinv, nRadial, atpos, n);
+	nAugment_calc<Nlm>(i, iG, G, nCoeff, dGinv, nRadial, atpos, n, atposDeriv);
 }
 template<int Nlm> void nAugment_gpu(const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
-	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n, const vector3<>* atposDeriv)
 {	GpuLaunchConfigHalf3D glc(nAugment_kernel<Nlm>, S);
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-		nAugment_kernel<Nlm><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, G, iGstart, iGstop, nCoeff, dGinv, nRadial, atpos, n);
+		nAugment_kernel<Nlm><<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, G, iGstart, iGstop, nCoeff, dGinv, nRadial, atpos, n, atposDeriv);
 	gpuErrorCheck();
 }
 void nAugment_gpu(int Nlm, const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
-	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n, const vector3<>* atposDeriv)
 {
-	SwitchTemplate_Nlm(Nlm, nAugment_gpu, (S, G, iGstart, iGstop, nCoeff, dGinv, nRadial, atpos, n) )
+	SwitchTemplate_Nlm(Nlm, nAugment_gpu, (S, G, iGstart, iGstop, nCoeff, dGinv, nRadial, atpos, n, atposDeriv) )
 }
 
 
 //Propagate gradients corresponding to above electron density augmentation
 template<int Nlm> __global__ void nAugmentGrad_kernel(const vector3<int> S, const matrix3<> G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<> atpos,
-	const complex* ccE_n, double* E_nRadialTemp, vector3<complex*> E_atpos, array<complex*,6> E_RRT,
+	const complex* ccE_n, double* E_nRadialTemp, vector3<complex*> E_atpos, array<complex*,6> E_RRT, const vector3<>* atposDeriv,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {
 	const int& iCoeff = blockIdx.x;
@@ -116,7 +116,7 @@ template<int Nlm> __global__ void nAugmentGrad_kernel(const vector3<int> S, cons
 	{	size_t ptr = ptrStart + threadIdx.x + iIter*blockDim.x;
 		bool dummy = (ptr >= ptrStop); //can't quit here, because reduction in QuinticSpline::valueGrad needs all threads to get there
 		if(dummy) ptr = ptrStop-1; //to avoid unnecssary branches later (but threads with dummy=true should never write to memory)
-		nAugmentGrad_calc<Nlm>(nagIndex[ptr], S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadialThread, E_atpos, E_RRT, dummy);
+		nAugmentGrad_calc<Nlm>(nagIndex[ptr], S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadialThread, E_atpos, E_RRT, atposDeriv, dummy);
 	}
 }
 __global__ void nAugmentGrad_collectKernel(int nData, const double* in, double* out)
@@ -130,7 +130,7 @@ __global__ void nAugmentGrad_collectKernel(int nData, const double* in, double* 
 }
 template<int Nlm> void nAugmentGrad_gpu(const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, const vector3<>* atposDeriv,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {
 	//Allocate temporary memory:
@@ -144,7 +144,7 @@ template<int Nlm> void nAugmentGrad_gpu(const vector3<int> S, const matrix3<>& G
 	cudaMemset(E_nRadialTemp, 0, sizeof(double)*nCoeff*Nlm*8);
 	gpuErrorCheck();
 	//Stage 1: calculate with the scattered accumulate to E_nRadial
-	nAugmentGrad_kernel<Nlm><<<nBlocks,nPerBlock,sharedMemPerThread*nPerBlock>>>(S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadialTemp, E_atpos, E_RRT, nagIndex, nagIndexPtr);
+	nAugmentGrad_kernel<Nlm><<<nBlocks,nPerBlock,sharedMemPerThread*nPerBlock>>>(S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadialTemp, E_atpos, E_RRT, atposDeriv, nagIndex, nagIndexPtr);
 	gpuErrorCheck();
 	//Stage 2: collect from E_nRadialTemp to E_nRadial
 	GpuLaunchConfig1D glc(nAugmentGrad_collectKernel, nCoeff*Nlm);
@@ -155,10 +155,10 @@ template<int Nlm> void nAugmentGrad_gpu(const vector3<int> S, const matrix3<>& G
 }
 void nAugmentGrad_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, const vector3<>* atposDeriv,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {	
-	SwitchTemplate_Nlm(Nlm, nAugmentGrad_gpu, (S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, E_RRT, nagIndex, nagIndexPtr) )
+	SwitchTemplate_Nlm(Nlm, nAugmentGrad_gpu, (S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, E_RRT, atposDeriv, nagIndex, nagIndexPtr) )
 }
 
 

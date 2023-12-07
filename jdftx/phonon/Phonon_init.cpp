@@ -28,7 +28,7 @@ PhononEverything::PhononEverything(Phonon& phonon) : phonon(phonon)
 }
 
 Phonon::Phonon()
-: dr(0.1), T(298*Kelvin), Fcut(1e-8), rSmooth(1.), iPerturbation(-1), collectPerturbations(false), saveHsub(true), e(*this), eSupTemplate(*this)
+: dr(0.1), T(298*Kelvin), Fcut(1e-8), rSmooth(1.), iPerturbation(-1), collectPerturbations(false), saveHsub(true), useVPT(false), e(*this), eSupTemplate(*this)
 {
 }
 
@@ -285,7 +285,7 @@ void Phonon::setup(bool printDefaults)
 		}
 		for(int iPert=0; iPert<nPert; iPert++)
 			if(irred[iPert])
-			{	if(isEven[iPert]) perturbations.push_back(pertSp[iPert]);
+			{	if(isEven[iPert] || useVPT) perturbations.push_back(pertSp[iPert]);
 				else //split into two perturbations to get a central difference formula
 				{	pertSp[iPert].weight *= 0.5;
 					for(int iSign=0; iSign<2; iSign++)

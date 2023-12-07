@@ -36,6 +36,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Dump.h>
 #include <electronic/SCFparams.h>
 #include <electronic/IonicDynamicsParams.h>
+#include <perturb/PerturbationInfo.h>
 #include <memory>
 
 //! @addtogroup ElectronicDFT
@@ -59,6 +60,7 @@ public:
 	ElecInfo eInfo; //!< Auxiliary electronic information
 	ElecVars eVars; //!< Electroic variables
 	Energies ener;  //!< Energy components
+	PerturbationInfo pertInfo; //!< Variational perturbation theory variables and parameters
 	
 	MinimizeParams elecMinParams; //!< electronic minimization parameters
 	MinimizeParams ionicMinParams; //!< ionic minimization parameters

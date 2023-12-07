@@ -259,15 +259,16 @@ void ElecVars::setup(const Everything &everything)
 			"R. Sundararaman, W. A. Goddard III and T. A. Arias, J. Chem. Phys. 146, 114104 (2017)");
 }
 
-ScalarFieldArray ElecVars::get_nXC() const
-{	if(e->iInfo.nCore)
-	{	ScalarFieldArray nXC = clone(n);
+ScalarFieldArray ElecVars::get_nXC(const ScalarFieldArray* n_alt) const
+{	const ScalarFieldArray& n_ref = n_alt ? *n_alt : n;
+	if(e->iInfo.nCore)
+	{	ScalarFieldArray nXC = clone(n_ref);
 		int nSpins = std::min(int(nXC.size()), 2); //1 for unpolarized and 2 for polarized
 		for(int s=0; s<nSpins; s++) //note that off-diagonal components of spin-density matrix are excluded
 			nXC[s] += (1./nSpins) * e->iInfo.nCore; //add core density
 		return nXC;
 	}
-	else return n; //no cores
+	else return n_ref; //no cores
 }
 
 //Electronic density functional and gradient
@@ -617,7 +618,7 @@ ScalarFieldArray ElecVars::KEdensity() const
 }
 
 ScalarFieldArray ElecVars::calcDensity() const
-{	ScalarFieldArray density(n.size());
+{	ScalarFieldArray density(n.size()); nullToZero(density, e->gInfo);
 	//Runs over all states and accumulates density to the corresponding spin channel of the total density
 	e->iInfo.augmentDensityInit();
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)

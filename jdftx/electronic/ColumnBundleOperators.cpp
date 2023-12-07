@@ -231,9 +231,9 @@ inline void getVupDn(const complexScalarField& Vre, const complexScalarField& Vi
 }
 
 template<typename ScalarFieldType> //templated over ScalarField and complexScalarField
-ColumnBundle Idag_DiagV_I_apply(const ColumnBundle& C, const std::vector<ScalarFieldType>& V)
+ColumnBundle Idag_DiagV_I_apply(const ColumnBundle& C, const std::vector<ScalarFieldType>& V, const ColumnBundle* Cout)
 {	static StopWatch watch("Idag_DiagV_I"); watch.start();
-	ColumnBundle VC = C.similar(); VC.zero();
+	ColumnBundle VC = Cout->similar(); VC.zero();
 	//Convert V to wfns grid if necessary:
 	const GridInfo& gInfoWfns = *(C.basis->gInfo);
 	std::vector<ScalarFieldType> Vtmp;
@@ -256,11 +256,11 @@ ColumnBundle Idag_DiagV_I_apply(const ColumnBundle& C, const std::vector<ScalarF
 	return VC;
 }
 //Specialize template above for the two allowed cases:
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V)
-{	return Idag_DiagV_I_apply<ScalarField>(C, V); 
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V, const ColumnBundle* Cout)
+{	return Idag_DiagV_I_apply<ScalarField>(C, V, Cout ? Cout : &C);
 }
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V)
-{	return Idag_DiagV_I_apply<complexScalarField>(C, V);
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V, const ColumnBundle* Cout)
+{	return Idag_DiagV_I_apply<complexScalarField>(C, V, Cout ? Cout : &C);
 }
 
 
@@ -347,12 +347,11 @@ ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY)
 void reducedD_gpu(int nbasis, int ncols, const complex* Ydata, complex* DYdata,
 	const vector3<int>* iGarr, double kdotGe, const vector3<> Ge);
 #endif
-ColumnBundle D(const ColumnBundle &Y, int iDir)
+inline ColumnBundle reducedD(const ColumnBundle &Y, const vector3<> Ge)
 {	assert(Y.basis);
 	const Basis& basis = *(Y.basis);
 	ColumnBundle DY = Y.similar();
 	int nSpinor = Y.spinorLength();
-	const vector3<> Ge = basis.gInfo->G.column(iDir);
 	double kdotGe = dot(Y.qnum->k, Ge);
 	#ifdef GPU_ENABLED
 	reducedD_gpu(basis.nbasis, Y.nCols()*nSpinor, Y.dataGpu(), DY.dataGpu(), basis.iGarr.dataGpu(), kdotGe, Ge);
@@ -362,7 +361,8 @@ ColumnBundle D(const ColumnBundle &Y, int iDir)
 	#endif
 	return DY;
 }
-
+ColumnBundle D(const ColumnBundle &Y, int iDir) {return reducedD(Y, Y.basis->gInfo->G.column(iDir));}
+ColumnBundle D(const ColumnBundle& Y, const vector3<>& dir) { return reducedD(Y, Y.basis->gInfo->G * dir);}
 
 //Compute cartesian gradient of column bundle in direction #iDir
 #ifdef GPU_ENABLED
@@ -391,21 +391,21 @@ ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir)
 // Multiply each column by f(0.5*|k+G|^2/KErollover)
 // with f(x) = (1+x+x^2+x^3+...+x^8)/(1+x+x^2+...+x^9) = (1-x^N)/(1-x^(N+1))
 void precond_inv_kinetic(int nbasis, int ncols, complex* Ydata,
-	double KErollover, const matrix3<>& GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR)
+	double KErollover, const matrix3<>& GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR, bool sqrtop)
 {
-	threadedLoop(precond_inv_kinetic_calc, nbasis, nbasis, ncols, Ydata, KErollover, GGT, iGarr, k, invdetR);
+	threadedLoop(precond_inv_kinetic_calc, nbasis, nbasis, ncols, Ydata, KErollover, GGT, iGarr, k, invdetR, sqrtop);
 }
 #ifdef GPU_ENABLED
 void precond_inv_kinetic_gpu(int nbasis, int ncols, complex* Ydata,
-	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR);
+	double KErollover, const matrix3<> GGT, const vector3<int>* iGarr, const vector3<> k, double invdetR, bool sqrtop);
 #endif
-void precond_inv_kinetic(ColumnBundle &Y, double KErollover)
+void precond_inv_kinetic(ColumnBundle &Y, double KErollover, bool sqrtop)
 {	assert(Y.basis);
 	const Basis& basis = *Y.basis;
 	const matrix3<>& GGT = basis.gInfo->GGT;
 	int  nSpinor = Y.spinorLength();
 	callPref(precond_inv_kinetic)(basis.nbasis, Y.nCols()*nSpinor, Y.dataPref(),
-		KErollover, GGT, basis.iGarr.dataPref(), Y.qnum->k, 1./basis.gInfo->detR);
+		KErollover, GGT, basis.iGarr.dataPref(), Y.qnum->k, 1./basis.gInfo->detR, sqrtop);
 }
 
 diagMatrix diagDot(const ColumnBundle& X, const ColumnBundle& Y)
@@ -519,7 +519,7 @@ void diagouterI_sub(int iThread, int nThreads, const diagMatrix *F, const Column
 	ScalarFieldArray& nLocal = (*nSub)[iThread];
 	nullToZero(nLocal, *(X->basis->gInfo)); //sets to zero
 	int nDensities = nLocal.size();
-	if(nDensities==1) //Note that nDensities==2 below will also enter this branch sinc eonly one component is non-zero
+	if(nDensities==1) //Note that nDensities==2 below will also enter this branch since only one component is non-zero
 	{	int nSpinor = X->spinorLength();
 		for(int i=colStart; i<colStop; i++)
 			for(int s=0; s<nSpinor; s++)
@@ -579,6 +579,71 @@ ScalarFieldArray diagouterI(const diagMatrix &F,const ColumnBundle &X,  int nDen
 	if(nDensities==2)
 	{	nSub[0].resize(2);
 		if(X.qnum->index()==1) std::swap(nSub[0][0], nSub[0][1]);
+	}
+	return nSub[0]; //rest cleaned up destructor
+}
+
+
+// Compute the pair density from a subset of columns of a ColumnBundle
+void diagouterIbinary_sub(int iThread, int nThreads, const diagMatrix *F, const ColumnBundle *A, const ColumnBundle *B, std::vector<complexScalarFieldArray>* nSub)
+{
+	//Determine column range:
+	int colStart = (( iThread ) * A->nCols())/nThreads;
+	int colStop  = ((iThread+1) * A->nCols())/nThreads;
+
+	complexScalarFieldArray& nLocal = (*nSub)[iThread];
+	nullToZero(nLocal, *(A->basis->gInfo)); //sets to zero
+	int nDensities = nLocal.size();
+	assert(nDensities==1);
+	int nSpinor = A->spinorLength();
+	for(int i=colStart; i<colStop; i++)
+		for(int s=0; s<nSpinor; s++)
+			callPref(eblas_accumProdComplex)(A->basis->gInfo->nr, (*F)[i], I(A->getColumn(i,s))->dataPref(), I(B->getColumn(i,s))->dataPref(), nLocal[0]->dataPref());
+}
+
+// Collect all contributions from nSub into the first entry
+void diagouterIbinary_collect(size_t iStart, size_t iStop, std::vector<complexScalarFieldArray>* nSub)
+{	assert(!isGpuEnabled()); // this is needed and should be called only in CPU mode
+	for(size_t s=0; s<(*nSub)[0].size(); s++)
+	{	//Get the data pointers for each piece in nSub:
+		int nThreads = nSub->size();
+		std::vector<complex*> nSubData(nThreads);
+		for(int j=0; j<nThreads; j++) nSubData[j] = (*nSub)[j][s]->data();
+
+		//Accumulate pointwise into the first piece:
+		for(size_t i=iStart; i<iStop; i++)
+			for(int j=1; j<nThreads; j++)
+				nSubData[0][i] += nSubData[j][i];
+	}
+}
+
+// Calculate diag((I*A)*F*(I*B)^) where B^ is the hermetian adjoint of B. Note: This function is not implemented for spinors.
+complexScalarFieldArray diagouterI(const diagMatrix &F, const ColumnBundle &A, const ColumnBundle &B,  int nDensities, const GridInfo* gInfoOut)
+{	static StopWatch watch("diagouterI"); watch.start();
+	//Check sizes:
+	assert(F.nRows()==A.nCols());
+	assert(F.nRows()==B.nCols());
+	assert(nDensities==1 || nDensities==2);
+	if(nDensities==2) assert(!A.isSpinor() && !B.isSpinor());
+
+	//Collect the contributions for different sets of columns in separate scalar fields (one per thread):
+	int nThreads = isGpuEnabled() ? 1: nProcsAvailable;
+	std::vector<complexScalarFieldArray> nSub(nThreads, complexScalarFieldArray(1)); //collinear spin-polarized will have only one non-zero output channel
+	threadLaunch(nThreads, diagouterIbinary_sub, 0, &F, &A, &B, &nSub);
+
+	//If more than one thread, accumulate all vectors in nSub into the first:
+	if(nThreads>1) threadLaunch(diagouterIbinary_collect, A.basis->gInfo->nr, &nSub);
+	watch.stop();
+
+	//Change grid if necessary:
+	if(gInfoOut && (A.basis->gInfo!=gInfoOut))
+		for(complexScalarField& nSub0s: nSub[0])
+			nSub0s = changeGrid(nSub0s, *gInfoOut);
+
+	//Correct the location of the single non-zero channel of collinear spin-polarized densities:
+	if(nDensities==2)
+	{	nSub[0].resize(2);
+		if(A.qnum->index()==1) std::swap(nSub[0][0], nSub[0][1]);
 	}
 	return nSub[0]; //rest cleaned up destructor
 }

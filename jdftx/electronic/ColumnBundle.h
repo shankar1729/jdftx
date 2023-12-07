@@ -143,18 +143,20 @@ vector3<matrix> spinOverlap(const scaled<ColumnBundle> &sY); //!< spin-resolved 
 
 //! Return Idag V .* I C (evaluated columnwise)
 //! The handling of the spin structure of V parallels that of diagouterI, with V.size() taking the role of nDensities
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V);
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V); //!< Same as above for complex potentials
+//! If Cout is specified, return output at the k-point and basis of Cout, else use k-point and basis of C.
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V, const ColumnBundle* Cout = 0);
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const complexScalarFieldArray& V, const ColumnBundle* Cout = 0); //!< Same as above for complex potentials
 
 ColumnBundle L(const ColumnBundle &Y); //!< Apply Laplacian
 ColumnBundle Linv(const ColumnBundle &Y); //!< Apply Laplacian inverse
 matrix3<> Lstress(const ColumnBundle &Y, const diagMatrix& F); //!< Compute lattice vector derivative of Tr[Y^LYF] (used for KE stress calculation)
 ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY=0); //!< Apply overlap (and optionally retrieve pseudopotential projections for later reuse)
 ColumnBundle D(const ColumnBundle &Y, int iDir); //!< Compute the cartesian gradient of a column bundle in direction# iDir
+ColumnBundle D(const ColumnBundle& in, const vector3<>& dir); //!< Directional derivative of column bundle along (cartesian direction) dir
 ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir); //!< Compute second spatial derivative of a column bundle along directions# iDir, jDir
 
 //! Apply inverse kinetic preconditioner (Roughly inv((k+G)^2/2)) in-place
-void precond_inv_kinetic(ColumnBundle &Y, double KErollover); 
+void precond_inv_kinetic(ColumnBundle &Y, double KErollover, bool sqrtop=false); 
 
 diagMatrix diagDot(const ColumnBundle& X, const ColumnBundle& Y); //!< compute diag(X^Y) efficiently (avoid the off-diagonals)
 void precond_inv_kinetic_band(ColumnBundle& Y, const diagMatrix& KEref); //!< In-place inverse kinetic preconditioner with band-by-band KE reference (Used by BandDavidson)
@@ -177,6 +179,7 @@ complex traceinner(const diagMatrix &F, const ColumnBundle &X,const ColumnBundle
 //!    4: return spin density-matrix (valid for spinor X only)
 //! If gInfoOut is specified, function ensures that the output is changed to that grid (in case tighter wfns grid is in use)
 ScalarFieldArray diagouterI(const diagMatrix &F,const ColumnBundle &X, int nDensities, const GridInfo* gInfoOut=0);
+complexScalarFieldArray diagouterI(const diagMatrix &F, const ColumnBundle &A, const ColumnBundle &B,  int nDensities, const GridInfo* gInfoOut);
 
 //! @}
 #endif // JDFTX_ELECTRONIC_COLUMNBUNDLE_H

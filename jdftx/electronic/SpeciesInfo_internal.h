@@ -160,19 +160,19 @@ struct nAugmentFunctor
 };
 template<int Nlm> __hostanddev__
 void nAugment_calc(int i, const vector3<int>& iG, const matrix3<>& G,
-	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n, const vector3<>* atposDeriv)
 {
 	nAugmentFunctor functor(iG*G, nCoeff, dGinv, nRadial);
 	staticLoopYlm<Nlm>(&functor);
-	n[i] += functor.n * cis((-2*M_PI)*dot(atpos,iG));
+	n[i] += functor.n * cis((-2*M_PI)*dot(atpos,iG)) * (atposDeriv ? complex(0,-2*M_PI)*dot(*atposDeriv, iG) : 1);
 }
 void nAugment(int Nlm,
 	const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
-	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n, const vector3<>* atposDeriv);
 #ifdef GPU_ENABLED
 void nAugment_gpu(int Nlm,
 	const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
-	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n);
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n, const vector3<>* atposDeriv);
 #endif
 
 //Function for initializing the index arrays used by nAugmentGrad
@@ -223,7 +223,7 @@ struct nAugmentGradFunctor
 template<int Nlm> __hostanddev__
 void nAugmentGrad_calc(uint64_t key, const vector3<int>& S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, bool dummyGpuThread=false)
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, const vector3<>* atposDeriv = 0, bool dummyGpuThread=false)
 {
 	//Obtain 3D index iG and array offset i for this point (similar to COMPUTE_halfGindices)
 	vector3<int> iG;
@@ -236,7 +236,9 @@ void nAugmentGrad_calc(uint64_t key, const vector3<int>& S, const matrix3<>& G,
 	vector3<> qvec = iG*G;
 	
 	nAugmentGradFunctor functor(qvec, nCoeff, dGinv, nRadial,
-		dummyGpuThread ? complex() : ccE_n[i].conj() * cis((-2*M_PI)*dot(atpos,iG)),
+		dummyGpuThread
+		? complex()
+		: ccE_n[i].conj() * (atposDeriv ? complex(0,-2*M_PI)*dot(*atposDeriv,iG) : 1) * cis((-2*M_PI)*dot(atpos,iG)),
 		E_nRadial, dotPrefac, E_RRT[0]);
 	staticLoopYlm<Nlm>(&functor);
 	if(nRadial && !dummyGpuThread)
@@ -255,12 +257,12 @@ void nAugmentGrad_calc(uint64_t key, const vector3<int>& S, const matrix3<>& G,
 }
 void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, const vector3<>* atposDeriv,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr);
 #ifdef GPU_ENABLED
 void nAugmentGrad_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, const vector3<>* atposDeriv,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr);
 #endif
 

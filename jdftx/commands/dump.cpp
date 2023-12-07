@@ -137,7 +137,11 @@ EnumStringMap<DumpVariable> varMap
 	DumpOrbitalDep, "OrbitalDep",
 	DumpXCanalysis, "XCanalysis",
 	DumpEresolvedDensity, "EresolvedDensity",
-	DumpFermiDensity, "FermiDensity" 
+	DumpFermiDensity, "FermiDensity",
+	DumpDWfns, "DWfns",
+	DumpDn, "Dn",
+	DumpDVext, "DVext",
+	DumpDVscloc, "DVscloc"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpNone,           "Dump nothing",
@@ -196,7 +200,11 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpOrbitalDep,     "Custom output from orbital-dependent functionals (eg. quasi-particle energies, discontinuity potential)",
 	DumpXCanalysis,     "Debug VW KE density, single-particle-ness and spin-polarzied Hartree potential",
 	DumpEresolvedDensity, "Electron density from bands within specified energy ranges",
-	DumpFermiDensity,	"Electron density from fermi-derivative at specified energy" 
+	DumpFermiDensity,	"Electron density from fermi-derivative at specified energy",
+	DumpDWfns, "Perturbation Wavefunctions",
+	DumpDn, 			"First order change in electronic density",
+	DumpDVext, 			"External perturbation",
+	DumpDVscloc, 		"First order change in local self-consistent potential"
 );
 
 struct CommandDump : public Command

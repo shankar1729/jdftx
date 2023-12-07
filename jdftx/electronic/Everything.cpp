@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Vibrations.h>
 #include <electronic/DOS.h>
 #include <electronic/DumpBGW_internal.h>
+#include <perturb/SpringConstant.h>
 #include <core/LatticeUtils.h>
 #include <fluid/FluidSolver.h>
 
@@ -207,6 +208,9 @@ void Everything::setup()
 	latticeMinParams.linePrefix = "LatticeMinimize: ";
 	latticeMinParams.energyLabel = relevantFreeEnergyName(*this);
 	latticeMinParams.energyFormat = "%+.15lf";
+
+	//Set up variational perturbation solver
+	pertInfo.setup(*this, eVars);
 
 	logPrintf("\n"); logFlush();
 }

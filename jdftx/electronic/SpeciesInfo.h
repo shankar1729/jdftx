@@ -93,29 +93,38 @@ public:
 	//! If derivDir is non-null, return the derivative with respct to Cartesian k direction *derivDir instead (never cached).
 	//! If stressDir is >=0, then calculate (i,j) component of dVnl/dR . RT where stressDir = 3*i+j
 	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, const vector3<>* derivDir=0, const int stressDir=-1) const;
+	ColumnBundle getVatom(const ColumnBundle& Cq, int atom) const; //!< Single atom version
 	int nProjectors() const { return MnlAll.nRows() * atpos.size(); } //!< total number of projectors for all atoms in this species (number of columns in result of getV)
 	
 	//! Return non-local energy for this species and quantum number q and optionally accumulate
 	//! projected electronic gradient in HVdagCq (if non-null)
-	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq) const;
+	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq, int atom = -1) const;
 	
 	//! Accumulate pseudopotential contribution to the overlap in OCq
 	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matrix* VdagCq=0) const;
+	
+	//! Derivative of augmented overlap operator w.r.t. atomic position
+	void augmentOverlapDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV) const;
+	
+	//! Second derivative of augmented overlap operator w.r.t. atomic position
+	void augmentOverlapSecondDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV_A, ColumnBundle& dV_B, ColumnBundle& dsqV) const;
 	
 	//! Accumulate pseudopotential contribution to spin overlap of a columnbundle
 	void augmentSpinOverlap(const ColumnBundle& Cq, vector3<matrix>& Sq) const;
 	
 	//! Clear internal data and prepare for density augmentation (call before a loop over augmentDensitySpherical per k-point)
-	void augmentDensityInit();
+	void augmentDensityInit(int atom = -1);
 	//! Accumulate the pseudopotential dependent contribution to the density in the spherical functions nAug (call once per k-point)
-	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq);
+	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, const matrix* VdagdCqL = 0, const matrix* VdagdCqR = 0, int atom = -1);
 	//! Accumulate the spherical augmentation functions nAug to the grid electron density (call only once, after augmentDensitySpherical on all k-points)
-	void augmentDensityGrid(ScalarFieldArray& n) const;
+	void augmentDensityGrid(ScalarFieldArray& n, int atom=-1, const vector3<>* atposDeriv = 0) const;
 	
 	//! Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once). Optionally collect forces and stress contributions
 	void augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vector<vector3<> >* forces=0, matrix3<>* Eaug_RRT=0);
+	void augmentDensityGridGradDeriv(const ScalarFieldArray& E_n, int atom, const vector3<>* atposDeriv);
+	
 	//! Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) 
-	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq) const;
+	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq, int atom = -1) const;
 	
 	//DFT+U functions: handle IonInfo::rhoAtom_*() for this species
 	//The rhoAtom pointers point to the start of those relevant to this species (and ends at that pointer + rhoAtom_nMatrices())
@@ -144,7 +153,7 @@ public:
 
 	//! Add contributions from this species to Vlocps, rhoIon, nChargeball and nCore/tauCore (if any)
 	void updateLocal(ScalarFieldTilde& Vlocps, ScalarFieldTilde& rhoIon, ScalarFieldTilde& nChargeball,
-		ScalarFieldTilde& nCore, ScalarFieldTilde& tauCore) const; 
+		ScalarFieldTilde& nCore, ScalarFieldTilde& tauCore, int atom = -1) const; 
 	
 	//! Return the local forces (due to Vlocps, rhoIon, nChargeball and nCore/tauCore)
 	std::vector< vector3<> > getLocalForces(const ScalarFieldTilde& ccgrad_Vlocps, const ScalarFieldTilde& ccgrad_rhoIon,
@@ -161,6 +170,10 @@ public:
 	//! Spin-angle helper functions:
 	static matrix getYlmToSpinAngleMatrix(int l, int j2); //!< Get the ((2l+1)*2)x(j2+1) matrix that transforms the Ylm+spin to the spin-angle functions, where j2=2*j with j = l+/-0.5
 	static matrix getYlmOverlapMatrix(int l, int j2); //!< Get the ((2l+1)*2)x((2l+1)*2) overlap matrix of the spin-spherical harmonics for total angular momentum j (note j2=2*j)
+	
+	matrix MnlAll; //!< block matrix containing Mnl for all l,m
+	matrix E_nAug; //!< Gradient w.r.t nAug (in the same layout)
+
 private:
 	matrix3<> Rprev; void updateLatticeDependent(); //!< If Rprev differs from gInfo.R, update the lattice dependent quantities (such as the radial functions)
 
@@ -170,7 +183,6 @@ private:
 
 	std::vector< std::vector<RadialFunctionG> > VnlRadial; //!< non-local projectors (outer index l, inner index projetcor)
 	std::vector<matrix> Mnl; //!< nonlocal pseudopotential projector matrix (indexed by l)
-	matrix MnlAll; //!< block matrix containing Mnl for all l,m 
 	
 	std::vector<matrix> Qint; //!< overlap augmentation matrix (indexed by l, empty if no augmentation)
 	matrix QintAll; //!< block matrix containing Qint for all l,m 
@@ -189,7 +201,6 @@ private:
 	std::map<QijIndex,RadialFunctionG> Qradial; //!< radial functions for density augmentation
 	matrix QradialMat; //!< matrix with all the radial augmentation functions in columns (ordered by index)
 	matrix nAug; //!< intermediate electron density augmentation in the basis of Qradial functions (Flat array indexed by spin, atom number and then Qradial index)
-	matrix E_nAug; //!< Gradient w.r.t nAug (same layout)
 	ManagedArray<uint64_t> nagIndex; ManagedArray<size_t> nagIndexPtr; //!< grid indices arranged by |G|, used for coordinating scattered accumulate in nAugmentGrad(_gpu)
 
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)

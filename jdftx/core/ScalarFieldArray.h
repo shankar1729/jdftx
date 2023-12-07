@@ -30,6 +30,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 typedef std::vector<ScalarField> ScalarFieldArray; //!< dynamic size collection of real space scalar fields
 typedef std::vector<ScalarFieldTilde> ScalarFieldTildeArray; //!< dynamic size collection of reciprocal space scalar fields
+typedef std::vector<complexScalarField> complexScalarFieldArray; //!< dynamic size collection of complex scalar fields
+typedef std::vector<complexScalarFieldTilde> complexScalarFieldTildeArray; //!< dynamic size collection of reciprocal complex scalar fields
 #define TptrCollection std::vector<std::shared_ptr<T> > //!< shorthand for templates below (undef'd at end of file)
 
 //! Extract a std::vector of data pointers from a ScalarFieldArray
@@ -227,6 +229,47 @@ inline ScalarFieldArray Jdag(ScalarFieldTildeArray&& X) //!< Hermitian conjugate
 	return out;
 }
 inline ScalarFieldArray Jdag(const ScalarFieldTildeArray& X) { return Jdag(clone(X)); } //!< Hermitian conjugate of J
+
+
+inline ScalarFieldArray Real(const complexScalarFieldArray X) {
+	ScalarFieldArray out(X.size());
+	for (int i = 0; i < int(X.size()); i++) {
+		out[i] = Real(X[i]);
+	}
+	return out;
+}
+
+inline ScalarFieldArray Imag(const complexScalarFieldArray X) {
+	ScalarFieldArray out(X.size());
+	for (int i = 0; i < int(X.size()); i++) {
+		out[i] = Imag(X[i]);
+	}
+	return out;
+}
+
+inline complexScalarFieldArray Complex(const ScalarFieldArray re, const ScalarFieldArray im) {
+	complexScalarFieldArray out(re.size());
+	for (int i = 0; i < int(re.size()); i++) {
+		out[i] = Complex(re[i],im[i]);
+	}
+	return out;
+}
+
+inline complexScalarFieldArray Complex(const ScalarFieldArray re) {
+	complexScalarFieldArray out(re.size());
+	for (int i = 0; i < int(re.size()); i++) {
+		out[i] = Complex(re[i]);
+	}
+	return out;
+}
+
+inline complexScalarFieldArray conj(const complexScalarFieldArray X) {
+	complexScalarFieldArray out(X.size());
+	for (int i = 0; i < int(X.size()); i++) {
+		out[i] = conj(X[i]);
+	}
+	return out;
+}
 
 #undef TptrCollection
 

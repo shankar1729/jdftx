@@ -159,6 +159,12 @@ void Symmetries::symmetrize(ScalarField& x) const
 	symmetrize(xTilde);
 	x = Real(I(xTilde));
 }
+void Symmetries::symmetrize(complexScalarField& x) const
+{	if(sym.size()==1) return; // No symmetries, nothing to do
+	complexScalarFieldTilde xTilde = J(x);
+	symmetrize(xTilde);
+	x = I(xTilde);
+}
 void Symmetries::symmetrize(ScalarFieldTilde& x) const
 {	if(sym.size()==1) return; // No symmetries, nothing to do
 	complexScalarFieldTilde xComplex = Complex(x);
@@ -179,6 +185,17 @@ void Symmetries::symmetrize(ScalarFieldArray& x) const
 		for(unsigned s=0; s<x.size(); s++) xTilde[s] = J(Complex(x[s]));
 		symmetrize(xTilde);
 		for(unsigned s=0; s<x.size(); s++) x[s] = Real(I(xTilde[s]));
+	}
+}
+void Symmetries::symmetrize(complexScalarFieldArray& x) const
+{	if(sym.size()==1) return; // No symmetries, nothing to do
+	if(x.size()<=2) { for(complexScalarField& x_s: x) symmetrize(x_s); } //everything but vector-spin mode
+	else
+	{	assert(x.size() == 4); //must be vector-spin
+		std::vector<complexScalarFieldTilde> xTilde(x.size());
+		for(unsigned s=0; s<x.size(); s++) xTilde[s] = J(x[s]);
+		symmetrize(xTilde);
+		for(unsigned s=0; s<x.size(); s++) x[s] = I(xTilde[s]);
 	}
 }
 void Symmetries::symmetrize(ScalarFieldTildeArray& x) const
@@ -382,6 +399,29 @@ void Symmetries::calcSymmetries()
 		}
 		sym = symNew;
 		logPrintf("reduced to %lu space-group symmetries with electric field\n", sym.size());
+	}
+	
+	if(e->pertInfo.datom)
+	{	std::vector<SpaceGroupOp> symNew;
+		const PerturbationInfo& pInfo = e->pertInfo;
+		AtomicMode m = pInfo.datom->mode;
+		assert(m.sp >= 0 && m.sp < e->iInfo.species.size());
+		
+		auto sp = e->iInfo.species[m.sp];
+		assert(m.at >= 0 && m.at < sp->atpos.size());
+		
+		if (e->eInfo.spinType==SpinVector)
+			die("Error: Need to implement spinor symmetry checking in VPT\n");
+		
+		for(const SpaceGroupOp& op: sym)
+		{
+			if ((op.rot*sp->atpos[m.at]+op.a - sp->atpos[m.at]).length() > symmThreshold) continue;
+			if ((op.rot*m.dirLattice - m.dirLattice).length() > m.dirLattice.length()*symmThreshold) continue;
+			symNew.push_back(op);
+		}
+		
+		sym = symNew;
+		logPrintf("reduced to %lu space-group symmetries with atom perturbation\n", sym.size());
 	}
 	
 	//Make sure identity is the first symmetry
@@ -614,6 +654,33 @@ void Symmetries::checkSymmetries()
 	if(isPertSup)
 	{	logPrintf("Reduced %lu manually specified symmetries of unit cell to %lu symmetries of perturbed supercell.\n", sym.size(), symReduced.size());
 		std::swap(sym, symReduced);
+	}
+	if(e->pertInfo.datom)
+	{
+		std::vector<SpaceGroupOp> symReduced;
+		const PerturbationInfo& pInfo = e->pertInfo;
+		AtomicMode m = pInfo.datom->mode;
+		assert(m.sp >= 0 && m.sp < e->iInfo.species.size());
+		
+		auto sp = e->iInfo.species[m.sp];
+		assert(m.at >= 0 && m.at < sp->atpos.size());
+		
+		if (e->eInfo.spinType==SpinVector)
+			die("Error: Need to implement spinor symmetry checking in VPT\n");
+		
+		for(const SpaceGroupOp& op: sym)
+		{
+			if ((op.rot*sp->atpos[m.at]+op.a - sp->atpos[m.at]).length() > symmThreshold
+				|| (op.rot*m.dirLattice - m.dirLattice).length() > m.dirLattice.length()*symmThreshold)
+			{
+				if (isPertSup) continue;
+				else die("Symmetries are not compatible with the atomic perturbation.\n");
+			}
+			if (isPertSup) symReduced.push_back(op);
+		}
+		
+		if (isPertSup) sym = symReduced;
+		logPrintf("Manual symmetries reduced to %lu space-group symmetries of supercell with atom perturbation\n", sym.size());
 	}
 }
 

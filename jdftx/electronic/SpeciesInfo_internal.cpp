@@ -51,20 +51,20 @@ void Vnl(int nbasis, int atomStride, int nAtoms, int l, int m, const vector3<> k
 
 //Augment electron density by spherical functions
 template<int Nlm> void nAugment_sub(size_t diStart, size_t diStop, const vector3<int> S, const matrix3<>& G, int iGstart,
-	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n, const vector3<>* atposDeriv)
 {	size_t iStart = iGstart + diStart;
 	size_t iStop = iGstart + diStop;
-	THREAD_halfGspaceLoop( (nAugment_calc<Nlm>)(i, iG, G, nCoeff, dGinv, nRadial, atpos, n); )
+	THREAD_halfGspaceLoop( (nAugment_calc<Nlm>)(i, iG, G, nCoeff, dGinv, nRadial, atpos, n, atposDeriv); )
 }
 template<int Nlm> void nAugment(const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
-	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n, const vector3<>* atposDeriv)
 {
-	threadLaunch(nAugment_sub<Nlm>, iGstop-iGstart, S, G, iGstart, nCoeff, dGinv, nRadial, atpos, n);
+	threadLaunch(nAugment_sub<Nlm>, iGstop-iGstart, S, G, iGstart, nCoeff, dGinv, nRadial, atpos, n, atposDeriv);
 }
 void nAugment(int Nlm, const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
-	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n)
+	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos, complex* n, const vector3<>* atposDeriv)
 {	
-	SwitchTemplate_Nlm(Nlm, nAugment, (S, G, iGstart, iGstop, nCoeff, dGinv, nRadial, atpos, n) )
+	SwitchTemplate_Nlm(Nlm, nAugment, (S, G, iGstart, iGstop, nCoeff, dGinv, nRadial, atpos, n, atposDeriv) )
 }
 
 //Function for initializing the index arrays used by nAugmentGrad
@@ -97,29 +97,29 @@ void setNagIndex(const vector3<int>& S, const matrix3<>& G, int iGstart, int iGs
 //Propagate gradients corresponding to above electron density augmentation
 template<int Nlm> void nAugmentGrad_sub(int iStart, int iStop, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, const vector3<>* atposDeriv,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr, int pass)
 {
 	(pass ? iStart : iStop) = (iStart+iStop)/2; //do first and second halves of range in each pass
 	for(int iCoeff=iStart; iCoeff<iStop; iCoeff++)
 		for(size_t ptr=nagIndexPtr[iCoeff]; ptr<nagIndexPtr[iCoeff+1]; ptr++)
-			nAugmentGrad_calc<Nlm>(nagIndex[ptr], S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, E_RRT, false);
+			nAugmentGrad_calc<Nlm>(nagIndex[ptr], S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, E_RRT, atposDeriv, false);
 }
 template<int Nlm> void nAugmentGrad(const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, 
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, const vector3<>* atposDeriv,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {	
 	int nThreads = std::min(nProcsAvailable, std::max(1,nCoeff/12)); //Minimum 12 tasks per thread necessary for write-collision prevention logic below
 	for(int pass=0; pass<2; pass++) // two non-overlapping passes
-		threadLaunch(nThreads, nAugmentGrad_sub<Nlm>, nCoeff, S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, E_RRT, nagIndex, nagIndexPtr, pass);
+		threadLaunch(nThreads, nAugmentGrad_sub<Nlm>, nCoeff, S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, E_RRT, atposDeriv, nagIndex, nagIndexPtr, pass);
 }
 void nAugmentGrad(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,
-	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT,
+	const complex* ccE_n, double* E_nRadial, vector3<complex*> E_atpos, array<complex*,6> E_RRT, const vector3<>* atposDeriv,
 	const uint64_t* nagIndex, const size_t* nagIndexPtr)
 {	
-	SwitchTemplate_Nlm(Nlm, nAugmentGrad, (S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, E_RRT, nagIndex, nagIndexPtr) )
+	SwitchTemplate_Nlm(Nlm, nAugmentGrad, (S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadial, E_atpos, E_RRT, atposDeriv, nagIndex, nagIndexPtr) )
 }
 
 

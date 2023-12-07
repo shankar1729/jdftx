@@ -27,6 +27,7 @@ enum PhononMember
 	PM_iPerturbation,
 	PM_collectPerturbations,
 	PM_saveHsub,
+	PM_useVPT,
  	PM_T,
 	PM_Fcut,
 	PM_rSmooth,
@@ -39,6 +40,7 @@ EnumStringMap<PhononMember> phononMemberMap
 	PM_iPerturbation,"iPerturbation",
 	PM_collectPerturbations, "collectPerturbations",
 	PM_saveHsub, "saveHsub",
+	PM_useVPT, "useVPT",
 	PM_T, "T",
 	PM_Fcut, "Fcut",
 	PM_rSmooth, "rSmooth"
@@ -70,6 +72,10 @@ struct CommandPhonon : public Command
 			"\n+ saveHsub yes|no\n\n"
 			"   Whether to compute / save phononHsub: the electron-phonon matrix elements.\n"
 			"   Default: yes.\n"
+			"\n+ useVPT\n\n"
+			"    Compute perturbations using variational perturbation theory (VPT) instead of finite differencing.\n"
+			"    Finite difference with step size dr is still used to calculate second derivative of energy.\n"
+			"    Set dr to 0 to compute analytically instead (only for non-ultrasoft potentials, and slightly slower.)\n"
 			"\n+ T <T>\n\n"
 			"   Temperature (in Kelvins) used for vibrational free energy estimation (default 298).\n"
 			"\n+ Fcut <Fcut>\n\n"
@@ -117,6 +123,9 @@ struct CommandPhonon : public Command
 				case PM_saveHsub:
 					pl.get(phonon.saveHsub, true, boolMap, "saveHsub", true);
 					break;
+				case PM_useVPT:
+					phonon.useVPT = true;
+					break;
 				case PM_T:
 					pl.get(phonon.T, 0., "T", true);
 					phonon.T *= Kelvin;
@@ -142,6 +151,7 @@ struct CommandPhonon : public Command
 		if(phonon.iPerturbation>=0) logPrintf(" \\\n\tiPerturbation %d", phonon.iPerturbation+1); //print 1-based index
 		if(phonon.collectPerturbations) logPrintf(" \\\n\tcollectPerturbations");
 		logPrintf(" \\\n\tsaveHsub %s", boolMap.getString(phonon.saveHsub));
+		if(phonon.useVPT) logPrintf(" \\\n\tuseVPT");
 		logPrintf(" \\\n\tT %lg", phonon.T/Kelvin);
 		logPrintf(" \\\n\tFcut %lg", phonon.Fcut);
 		logPrintf(" \\\n\trSmooth %lg", phonon.rSmooth);

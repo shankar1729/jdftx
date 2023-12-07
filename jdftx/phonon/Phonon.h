@@ -44,6 +44,7 @@ public:
 //!Add reference to class Phonon to Everything (for use with the parser)
 struct PhononEverything: public Everything
 {	class Phonon& phonon;
+	std::shared_ptr<class SpringConstant> spring; //! Analytic force matrix calculator
 	PhononEverything(class Phonon& phonon);
 };
 
@@ -63,6 +64,7 @@ public:
 	int iPerturbation; //!< if >=0, only run one supercell calculation
 	bool collectPerturbations; //!< if true, collect results of previously computed perturbations (skips supercell SCF/Minimize)
 	bool saveHsub; //!< whether to compute / output electron-phonon matrix elements
+	bool useVPT; //!< enables the use of variational perturbation theory
 	
 	Phonon();
 	void setup(bool printDefaults); //!< setup unit cell and basis modes for perturbations

@@ -29,6 +29,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/Thread.h>
 #include <core/GpuUtil.h>
 #include <core/VectorField.h>
+#include <perturb/PerturbationSolver.h>
 
 //---------------- Subset wrapper for MPI parallelization --------------------
 
@@ -935,7 +936,7 @@ inline void setMask(size_t iStart, size_t iStop, const double* n, double* mask, 
 {	for(size_t i=iStart; i<iStop; i++) mask[i] = (n[i]<nCut ? 0. : 1.);
 }
 
-void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, ScalarField& e_sigma, ScalarField& e_nsigma, ScalarField& e_sigmasigma, double nCut) const
+void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, ScalarField& e_sigma, ScalarField& e_nsigma, ScalarField& e_sigmasigma, double nCut, ScalarField* sigma_alt) const
 {
 	//Check for GGAs and meta GGAs:
 	bool needsSigma = false, needsTau=false, needsLap=false;
@@ -970,7 +971,7 @@ void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, Scala
 	//Compute gradient-squared for GGA
 	ScalarField sigma, sigmaPlus, sigmaMinus;
 	if(needsSigma)
-	{	sigma = lengthSquared(gradient(n));
+	{	sigma = sigma_alt ? *sigma_alt : lengthSquared(gradient(n));
 		sigmaPlus = scalePlus * sigma;
 		sigmaMinus = scaleMinus * sigma;
 	}
@@ -1030,4 +1031,78 @@ void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, Scala
 		e_nsigma = 0;
 		e_sigmasigma = 0;
 	}
+}
+
+bool ExCorr::needFiniteDifference_dVxc() const
+{	bool needsTau=false, needsLap=false;
+	for(auto func: functionals->internal)
+		if(shouldInclude(func, false))
+		{	needsLap |= func->needsLap();
+			needsTau |= func->needsTau();
+		}
+	return needsLap || needsTau || (e->eVars.n.size() > 1);
+}
+
+void ExCorr::get_dVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeTXC includeTXC,
+		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, const ScalarFieldArray& dn) const
+{
+	const int nInCount = n.size(); assert(nInCount==1 || nInCount==2 || nInCount==4);
+	const int nCount = std::min(nInCount, 2); //Number of spin-densities used in the parametrization of the functional
+	const int sigmaCount = 2*nCount-1;
+	const GridInfo& gInfo = n[0]->gInfo;
+
+	//------- Prepare inputs, allocate outputs -------
+
+	//Energy density per volume:
+	ScalarField E; nullToZero(E, gInfo);
+
+	//Gradient w.r.t spin densities:
+	ScalarFieldArray dVxcOut(nCount);
+	nullToZero(dVxcOut, gInfo);
+	ScalarFieldArray E_n(nCount);
+	nullToZero(E_n, gInfo);
+
+	//Check for GGAs and meta GGAs:
+	bool needsSigma = false;
+	for(auto func: functionals->internal)
+		if(shouldInclude(func, includeTXC))
+			needsSigma |= func->needsSigma();
+
+	if(needFiniteDifference_dVxc())
+	{	ScalarFieldArray nplusdn, Vxc, VxcplusdVxc;
+		double h = nrm2(n[0])/nrm2(dn[0]) * 1e-7;
+		nplusdn = n+h*dn;
+		(*this)(n, &Vxc, includeTXC, tauPtr, Vtau);
+		(*this)(nplusdn, &VxcplusdVxc, includeTXC, tauPtr, Vtau);
+		*dVxc = (VxcplusdVxc-Vxc)*(1/h);
+		return;
+	}
+
+	const PerturbationInfo& pInfo = e->pertInfo;
+	dVxcOut[0] = pInfo.e_nn_cached * dn[0];
+	int iDirStart, iDirStop;
+	TaskDivision(3, mpiWorld).myRange(iDirStart, iDirStop);
+	if(needsSigma)
+	{	ScalarFieldArray dsigma(sigmaCount), tmp(nCount);
+		VectorField IDJdn;
+		nullToZero(dsigma, gInfo, sigmaCount);
+		nullToZero(tmp, gInfo, nCount);
+		
+		for(int i=iDirStart; i<iDirStop; i++) {
+			IDJdn[i] = I(D(J(dn[0]),i));
+			dsigma[0] += 2*clone(IDJdn[i])*pInfo.IDJn_cached[i];
+		}
+		dsigma[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+		
+		for(int i=iDirStart; i<iDirStop; i++) {
+			ScalarField intermediate = IDJdn[i]*pInfo.e_sigma_cached;
+			intermediate += pInfo.IDJn_cached[i]*(pInfo.e_nsigma_cached*dn[0]);
+			intermediate += pInfo.IDJn_cached[i]*(pInfo.e_sigmasigma_cached*dsigma[0]);
+			tmp[0] -= 2*I(D(J(intermediate),i));
+		}
+		dVxcOut[0] += pInfo.e_nsigma_cached*dsigma[0];
+		tmp[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
+		dVxcOut[0] += tmp[0];
+	}
+	*dVxc = dVxcOut;
 }

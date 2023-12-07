@@ -83,11 +83,13 @@ matrix3<> Lstress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y); //!< La
 
 ScalarFieldTilde Linv(const ScalarFieldTilde&); //!< Inverse Laplacian
 ScalarFieldTilde Linv(ScalarFieldTilde&&); //!< Inverse Laplacian
-complexScalarFieldTilde Linv(const complexScalarFieldTilde&); //!< Inverse Laplacian
-complexScalarFieldTilde Linv(complexScalarFieldTilde&&); //!< Inverse Laplacian
+complexScalarFieldTilde Linv(const complexScalarFieldTilde&, vector3<>* k = 0); //!< Inverse Laplacian
+complexScalarFieldTilde Linv(complexScalarFieldTilde&&, vector3<>* k = 0); //!< Inverse Laplacian
+complexScalarFieldTilde Linv(const ScalarFieldTilde& in, vector3<>* k);
 matrix3<> LinvStress(const ScalarFieldTilde& X, const ScalarFieldTilde& Y); //!< Lattice vector derivative of dot(X,Linv(Y))
 
 ScalarFieldTilde D(const ScalarFieldTilde&, int iDir); //!< compute the gradient in the iDir'th cartesian direction
+ScalarFieldTilde D(const ScalarFieldTilde& in, const vector3<>& dir); //!< directional derivative of scalar field along (cartesian direction) dir
 ScalarFieldTilde DD(const ScalarFieldTilde&, int iDir, int jDir); //!< second derivative along iDir'th and jDir'th cartesian directions
 
 void zeroNyquist(RealKernel& Gdata); //!< zeros out all the nyquist components of a real G-kernel
@@ -100,6 +102,8 @@ void zeroNyquist(ScalarField& Rptr); //!< zeros out all the nyquist components o
 //! (Useful for getting real wavefunctions in gamma point only calculations or Wannier functions)
 void removePhase(size_t N, complex* data, double& meanPhase, double& sigmaPhase, double& rmsImagErr);
 
+void translate(ScalarFieldTilde&, const vector3<>& r); //!< Translate by vector r in Cartesian coordinates
+void translate(complexScalarFieldTilde&, const vector3<>& r); //!< Translate by vector r in Cartesian coordinates
 void multiplyBlochPhase(complexScalarField&, const vector3<>& k); //!< Multiply by Block phase for wave-vector k (in reciprocal lattice coordinates)
 ScalarField radialFunction(const GridInfo& gInfo, const RadialFunctionG& f, vector3<> r0); //!< Create spherically-symmetric scalar field from radial form f, centered at lattice coordinates r0
 void radialFunctionG(const RadialFunctionG& f, RealKernel& Kernel); //!< Create a spherically-symmetric RealKernel from its radial form f 

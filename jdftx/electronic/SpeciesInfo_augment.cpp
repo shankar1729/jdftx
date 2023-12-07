@@ -37,6 +37,26 @@ void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matr
 	watch.stop();
 }
 
+void SpeciesInfo::augmentOverlapDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV) const
+{	static StopWatch watch("augmentOverlapDeriv"); watch.start();
+	if(!atpos.size()) return; //unused species
+	if(!Qint.size()) return; //no overlap augmentation
+	OCq += V * (QintAll * (dV^Cq));
+	OCq += dV * (QintAll * (V^Cq));
+	watch.stop();
+}
+
+void SpeciesInfo::augmentOverlapSecondDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV_A, ColumnBundle& dV_B, ColumnBundle& dsqV) const
+{	static StopWatch watch("augmentOverlapDeriv"); watch.start();
+	if(!atpos.size()) return; //unused species
+	if(!Qint.size()) return; //no overlap augmentation
+	OCq += V * (QintAll * (dsqV^Cq));
+	OCq += dV_A * (QintAll * (dV_B^Cq));
+	OCq += dV_B * (QintAll * (dV_A^Cq));
+	OCq += dsqV * (QintAll * (V^Cq));
+	watch.stop();
+}
+
 void SpeciesInfo::augmentSpinOverlap(const ColumnBundle& Cq, vector3<matrix>& Sq) const
 {	if(!atpos.size()) return; //unused species
 	if(!Qint.size()) return; //no overlap augmentation
@@ -92,9 +112,9 @@ void SpeciesInfo::augmentSpinOverlap(const ColumnBundle& Cq, vector3<matrix>& Sq
 	int nCoeff = 2*nCoeffHlf;
 
 
-void SpeciesInfo::augmentDensityInit()
+void SpeciesInfo::augmentDensityInit(int atom)
 {	augmentDensity_COMMON_INIT
-	size_t nSpinAtomLM = e->eInfo.nDensities * atpos.size() * Nlm;
+	size_t nSpinAtomLM = e->eInfo.nDensities * (atom >= 0? 1 : atpos.size()) * Nlm;
 	if(!nAug)
 	{	nAug.init(Qradial.size(), nSpinAtomLM, isGpuEnabled());
 		E_nAug.init(Qradial.size(), nSpinAtomLM, isGpuEnabled());
@@ -103,18 +123,31 @@ void SpeciesInfo::augmentDensityInit()
 	E_nAug.zero();
 }
 
-void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq)
+void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, const matrix* VdagdCqL, const matrix* VdagdCqR, int atom)
 {	static StopWatch watch("augmentDensitySpherical"); watch.start(); 
 	augmentDensity_COMMON_INIT
 	int nProj = MnlAll.nRows();
 	const GridInfo &gInfo = e->gInfo;
 	complex* nAugData = nAug.data();
+	unsigned nAtoms = (atom >= 0) ? 1 : atpos.size();
+	bool derivativeMode = (VdagdCqL or VdagdCqR);
+	if(derivativeMode) assert(VdagdCqL);
 	
 	//Loop over atoms:
-	for(unsigned atom=0; atom<atpos.size(); atom++)
+	for(unsigned at=0; at<nAtoms; at++)
 	{	//Get projections and calculate density matrix at this atom:
-		matrix atomVdagC = VdagCq(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols());
-		matrix RhoAll = atomVdagC * Fq * dagger(atomVdagC); //density matrix in projector basis on this atom
+		matrix RhoAll;
+		matrix atomVdagC = VdagCq(at*nProj,(at+1)*nProj, 0,VdagCq.nCols());
+		if(not derivativeMode)
+			RhoAll = atomVdagC * Fq * dagger(atomVdagC); //density matrix in projector basis on this atom
+		else
+		{	//Compute and store first derivative of RhoAll instead:
+			matrix atomVdagdCL = (*VdagdCqL)(at*nProj,(at+1)*nProj, 0,VdagdCqL->nCols());
+			const matrix& atomVdagdCR = VdagdCqR
+				? matrix((*VdagdCqR)(at*nProj,(at+1)*nProj, 0,VdagdCqR->nCols()))
+				: atomVdagdCL;
+			RhoAll = atomVdagC * Fq * dagger(atomVdagdCR) + atomVdagdCL * Fq * dagger(atomVdagC); //Compute and store first 		
+		}
 		if(isRelativistic()) RhoAll = fljAll * RhoAll * fljAll; //transformation for relativistic pseudopotential
 		std::vector<matrix> Rho(e->eInfo.nDensities); //RhoAll split by spin(-density-matrix) components
 		if(e->eInfo.isNoncollinear())
@@ -135,7 +168,7 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 		
 		//Calculate spherical function contributions from density matrix:
 		for(size_t s=0; s<Rho.size(); s++) if(Rho[s])
-		{	int atomOffs = Nlm*(atom + s*atpos.size());
+		{	int atomOffs = Nlm * (at + s*nAtoms);
 			//Triple loop over first projector:
 			int i1 = 0;
 			for(int l1=0; l1<int(VnlRadial.size()); l1++)
@@ -166,7 +199,7 @@ void SpeciesInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagM
 	watch.stop();
 }
 
-void SpeciesInfo::augmentDensityGrid(ScalarFieldArray& n) const
+void SpeciesInfo::augmentDensityGrid(ScalarFieldArray& n, int atom, const vector3<>* atposDeriv) const
 {	static StopWatch watch("augmentDensityGrid"); watch.start(); 
 	augmentDensityGrid_COMMON_INIT
 	const GridInfo &gInfo = e->gInfo;
@@ -176,9 +209,10 @@ void SpeciesInfo::augmentDensityGrid(ScalarFieldArray& n) const
 	double* nAugRadialData = (double*)nAugRadial.dataPref();
 	for(unsigned s=0; s<n.size(); s++)
 	{	ScalarFieldTilde nAugTilde; nullToZero(nAugTilde, gInfo);
-		for(unsigned atom=0; atom<atpos.size(); atom++)
-		{	int atomOffs = nCoeff * Nlm * (atom + atpos.size()*s);
-			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, gInfo.iGstart, gInfo.iGstop, nCoeff, dGinv, nAugRadialData+atomOffs, atpos[atom], nAugTilde->dataPref());
+		unsigned atoms = (atom >= 0)? 1 : atpos.size();
+		for(unsigned atomindex=0; atomindex<atoms; atomindex++)
+		{	int atomOffs = (atom >= 0)? nCoeff * Nlm * s : nCoeff * Nlm * (atomindex + atpos.size()*s);
+			callPref(nAugment)(Nlm, gInfo.S, gInfo.G, gInfo.iGstart, gInfo.iGstop, nCoeff, dGinv, nAugRadialData+atomOffs, atpos[(atom >= 0)? atom : atomindex], nAugTilde->dataPref(), atposDeriv);
 		}
 		n[s] += I(nAugTilde);
 	}
@@ -211,7 +245,7 @@ void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vecto
 				atpos[atom], ccE_n->dataPref(), E_nAugRadialData+atomOffs,
 				forces ? E_atpos.dataPref() : vector3<complex*>(),
 				Eaug_RRT ? array<complex*,6>(dataPref(E_RRT)) : array<complex*,6>(),
-				nagIndex.dataPref(), nagIndexPtr.dataPref());
+				0, nagIndex.dataPref(), nagIndexPtr.dataPref());
 			if(forces) for(int k=0; k<3; k++) (*forces)[atom][k] -= sum(E_atpos[k]);
 		}
 	}
@@ -227,7 +261,30 @@ void SpeciesInfo::augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vecto
 	watch.stop();
 }
 
-void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq) const
+
+void SpeciesInfo::augmentDensityGridGradDeriv(const ScalarFieldArray& E_n, int atom, const vector3<>* atposDeriv)
+{	static StopWatch watch("augmentDensityGridGradDeriv"); watch.start();
+	augmentDensityGrid_COMMON_INIT
+	if(!nAug) augmentDensityInit();
+	const GridInfo &gInfo = e->gInfo;
+	double dGinv = 1./gInfo.dGradial;
+	matrix E_nAugRadial = zeroes(nCoeffHlf, e->eInfo.nDensities * atpos.size() * Nlm);
+	double* E_nAugRadialData = (double*)E_nAugRadial.dataPref();
+	for(unsigned s=0; s<E_n.size(); s++)
+	{	ScalarFieldTilde ccE_n = Idag(E_n[s]);
+		int atomOffs = nCoeff * Nlm * (atom + atpos.size()*s);
+		callPref(nAugmentGrad)(Nlm, gInfo.S, gInfo.G, nCoeff, dGinv, 0,
+			atpos[atom], ccE_n->dataPref(), E_nAugRadialData+atomOffs,
+			vector3<complex*>(),
+			array<complex*,6>(),
+			atposDeriv, nagIndex.dataPref(), nagIndexPtr.dataPref());
+	}
+	E_nAug = dagger(QradialMat) * E_nAugRadial;  //propagate from spline coeffs to radial functions
+	mpiWorld->allReduceData(E_nAug, MPIUtil::ReduceSum);
+	watch.stop();
+}
+
+void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq, int atom) const
 {	static StopWatch watch("augmentDensitySphericalGrad"); watch.start();
 	augmentDensity_COMMON_INIT
 	int nProj = MnlAll.nRows();
@@ -237,8 +294,15 @@ void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const m
 	matrix E_RhoVdagC(VdagCq.nRows(),VdagCq.nCols(),isGpuEnabled());
 	
 	//Loop over atoms:
-	for(unsigned atom=0; atom<atpos.size(); atom++)
+	unsigned atoms = atpos.size();
+	if (atom >= 0) atoms = 1;
+	
+	for(unsigned Vatomindex=0; Vatomindex<atoms; Vatomindex++)
 	{
+		int atomindex = Vatomindex;
+		if (atom >= 0)
+			atomindex = atom;
+		
 		//Prepare gradient w.r.t density matrix in basis of current atom's projectors (split by spinor components, if any)
 		std::vector<matrix> E_Rho(e->eInfo.nDensities);
 		if(e->eInfo.isNoncollinear()) E_Rho.assign(E_Rho.size(), zeroes(nProj/2, nProj/2));
@@ -246,7 +310,7 @@ void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const m
 		
 		//Propagate gradients from spherical functions to density matrix:
 		for(size_t s=0; s<E_Rho.size(); s++) if(E_Rho[s])
-		{	int atomOffs = Nlm*(atom + s*atpos.size());
+		{	int atomOffs = Nlm*(atomindex + s*atpos.size());
 			//Triple loop over first projector:
 			int i1 = 0;
 			for(int l1=0; l1<int(VnlRadial.size()); l1++)
@@ -291,9 +355,9 @@ void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const m
 		
 		//Propagate gradients from densiy matrix to projections:
 		if(isRelativistic()) E_RhoAll = fljAll * E_RhoAll * fljAll; //transformation for relativistic pseudopotential
-		matrix atomVdagC = VdagCq(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols());
+		matrix atomVdagC = VdagCq(Vatomindex*nProj,(Vatomindex+1)*nProj, 0,VdagCq.nCols());
 		matrix E_atomRhoVdagC = E_RhoAll * atomVdagC;
-		E_RhoVdagC.set(atom*nProj,(atom+1)*nProj, 0,VdagCq.nCols(), E_atomRhoVdagC);
+		E_RhoVdagC.set(Vatomindex*nProj,(Vatomindex+1)*nProj, 0,VdagCq.nCols(), E_atomRhoVdagC);
 	}
 	HVdagCq += E_RhoVdagC;
 	watch.stop();
