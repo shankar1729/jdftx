@@ -343,16 +343,10 @@ void IonInfo::augmentDensityInit() const
 }
 
 void IonInfo::augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, const std::vector<matrix>* VdagdCqL, const std::vector<matrix>* VdagdCqR) const
-{
-	if (VdagdCqR) {
-		for(unsigned sp=0; sp<species.size(); sp++)
-			((SpeciesInfo&)(*species[sp])).augmentDensitySpherical(qnum, Fq, VdagCq[sp], &((*VdagdCqL)[sp]), &((*VdagdCqR)[sp]));
-	} else if (VdagdCqL){
-		for(unsigned sp=0; sp<species.size(); sp++)
-			((SpeciesInfo&)(*species[sp])).augmentDensitySpherical(qnum, Fq, VdagCq[sp], &((*VdagdCqL)[sp]));
-	} else {
-		for(unsigned sp=0; sp<species.size(); sp++)
-			((SpeciesInfo&)(*species[sp])).augmentDensitySpherical(qnum, Fq, VdagCq[sp]);
+{	for(unsigned sp=0; sp<species.size(); sp++)
+	{	const matrix* VdagdCqL_sp = VdagdCqL ? &((*VdagdCqL)[sp]) : 0;
+		const matrix* VdagdCqR_sp = VdagdCqR ? &((*VdagdCqR)[sp]) : 0;
+		((SpeciesInfo&)(*species[sp])).augmentDensitySpherical(qnum, Fq, VdagCq[sp], VdagdCqL_sp, VdagdCqR_sp);
 	}
 }
 void IonInfo::augmentDensityGrid(ScalarFieldArray& n) const
@@ -367,19 +361,16 @@ void IonInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const std::
 		species[sp]->augmentDensitySphericalGrad(qnum, VdagCq[sp], HVdagCq[sp]);
 }
 
-void IonInfo::setE_nAug(const std::vector<matrix> E_nAug) {
-	if (!E_nAug.size())
-		return;
-	
+void IonInfo::setE_nAug(const std::vector<matrix> E_nAug)
+{	if (!E_nAug.size()) return;
 	for(unsigned sp=0; sp<species.size(); sp++)
 		species[sp]->setE_nAug(E_nAug[sp]);
 }
 
-const std::vector<matrix> IonInfo::getE_nAug() {
-	std::vector<matrix> E_nAug(species.size());
+const std::vector<matrix> IonInfo::getE_nAug()
+{	std::vector<matrix> E_nAug(species.size());
 	for(unsigned sp=0; sp<species.size(); sp++)
 		E_nAug[sp] = species[sp]->getE_nAug();
-	
 	return E_nAug;
 }
 
