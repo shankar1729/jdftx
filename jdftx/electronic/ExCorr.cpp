@@ -971,11 +971,7 @@ void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, Scala
 	//Compute gradient-squared for GGA
 	ScalarField sigma, sigmaPlus, sigmaMinus;
 	if(needsSigma)
-	{
-		if (sigma_alt)
-			sigma = *sigma_alt;
-		else
-			sigma = lengthSquared(gradient(n));
+	{	sigma = sigma_alt ? *sigma_alt : lengthSquared(gradient(n));
 		sigmaPlus = scalePlus * sigma;
 		sigmaMinus = scaleMinus * sigma;
 	}
@@ -1027,7 +1023,7 @@ void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, Scala
 	if(needsSigma)
 	{	ScalarField sigmaDen = (0.5/eps) * inv(sigma) * mask;
 		e_sigma = configs[0].e_sigma*mask; //First derivative available analytically
-		e_nsigma = 0.5*(nDen * (configs[1].e_sigma - configs[2].e_sigma)  + sigmaDen * (configs[3].e_n - configs[4].e_n));
+		e_nsigma = 0.5*(nDen * (configs[1].e_sigma - configs[2].e_sigma) + sigmaDen * (configs[3].e_n - configs[4].e_n));
 		e_sigmasigma = sigmaDen * (configs[3].e_sigma - configs[4].e_sigma);
 	}
 	else
@@ -1037,23 +1033,19 @@ void ExCorr::getSecondDerivatives(const ScalarField& n, ScalarField& e_nn, Scala
 	}
 }
 
-//includeTXC == false
-bool ExCorr::needFiniteDifferencing() const {
-	bool needsTau=false, needsLap=false;
+bool ExCorr::needFiniteDifference_dVxc() const
+{	bool needsTau=false, needsLap=false;
 	for(auto func: functionals->internal)
 		if(shouldInclude(func, false))
 		{	needsLap |= func->needsLap();
 			needsTau |= func->needsTau();
 		}
-	return needsLap || needsTau || e->eVars.n.size() > 1;
+	return needsLap || needsTau || (e->eVars.n.size() > 1);
 }
 
-void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeTXC includeTXC,
+void ExCorr::get_dVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeTXC includeTXC,
 		const ScalarFieldArray* tauPtr, ScalarFieldArray* Vtau, const ScalarFieldArray& dn) const
 {
-	static StopWatch watch("getdVxc");
-	watch.start();
-
 	const int nInCount = n.size(); assert(nInCount==1 || nInCount==2 || nInCount==4);
 	const int nCount = std::min(nInCount, 2); //Number of spin-densities used in the parametrization of the functional
 	const int sigmaCount = 2*nCount-1;
@@ -1076,52 +1068,41 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 		if(shouldInclude(func, includeTXC))
 			needsSigma |= func->needsSigma();
 
-	if (needFiniteDifferencing()) {
-		ScalarFieldArray nplusdn, Vxc, VxcplusdVxc;
+	if(needFiniteDifference_dVxc())
+	{	ScalarFieldArray nplusdn, Vxc, VxcplusdVxc;
 		double h = nrm2(n[0])/nrm2(dn[0]) * 1e-7;
 		nplusdn = n+h*dn;
 		(*this)(n, &Vxc, includeTXC, tauPtr, Vtau);
 		(*this)(nplusdn, &VxcplusdVxc, includeTXC, tauPtr, Vtau);
 		*dVxc = (VxcplusdVxc-Vxc)*(1/h);
-        
-        watch.stop();
 		return;
 	}
 
 	const PerturbationInfo& pInfo = e->pertInfo;
-
 	dVxcOut[0] = pInfo.e_nn_cached * dn[0];
-
 	int iDirStart, iDirStop;
 	TaskDivision(3, mpiWorld).myRange(iDirStart, iDirStop);
-	if (needsSigma) {
-		ScalarFieldArray dsigma(sigmaCount), tmp(nCount);
-        VectorField IDJdn;
-        
+	if(needsSigma)
+	{	ScalarFieldArray dsigma(sigmaCount), tmp(nCount);
+		VectorField IDJdn;
 		nullToZero(dsigma, gInfo, sigmaCount);
 		nullToZero(tmp, gInfo, nCount);
-        
+		
 		for(int i=iDirStart; i<iDirStop; i++) {
 			IDJdn[i] = I(D(J(dn[0]),i));
 			dsigma[0] += 2*clone(IDJdn[i])*pInfo.IDJn_cached[i];
 		}
 		dsigma[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
-
-		//*quantity =  (clone(pInfo.e_nn_cached) * dn[0]) + (clone(pInfo.e_nsigma_cached)*dsigma[0]);
-
+		
 		for(int i=iDirStart; i<iDirStop; i++) {
 			ScalarField intermediate = IDJdn[i]*pInfo.e_sigma_cached;
 			intermediate += pInfo.IDJn_cached[i]*(pInfo.e_nsigma_cached*dn[0]);
 			intermediate += pInfo.IDJn_cached[i]*(pInfo.e_sigmasigma_cached*dsigma[0]);
 			tmp[0] -= 2*I(D(J(intermediate),i));
 		}
-
 		dVxcOut[0] += pInfo.e_nsigma_cached*dsigma[0];
-
 		tmp[0]->allReduceData(mpiWorld, MPIUtil::ReduceSum);
 		dVxcOut[0] += tmp[0];
 	}
-
 	*dVxc = dVxcOut;
-    watch.stop();
 }

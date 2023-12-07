@@ -730,7 +730,7 @@ void PerturbationSolver::getdVsclocPsi(const ScalarFieldArray dn, ScalarFieldArr
 
 	//Second derivative of excorr energy
 	ScalarFieldArray dVxc(eVars.Vxc.size());
-	e.exCorr.getdVxc(eVars.get_nXC(), &dVxc, false, &eVars.tau, &eVars.Vtau, dn);
+	e.exCorr.get_dVxc(eVars.get_nXC(), &dVxc, false, &eVars.tau, &eVars.Vtau, dn);
 
 	for(unsigned s=0; s<eVars.Vscloc.size(); s++)
 	{	dVscloc[s] = JdagOJ(dVxc[s]);
@@ -760,8 +760,8 @@ void PerturbationSolver::getdVsclocPsi(const complexScalarFieldArray dn, complex
 	//Second derivative of excorr energy, real and imaginary parts
 	ScalarFieldArray dVxcRe(eVars.Vxc.size());
 	ScalarFieldArray dVxcIm(eVars.Vxc.size());
-	e.exCorr.getdVxc(eVars.get_nXC(), &dVxcRe, false, &eVars.tau, &eVars.Vtau, Real(dn));
-	e.exCorr.getdVxc(eVars.get_nXC(), &dVxcIm, false, &eVars.tau, &eVars.Vtau, Imag(dn));
+	e.exCorr.get_dVxc(eVars.get_nXC(), &dVxcRe, false, &eVars.tau, &eVars.Vtau, Real(dn));
+	e.exCorr.get_dVxc(eVars.get_nXC(), &dVxcIm, false, &eVars.tau, &eVars.Vtau, Imag(dn));
 
 	for(unsigned s=0; s<eVars.Vscloc.size(); s++)
 	{	dVscloc[s] = Complex(JdagOJ(dVxcRe[s]), JdagOJ(dVxcIm[s]));
@@ -827,22 +827,14 @@ void PerturbationSolver::getdVsclocTau(ScalarFieldArray& dVscloc, ScalarFieldArr
 		if(nCoreTilde) {
 			dnCore = -I(D(nCoreTilde, m.dirCartesian));
 			ScalarFieldArray dVxc(eVars.Vxc.size());
-			e.exCorr.getdVxc(eVars.get_nXC(), &dVxc, false, &eVars.tau, &eVars.Vtau, getdnXC(dnCore));
-			
-			
+			e.exCorr.get_dVxc(eVars.get_nXC(), &dVxc, false, &eVars.tau, &eVars.Vtau, getdnXC(dnCore));
 			for(unsigned s=0; s<eVars.Vscloc.size(); s++)
 				dVscloc[s] += JdagOJ(dVxc[s]);
-			
 			pInfo.dnCoreA = dnCore;
-			//dVxcA = dVxc;
 		}
 		
 		for(unsigned s=0; s<eVars.Vscloc.size(); s++)
 			dVscloc[s] += -Jdag(O(D(pInfo.datom->Vlocps, m.dirCartesian)), true);
-		
-		//nullToZero(dVlocpsA, e.gInfo);
-		//initZero(dVlocpsA, e.gInfo);
-		//dVlocpsA = -D(Vlocps, m.dirCartesian);
 	}
 
 	e.symm.symmetrize(dVscloc);

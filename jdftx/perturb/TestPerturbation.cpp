@@ -114,7 +114,7 @@ bool TestPerturbation::FDTest_dVxc() {
 	dn = n2-n1;
 	
 	setState(C1);
-	e.exCorr.getdVxc(eVars.get_nXC(), &dVxc_anal, false, 0, 0, dn);
+	e.exCorr.get_dVxc(eVars.get_nXC(), &dVxc_anal, false, 0, 0, dn);
 	dVxc_num = Vxc2-Vxc1;
 	//dvnum = v2-v1;
 	double delta = nrm2(dVxc_num[0]-dVxc_anal[0])/nrm2(dVxc_anal[0]);

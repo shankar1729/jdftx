@@ -60,10 +60,10 @@ AtomPerturbation::AtomPerturbation (unsigned int sp, unsigned int at, vector3<> 
 
 void AtomPerturbation::init(const Everything &e, const ElecVars& eVars, const ElecInfo& eInfo)
 {
-	   Vatom.resize(eInfo.nStates);
-	   dVatom.resize(eInfo.nStates);
-	   VdagCatom.resize(eInfo.nStates);
-	   dVdagCatom.resize(eInfo.nStates);
+	Vatom.resize(eInfo.nStates);
+	dVatom.resize(eInfo.nStates);
+	VdagCatom.resize(eInfo.nStates);
+	dVdagCatom.resize(eInfo.nStates);
 	::init(dCatom, eInfo.nStates, eInfo.nBands, &e.basis[0], &eInfo);
 	dnatom.resize(eVars.Vscloc.size());
 	nullToZero(dnatom, e.gInfo);
@@ -354,8 +354,8 @@ void PerturbationInfo::checkSupportedFeatures(const Everything &e, const ElecInf
 			die("Ultrasoft potentials are compatible with commensurate perturbations only.\n");
 	}
 
-	if (e.exCorr.needFiniteDifferencing())
-	logPrintf("Excorr analytical derivative not available. Using finite differencing instead.\n");
+	if (e.exCorr.needFiniteDifference_dVxc())
+		logPrintf("Excorr analytical derivative not available. Using finite differencing instead.\n");
 
 	if (!commensurate) {
 		if(e.eVars.wfnsFilename.empty() && wfnsFilename.empty()) {
