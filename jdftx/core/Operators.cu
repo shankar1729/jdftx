@@ -96,14 +96,15 @@ void fullL_gpu(const vector3<int> S, const matrix3<> GGT, complex* v)
 }
 
 __global__
-void fullLinv_kernel(int zBlock, const vector3<int> S, const matrix3<> GGT, complex* v)
+void fullLinv_kernel(int zBlock, const vector3<int> S, const matrix3<> GGT, vector3<> k, complex* v)
 {	COMPUTE_fullGindices
-	v[i] *= i ? 1.0/GGT.metric_length_squared(iG) : 0.0;
+	double G2 = GGT.metric_length_squared(iG+k);
+	v[i] *= (G2 != 0.0) ? (1.0/G2) : 0.0;
 }
-void fullLinv_gpu(const vector3<int> S, const matrix3<> GGT, complex* v)
+void fullLinv_gpu(const vector3<int> S, const matrix3<> GGT, vector3<> k, complex* v)
 {	GpuLaunchConfig3D glc(fullLinv_kernel, S);
 	for(int zBlock=0; zBlock<glc.zBlockMax; zBlock++)
-		fullLinv_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, v);
+		fullLinv_kernel<<<glc.nBlocks,glc.nPerBlock>>>(zBlock, S, GGT, k, v);
 	gpuErrorCheck();
 }
 

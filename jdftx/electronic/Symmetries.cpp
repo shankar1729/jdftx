@@ -401,9 +401,9 @@ void Symmetries::calcSymmetries()
 		logPrintf("reduced to %lu space-group symmetries with electric field\n", sym.size());
 	}
 	
-	if(e->vptInfo.datom)
+	if(e->pertInfo.datom)
 	{	std::vector<SpaceGroupOp> symNew;
-		const PerturbationInfo& pInfo = e->vptInfo;
+		const PerturbationInfo& pInfo = e->pertInfo;
 		AtomicMode m = pInfo.datom->mode;
 		assert(m.sp >= 0 && m.sp < e->iInfo.species.size());
 		
@@ -655,10 +655,10 @@ void Symmetries::checkSymmetries()
 	{	logPrintf("Reduced %lu manually specified symmetries of unit cell to %lu symmetries of perturbed supercell.\n", sym.size(), symReduced.size());
 		std::swap(sym, symReduced);
 	}
-	if(e->vptInfo.datom)
+	if(e->pertInfo.datom)
 	{
 		std::vector<SpaceGroupOp> symReduced;
-		const PerturbationInfo& pInfo = e->vptInfo;
+		const PerturbationInfo& pInfo = e->pertInfo;
 		AtomicMode m = pInfo.datom->mode;
 		assert(m.sp >= 0 && m.sp < e->iInfo.species.size());
 		

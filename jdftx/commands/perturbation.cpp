@@ -18,7 +18,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <commands/minimize.h>
-#include <perturb/PerturbationParams.h>
 
 //An enum entry for each configurable option of MinimizeParams
 enum VPTParamsMember
@@ -48,9 +47,9 @@ EnumStringMap<VPTParamsMember> VPTpDescMap
 	VPTp_recomputeResidual, "recompute residual every ten iterations (CG only)"
 );
 
-EnumStringMap<PerturbationParams::Algorithms> algMap
-(	PerturbationParams::CG, "CG",
-	PerturbationParams::MINRES, "MINRES"
+EnumStringMap<SolverParams::Algorithms> algMap
+(	SolverParams::CG, "CG",
+	SolverParams::MINRES, "MINRES"
 );
 
 struct CommandPerturbMinimize : public Command
@@ -66,24 +65,24 @@ struct CommandPerturbMinimize : public Command
 	}
 	
     void process(ParamList& pl, Everything& e)
-    {
+    {	SolverParams& p = e.pertInfo.solverParams;
 		while(true)
 		{	VPTParamsMember key;
 			pl.get(key, VPTp_Delim, VPTpMap, "key");
 			switch(key)
-			{	case VPTp_nIterations: pl.get(e.vptParams.nIterations, 0, "nIterations", true); break;
-				case VPTp_algorithm: pl.get(e.vptParams.algorithm, PerturbationParams::MINRES, algMap, "algorithm", true); break;
-				case VPTp_residualTol: pl.get(e.vptParams.residualTol, 1e-4, "residualTol", true); break;
-				case VPTp_residualDiffThreshold: pl.get(e.vptParams.residualDiffThreshold, 1e-4, "residualDiffThreshold", true); break;
-				case VPTp_CGBypass: pl.get(e.vptParams.CGBypass, false, boolMap, "CGBypass", true); break;
-				case VPTp_recomputeResidual: pl.get(e.vptParams.recomputeResidual, false, boolMap, "recomputeResidual", true); break;
+			{	case VPTp_nIterations: pl.get(p.nIterations, 0, "nIterations", true); break;
+				case VPTp_algorithm: pl.get(p.algorithm, SolverParams::MINRES, algMap, "algorithm", true); break;
+				case VPTp_residualTol: pl.get(p.residualTol, 1e-4, "residualTol", true); break;
+				case VPTp_residualDiffThreshold: pl.get(p.residualDiffThreshold, 1e-4, "residualDiffThreshold", true); break;
+				case VPTp_CGBypass: pl.get(p.CGBypass, false, boolMap, "CGBypass", true); break;
+				case VPTp_recomputeResidual: pl.get(p.recomputeResidual, false, boolMap, "recomputeResidual", true); break;
 				case VPTp_Delim: return; //end of input
 			}
 		}
 	}
 	
 	void printStatus(Everything& e, int iRep)
-	{	PerturbationParams& p = e.vptParams;
+	{	SolverParams& p = e.pertInfo.solverParams;
 		logPrintf(" \\\n\tnIterations            %d", p.nIterations);
 		logPrintf(" \\\n\talgorithm              %s", algMap.getString(p.algorithm));
 		logPrintf(" \\\n\tresidualTol            %g", p.residualTol);
@@ -106,13 +105,13 @@ struct CommandPerturbVexternal : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	e.vptInfo.dVext = std::make_shared<VextPerturbation>(e);
-		e.vptInfo.dVext->dVexternalFilename.resize(1);
-		pl.get(e.vptInfo.dVext->dVexternalFilename[0], string(), "filename", true);
+	{	e.pertInfo.dVext = std::make_shared<VextPerturbation>(e);
+		e.pertInfo.dVext->dVexternalFilename.resize(1);
+		pl.get(e.pertInfo.dVext->dVexternalFilename[0], string(), "filename", true);
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	for(const string& filename: e.vptInfo.dVext->dVexternalFilename)
+	{	for(const string& filename: e.pertInfo.dVext->dVexternalFilename)
 			logPrintf("%s ", filename.c_str());
 	}
 }
@@ -130,13 +129,13 @@ struct CommandPerturbRhoExternal : public Command
 	}
 
 	void process(ParamList& pl, Everything& e)
-	{	e.vptInfo.drhoExt = std::make_shared<RhoPerturbation>(e);
-		e.vptInfo.drhoExt->drhoExtFilename.resize(1);
-		pl.get(e.vptInfo.drhoExt->drhoExtFilename[0], string(), "filename", true);
+	{	e.pertInfo.drhoExt = std::make_shared<RhoPerturbation>(e);
+		e.pertInfo.drhoExt->drhoExtFilename.resize(1);
+		pl.get(e.pertInfo.drhoExt->drhoExtFilename[0], string(), "filename", true);
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	for(const string& filename: e.vptInfo.drhoExt->drhoExtFilename)
+	{	for(const string& filename: e.pertInfo.drhoExt->drhoExtFilename)
 			logPrintf("%s ", filename.c_str());
 	}
 }
@@ -166,13 +165,13 @@ struct CommandPerturbIon : public Command
 		
 		if(e.iInfo.coordsType == CoordsLattice) dx = e.gInfo.R*dx;
 		
-		e.vptInfo.datom = std::make_shared<AtomPerturbation>(sp, at, dx, e);
-		e.vptInfo.datom->mode.dirLattice = inv(e.gInfo.R)*e.vptInfo.datom->mode.dirCartesian; //Constructor does not initialize dirLattice properly because gInfo not set up yet
+		e.pertInfo.datom = std::make_shared<AtomPerturbation>(sp, at, dx, e);
+		e.pertInfo.datom->mode.dirLattice = inv(e.gInfo.R)*e.pertInfo.datom->mode.dirCartesian; //Constructor does not initialize dirLattice properly because gInfo not set up yet
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	
-		auto pert = e.vptInfo.datom;
+		auto pert = e.pertInfo.datom;
 		logPrintf("%i %i %g %g %g", pert->mode.sp, pert->mode.at, pert->mode.dirCartesian[0], pert->mode.dirCartesian[1], pert->mode.dirCartesian[2]);
 	}
 }
@@ -189,14 +188,14 @@ struct CommandPerturbElectricField : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{
-		e.vptInfo.dElectricField = std::make_shared<ElectricFieldPerturbation>(e);
-		pl.get(e.vptInfo.dElectricField->Efield[0], 0., "Ex", true);
-		pl.get(e.vptInfo.dElectricField->Efield[1], 0., "Ey", true);
-		pl.get(e.vptInfo.dElectricField->Efield[2], 0., "Ez", true);
+		e.pertInfo.dElectricField = std::make_shared<ElectricFieldPerturbation>(e);
+		pl.get(e.pertInfo.dElectricField->Efield[0], 0., "Ex", true);
+		pl.get(e.pertInfo.dElectricField->Efield[1], 0., "Ey", true);
+		pl.get(e.pertInfo.dElectricField->Efield[2], 0., "Ez", true);
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	for(int k=0; k<3; k++) logPrintf("%lg ", e.vptInfo.dElectricField->Efield[k]);
+	{	for(int k=0; k<3; k++) logPrintf("%lg ", e.pertInfo.dElectricField->Efield[k]);
 	}
 }
 commandPerturbElectricField;
@@ -214,16 +213,16 @@ struct CommandPerturbWavevector : public Command
 
     void process(ParamList& pl, Everything& e)
     {
-		pl.get(e.vptInfo.qvec[0], 0.0, "q0");
-		pl.get(e.vptInfo.qvec[1], 0.0, "q1");
-		pl.get(e.vptInfo.qvec[2], 0.0, "q2");
+		pl.get(e.pertInfo.qvec[0], 0.0, "q0");
+		pl.get(e.pertInfo.qvec[1], 0.0, "q1");
+		pl.get(e.pertInfo.qvec[2], 0.0, "q2");
 
-		e.vptInfo.commensurate = !e.vptInfo.qvec.isNonzero();
+		e.pertInfo.commensurate = !e.pertInfo.qvec.isNonzero();
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{
-		logPrintf("%f %f %f", e.vptInfo.qvec[0], e.vptInfo.qvec[1], e.vptInfo.qvec[2]);
+		logPrintf("%f %f %f", e.pertInfo.qvec[0], e.pertInfo.qvec[1], e.pertInfo.qvec[2]);
 	}
 }
 commandPerturbWavevector;
@@ -240,19 +239,19 @@ struct CommandPerturbIncommensurateWavefunctions : public Command
 
     void process(ParamList& pl, Everything& e)
     {
-		pl.get(e.vptInfo.wfnsFilename, string(), "filename", true);
+		pl.get(e.pertInfo.wfnsFilename, string(), "filename", true);
 		auto conversion = std::make_shared<ElecInfo::ColumnBundleReadConversion>();
 		conversion->realSpace = false;
 		pl.get(conversion->EcutOld, 0.0, "EcutOld");
-		if(conversion->EcutOld > 0.0) e.vptInfo.readConversion = conversion;
+		if(conversion->EcutOld > 0.0) e.pertInfo.readConversion = conversion;
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{
-		if (!e.vptInfo.readConversion)
-			logPrintf("%s", e.vptInfo.wfnsFilename.c_str());
+		if (!e.pertInfo.readConversion)
+			logPrintf("%s", e.pertInfo.wfnsFilename.c_str());
 		else
-			logPrintf("%s %g", e.vptInfo.wfnsFilename.c_str(), e.vptInfo.readConversion->EcutOld);
+			logPrintf("%s %g", e.pertInfo.wfnsFilename.c_str(), e.pertInfo.readConversion->EcutOld);
 	}
 }
 commandPerturbIncommensurateWavefunctions;
@@ -262,7 +261,7 @@ struct CommandPerturbTest : public Command
 	CommandPerturbTest() : Command("perturb-test", "jdftx/Perturb")
 	{	comments = "Perform finite difference tests of perturbation operators.\n";
 	}
-	void process(ParamList& pl, Everything& e) { e.vptInfo.testing = true; }
+	void process(ParamList& pl, Everything& e) { e.pertInfo.testing = true; }
 	void printStatus(Everything& e, int iRep) { return; }
 }
 commandPerturbTest;

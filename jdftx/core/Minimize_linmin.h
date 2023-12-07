@@ -116,7 +116,6 @@ namespace MinimizeLinmin
 		//Actual step:
 		for(int s=0; s<p.nAlphaAdjustMax; s++)
 		{	//Try the step:
-
 			obj.step(d, alpha-alphaPrev); alphaPrev=alpha;
 			E = obj.sync(obj.compute(&g, &Kg));
 			if(!std::isfinite(E))
@@ -131,7 +130,6 @@ namespace MinimizeLinmin
 					p.linePrefix, p.energyLabel, E-Eorig, alpha); fflush(p.fpLog);
 				continue;
 			}
-
 			//Step successful:
 			break;
 		}

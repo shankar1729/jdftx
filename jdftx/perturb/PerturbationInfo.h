@@ -27,6 +27,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/matrix.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/ElecInfo.h>
+#include <perturb/LinearSolver.h>
 #include <perturb/PerturbationSolver.h>
 
 struct AtomicMode
@@ -104,7 +105,8 @@ public:
 
 	bool commensurate = true; //!< Is the perturbation lattice periodic
 	bool testing = false; //!< Whether or not a FD test is being conducted
-	
+	SolverParams solverParams; //!< solver parameters
+
 	std::shared_ptr<VextPerturbation> dVext;
 	std::shared_ptr<AtomPerturbation> datom;
 	std::shared_ptr<RhoPerturbation> drhoExt;

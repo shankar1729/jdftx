@@ -485,7 +485,7 @@ void ElecInfo::kpointsReduce()
 	}
 
 	//Incommensurate perturbations require bandstructure calculation
-	if (!e->vptParams.nIterations && !e->vptInfo.commensurate)
+	if (!e->pertInfo.solverParams.nIterations && !e->pertInfo.commensurate)
 	{
 		nStates = qnums.size();
 
@@ -494,8 +494,8 @@ void ElecInfo::kpointsReduce()
 
 		for (int q = 0; q < nStates; q++)
 		{
-			qnums[q].k = qnums[q].k + e->vptInfo.qvec;
-			qnums[q + nStates].k = qnums[q + nStates].k - e->vptInfo.qvec;
+			qnums[q].k = qnums[q].k + e->pertInfo.qvec;
+			qnums[q + nStates].k = qnums[q + nStates].k - e->pertInfo.qvec;
 		}
 
 		nStates = qnums.size();

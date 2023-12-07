@@ -71,9 +71,11 @@ void AtomPerturbation::init(const Everything &e, const ElecVars& eVars, const El
 
 bool AtomPerturbation::isUltrasoft(const IonInfo& iInfo) { return iInfo.species[mode.sp]->isUltrasoft(); } //!< Does this atom use an ultrasoft potential
 
-void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars) {
-
-	if (!e.vptParams.nIterations)
+void PerturbationInfo::setup(const Everything &e, const ElecVars &eVars)
+{
+	solverParams.fpLog = globalLog;
+	solverParams.linePrefix = "PerturbMinimize: ";
+	if (!solverParams.nIterations)
 		return;
 
 	const ElecInfo &eInfo = e.eInfo;

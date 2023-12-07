@@ -734,43 +734,43 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	
 	if(ShouldDump(DWfns))
 	{	//Dump wave functions
-		if (!e->vptInfo.commensurate)
+		if (!e->pertInfo.commensurate)
 			logPrintf("WARNING! Incommensurate wfns are not dumped correctly.");
 		StartDump("dwfns")
-		eInfo.write(e->vptInfo.dC, fname.c_str());
+		eInfo.write(e->pertInfo.dC, fname.c_str());
 		EndDump
 	}
 
 	if(ShouldDump(Dn))
-	{	if (e->vptInfo.commensurate)
-		{	ScalarFieldArray dn = e->vptInfo.dn;
-			if(e->vptInfo.datom) dn = dn + e->vptInfo.datom->dnatom;
+	{	if (e->pertInfo.commensurate)
+		{	ScalarFieldArray dn = e->pertInfo.dn;
+			if(e->pertInfo.datom) dn = dn + e->pertInfo.datom->dnatom;
 			DUMP_spinCollection(dn, "dn")
 		}
 		else
-		{	DUMP_spinCollection(e->vptInfo.dnmq, "dn-q")
-			DUMP_spinCollection(e->vptInfo.dnpq, "dn+q")
+		{	DUMP_spinCollection(e->pertInfo.dnmq, "dn-q")
+			DUMP_spinCollection(e->pertInfo.dnpq, "dn+q")
 		}
 	}
 
-	if (ShouldDump(DVext) && e->vptInfo.dVext)
-	{	if (e->vptInfo.commensurate)
-		{	DUMP_spinCollection(e->vptInfo.dVext->dVext, "dVext")
+	if (ShouldDump(DVext) && e->pertInfo.dVext)
+	{	if (e->pertInfo.commensurate)
+		{	DUMP_spinCollection(e->pertInfo.dVext->dVext, "dVext")
 		}
 		else
-		{	DUMP_spinCollection(e->vptInfo.dVext->dVextmq, "dVext-q")
-			DUMP_spinCollection(e->vptInfo.dVext->dVextpq, "dVext+q")
+		{	DUMP_spinCollection(e->pertInfo.dVext->dVextmq, "dVext-q")
+			DUMP_spinCollection(e->pertInfo.dVext->dVextpq, "dVext+q")
 		}
 	}
 	
 	if(ShouldDump(DVscloc))
-	{	if (e->vptInfo.commensurate)
-		{	ScalarFieldArray dVscloc = e->vptInfo.dVsclocTau + e->vptInfo.dVscloc;
+	{	if (e->pertInfo.commensurate)
+		{	ScalarFieldArray dVscloc = e->pertInfo.dVsclocTau + e->pertInfo.dVscloc;
 			DUMP_spinCollection(dVscloc, "dVscloc")
 		}
 		else
-		{	DUMP_spinCollection(e->vptInfo.dVsclocmq, "dVscloc-q")
-			DUMP_spinCollection(e->vptInfo.dVsclocpq, "dVscloc+q")
+		{	DUMP_spinCollection(e->pertInfo.dVsclocmq, "dVscloc-q")
+			DUMP_spinCollection(e->pertInfo.dVsclocpq, "dVscloc+q")
 		}
 	}
 

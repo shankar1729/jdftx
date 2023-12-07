@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 		LatticeMinimizer lmin(e);
 		lmin.minimize(e.latticeMinParams);
 	}
-	else if(e.vptParams.nIterations)
+	else if(e.pertInfo.solverParams.nIterations)
 	{	//Variational perturbation solver
 		PerturbationSolver ps(e);
 		ps.solvePerturbation();

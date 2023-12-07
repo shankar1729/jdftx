@@ -31,7 +31,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/MPIUtil.h>
 
 
-TestPerturbation::TestPerturbation(Everything& e, PerturbationSolver& ps) : e(e), eVars(e.eVars), eInfo(e.eInfo), pInfo(e.vptInfo), ps(ps), spring(e) {}
+TestPerturbation::TestPerturbation(Everything& e, PerturbationSolver& ps) : e(e), eVars(e.eVars), eInfo(e.eInfo), pInfo(e.pertInfo), ps(ps), spring(e) {}
 
 bool TestPerturbation::compareHamiltonians()
 {

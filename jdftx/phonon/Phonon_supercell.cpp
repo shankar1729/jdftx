@@ -84,7 +84,7 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	if (useVPT) {
 		vptMode = std::make_shared<AtomPerturbation>(pert.sp, pert.at, pert.dir, *eSup);
 		vptMode->mode.dirLattice = inv(eSup->gInfo.R) * pert.dir; //Manually set since gInfo not initialized
-		eSup->vptInfo.datom = vptMode; //Must go before eSup->setup because of symmetry checks
+		eSup->pertInfo.datom = vptMode; //Must go before eSup->setup because of symmetry checks
 	} else {
 		vector3<> dxPert = inv(eSup->gInfo.R) * dr * pert.dir; //perturbation in lattice coordinates
 		eSup->iInfo.species[pert.sp]->atpos[pert.at] += dxPert; //apply perturbation
@@ -155,7 +155,7 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 				ostringstream fname;
 				if (nSpins > 1) fname << s;
 				fname << ".dHsub";
-				matrix dHsub = eSup->vptInfo.dHsub[0]+eSup->vptInfo.dHsubatom[0];
+				matrix dHsub = eSup->pertInfo.dHsub[0]+eSup->pertInfo.dHsubatom[0];
 				dHsub.write(eSup->dump.getFilename(fname.str()).c_str());
 			}
 		} else {	
@@ -201,8 +201,8 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 				for (int s = 0; s < nSpins; s++) {
 					int qSup = s*(eSup->eInfo.nStates/nSpins);
 					assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0);
-					dHsub_pert[s] = eSup->vptInfo.CdagdHC[qSup]+eSup->vptInfo.dHsubatom[qSup];
-					//dHsub_pert[s] = eSup->vptInfo.dHsub[qSup]+eSup->vptInfo.dHsubatom[qSup];
+					dHsub_pert[s] = eSup->pertInfo.CdagdHC[qSup]+eSup->pertInfo.dHsubatom[qSup];
+					//dHsub_pert[s] = eSup->pertInfo.dHsub[qSup]+eSup->pertInfo.dHsubatom[qSup];
 				}
 			}
 		} else {

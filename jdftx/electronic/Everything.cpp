@@ -210,9 +210,7 @@ void Everything::setup()
 	latticeMinParams.energyFormat = "%+.15lf";
 
 	//Set up variational perturbation solver
-	vptParams.fpLog = globalLog;
-	vptParams.linePrefix = "PerturbationSolve: ";
-	vptInfo.setup(*this, eVars);
+	pertInfo.setup(*this, eVars);
 
 	logPrintf("\n"); logFlush();
 }

@@ -21,9 +21,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define PERTURB_PERTURBATIONSOLVER_H_
 
 
-#include <core/Minimize.h>
 #include <core/ScalarFieldArray.h>
 #include <electronic/ColumnBundle.h>
+#include <perturb/LinearSolver.h>
 
 struct PerturbationGradient {
 	std::vector<ColumnBundle> X; //!< First order change in unnormalized wfns

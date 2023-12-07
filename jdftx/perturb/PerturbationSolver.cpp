@@ -37,7 +37,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 void PerturbationGradient::init(const Everything& e)
 {	eInfo = &e.eInfo;
-	pInfo = &e.vptInfo;
+	pInfo = &e.pertInfo;
 	if (pInfo->commensurate)
 		X.resize(eInfo->nStates);
 	else
@@ -114,21 +114,18 @@ ScalarField randomRealSpaceVector(ColumnBundle& ref, const GridInfo* gInfo) {
 }
 
 
-PerturbationSolver::PerturbationSolver(Everything& e) : e(e), eVars(e.eVars), eInfo(e.eInfo), iInfo(e.iInfo), pInfo(e.vptInfo)
+PerturbationSolver::PerturbationSolver(Everything& e) : e(e), eVars(e.eVars), eInfo(e.eInfo), iInfo(e.iInfo), pInfo(e.pertInfo)
 {
 }
 
-
-//TODO Test GPU code for ultrasoft derivs
-//TODO Eliminate redundant zeros
 void PerturbationSolver::solvePerturbation()
 {
-	if (e.vptInfo.testing)
+	if (pInfo.testing)
 	{	TestPerturbation(e, *this).testVPT();
 		return;
 	}
 
-	if (!e.vptParams.nIterations)
+	if (!pInfo.solverParams.nIterations)
 		die("Error: Must specify nIterations in command solve-perturbation to enable the variational perturbation solver.\n")
 	
 	logPrintf("Variational perturbation solver is starting.\n");
@@ -172,7 +169,7 @@ void PerturbationSolver::solvePerturbation()
 	
 	calcdGradTau();
 	
-	solve(pInfo.dGradTau, e.vptParams);
+	solve(pInfo.dGradTau, pInfo.solverParams);
 	
 	hessian(pInfo.dGradPsi, state);
 }

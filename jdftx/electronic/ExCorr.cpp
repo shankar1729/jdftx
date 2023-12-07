@@ -1088,7 +1088,7 @@ void ExCorr::getdVxc(const ScalarFieldArray& n, ScalarFieldArray* dVxc, IncludeT
 		return;
 	}
 
-	const PerturbationInfo& pInfo = e->vptInfo;
+	const PerturbationInfo& pInfo = e->pertInfo;
 
 	dVxcOut[0] = pInfo.e_nn_cached * dn[0];
 

@@ -278,35 +278,26 @@ complexScalarFieldTilde L(complexScalarFieldTilde&& in)
 }
 complexScalarFieldTilde L(const complexScalarFieldTilde& in) { return L(in->clone()); }
 
-void fullLinv_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT, complex* v)
-{	THREAD_fullGspaceLoop( v[i] *= i ? (1.0/GGT.metric_length_squared(iG)) : 0.0; )
-}
-
-void fullLinv_sub_inc(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT, complex* v, vector3<> k)
+void fullLinv_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<> GGT, vector3<> k, complex* v)
 {	THREAD_fullGspaceLoop(
 		double G2 = GGT.metric_length_squared(iG+k);
 		v[i] *= (G2 != 0.0) ? (1.0/G2) : 0.0;
 	)
 }
-
 #ifdef GPU_ENABLED //implemented in Operators.cu
-void fullLinv_gpu(const vector3<int> S, const matrix3<> GGT, complex* v);
+void fullLinv_gpu(const vector3<int> S, const matrix3<> GGT, vector3<> k, complex* v);
 #endif
 complexScalarFieldTilde Linv(complexScalarFieldTilde&& in, vector3<>* k)
 {	const GridInfo& gInfo = in->gInfo;
 	in *= (-1.0/gInfo.detR);
 	#ifdef GPU_ENABLED
-	fullLinv_gpu(gInfo.S, gInfo.GGT, in->dataGpu(false));
+	fullLinv_gpu(gInfo.S, gInfo.GGT, *k, in->dataGpu(false));
 	#else
-	if (k)
-		threadLaunch(fullLinv_sub_inc, gInfo.nr, gInfo.S, gInfo.GGT, in->data(false), *k);
-	else
-		threadLaunch(fullLinv_sub, gInfo.nr, gInfo.S, gInfo.GGT, in->data(false));
+	threadLaunch(fullLinv_sub, gInfo.nr, gInfo.S, gInfo.GGT, *k, in->data(false));
 	#endif
 	return in;
 }
 complexScalarFieldTilde Linv(const complexScalarFieldTilde& in, vector3<>* k) { return Linv(in->clone(), k); }
-
 complexScalarFieldTilde Linv(const ScalarFieldTilde& in, vector3<>* k) { return Linv(Complex(in), k); }
 
 void Lstress_thread(size_t iStart, size_t iStop, const vector3<int> S, const complex* X, const complex* Y, symmetricMatrix3<>* grad_RRT)
@@ -406,27 +397,18 @@ void D_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* in,
 #ifdef GPU_ENABLED
 void D_gpu(const vector3<int> S, const complex* in, complex* out, vector3<> Ge);
 #endif
-ScalarFieldTilde D(const ScalarFieldTilde& in, int iDir)
+inline ScalarFieldTilde D_internal(const ScalarFieldTilde& in, vector3<> Ge)
 {	const GridInfo& gInfo = in->gInfo;
 	ScalarFieldTilde out(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
 	#ifdef GPU_ENABLED
-	D_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), gInfo.G.column(iDir));
+	D_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), Ge);
 	#else
-	threadLaunch(D_sub, gInfo.nG, gInfo.S, in->data(), out->data(), gInfo.G.column(iDir));
+	threadLaunch(D_sub, gInfo.nG, gInfo.S, in->data(), out->data(), Ge);
 	#endif
 	return out;
 }
-
-ScalarFieldTilde D(const ScalarFieldTilde& in, const vector3<>& dir)
-{	const GridInfo& gInfo = in->gInfo;
-	ScalarFieldTilde out(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
-	#ifdef GPU_ENABLED
-	D_gpu(gInfo.S, in->dataGpu(), out->dataGpu(), gInfo.G*dir);
-	#else
-	threadLaunch(D_sub, gInfo.nG, gInfo.S, in->data(), out->data(), gInfo.G*dir);
-	#endif
-	return out;
-}
+ScalarFieldTilde D(const ScalarFieldTilde& in, int iDir) {return D_internal(in, in->gInfo.G.column(iDir));}
+ScalarFieldTilde D(const ScalarFieldTilde& in, const vector3<>& dir) {return D_internal(in, in->gInfo.G*dir);}
 
 //second cartesian derivative
 void DD_sub(size_t iStart, size_t iStop, const vector3<int> S, const complex* in, complex* out, vector3<> Ge1, vector3<> Ge2)
@@ -945,16 +927,6 @@ void initTranslation(ScalarFieldTilde& X, const vector3<>& r)
 {	const GridInfo& gInfo = X->gInfo;
 	threadLaunch(initTranslation_sub, gInfo.nG, gInfo.S, gInfo.G*r, X->data());
 }
-
-void initIncChargeball_sub(size_t iStart, size_t iStop, const vector3<int> S, const matrix3<>& GGT, const vector3<> Gr, complex* X, const vector3<> q, double sigma){
-	THREAD_fullGspaceLoop( X[i] = cis(-dot(iG+q,Gr))*exp(-0.5*sigma*sigma*GGT.metric_length_squared(iG+q)); )
-}
-void initIncChargeball(complexScalarFieldTilde& X, const vector3<>& r, double sigma, const vector3<>& q)
-{	const GridInfo& gInfo = X->gInfo;
-	threadLaunch(initIncChargeball_sub, gInfo.nr, gInfo.S, gInfo.GGT, gInfo.G*r, X->data(), q, sigma);
-}
-
-
 
 void gaussConvolve_sub(size_t iStart, size_t iStop, const vector3<int>& S, const matrix3<>& GGT, complex* data, double sigma)
 {	THREAD_halfGspaceLoop( data[i] *= exp(-0.5*sigma*sigma*GGT.metric_length_squared(iG)); )
