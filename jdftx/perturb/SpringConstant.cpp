@@ -150,8 +150,6 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
 			eVars.C[q] += pInfo.dC[q]*h;
 			if (modeA->isUltrasoft(iInfo))
 				eVars.C[q] += modeA->dCatom[q]*h;
-			
-			//eVars.orthonormalize(q, 0, true);
 			eVars.VdagC[q].clear();
 			e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
 		}
@@ -170,8 +168,6 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
 			eVars.C[q] -= pInfo.dC[q]*h;
 			if (modeA->isUltrasoft(iInfo))
 				eVars.C[q] -= modeA->dCatom[q]*h;
-			
-			//eVars.orthonormalize(q, 0, true);
 			eVars.VdagC[q].clear();
 			e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
 		}
@@ -180,19 +176,17 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
 		e.iInfo.ionicEnergyAndGrad();
 		Fminus = -e.gInfo.invRT * e.iInfo.forces;
 		
-
-        spA->atpos[modeA->mode.at] = posA_unperturbed;
-        mpiWorld->bcastData ( spA->atpos );
-
-        spA->sync_atpos();
+		spA->atpos[modeA->mode.at] = posA_unperturbed;
+		mpiWorld->bcastData ( spA->atpos );
+		spA->sync_atpos();
 		
 		iInfo.update(e.ener);
         for (int q=eInfo.qStart; q<eInfo.qStop; q++) {
 			eVars.C[q] = Ctmp[q];
 			eVars.VdagC[q].clear();
-            e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
-        }
-        eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
+			e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
+		}
+		eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 		
 		dF = (Fplus - Fminus)*(1/(2*h));
 		return dF;

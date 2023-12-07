@@ -259,22 +259,16 @@ void ElecVars::setup(const Everything &everything)
 			"R. Sundararaman, W. A. Goddard III and T. A. Arias, J. Chem. Phys. 146, 114104 (2017)");
 }
 
-ScalarFieldArray ElecVars::get_nXC(ScalarFieldArray* n_alt) const
-{	if(e->iInfo.nCore)
-	{	ScalarFieldArray nXC;
-		if (n_alt)
-			nXC = clone(*n_alt);
-		else
-			nXC = clone(n);
+ScalarFieldArray ElecVars::get_nXC(const ScalarFieldArray* n_alt) const
+{	const ScalarFieldArray& n_ref = n_alt ? *n_alt : n;
+	if(e->iInfo.nCore)
+	{	ScalarFieldArray nXC = clone(n_ref);
 		int nSpins = std::min(int(nXC.size()), 2); //1 for unpolarized and 2 for polarized
 		for(int s=0; s<nSpins; s++) //note that off-diagonal components of spin-density matrix are excluded
 			nXC[s] += (1./nSpins) * e->iInfo.nCore; //add core density
 		return nXC;
 	}
-	else if (n_alt)
-		return *n_alt;
-	else
-		return n;//no cores
+	else return n_ref; //no cores
 }
 
 //Electronic density functional and gradient
@@ -282,7 +276,7 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 {	static StopWatch watch("EdensityAndVscloc"); watch.start();
 	const ElecInfo& eInfo = e->eInfo;
 	const IonInfo& iInfo = e->iInfo;
-
+	
 	ScalarFieldTilde nTilde = J(get_nTot());
 	
 	// Local part of pseudopotential:
@@ -624,9 +618,7 @@ ScalarFieldArray ElecVars::KEdensity() const
 }
 
 ScalarFieldArray ElecVars::calcDensity() const
-{	ScalarFieldArray density(n.size());
-	
-	nullToZero(density, e->gInfo);
+{	ScalarFieldArray density(n.size()); nullToZero(density, e->gInfo);
 	//Runs over all states and accumulates density to the corresponding spin channel of the total density
 	e->iInfo.augmentDensityInit();
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
@@ -642,10 +634,10 @@ ScalarFieldArray ElecVars::calcDensity() const
 	return density;
 }
 
-void ElecVars::orthonormalize(int q, matrix* extraRotation, bool useInvSqrt)
+void ElecVars::orthonormalize(int q, matrix* extraRotation)
 {	assert(e->eInfo.isMine(q));
 	VdagC[q].clear();
-	matrix rot = useInvSqrt? invsqrt(C[q]^O(C[q], &VdagC[q])) : orthoMatrix(C[q]^O(C[q], &VdagC[q])); //Compute matrix that orthonormalizes wavefunctions
+	matrix rot = orthoMatrix(C[q]^O(C[q], &VdagC[q])); //Compute matrix that orthonormalizes wavefunctions
 	if(extraRotation) *extraRotation = (rot = rot * (*extraRotation)); //set rot and extraRotation to the net transformation
 	C[q] = C[q] * rot;
 	e->iInfo.project(C[q], VdagC[q], &rot); //update the atomic projections

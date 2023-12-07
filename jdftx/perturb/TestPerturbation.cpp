@@ -853,7 +853,7 @@ void TestPerturbation::setup(std::vector<ColumnBundle> &Y) {
 void TestPerturbation::setState(std::vector<ColumnBundle> &C) {
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
 		eVars.C[q] = C[q];
-		eVars.orthonormalize(q, 0, true);
+		eVars.orthonormalize(q);
 	}
 	e.iInfo.update(e.ener);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++) {
