@@ -121,11 +121,7 @@ public:
 	
 	//! Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once). Optionally collect forces and stress contributions
 	void augmentDensityGridGrad(const ScalarFieldArray& E_n, std::vector<vector3<> >* forces=0, matrix3<>* Eaug_RRT=0);
-	
 	void augmentDensityGridGradDeriv(const ScalarFieldArray& E_n, int atom, const vector3<>* atposDeriv);
-	
-	matrix getE_nAug();
-	void setE_nAug(matrix E_nAug_in);
 	
 	//! Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) 
 	void augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq, int atom = -1) const;
@@ -174,7 +170,10 @@ public:
 	//! Spin-angle helper functions:
 	static matrix getYlmToSpinAngleMatrix(int l, int j2); //!< Get the ((2l+1)*2)x(j2+1) matrix that transforms the Ylm+spin to the spin-angle functions, where j2=2*j with j = l+/-0.5
 	static matrix getYlmOverlapMatrix(int l, int j2); //!< Get the ((2l+1)*2)x((2l+1)*2) overlap matrix of the spin-spherical harmonics for total angular momentum j (note j2=2*j)
-	matrix MnlAll; //!< block matrix containing Mnl for all l,m 
+	
+	matrix MnlAll; //!< block matrix containing Mnl for all l,m
+	matrix E_nAug; //!< Gradient w.r.t nAug (in the same layout)
+
 private:
 	matrix3<> Rprev; void updateLatticeDependent(); //!< If Rprev differs from gInfo.R, update the lattice dependent quantities (such as the radial functions)
 
@@ -184,7 +183,6 @@ private:
 
 	std::vector< std::vector<RadialFunctionG> > VnlRadial; //!< non-local projectors (outer index l, inner index projetcor)
 	std::vector<matrix> Mnl; //!< nonlocal pseudopotential projector matrix (indexed by l)
-	//matrix MnlAll; //!< block matrix containing Mnl for all l,m 
 	
 	std::vector<matrix> Qint; //!< overlap augmentation matrix (indexed by l, empty if no augmentation)
 	matrix QintAll; //!< block matrix containing Qint for all l,m 
@@ -203,7 +201,6 @@ private:
 	std::map<QijIndex,RadialFunctionG> Qradial; //!< radial functions for density augmentation
 	matrix QradialMat; //!< matrix with all the radial augmentation functions in columns (ordered by index)
 	matrix nAug; //!< intermediate electron density augmentation in the basis of Qradial functions (Flat array indexed by spin, atom number and then Qradial index)
-	matrix E_nAug; //!< Gradient w.r.t nAug (same layout)
 	ManagedArray<uint64_t> nagIndex; ManagedArray<size_t> nagIndexPtr; //!< grid indices arranged by |G|, used for coordinating scattered accumulate in nAugmentGrad(_gpu)
 
 	std::vector<std::vector<RadialFunctionG> > psiRadial; //!< radial part of the atomic orbitals (outer index l, inner index shell)

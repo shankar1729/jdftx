@@ -364,13 +364,13 @@ void IonInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const std::
 void IonInfo::setE_nAug(const std::vector<matrix> E_nAug)
 {	if (!E_nAug.size()) return;
 	for(unsigned sp=0; sp<species.size(); sp++)
-		species[sp]->setE_nAug(E_nAug[sp]);
+		species[sp]->E_nAug = E_nAug[sp];
 }
 
 const std::vector<matrix> IonInfo::getE_nAug()
 {	std::vector<matrix> E_nAug(species.size());
 	for(unsigned sp=0; sp<species.size(); sp++)
-		E_nAug[sp] = species[sp]->getE_nAug();
+		E_nAug[sp] = species[sp]->E_nAug;
 	return E_nAug;
 }
 

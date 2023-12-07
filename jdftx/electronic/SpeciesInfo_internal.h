@@ -164,7 +164,7 @@ void nAugment_calc(int i, const vector3<int>& iG, const matrix3<>& G,
 {
 	nAugmentFunctor functor(iG*G, nCoeff, dGinv, nRadial);
 	staticLoopYlm<Nlm>(&functor);
-	n[i] += functor.n * cis((-2*M_PI)*dot(atpos,iG)) * (atposDeriv? complex(0,-2*M_PI)*dot(*atposDeriv, iG): 1);
+	n[i] += functor.n * cis((-2*M_PI)*dot(atpos,iG)) * (atposDeriv ? complex(0,-2*M_PI)*dot(*atposDeriv, iG) : 1);
 }
 void nAugment(int Nlm,
 	const vector3<int> S, const matrix3<>& G, int iGstart, int iGstop,
@@ -236,7 +236,9 @@ void nAugmentGrad_calc(uint64_t key, const vector3<int>& S, const matrix3<>& G,
 	vector3<> qvec = iG*G;
 	
 	nAugmentGradFunctor functor(qvec, nCoeff, dGinv, nRadial,
-		dummyGpuThread ? complex() : ccE_n[i].conj() * (atposDeriv? complex(0,-2*M_PI)*dot(*atposDeriv,iG) : 1)*cis((-2*M_PI)*dot(atpos,iG)),
+		dummyGpuThread
+		? complex()
+		: ccE_n[i].conj() * (atposDeriv ? complex(0,-2*M_PI)*dot(*atposDeriv,iG) : 1) * cis((-2*M_PI)*dot(atpos,iG)),
 		E_nRadial, dotPrefac, E_RRT[0]);
 	staticLoopYlm<Nlm>(&functor);
 	if(nRadial && !dummyGpuThread)

@@ -284,17 +284,6 @@ void SpeciesInfo::augmentDensityGridGradDeriv(const ScalarFieldArray& E_n, int a
 	watch.stop();
 }
 
-matrix SpeciesInfo::getE_nAug() {
-	if(!atpos.size() || !Qint.size()) return 0;
-	return E_nAug;
-}
-
-void SpeciesInfo::setE_nAug(matrix E_nAug_in) {
-	if(!atpos.size()) return;
-	if(!Qint.size()) return;
-	E_nAug = E_nAug_in;
-}
-
 void SpeciesInfo::augmentDensitySphericalGrad(const QuantumNumber& qnum, const matrix& VdagCq, matrix& HVdagCq, int atom) const
 {	static StopWatch watch("augmentDensitySphericalGrad"); watch.start();
 	augmentDensity_COMMON_INIT

@@ -470,7 +470,7 @@ void PerturbationSolver::updateNonlocalDerivs()
 		datom.dVdagCatom[q] = datom.dVatom[q] ^ Cq;
 	}
 	sp->augmentDensityGridGradDeriv(eVars.Vscloc, m.at, ManagedArray<vector3<>>(&m.dirLattice, 1).dataPref());
-	datom.E_nAug_datom = sp->getE_nAug();
+	datom.E_nAug_datom = sp->E_nAug;
 }
 
 void PerturbationSolver::getdn(ScalarFieldArray& dn, const std::vector<ColumnBundle>* dC, const std::vector<ColumnBundle>* C)
@@ -687,7 +687,7 @@ void PerturbationSolver::dHtau(const QuantumNumber& qnum, ColumnBundle& HCq, con
 		
 		if (pInfo.datom->isUltrasoft(iInfo)) {
 			matrix dHVatomdagCq;
-			sp->setE_nAug(pInfo.datom->E_nAug_datom);
+			sp->E_nAug = pInfo.datom->E_nAug_datom;
 			sp->augmentDensitySphericalGrad(qnum, VatomdagCq, dHVatomdagCq, m.at);
 			HCq += Vatom * dHVatomdagCq;
 		}
