@@ -25,7 +25,6 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/BlasExtra.h>
 #include <core/ScalarFieldIO.h>
 #include <fftw3.h>
-#include <algorithm> //TODO
 
 // Called by other constructors to do the work
 void ColumnBundle::init(int nc, size_t len, const Basis *b, const QuantumNumber* q, bool onGpu)

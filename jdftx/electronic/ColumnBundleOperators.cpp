@@ -231,17 +231,9 @@ inline void getVupDn(const complexScalarField& Vre, const complexScalarField& Vi
 }
 
 template<typename ScalarFieldType> //templated over ScalarField and complexScalarField
-ColumnBundle Idag_DiagV_I_apply(const ColumnBundle& C, const std::vector<ScalarFieldType>& V, ColumnBundle* Cout = 0)
+ColumnBundle Idag_DiagV_I_apply(const ColumnBundle& C, const std::vector<ScalarFieldType>& V, const ColumnBundle* Cout)
 {	static StopWatch watch("Idag_DiagV_I"); watch.start();
-	ColumnBundle VC;
-
-	if (Cout)
-		VC = Cout->similar(); //Incommensurate perturbations
-	else
-		VC = C.similar();
-
-	VC.zero();
-
+	ColumnBundle VC = Cout->similar(); VC.zero();
 	//Convert V to wfns grid if necessary:
 	const GridInfo& gInfoWfns = *(C.basis->gInfo);
 	std::vector<ScalarFieldType> Vtmp;
@@ -264,18 +256,11 @@ ColumnBundle Idag_DiagV_I_apply(const ColumnBundle& C, const std::vector<ScalarF
 	return VC;
 }
 //Specialize template above for the two allowed cases:
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V)
-{	return Idag_DiagV_I_apply<ScalarField>(C, V); 
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V, const ColumnBundle* Cout)
+{	return Idag_DiagV_I_apply<ScalarField>(C, V, Cout ? Cout : &C);
 }
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V)
-{	return Idag_DiagV_I_apply<complexScalarField>(C, V);
-}
-
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V, ColumnBundle* Cout)
-{	return Idag_DiagV_I_apply<ScalarField>(C, V, Cout);
-}
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V, ColumnBundle* Cout)
-{	return Idag_DiagV_I_apply<complexScalarField>(C, V, Cout);
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V, const ColumnBundle* Cout)
+{	return Idag_DiagV_I_apply<complexScalarField>(C, V, Cout ? Cout : &C);
 }
 
 
@@ -599,7 +584,7 @@ ScalarFieldArray diagouterI(const diagMatrix &F,const ColumnBundle &X,  int nDen
 }
 
 
-// Compute the density from a subset of columns of a ColumnBundle
+// Compute the pair density from a subset of columns of a ColumnBundle
 void diagouterIbinary_sub(int iThread, int nThreads, const diagMatrix *F, const ColumnBundle *A, const ColumnBundle *B, std::vector<complexScalarFieldArray>* nSub)
 {
 	//Determine column range:

@@ -143,10 +143,9 @@ vector3<matrix> spinOverlap(const scaled<ColumnBundle> &sY); //!< spin-resolved 
 
 //! Return Idag V .* I C (evaluated columnwise)
 //! The handling of the spin structure of V parallels that of diagouterI, with V.size() taking the role of nDensities
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V);
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V); //!< Same as above for complex potentials
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V, ColumnBundle* Cout); //Incommensurate perturbation
-ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const std::vector<complexScalarField>& V, ColumnBundle* Cout);
+//! If Cout is specified, return output at the k-point and basis of Cout, else use k-point and basis of C.
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const ScalarFieldArray& V, const ColumnBundle* Cout = 0);
+ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const complexScalarFieldArray& V, const ColumnBundle* Cout = 0); //!< Same as above for complex potentials
 
 ColumnBundle L(const ColumnBundle &Y); //!< Apply Laplacian
 ColumnBundle Linv(const ColumnBundle &Y); //!< Apply Laplacian inverse

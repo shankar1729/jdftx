@@ -57,7 +57,7 @@ __hostanddev__ void precond_inv_kinetic_calc(int j, int nbasis, int ncols, compl
 	double x = 0.5*GGT.metric_length_squared(iGarr[j]+k)/KErollover;
 	double precondFactor = 1.+x*(1.+x*(1.+x*(1.+x*(1.+x*(1.+x*(1.+x*(1.+x)))))));
 	precondFactor = precondFactor*invdetR/(1.+x*precondFactor);
-	if (sqrtop) precondFactor = sqrt(precondFactor);
+	if(sqrtop) precondFactor = sqrt(precondFactor);
 	for(int i=0; i < ncols; i++)
 		Ydata[nbasis*i+j] *= precondFactor;
 }
