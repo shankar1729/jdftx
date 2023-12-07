@@ -9,6 +9,8 @@ var classSymmetries =
     [ "reduceKmesh", "classSymmetries.html#aed4be322ee8aed0d394bab94f7073d59", null ],
     [ "setup", "classSymmetries.html#a1a57fa7383f3c4a8346ae56847e1d65c", null ],
     [ "setupMesh", "classSymmetries.html#a312b6204294ec4deaad8209180d9881e", null ],
+    [ "symmetrize", "classSymmetries.html#abdfa107113b4e2a36b883664fc705a93", null ],
+    [ "symmetrize", "classSymmetries.html#a98e32ba1f490bf6d3800a4a66f4e58d5", null ],
     [ "symmetrize", "classSymmetries.html#afda258a00c80fc05a6d765e0819089ae", null ],
     [ "symmetrize", "classSymmetries.html#a2a50948d22635f8e824c00b4943bb5fe", null ],
     [ "symmetrize", "classSymmetries.html#a2af1e99e92912717e631e90122332271", null ],

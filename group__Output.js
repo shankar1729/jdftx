@@ -214,7 +214,8 @@ var group__Output =
     ] ],
     [ "PhononEverything", "structPhononEverything.html", [
       [ "PhononEverything", "structPhononEverything.html#adb4b72b25c3739ee4c1a246c52f27897", null ],
-      [ "phonon", "structPhononEverything.html#a5a016c560697efb0509aaf8d9319d884", null ]
+      [ "phonon", "structPhononEverything.html#a5a016c560697efb0509aaf8d9319d884", null ],
+      [ "spring", "structPhononEverything.html#aabf1cca4d8b784209f06cfbcb34e1cab", null ]
     ] ],
     [ "Phonon", "classPhonon.html", [
       [ "Phonon", "classPhonon.html#a98bec395f1d1d9b3fcb3dd73a78d328b", null ],
@@ -230,7 +231,8 @@ var group__Output =
       [ "rSmooth", "classPhonon.html#a0e91ea69468e75a7876ca20156512404", null ],
       [ "saveHsub", "classPhonon.html#a484fbacd997995d6e55f143ad10bd021", null ],
       [ "sup", "classPhonon.html#a8de5046e3d4a29fdf35b774d6e62cc80", null ],
-      [ "T", "classPhonon.html#ac1dddd0f405d0d09622390237ffdc08d", null ]
+      [ "T", "classPhonon.html#ac1dddd0f405d0d09622390237ffdc08d", null ],
+      [ "useVPT", "classPhonon.html#a3de4c576811232b5b00ee2fa87b2660a", null ]
     ] ],
     [ "Wannier", "classWannier.html", [
       [ "AtomicOrbital", "structWannier_1_1AtomicOrbital.html", [

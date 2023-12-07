@@ -69,6 +69,10 @@ var Dump_8h =
       [ "DumpXCanalysis", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a4be48e6f4eaaaebca2f2961787ba4a03", null ],
       [ "DumpEresolvedDensity", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a4684751af58142d440517979c3d9df64", null ],
       [ "DumpFermiDensity", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a552eb756f5796b2f9d2c539f86754629", null ],
+      [ "DumpDWfns", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a345f4b6036d57809b4c79ddd91d15e03", null ],
+      [ "DumpDn", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a4e46a29524eea26e0df16bc97438d367", null ],
+      [ "DumpDVext", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7aa32771a8f94d45a050994ee1d6c749e8", null ],
+      [ "DumpDVscloc", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7aebf732b2552efa743ba2f8b4b9abc036", null ],
       [ "DumpDelim", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a8c8ec9aacf8c352c7183c06134275419", null ]
     ] ]
 ];

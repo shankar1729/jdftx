@@ -7,6 +7,8 @@ var BlasExtra_8h =
     [ "eblas_accumNorm_gpu", "group__Operators.html#ga4990759337c29d9752c444b78e3930db", null ],
     [ "eblas_accumProd", "group__Operators.html#ga1e140105e5e7ee1f8baaff4e6a016bf5", null ],
     [ "eblas_accumProd_gpu", "group__Operators.html#ga25e99d5e1c919ea332e5232c4ddf7258", null ],
+    [ "eblas_accumProdComplex", "group__Operators.html#gacf54b09ce097bfea9cfa343e2040c9bd", null ],
+    [ "eblas_accumProdComplex_gpu", "group__Operators.html#ga551a0d0d63dda5c0df121deeb6183d0f", null ],
     [ "eblas_capMinMax", "group__Operators.html#ga53707938a6bc21c6e01f719a3fe51f30", null ],
     [ "eblas_capMinMax_gpu", "group__Operators.html#gae479c614697e16892fe5554f68f3882f", null ],
     [ "eblas_copy", "group__Operators.html#ga3e6f244886dd30b195522884c18637f2", null ],

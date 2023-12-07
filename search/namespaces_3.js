@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['quinticspline_2389',['QuinticSpline',['../namespaceQuinticSpline.html',1,'']]]
+  ['quinticspline_2486',['QuinticSpline',['../namespaceQuinticSpline.html',1,'']]]
 ];

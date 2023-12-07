@@ -290,6 +290,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <tr class="memitem:ga1e140105e5e7ee1f8baaff4e6a016bf5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga1e140105e5e7ee1f8baaff4e6a016bf5">eblas_accumProd</a> (int N, const double &amp;a, const <a class="el" href="structcomplex.html">complex</a> *xU, const <a class="el" href="structcomplex.html">complex</a> *xC, double *yRe, double *yIm)</td></tr>
 <tr class="memdesc:ga1e140105e5e7ee1f8baaff4e6a016bf5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate elementwise product of two complex arrays xU and xC into real and imaginary parts yRe and yIm i.e. (yRe + i yIm) += a xU conj(xC)  <a href="group__Operators.html#ga1e140105e5e7ee1f8baaff4e6a016bf5">More...</a><br /></td></tr>
 <tr class="separator:ga1e140105e5e7ee1f8baaff4e6a016bf5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacf54b09ce097bfea9cfa343e2040c9bd"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#gacf54b09ce097bfea9cfa343e2040c9bd">eblas_accumProdComplex</a> (int N, const double &amp;a, const <a class="el" href="structcomplex.html">complex</a> *xU, const <a class="el" href="structcomplex.html">complex</a> *xC, <a class="el" href="structcomplex.html">complex</a> *y)</td></tr>
+<tr class="memdesc:gacf54b09ce097bfea9cfa343e2040c9bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate elementwise product of two complex arrays xU and xC into y.  <a href="group__Operators.html#gacf54b09ce097bfea9cfa343e2040c9bd">More...</a><br /></td></tr>
+<tr class="separator:gacf54b09ce097bfea9cfa343e2040c9bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga4990759337c29d9752c444b78e3930db"><td class="memItemLeft" align="right" valign="top"><a id="ga4990759337c29d9752c444b78e3930db"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga4990759337c29d9752c444b78e3930db">eblas_accumNorm_gpu</a> (int N, const double &amp;a, const <a class="el" href="structcomplex.html">complex</a> *x, double *y)</td></tr>
 <tr class="memdesc:ga4990759337c29d9752c444b78e3930db"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equivalent of <a class="el" href="group__Operators.html#ga6c1b03241b133beaed04728d26a086e3" title="Accumulate elementwise norm of a complex array x into y i.e. y += a x conj(x)">eblas_accumNorm()</a> for GPU data pointers. <br /></td></tr>
@@ -298,6 +301,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga25e99d5e1c919ea332e5232c4ddf7258">eblas_accumProd_gpu</a> (int N, const double &amp;a, const <a class="el" href="structcomplex.html">complex</a> *xU, const <a class="el" href="structcomplex.html">complex</a> *xC, double *yRe, double *yIm)</td></tr>
 <tr class="memdesc:ga25e99d5e1c919ea332e5232c4ddf7258"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equivalent of <a class="el" href="group__Operators.html#ga1e140105e5e7ee1f8baaff4e6a016bf5" title="Accumulate elementwise product of two complex arrays xU and xC into real and imaginary parts yRe and ...">eblas_accumProd()</a> for GPU data pointers. <br /></td></tr>
 <tr class="separator:ga25e99d5e1c919ea332e5232c4ddf7258"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga551a0d0d63dda5c0df121deeb6183d0f"><td class="memItemLeft" align="right" valign="top"><a id="ga551a0d0d63dda5c0df121deeb6183d0f"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga551a0d0d63dda5c0df121deeb6183d0f">eblas_accumProdComplex_gpu</a> (int N, const double &amp;a, const <a class="el" href="structcomplex.html">complex</a> *xU, const <a class="el" href="structcomplex.html">complex</a> *xC, <a class="el" href="structcomplex.html">complex</a> *y)</td></tr>
+<tr class="memdesc:ga551a0d0d63dda5c0df121deeb6183d0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equivalent of <a class="el" href="group__Operators.html#ga1e140105e5e7ee1f8baaff4e6a016bf5" title="Accumulate elementwise product of two complex arrays xU and xC into real and imaginary parts yRe and ...">eblas_accumProd()</a> for GPU data pointers. <br /></td></tr>
+<tr class="separator:ga551a0d0d63dda5c0df121deeb6183d0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9d2cefdcc0e49ab0781fab0609ef5d74"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga9d2cefdcc0e49ab0781fab0609ef5d74">eblas_symmetrize</a> (int N, int n, const int *symmIndex, double *x)</td></tr>
 <tr class="memdesc:ga9d2cefdcc0e49ab0781fab0609ef5d74"><td class="mdescLeft">&#160;</td><td class="mdescRight">Symmetrize an array x, using N n-fold equivalence classes in symmIndex.  <a href="group__Operators.html#ga9d2cefdcc0e49ab0781fab0609ef5d74">More...</a><br /></td></tr>
 <tr class="separator:ga9d2cefdcc0e49ab0781fab0609ef5d74"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -568,14 +575,17 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga9488747d1840ff8960979b54f897cd29">Linv</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;&amp;)</td></tr>
 <tr class="memdesc:ga9488747d1840ff8960979b54f897cd29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inverse Laplacian. <br /></td></tr>
 <tr class="separator:ga9488747d1840ff8960979b54f897cd29"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga0cf33f566c492d3e5ef97b79099e3898"><td class="memItemLeft" align="right" valign="top"><a id="ga0cf33f566c492d3e5ef97b79099e3898"></a>
-<a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga0cf33f566c492d3e5ef97b79099e3898">Linv</a> (const <a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a> &amp;)</td></tr>
-<tr class="memdesc:ga0cf33f566c492d3e5ef97b79099e3898"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inverse Laplacian. <br /></td></tr>
-<tr class="separator:ga0cf33f566c492d3e5ef97b79099e3898"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga3a33ce685690f0b3c667501900180ae2"><td class="memItemLeft" align="right" valign="top"><a id="ga3a33ce685690f0b3c667501900180ae2"></a>
-<a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga3a33ce685690f0b3c667501900180ae2">Linv</a> (<a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a> &amp;&amp;)</td></tr>
-<tr class="memdesc:ga3a33ce685690f0b3c667501900180ae2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inverse Laplacian. <br /></td></tr>
-<tr class="separator:ga3a33ce685690f0b3c667501900180ae2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga70dc326dd7129ab6c5f05ace5baa9689"><td class="memItemLeft" align="right" valign="top"><a id="ga70dc326dd7129ab6c5f05ace5baa9689"></a>
+<a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga70dc326dd7129ab6c5f05ace5baa9689">Linv</a> (const <a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a> &amp;, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *k=0)</td></tr>
+<tr class="memdesc:ga70dc326dd7129ab6c5f05ace5baa9689"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inverse Laplacian. <br /></td></tr>
+<tr class="separator:ga70dc326dd7129ab6c5f05ace5baa9689"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga279987c9e7cbc2580dc9bfdb7c4c293b"><td class="memItemLeft" align="right" valign="top"><a id="ga279987c9e7cbc2580dc9bfdb7c4c293b"></a>
+<a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga279987c9e7cbc2580dc9bfdb7c4c293b">Linv</a> (<a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a> &amp;&amp;, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *k=0)</td></tr>
+<tr class="memdesc:ga279987c9e7cbc2580dc9bfdb7c4c293b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inverse Laplacian. <br /></td></tr>
+<tr class="separator:ga279987c9e7cbc2580dc9bfdb7c4c293b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac46089fa20df71450929ec85fb08f554"><td class="memItemLeft" align="right" valign="top"><a id="gac46089fa20df71450929ec85fb08f554"></a>
+<a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Linv</b> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;in, <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *k)</td></tr>
+<tr class="separator:gac46089fa20df71450929ec85fb08f554"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga595ed6b4aaa38ce3fac1abe87a2a1af0"><td class="memItemLeft" align="right" valign="top"><a id="ga595ed6b4aaa38ce3fac1abe87a2a1af0"></a>
 <a class="el" href="classmatrix3.html">matrix3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga595ed6b4aaa38ce3fac1abe87a2a1af0">LinvStress</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;X, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Y)</td></tr>
 <tr class="memdesc:ga595ed6b4aaa38ce3fac1abe87a2a1af0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Lattice vector derivative of dot(X,Linv(Y)) <br /></td></tr>
@@ -584,6 +594,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga92cb5c0efe834a7b4739215a370ae060">D</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;, int iDir)</td></tr>
 <tr class="memdesc:ga92cb5c0efe834a7b4739215a370ae060"><td class="mdescLeft">&#160;</td><td class="mdescRight">compute the gradient in the iDir'th cartesian direction <br /></td></tr>
 <tr class="separator:ga92cb5c0efe834a7b4739215a370ae060"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gade0f8a6f5fe59d0c541bf049b7a04b7b"><td class="memItemLeft" align="right" valign="top"><a id="gade0f8a6f5fe59d0c541bf049b7a04b7b"></a>
+<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#gade0f8a6f5fe59d0c541bf049b7a04b7b">D</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;in, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;dir)</td></tr>
+<tr class="memdesc:gade0f8a6f5fe59d0c541bf049b7a04b7b"><td class="mdescLeft">&#160;</td><td class="mdescRight">directional derivative of scalar field along (cartesian direction) dir <br /></td></tr>
+<tr class="separator:gade0f8a6f5fe59d0c541bf049b7a04b7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga09d276a3c8ef8d18156c549d42258b25"><td class="memItemLeft" align="right" valign="top"><a id="ga09d276a3c8ef8d18156c549d42258b25"></a>
 <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga09d276a3c8ef8d18156c549d42258b25">DD</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;, int iDir, int jDir)</td></tr>
 <tr class="memdesc:ga09d276a3c8ef8d18156c549d42258b25"><td class="mdescLeft">&#160;</td><td class="mdescRight">second derivative along iDir'th and jDir'th cartesian directions <br /></td></tr>
@@ -602,6 +616,14 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <tr class="separator:gaf8219bcd6cb0dd08b59b22c5838a2e0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gab3b8ee5929a836d73ccf24bb582c46ef"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#gab3b8ee5929a836d73ccf24bb582c46ef">removePhase</a> (size_t N, <a class="el" href="structcomplex.html">complex</a> *data, double &amp;meanPhase, double &amp;sigmaPhase, double &amp;rmsImagErr)</td></tr>
 <tr class="separator:gab3b8ee5929a836d73ccf24bb582c46ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gadde3201543eec30a27334541262e8513"><td class="memItemLeft" align="right" valign="top"><a id="gadde3201543eec30a27334541262e8513"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#gadde3201543eec30a27334541262e8513">translate</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;r)</td></tr>
+<tr class="memdesc:gadde3201543eec30a27334541262e8513"><td class="mdescLeft">&#160;</td><td class="mdescRight">Translate by vector r in Cartesian coordinates. <br /></td></tr>
+<tr class="separator:gadde3201543eec30a27334541262e8513"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0240ec90278ef844b9c9fe8797b6f12f"><td class="memItemLeft" align="right" valign="top"><a id="ga0240ec90278ef844b9c9fe8797b6f12f"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga0240ec90278ef844b9c9fe8797b6f12f">translate</a> (<a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a> &amp;, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;r)</td></tr>
+<tr class="memdesc:ga0240ec90278ef844b9c9fe8797b6f12f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Translate by vector r in Cartesian coordinates. <br /></td></tr>
+<tr class="separator:ga0240ec90278ef844b9c9fe8797b6f12f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga79546ba0d7ac12699a7052cd9078062b"><td class="memItemLeft" align="right" valign="top"><a id="ga79546ba0d7ac12699a7052cd9078062b"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Operators.html#ga79546ba0d7ac12699a7052cd9078062b">multiplyBlochPhase</a> (<a class="el" href="group__DataStructures.html#ga0a122002c764801a8923fd2091efcd0b">complexScalarField</a> &amp;, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;k)</td></tr>
 <tr class="memdesc:ga79546ba0d7ac12699a7052cd9078062b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Multiply by Block phase for wave-vector k (in reciprocal lattice coordinates) <br /></td></tr>
@@ -1200,6 +1222,64 @@ template&lt;typename T &gt; </div>
     <tr><td class="paramname">xC</td><td>Conjugated input complex data array </td></tr>
     <tr><td class="paramname">yRe</td><td>Ouput real-part data array </td></tr>
     <tr><td class="paramname">yIm</td><td>Ouput imaginary-part data array </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="gacf54b09ce097bfea9cfa343e2040c9bd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gacf54b09ce097bfea9cfa343e2040c9bd">&#9670;&nbsp;</a></span>eblas_accumProdComplex()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void eblas_accumProdComplex </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>N</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const double &amp;&#160;</td>
+          <td class="paramname"><em>a</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="structcomplex.html">complex</a> *&#160;</td>
+          <td class="paramname"><em>xU</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="structcomplex.html">complex</a> *&#160;</td>
+          <td class="paramname"><em>xC</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structcomplex.html">complex</a> *&#160;</td>
+          <td class="paramname"><em>y</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Accumulate elementwise product of two complex arrays xU and xC into y. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">N</td><td>Length of array </td></tr>
+    <tr><td class="paramname">a</td><td>scale factor </td></tr>
+    <tr><td class="paramname">xU</td><td>Unconjugated input complex data array </td></tr>
+    <tr><td class="paramname">xC</td><td>Conjugated input complex data array </td></tr>
+    <tr><td class="paramname">y</td><td>Output complex data array </td></tr>
   </table>
   </dd>
 </dl>

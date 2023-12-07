@@ -13,5 +13,6 @@ var classPhonon =
     [ "rSmooth", "classPhonon.html#a0e91ea69468e75a7876ca20156512404", null ],
     [ "saveHsub", "classPhonon.html#a484fbacd997995d6e55f143ad10bd021", null ],
     [ "sup", "classPhonon.html#a8de5046e3d4a29fdf35b774d6e62cc80", null ],
-    [ "T", "classPhonon.html#ac1dddd0f405d0d09622390237ffdc08d", null ]
+    [ "T", "classPhonon.html#ac1dddd0f405d0d09622390237ffdc08d", null ],
+    [ "useVPT", "classPhonon.html#a3de4c576811232b5b00ee2fa87b2660a", null ]
 ];

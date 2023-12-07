@@ -131,6 +131,14 @@ typedef std::vector&lt; <a class="el" href="group__DataStructures.html#gaba3daca
 typedef std::vector&lt; <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a></td></tr>
 <tr class="memdesc:ga8d907909fee035ff906972703c7bb870"><td class="mdescLeft">&#160;</td><td class="mdescRight">dynamic size collection of reciprocal space scalar fields <br /></td></tr>
 <tr class="separator:ga8d907909fee035ff906972703c7bb870"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gadfd98e9d610f1a3a04f590e323087ebe"><td class="memItemLeft" align="right" valign="top">
+typedef std::vector&lt; <a class="el" href="group__DataStructures.html#ga0a122002c764801a8923fd2091efcd0b">complexScalarField</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a></td></tr>
+<tr class="memdesc:gadfd98e9d610f1a3a04f590e323087ebe"><td class="mdescLeft">&#160;</td><td class="mdescRight">dynamic size collection of complex scalar fields <br /></td></tr>
+<tr class="separator:gadfd98e9d610f1a3a04f590e323087ebe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa7c2f49d2bfe42632872b22dd6ae9b54"><td class="memItemLeft" align="right" valign="top">
+typedef std::vector&lt; <a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gaa7c2f49d2bfe42632872b22dd6ae9b54">complexScalarFieldTildeArray</a></td></tr>
+<tr class="memdesc:gaa7c2f49d2bfe42632872b22dd6ae9b54"><td class="mdescLeft">&#160;</td><td class="mdescRight">dynamic size collection of reciprocal complex scalar fields <br /></td></tr>
+<tr class="separator:gaa7c2f49d2bfe42632872b22dd6ae9b54"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -309,6 +317,21 @@ template&lt;typename T &gt; </td></tr>
 <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga101d73ed0d08698e172d63efa72011dd">Jdag</a> (const <a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> &amp;X)</td></tr>
 <tr class="memdesc:ga101d73ed0d08698e172d63efa72011dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hermitian conjugate of J. <br /></td></tr>
 <tr class="separator:ga101d73ed0d08698e172d63efa72011dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga03039594484db61cc90c349f210b11f0"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Real</b> (const <a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a> X)</td></tr>
+<tr class="separator:ga03039594484db61cc90c349f210b11f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf801af2cb201f4c304c3174fc7866599"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Imag</b> (const <a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a> X)</td></tr>
+<tr class="separator:gaf801af2cb201f4c304c3174fc7866599"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac30374722ada638c0adc096fae7acf13"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Complex</b> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> re, const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> im)</td></tr>
+<tr class="separator:gac30374722ada638c0adc096fae7acf13"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf619819360b94aef1e93e3347f699173"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Complex</b> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> re)</td></tr>
+<tr class="separator:gaf619819360b94aef1e93e3347f699173"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga7d2a79552c232cd1e95e4d94dd47e51a"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>conj</b> (const <a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a> X)</td></tr>
+<tr class="separator:ga7d2a79552c232cd1e95e4d94dd47e51a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Variable length arrays of ScalarField and ScalarFieldTildeArray, and their operators. </p>

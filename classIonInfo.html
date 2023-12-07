@@ -156,10 +156,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a83fa597682f0f8efaea423ddaae0a9df">augmentDensityInit</a> () const</td></tr>
 <tr class="memdesc:a83fa597682f0f8efaea423ddaae0a9df"><td class="mdescLeft">&#160;</td><td class="mdescRight">initialize density augmentation <br /></td></tr>
 <tr class="separator:a83fa597682f0f8efaea423ddaae0a9df"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a63a9db7de8525a862b023e6c593b01d0"><td class="memItemLeft" align="right" valign="top"><a id="a63a9db7de8525a862b023e6c593b01d0"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a63a9db7de8525a862b023e6c593b01d0">augmentDensitySpherical</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;Fq, const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;VdagCq) const</td></tr>
-<tr class="memdesc:a63a9db7de8525a862b023e6c593b01d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">calculate density augmentation in spherical functions <br /></td></tr>
-<tr class="separator:a63a9db7de8525a862b023e6c593b01d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9772f9a0d21d446506aa151fa52d188f"><td class="memItemLeft" align="right" valign="top"><a id="a9772f9a0d21d446506aa151fa52d188f"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a9772f9a0d21d446506aa151fa52d188f">augmentDensitySpherical</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;Fq, const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;VdagCq, const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; *dVdagCqL=0, const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; *dVdagCqR=0) const</td></tr>
+<tr class="memdesc:a9772f9a0d21d446506aa151fa52d188f"><td class="mdescLeft">&#160;</td><td class="mdescRight">calculate density augmentation in spherical functions. Parameters dVdagCqL and/or dVdagCqR are needed for perturbation theory. <br /></td></tr>
+<tr class="separator:a9772f9a0d21d446506aa151fa52d188f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a406ba568aade74321a8260ff04b09257"><td class="memItemLeft" align="right" valign="top"><a id="a406ba568aade74321a8260ff04b09257"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a406ba568aade74321a8260ff04b09257">augmentDensityGrid</a> (<a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;n) const</td></tr>
 <tr class="memdesc:a406ba568aade74321a8260ff04b09257"><td class="mdescLeft">&#160;</td><td class="mdescRight">propagate from spherical functions to grid <br /></td></tr>
@@ -172,6 +172,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#a8fed76f520a3a38ec5533ac61cc77fe6">augmentDensitySphericalGrad</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;VdagCq, std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;HVdagCq) const</td></tr>
 <tr class="memdesc:a8fed76f520a3a38ec5533ac61cc77fe6"><td class="mdescLeft">&#160;</td><td class="mdescRight">propagate spherical function gradients to wavefunctions <br /></td></tr>
 <tr class="separator:a8fed76f520a3a38ec5533ac61cc77fe6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4dd7aa31fae5d22fcf06144f776e5761"><td class="memItemLeft" align="right" valign="top"><a id="a4dd7aa31fae5d22fcf06144f776e5761"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setE_nAug</b> (const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; E_nAug)</td></tr>
+<tr class="separator:a4dd7aa31fae5d22fcf06144f776e5761"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a30f2cba99bbb2b0c763fa0303e431333"><td class="memItemLeft" align="right" valign="top"><a id="a30f2cba99bbb2b0c763fa0303e431333"></a>
+const std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>getE_nAug</b> ()</td></tr>
+<tr class="separator:a30f2cba99bbb2b0c763fa0303e431333"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7ed51c9eac106cfe4c68dcc8e28f9f75"><td class="memItemLeft" align="right" valign="top"><a id="a7ed51c9eac106cfe4c68dcc8e28f9f75"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>project</b> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, std::vector&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;VdagCq, <a class="el" href="classmatrix.html">matrix</a> *rotExisting=0) const</td></tr>
 <tr class="separator:a7ed51c9eac106cfe4c68dcc8e28f9f75"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -215,6 +221,10 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class
 <a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#aaffbdb033bd43331b11de1cf7486084c">getAtomicOrbitals</a> (int q, bool applyO, int extraCols=0) const</td></tr>
 <tr class="memdesc:aaffbdb033bd43331b11de1cf7486084c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get all atomic orbitals of a given state number q, optionally with operator O pre-applied (with room for extra columns if specified) <br /></td></tr>
 <tr class="separator:aaffbdb033bd43331b11de1cf7486084c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afa5ff3317316e2eea4ffdc4d85c3a817"><td class="memItemLeft" align="right" valign="top"><a id="afa5ff3317316e2eea4ffdc4d85c3a817"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIonInfo.html#afa5ff3317316e2eea4ffdc4d85c3a817">pairPotentialsAndGrad</a> (class <a class="el" href="classEnergies.html">Energies</a> *ener=0, <a class="el" href="structIonicGradient.html">IonicGradient</a> *<a class="el" href="classIonInfo.html#a9878631a33ae059352c4a61ef2f14340">forces</a>=0, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *E_RRT=0) const</td></tr>
+<tr class="memdesc:afa5ff3317316e2eea4ffdc4d85c3a817"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute all pair-potential terms in the energy, forces or lattice derivative (E_RRT) (electrostatic, and optionally vdW) <br /></td></tr>
+<tr class="separator:afa5ff3317316e2eea4ffdc4d85c3a817"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>

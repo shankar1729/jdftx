@@ -163,40 +163,55 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <tr class="separator:a16fb15241b052f11c5d85e7585388895"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a17e97cbe11928dd7f4404d1733955d9e"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a17e97cbe11928dd7f4404d1733955d9e">getV</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *derivDir=0, const int stressDir=-1) const</td></tr>
 <tr class="separator:a17e97cbe11928dd7f4404d1733955d9e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a25f916d825d56bcef5e95f1b0244e4a4"><td class="memItemLeft" align="right" valign="top"><a id="a25f916d825d56bcef5e95f1b0244e4a4"></a>
+<a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a25f916d825d56bcef5e95f1b0244e4a4">getVatom</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, int atom) const</td></tr>
+<tr class="memdesc:a25f916d825d56bcef5e95f1b0244e4a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Single atom version. <br /></td></tr>
+<tr class="separator:a25f916d825d56bcef5e95f1b0244e4a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af5a6134d50e404388fb64969207b1058"><td class="memItemLeft" align="right" valign="top"><a id="af5a6134d50e404388fb64969207b1058"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#af5a6134d50e404388fb64969207b1058">nProjectors</a> () const</td></tr>
 <tr class="memdesc:af5a6134d50e404388fb64969207b1058"><td class="mdescLeft">&#160;</td><td class="mdescRight">total number of projectors for all atoms in this species (number of columns in result of getV) <br /></td></tr>
 <tr class="separator:af5a6134d50e404388fb64969207b1058"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a733b8ff158bb2982c76238065804eb17"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a733b8ff158bb2982c76238065804eb17">EnlAndGrad</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;Fq, const <a class="el" href="classmatrix.html">matrix</a> &amp;VdagCq, <a class="el" href="classmatrix.html">matrix</a> &amp;HVdagCq) const</td></tr>
-<tr class="separator:a733b8ff158bb2982c76238065804eb17"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad0962ddefc40fb8eec3436ea450bd1ed"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#ad0962ddefc40fb8eec3436ea450bd1ed">EnlAndGrad</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;Fq, const <a class="el" href="classmatrix.html">matrix</a> &amp;VdagCq, <a class="el" href="classmatrix.html">matrix</a> &amp;HVdagCq, int atom=-1) const</td></tr>
+<tr class="separator:ad0962ddefc40fb8eec3436ea450bd1ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa62cf3390db9ac8fd3f9e86107e61d0f"><td class="memItemLeft" align="right" valign="top"><a id="aa62cf3390db9ac8fd3f9e86107e61d0f"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#aa62cf3390db9ac8fd3f9e86107e61d0f">augmentOverlap</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;OCq, <a class="el" href="classmatrix.html">matrix</a> *VdagCq=0) const</td></tr>
 <tr class="memdesc:aa62cf3390db9ac8fd3f9e86107e61d0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate pseudopotential contribution to the overlap in OCq. <br /></td></tr>
 <tr class="separator:aa62cf3390db9ac8fd3f9e86107e61d0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abcf2dfdbc1467c27ee1bcbbd2abf0527"><td class="memItemLeft" align="right" valign="top"><a id="abcf2dfdbc1467c27ee1bcbbd2abf0527"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#abcf2dfdbc1467c27ee1bcbbd2abf0527">augmentOverlapDeriv</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;OCq, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;V, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;dV) const</td></tr>
+<tr class="memdesc:abcf2dfdbc1467c27ee1bcbbd2abf0527"><td class="mdescLeft">&#160;</td><td class="mdescRight">Derivative of augmented overlap operator w.r.t. atomic position. <br /></td></tr>
+<tr class="separator:abcf2dfdbc1467c27ee1bcbbd2abf0527"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9d2286f7db582ddc5d753efae16924dd"><td class="memItemLeft" align="right" valign="top"><a id="a9d2286f7db582ddc5d753efae16924dd"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a9d2286f7db582ddc5d753efae16924dd">augmentOverlapSecondDeriv</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;OCq, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;V, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;dV_A, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;dV_B, <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;dsqV) const</td></tr>
+<tr class="memdesc:a9d2286f7db582ddc5d753efae16924dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Second derivative of augmented overlap operator w.r.t. atomic position. <br /></td></tr>
+<tr class="separator:a9d2286f7db582ddc5d753efae16924dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a747922fd0ce6d40923dea7ca47f84b96"><td class="memItemLeft" align="right" valign="top"><a id="a747922fd0ce6d40923dea7ca47f84b96"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a747922fd0ce6d40923dea7ca47f84b96">augmentSpinOverlap</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Cq, <a class="el" href="classvector3.html">vector3</a>&lt; <a class="el" href="classmatrix.html">matrix</a> &gt; &amp;Sq) const</td></tr>
 <tr class="memdesc:a747922fd0ce6d40923dea7ca47f84b96"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate pseudopotential contribution to spin overlap of a columnbundle. <br /></td></tr>
 <tr class="separator:a747922fd0ce6d40923dea7ca47f84b96"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a39ed9760278526f8e181386ce7eaf3da"><td class="memItemLeft" align="right" valign="top"><a id="a39ed9760278526f8e181386ce7eaf3da"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a39ed9760278526f8e181386ce7eaf3da">augmentDensityInit</a> ()</td></tr>
-<tr class="memdesc:a39ed9760278526f8e181386ce7eaf3da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clear internal data and prepare for density augmentation (call before a loop over augmentDensitySpherical per k-point) <br /></td></tr>
-<tr class="separator:a39ed9760278526f8e181386ce7eaf3da"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa82b3bf9e47b567f6c7a1b36c3affde8"><td class="memItemLeft" align="right" valign="top"><a id="aa82b3bf9e47b567f6c7a1b36c3affde8"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#aa82b3bf9e47b567f6c7a1b36c3affde8">augmentDensitySpherical</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;Fq, const <a class="el" href="classmatrix.html">matrix</a> &amp;VdagCq)</td></tr>
-<tr class="memdesc:aa82b3bf9e47b567f6c7a1b36c3affde8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate the pseudopotential dependent contribution to the density in the spherical functions nAug (call once per k-point) <br /></td></tr>
-<tr class="separator:aa82b3bf9e47b567f6c7a1b36c3affde8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a02fb55182c4352653a695a0751c2c65e"><td class="memItemLeft" align="right" valign="top"><a id="a02fb55182c4352653a695a0751c2c65e"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a02fb55182c4352653a695a0751c2c65e">augmentDensityGrid</a> (<a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;n) const</td></tr>
-<tr class="memdesc:a02fb55182c4352653a695a0751c2c65e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate the spherical augmentation functions nAug to the grid electron density (call only once, after augmentDensitySpherical on all k-points) <br /></td></tr>
-<tr class="separator:a02fb55182c4352653a695a0751c2c65e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a001f5608c378201d5db9ebcb08c9fd7f"><td class="memItemLeft" align="right" valign="top"><a id="a001f5608c378201d5db9ebcb08c9fd7f"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a001f5608c378201d5db9ebcb08c9fd7f">augmentDensityInit</a> (int atom=-1)</td></tr>
+<tr class="memdesc:a001f5608c378201d5db9ebcb08c9fd7f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clear internal data and prepare for density augmentation (call before a loop over augmentDensitySpherical per k-point) <br /></td></tr>
+<tr class="separator:a001f5608c378201d5db9ebcb08c9fd7f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1531f964cc5583c3636713252ce08743"><td class="memItemLeft" align="right" valign="top"><a id="a1531f964cc5583c3636713252ce08743"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a1531f964cc5583c3636713252ce08743">augmentDensitySpherical</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;Fq, const <a class="el" href="classmatrix.html">matrix</a> &amp;VdagCq, const <a class="el" href="classmatrix.html">matrix</a> *VdagdCqL=0, const <a class="el" href="classmatrix.html">matrix</a> *VdagdCqR=0, int atom=-1)</td></tr>
+<tr class="memdesc:a1531f964cc5583c3636713252ce08743"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate the pseudopotential dependent contribution to the density in the spherical functions nAug (call once per k-point) <br /></td></tr>
+<tr class="separator:a1531f964cc5583c3636713252ce08743"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0bbc403bf9d5a1653003e72c143d3ad0"><td class="memItemLeft" align="right" valign="top"><a id="a0bbc403bf9d5a1653003e72c143d3ad0"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a0bbc403bf9d5a1653003e72c143d3ad0">augmentDensityGrid</a> (<a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;n, int atom=-1, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *atposDeriv=0) const</td></tr>
+<tr class="memdesc:a0bbc403bf9d5a1653003e72c143d3ad0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate the spherical augmentation functions nAug to the grid electron density (call only once, after augmentDensitySpherical on all k-points) <br /></td></tr>
+<tr class="separator:a0bbc403bf9d5a1653003e72c143d3ad0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af6cd7352e4fc2a3b1668238cbd4f3d39"><td class="memItemLeft" align="right" valign="top"><a id="af6cd7352e4fc2a3b1668238cbd4f3d39"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#af6cd7352e4fc2a3b1668238cbd4f3d39">augmentDensityGridGrad</a> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;E_n, std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt; *forces=0, <a class="el" href="classmatrix3.html">matrix3</a>&lt;&gt; *Eaug_RRT=0)</td></tr>
 <tr class="memdesc:af6cd7352e4fc2a3b1668238cbd4f3d39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gradient propagation corresponding to augmentDensityGrid (stores intermediate spherical function results to E_nAug; call only once). Optionally collect forces and stress contributions. <br /></td></tr>
 <tr class="separator:af6cd7352e4fc2a3b1668238cbd4f3d39"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0deece6236f65db924493ae30d318c1d"><td class="memItemLeft" align="right" valign="top"><a id="a0deece6236f65db924493ae30d318c1d"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a0deece6236f65db924493ae30d318c1d">augmentDensitySphericalGrad</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const <a class="el" href="classmatrix.html">matrix</a> &amp;VdagCq, <a class="el" href="classmatrix.html">matrix</a> &amp;HVdagCq) const</td></tr>
-<tr class="memdesc:a0deece6236f65db924493ae30d318c1d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) <br /></td></tr>
-<tr class="separator:a0deece6236f65db924493ae30d318c1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a23b871f588e6441622eb7b7c77e6fca5"><td class="memItemLeft" align="right" valign="top"><a id="a23b871f588e6441622eb7b7c77e6fca5"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>augmentDensityGridGradDeriv</b> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;E_n, int atom, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; *atposDeriv)</td></tr>
+<tr class="separator:a23b871f588e6441622eb7b7c77e6fca5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae060ceb2609989b0345ac39bda86e43d"><td class="memItemLeft" align="right" valign="top"><a id="ae060ceb2609989b0345ac39bda86e43d"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#ae060ceb2609989b0345ac39bda86e43d">augmentDensitySphericalGrad</a> (const <a class="el" href="classQuantumNumber.html">QuantumNumber</a> &amp;qnum, const <a class="el" href="classmatrix.html">matrix</a> &amp;VdagCq, <a class="el" href="classmatrix.html">matrix</a> &amp;HVdagCq, int atom=-1) const</td></tr>
+<tr class="memdesc:ae060ceb2609989b0345ac39bda86e43d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gradient propagation corresponding to augmentDensitySpherical (uses intermediate spherical function results from E_nAug; call once per k-point after augmentDensityGridGrad) <br /></td></tr>
+<tr class="separator:ae060ceb2609989b0345ac39bda86e43d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:affe0091f437ed127ea283ae4452163a7"><td class="memItemLeft" align="right" valign="top"><a id="affe0091f437ed127ea283ae4452163a7"></a>
 size_t&#160;</td><td class="memItemRight" valign="bottom"><b>rhoAtom_nMatrices</b> () const</td></tr>
 <tr class="separator:affe0091f437ed127ea283ae4452163a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -248,10 +263,10 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class
 <tr class="memitem:a566b5b4f4104caaa4fc630a7bc8e55c6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a566b5b4f4104caaa4fc630a7bc8e55c6">atomicOrbitalOffset</a> (unsigned iAtom, unsigned n, int l, int m, int s) const</td></tr>
 <tr class="memdesc:a566b5b4f4104caaa4fc630a7bc8e55c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">s is 0/1 for up/dn spinors in non-relativistic case, s=0/1 is for j=l+/-0.5 and mj=m+/-0.5 in relativistic case  <a href="classSpeciesInfo.html#a566b5b4f4104caaa4fc630a7bc8e55c6">More...</a><br /></td></tr>
 <tr class="separator:a566b5b4f4104caaa4fc630a7bc8e55c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7db08887923e290ca7da87ba698ea93f"><td class="memItemLeft" align="right" valign="top"><a id="a7db08887923e290ca7da87ba698ea93f"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a7db08887923e290ca7da87ba698ea93f">updateLocal</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Vlocps, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;rhoIon, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;nChargeball, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;nCore, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;tauCore) const</td></tr>
-<tr class="memdesc:a7db08887923e290ca7da87ba698ea93f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add contributions from this species to Vlocps, rhoIon, nChargeball and nCore/tauCore (if any) <br /></td></tr>
-<tr class="separator:a7db08887923e290ca7da87ba698ea93f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea63db19abdcdec682678937b6567e3f"><td class="memItemLeft" align="right" valign="top"><a id="aea63db19abdcdec682678937b6567e3f"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#aea63db19abdcdec682678937b6567e3f">updateLocal</a> (<a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;Vlocps, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;rhoIon, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;nChargeball, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;nCore, <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;tauCore, int atom=-1) const</td></tr>
+<tr class="memdesc:aea63db19abdcdec682678937b6567e3f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add contributions from this species to Vlocps, rhoIon, nChargeball and nCore/tauCore (if any) <br /></td></tr>
+<tr class="separator:aea63db19abdcdec682678937b6567e3f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abae5efc1dfb051054ca469ea517ea748"><td class="memItemLeft" align="right" valign="top"><a id="abae5efc1dfb051054ca469ea517ea748"></a>
 std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#abae5efc1dfb051054ca469ea517ea748">getLocalForces</a> (const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_Vlocps, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_rhoIon, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_nChargeball, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_nCore, const <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &amp;ccgrad_tauCore) const</td></tr>
 <tr class="memdesc:abae5efc1dfb051054ca469ea517ea748"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the local forces (due to Vlocps, rhoIon, nChargeball and nCore/tauCore) <br /></td></tr>
@@ -340,6 +355,14 @@ std::vector&lt; <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &gt;&
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a6463423c940d617d11e8119dfb191ecc">initialOxidationState</a></td></tr>
 <tr class="memdesc:a6463423c940d617d11e8119dfb191ecc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initial oxidation state of this species (only affects LCAO) <br /></td></tr>
 <tr class="separator:a6463423c940d617d11e8119dfb191ecc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a010e429a5a3caa68a6f27136a7ac0b11"><td class="memItemLeft" align="right" valign="top"><a id="a010e429a5a3caa68a6f27136a7ac0b11"></a>
+<a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#a010e429a5a3caa68a6f27136a7ac0b11">MnlAll</a></td></tr>
+<tr class="memdesc:a010e429a5a3caa68a6f27136a7ac0b11"><td class="mdescLeft">&#160;</td><td class="mdescRight">block matrix containing Mnl for all l,m <br /></td></tr>
+<tr class="separator:a010e429a5a3caa68a6f27136a7ac0b11"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af14002991ca2ed565e42ec4c046e09ce"><td class="memItemLeft" align="right" valign="top"><a id="af14002991ca2ed565e42ec4c046e09ce"></a>
+<a class="el" href="classmatrix.html">matrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSpeciesInfo.html#af14002991ca2ed565e42ec4c046e09ce">E_nAug</a></td></tr>
+<tr class="memdesc:af14002991ca2ed565e42ec4c046e09ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gradient w.r.t nAug (in the same layout) <br /></td></tr>
+<tr class="separator:af14002991ca2ed565e42ec4c046e09ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
 Friends</h2></td></tr>
@@ -529,8 +552,8 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>WannierMinimizer</b>
 
 </div>
 </div>
-<a id="a733b8ff158bb2982c76238065804eb17"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a733b8ff158bb2982c76238065804eb17">&#9670;&nbsp;</a></span>EnlAndGrad()</h2>
+<a id="ad0962ddefc40fb8eec3436ea450bd1ed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad0962ddefc40fb8eec3436ea450bd1ed">&#9670;&nbsp;</a></span>EnlAndGrad()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -557,7 +580,13 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>WannierMinimizer</b>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype"><a class="el" href="classmatrix.html">matrix</a> &amp;&#160;</td>
-          <td class="paramname"><em>HVdagCq</em>&#160;</td>
+          <td class="paramname"><em>HVdagCq</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>atom</em> = <code>-1</code>&#160;</td>
         </tr>
         <tr>
           <td></td>

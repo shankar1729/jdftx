@@ -104,15 +104,15 @@ $(document).ready(function(){initNavTree('CommandTargetMu.html',''); initResizab
 <div class="title">target-mu </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md347"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md371"></a>
 Syntax:</h2>
 <pre class="fragment">target-mu &lt;mu&gt; [&lt;outerLoop&gt;=no]
-</pre> <h2><a class="anchor" id="autotoc_md348"></a>
+</pre> <h2><a class="anchor" id="autotoc_md372"></a>
 Description:</h2>
 <p>Fixed chemical potential &lt;mu&gt; (instead of fixed charge). Note that &lt;mu&gt; is absolute (relative to vacuum level) and in Hartrees. For example, potential V (in Volts) relative to SHE corresponds to mu = -(Vref + V)/27.2114, where Vref is the absolute SHE potential in Volts below vacuum; you could set Vref = 4.44 based on experiment or use the value calibrated using potentials of zero charge with the solvation model in use.</p>
 <p>The default setting &lt;outerLoop&gt;=no directly performs variational minimization or <a class="el" href="classSCF.html" title="Self-Consistent Field method for converging electronic state.">SCF</a> in the grand canonical ensemble: keeping mu fixed throughout, letting the number of electrons adjust continuously <a class="el" href="citelist.html#CITEREF_GC-DFT">[38]</a>.</p>
 <p>Setting &lt;outerLoop&gt;=yes instead performs a sequence of conventional fixed-charge optimizations, adjusting mu in an outer loop using the secant method. This is usually much slower, and is only recommended if the default direct grand canonical method fails.</p>
-<h2><a class="anchor" id="autotoc_md349"></a>
+<h2><a class="anchor" id="autotoc_md373"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandElecSmearing.html">elec-smearing</a> &#160;&#160;&#160; <a class="el" href="CommandFluidAnion.html">fluid-anion</a> &#160;&#160;&#160; <a class="el" href="CommandFluidCation.html">fluid-cation</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; <a class="el" href="CommandElecInitialCharge.html">elec-initial-charge</a> &#160;&#160;&#160; <a class="el" href="CommandFixElectronDensity.html">fix-electron-density</a> &#160;&#160;&#160; <a class="el" href="CommandFixElectronPotential.html">fix-electron-potential</a></p>

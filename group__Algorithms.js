@@ -91,5 +91,30 @@ var group__Algorithms =
       [ "nIterations", "structPulayParams.html#a69d815271585f70a35bae97fd7d19e66", null ],
       [ "qMetric", "structPulayParams.html#a33765466ebf45df1d4739666cd199d23", null ],
       [ "residualThreshold", "structPulayParams.html#ac4c73699de58c24ea84e3bdb92aad4d3", null ]
+    ] ],
+    [ "SolverParams", "structSolverParams.html", [
+      [ "Algorithms", "structSolverParams.html#aa12aa28eed41dffdba86cb4f0fe8fef7", [
+        [ "CG", "structSolverParams.html#aa12aa28eed41dffdba86cb4f0fe8fef7af9d12267bbc9f2f5731dfc6e208d9ba0", null ],
+        [ "MINRES", "structSolverParams.html#aa12aa28eed41dffdba86cb4f0fe8fef7af08bda48a60958a4a3cade5abbdbe740", null ]
+      ] ],
+      [ "SolverParams", "structSolverParams.html#a4afc7ad3963565d1a2731cb92cb82efa", null ],
+      [ "algorithm", "structSolverParams.html#aeff90e86707066c4ea7e4f413476609d", null ],
+      [ "CGBypass", "structSolverParams.html#ac0a2f4b41ea5ef121b71e735ac662a97", null ],
+      [ "fpLog", "structSolverParams.html#a0f3a35524fb3ee406b2b47ca848d40f3", null ],
+      [ "linePrefix", "structSolverParams.html#adbf41638471403ac91ed74cf6ef0a216", null ],
+      [ "nIterations", "structSolverParams.html#a74d581b27ce378561a69599e0d9d111d", null ],
+      [ "recomputeResidual", "structSolverParams.html#a56f5f2371fa6a9854640b20c29552eeb", null ],
+      [ "residualDiffThreshold", "structSolverParams.html#a9099034f8d6a6f7f520f2124022cd6ef", null ],
+      [ "residualTol", "structSolverParams.html#acddaa6d43009da349c3cdc078f0c3476", null ]
+    ] ],
+    [ "LinearSolvableIndefinite", "structLinearSolvableIndefinite.html", [
+      [ "CG", "structLinearSolvableIndefinite.html#af2af905e021a7ac39646c30adf0e3943", null ],
+      [ "hessian", "structLinearSolvableIndefinite.html#a71858de53f6e30ba5a71d8c4d7bb75a4", null ],
+      [ "Ksqrt", "structLinearSolvableIndefinite.html#a2dae531564aa916c3ac323a2920052ea", null ],
+      [ "MINRES", "structLinearSolvableIndefinite.html#a890a1c682c7536dcba7468a5e8067bd8", null ],
+      [ "precondition", "structLinearSolvableIndefinite.html#a76cabf50e97824f86a275f4e44faffcb", null ],
+      [ "solve", "structLinearSolvableIndefinite.html#afcbfbe6986bec7f452339b52428dc722", null ],
+      [ "sync", "structLinearSolvableIndefinite.html#a58e91da6bc825e7749496c97cf8657ce", null ],
+      [ "state", "structLinearSolvableIndefinite.html#ae4317c9732cc8fffab5bcba042d2d215", null ]
     ] ]
 ];

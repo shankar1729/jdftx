@@ -2,6 +2,7 @@ var hierarchy =
 [
     [ "array< T, N >", "structarray.html", null ],
     [ "Atom", "structAtom.html", null ],
+    [ "AtomicMode", "structAtomicMode.html", null ],
     [ "Wannier::AtomicOrbital", "structWannier_1_1AtomicOrbital.html", null ],
     [ "D3::AtomParams", "structD3_1_1AtomParams.html", null ],
     [ "VanDerWaalsD2::AtomParams", "structVanDerWaalsD2_1_1AtomParams.html", null ],
@@ -171,6 +172,10 @@ var hierarchy =
       [ "LinearPCM", "classLinearPCM.html", null ],
       [ "SaLSA", "classSaLSA.html", null ]
     ] ],
+    [ "LinearSolvableIndefinite< Vector >", "structLinearSolvableIndefinite.html", null ],
+    [ "LinearSolvableIndefinite< PerturbationGradient >", "structLinearSolvableIndefinite.html", [
+      [ "PerturbationSolver", "classPerturbationSolver.html", null ]
+    ] ],
     [ "LinkDescription< Enum >", "structLinkDescription.html", null ],
     [ "LongRangeSum", "classLongRangeSum.html", null ],
     [ "LongRangeSum2D", "classLongRangeSum2D.html", null ],
@@ -259,6 +264,14 @@ var hierarchy =
     [ "D3::PairParams", "structD3_1_1PairParams.html", null ],
     [ "ParamList", "classParamList.html", null ],
     [ "PeriodicLookup< T >", "classPeriodicLookup.html", null ],
+    [ "Perturbation", "classPerturbation.html", [
+      [ "AtomPerturbation", "classAtomPerturbation.html", null ],
+      [ "ElectricFieldPerturbation", "classElectricFieldPerturbation.html", null ],
+      [ "RhoPerturbation", "classRhoPerturbation.html", null ],
+      [ "VextPerturbation", "classVextPerturbation.html", null ]
+    ] ],
+    [ "PerturbationGradient", "structPerturbationGradient.html", null ],
+    [ "PerturbationInfo", "classPerturbationInfo.html", null ],
     [ "Phonon", "classPhonon.html", null ],
     [ "Polarizability", "structPolarizability.html", null ],
     [ "FluidComponent::PoleLD", "structFluidComponent_1_1PoleLD.html", null ],
@@ -321,8 +334,10 @@ var hierarchy =
     [ "Molecule::Site", "structMolecule_1_1Site.html", null ],
     [ "SlabEpsilon", "structSlabEpsilon.html", null ],
     [ "SO3quad", "classSO3quad.html", null ],
+    [ "SolverParams", "structSolverParams.html", null ],
     [ "SpaceGroupOp", "structSpaceGroupOp.html", null ],
     [ "SpeciesInfo", "classSpeciesInfo.html", null ],
+    [ "SpringConstant", "classSpringConstant.html", null ],
     [ "StaticLoopYlm< Nlm, Functor, lmInv >", "structStaticLoopYlm.html", null ],
     [ "StaticLoopYlm< Nlm, Functor, 0 >", "structStaticLoopYlm_3_01Nlm_00_01Functor_00_010_01_4.html", null ],
     [ "StaticLoopYlmTag< lm >", "structStaticLoopYlmTag.html", null ],
@@ -333,6 +348,7 @@ var hierarchy =
     [ "Symmetries", "classSymmetries.html", null ],
     [ "TaskDivision", "classTaskDivision.html", null ],
     [ "tensor3< scalar >", "classtensor3.html", null ],
+    [ "TestPerturbation", "classTestPerturbation.html", null ],
     [ "TetrahedralDOS", "classTetrahedralDOS.html", null ],
     [ "tiledBlockMatrix", "classtiledBlockMatrix.html", null ],
     [ "TranslationOperator", "classTranslationOperator.html", [

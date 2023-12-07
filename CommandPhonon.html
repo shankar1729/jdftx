@@ -104,11 +104,11 @@ $(document).ready(function(){initNavTree('CommandPhonon.html',''); initResizable
 <div class="title">phonon </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md371"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md395"></a>
 Syntax:</h2>
 <pre class="fragment">phonon &lt;key1&gt; &lt;args1...&gt;  &lt;key2&gt; &lt;args2...&gt;  ...
 </pre><p> <b>Note:</b> only available in calculations using the 'phonon' executable. </p>
-<h2><a class="anchor" id="autotoc_md372"></a>
+<h2><a class="anchor" id="autotoc_md396"></a>
 Description:</h2>
 <p><a class="el" href="classControl.html" title="Miscellaneous flags controlling electronic DFT.">Control</a> <a class="el" href="CommandPhonon.html">phonon</a> calculation and output. The possible &lt;key&gt;'s and their corresponding arguments are:</p>
 <ul>
@@ -127,6 +127,9 @@ Description:</h2>
 <li><p class="startli">saveHsub yes|no</p>
 <p class="startli">Whether to compute / save phononHsub: the electron-phonon matrix elements. Default: yes.</p>
 </li>
+<li><p class="startli">useVPT</p>
+<p class="startli">Compute perturbations using variational perturbation theory (VPT) instead of finite differencing. Finite difference with step size dr is still used to calculate second derivative of energy. Set dr to 0 to compute analytically instead (only for non-ultrasoft potentials, and slightly slower.)</p>
+</li>
 <li><p class="startli">T &lt;T&gt;</p>
 <p class="startli">Temperature (in Kelvins) used for vibrational free energy estimation (default 298).</p>
 </li>
@@ -137,7 +140,7 @@ Description:</h2>
 <p class="startli">Width in bohrs of the supercell boundary region over which matrix elements are smoothed.</p>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md373"></a>
+<h2><a class="anchor" id="autotoc_md397"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Forbids:</b> &#160;&#160;&#160; <a class="el" href="CommandFixElectronDensity.html">fix-electron-density</a> &#160;&#160;&#160; <a class="el" href="CommandFixElectronPotential.html">fix-electron-potential</a></p>

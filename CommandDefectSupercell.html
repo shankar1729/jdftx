@@ -104,18 +104,18 @@ $(document).ready(function(){initNavTree('CommandDefectSupercell.html',''); init
 <div class="title">defect-supercell </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md374"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md398"></a>
 Syntax:</h2>
 <pre class="fragment">defect-supercell &lt;name&gt; &lt;sup0&gt; &lt;sup1&gt; &lt;sup2&gt; &lt;inFile&gt; &lt;center0&gt; &lt;center1&gt; &lt;center2&gt;  &lt;q&gt; [&lt;alignWidth&gt;=5. &lt;alignSmooth&gt;=1.]
 </pre><p> <b>Note:</b> only available in calculations using the 'wannier' executable. </p>
-<h2><a class="anchor" id="autotoc_md375"></a>
+<h2><a class="anchor" id="autotoc_md399"></a>
 Description:</h2>
 <p>Export wannierized matrix elements to mlwfHd_&lt;name&gt; using a &lt;sup0&gt; x &lt;sup1&gt; x &lt;sup2&gt; supercell (must evenly divide the corresponding k-point sampling in each direction) based on a defect calculation specified by &lt;inFile&gt;. The defect calculation need not be on the same supercell as the output, and this supercell is determined automatically.</p>
 <p>The defect is assumed to be centered on location &lt;center0&gt; &lt;center1&gt; &lt;center2&gt; in the coordinate system specified by command <a class="el" href="CommandCoordsType.html">coords-type</a> in &lt;inFile&gt;. (For <a class="el" href="CommandCoordsType.html">coords-type</a> lattice, these coordinates are fractional with respect to the defect calculation.) The defect charge &lt;q&gt; (specified as excess electrons, similar to command <a class="el" href="CommandChargedDefect.html">charged-defect</a>) is used to correct for long-ranged potential behavior as appropriate.</p>
 <p>Note that the reference supercell calculation must export Vscloc. Only norm-conserving pseudopotentials are supported for defect matrix-element evaluation.</p>
 <p>Optional &lt;alignWidth&gt; and &lt;alignSmooth&gt; control the width and smoothness (in bohrs) of the region used for electrostatic potential alignment between the supercell and unit cell. The region is specified relative to the boundary of the supercell Wigner-Seitz cell. Use &lt;alignWidth&gt; &lt;= 0. to skip the alignment potential altogether.</p>
 <p>This command may be specified multiple times to calculate elements for several defects.</p>
-<h2><a class="anchor" id="autotoc_md376"></a>
+<h2><a class="anchor" id="autotoc_md400"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandCoordsType.html">coords-type</a> &#160;&#160;&#160; <a class="el" href="CommandLattScale.html">latt-scale</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>

@@ -293,6 +293,14 @@ typedef std::vector&lt; <a class="el" href="group__DataStructures.html#gaba3daca
 typedef std::vector&lt; <a class="el" href="group__DataStructures.html#ga6e08b08fea5bf3bca91972c6e49d4547">ScalarFieldTilde</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a></td></tr>
 <tr class="memdesc:ga8d907909fee035ff906972703c7bb870"><td class="mdescLeft">&#160;</td><td class="mdescRight">dynamic size collection of reciprocal space scalar fields <br /></td></tr>
 <tr class="separator:ga8d907909fee035ff906972703c7bb870"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gadfd98e9d610f1a3a04f590e323087ebe"><td class="memItemLeft" align="right" valign="top"><a id="gadfd98e9d610f1a3a04f590e323087ebe"></a>
+typedef std::vector&lt; <a class="el" href="group__DataStructures.html#ga0a122002c764801a8923fd2091efcd0b">complexScalarField</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a></td></tr>
+<tr class="memdesc:gadfd98e9d610f1a3a04f590e323087ebe"><td class="mdescLeft">&#160;</td><td class="mdescRight">dynamic size collection of complex scalar fields <br /></td></tr>
+<tr class="separator:gadfd98e9d610f1a3a04f590e323087ebe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa7c2f49d2bfe42632872b22dd6ae9b54"><td class="memItemLeft" align="right" valign="top"><a id="gaa7c2f49d2bfe42632872b22dd6ae9b54"></a>
+typedef std::vector&lt; <a class="el" href="group__DataStructures.html#gac243b4be10d9bc0b4e5b3c3339bbaf10">complexScalarFieldTilde</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gaa7c2f49d2bfe42632872b22dd6ae9b54">complexScalarFieldTildeArray</a></td></tr>
+<tr class="memdesc:gaa7c2f49d2bfe42632872b22dd6ae9b54"><td class="mdescLeft">&#160;</td><td class="mdescRight">dynamic size collection of reciprocal complex scalar fields <br /></td></tr>
+<tr class="separator:gaa7c2f49d2bfe42632872b22dd6ae9b54"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga99abc7575c2216d80ed5d3e5d137b901"><td class="memItemLeft" align="right" valign="top"><a id="ga99abc7575c2216d80ed5d3e5d137b901"></a>
 typedef <a class="el" href="structScalarFieldMultiplet.html">ScalarFieldMultiplet</a>&lt; <a class="el" href="structScalarFieldData.html">ScalarFieldData</a>, 3 &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga99abc7575c2216d80ed5d3e5d137b901">VectorField</a></td></tr>
 <tr class="memdesc:ga99abc7575c2216d80ed5d3e5d137b901"><td class="mdescLeft">&#160;</td><td class="mdescRight">Real space vector field. <br /></td></tr>
@@ -894,6 +902,21 @@ template&lt;typename T &gt; </td></tr>
 <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga101d73ed0d08698e172d63efa72011dd">Jdag</a> (const <a class="el" href="group__DataStructures.html#ga8d907909fee035ff906972703c7bb870">ScalarFieldTildeArray</a> &amp;X)</td></tr>
 <tr class="memdesc:ga101d73ed0d08698e172d63efa72011dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hermitian conjugate of J. <br /></td></tr>
 <tr class="separator:ga101d73ed0d08698e172d63efa72011dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga03039594484db61cc90c349f210b11f0"><td class="memItemLeft" align="right" valign="top"><a id="ga03039594484db61cc90c349f210b11f0"></a>
+<a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Real</b> (const <a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a> X)</td></tr>
+<tr class="separator:ga03039594484db61cc90c349f210b11f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf801af2cb201f4c304c3174fc7866599"><td class="memItemLeft" align="right" valign="top"><a id="gaf801af2cb201f4c304c3174fc7866599"></a>
+<a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Imag</b> (const <a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a> X)</td></tr>
+<tr class="separator:gaf801af2cb201f4c304c3174fc7866599"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac30374722ada638c0adc096fae7acf13"><td class="memItemLeft" align="right" valign="top"><a id="gac30374722ada638c0adc096fae7acf13"></a>
+<a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Complex</b> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> re, const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> im)</td></tr>
+<tr class="separator:gac30374722ada638c0adc096fae7acf13"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf619819360b94aef1e93e3347f699173"><td class="memItemLeft" align="right" valign="top"><a id="gaf619819360b94aef1e93e3347f699173"></a>
+<a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Complex</b> (const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> re)</td></tr>
+<tr class="separator:gaf619819360b94aef1e93e3347f699173"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga7d2a79552c232cd1e95e4d94dd47e51a"><td class="memItemLeft" align="right" valign="top"><a id="ga7d2a79552c232cd1e95e4d94dd47e51a"></a>
+<a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>conj</b> (const <a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a> X)</td></tr>
+<tr class="separator:ga7d2a79552c232cd1e95e4d94dd47e51a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga8ff8867af1629f6580dcda4e11a885b0"><td class="memTemplParams" colspan="2"><a id="ga8ff8867af1629f6580dcda4e11a885b0"></a>
 template&lt;typename T &gt; </td></tr>
 <tr class="memitem:ga8ff8867af1629f6580dcda4e11a885b0"><td class="memTemplItemLeft" align="right" valign="top">T &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>operator+=</b> (T &amp;y, const <a class="el" href="structscaled.html">scaled</a>&lt; T &gt; &amp;x)</td></tr>
@@ -1617,12 +1640,12 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 <a class="el" href="classvector3.html">vector3</a>&lt; <a class="el" href="classmatrix.html">matrix</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga5646c21e22141dd7fe1feef29b015095">spinOverlap</a> (const <a class="el" href="structscaled.html">scaled</a>&lt; <a class="el" href="classColumnBundle.html">ColumnBundle</a> &gt; &amp;sY)</td></tr>
 <tr class="memdesc:ga5646c21e22141dd7fe1feef29b015095"><td class="mdescLeft">&#160;</td><td class="mdescRight">spin-resolved inner product for a spinorial <a class="el" href="classColumnBundle.html" title="Wavefunction data structure.">ColumnBundle</a> <br /></td></tr>
 <tr class="separator:ga5646c21e22141dd7fe1feef29b015095"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae191889c0b98fc1d935678ea22c0b93c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gae191889c0b98fc1d935678ea22c0b93c">Idag_DiagV_I</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;C, const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;V)</td></tr>
-<tr class="separator:gae191889c0b98fc1d935678ea22c0b93c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaba703c92a5b60c789e5a2abcb572cc6c"><td class="memItemLeft" align="right" valign="top"><a id="gaba703c92a5b60c789e5a2abcb572cc6c"></a>
-<a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gaba703c92a5b60c789e5a2abcb572cc6c">Idag_DiagV_I</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;C, const std::vector&lt; <a class="el" href="group__DataStructures.html#ga0a122002c764801a8923fd2091efcd0b">complexScalarField</a> &gt; &amp;V)</td></tr>
-<tr class="memdesc:gaba703c92a5b60c789e5a2abcb572cc6c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Same as above for complex potentials. <br /></td></tr>
-<tr class="separator:gaba703c92a5b60c789e5a2abcb572cc6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabe0da6cfe4dd920dc25454ccc5eaf58b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gabe0da6cfe4dd920dc25454ccc5eaf58b">Idag_DiagV_I</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;C, const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;V, const <a class="el" href="classColumnBundle.html">ColumnBundle</a> *Cout=0)</td></tr>
+<tr class="separator:gabe0da6cfe4dd920dc25454ccc5eaf58b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0a740b8e88fbf048081dd52aa328393e"><td class="memItemLeft" align="right" valign="top"><a id="ga0a740b8e88fbf048081dd52aa328393e"></a>
+<a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga0a740b8e88fbf048081dd52aa328393e">Idag_DiagV_I</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;C, const <a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a> &amp;V, const <a class="el" href="classColumnBundle.html">ColumnBundle</a> *Cout=0)</td></tr>
+<tr class="memdesc:ga0a740b8e88fbf048081dd52aa328393e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Same as above for complex potentials. <br /></td></tr>
+<tr class="separator:ga0a740b8e88fbf048081dd52aa328393e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf6d4d30b7062edfd0f75a082814c3067"><td class="memItemLeft" align="right" valign="top"><a id="gaf6d4d30b7062edfd0f75a082814c3067"></a>
 <a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gaf6d4d30b7062edfd0f75a082814c3067">L</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y)</td></tr>
 <tr class="memdesc:gaf6d4d30b7062edfd0f75a082814c3067"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply Laplacian. <br /></td></tr>
@@ -1643,14 +1666,18 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 <a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga7ed74fe1efd5d6a3593b8db2e422643c">D</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, int iDir)</td></tr>
 <tr class="memdesc:ga7ed74fe1efd5d6a3593b8db2e422643c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the cartesian gradient of a column bundle in direction# iDir. <br /></td></tr>
 <tr class="separator:ga7ed74fe1efd5d6a3593b8db2e422643c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga156cb4845f6335afc96b53ff39181b17"><td class="memItemLeft" align="right" valign="top"><a id="ga156cb4845f6335afc96b53ff39181b17"></a>
+<a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga156cb4845f6335afc96b53ff39181b17">D</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;in, const <a class="el" href="classvector3.html">vector3</a>&lt;&gt; &amp;dir)</td></tr>
+<tr class="memdesc:ga156cb4845f6335afc96b53ff39181b17"><td class="mdescLeft">&#160;</td><td class="mdescRight">Directional derivative of column bundle along (cartesian direction) dir. <br /></td></tr>
+<tr class="separator:ga156cb4845f6335afc96b53ff39181b17"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9b1aa6b1760cd88c94c5437460d02974"><td class="memItemLeft" align="right" valign="top"><a id="ga9b1aa6b1760cd88c94c5437460d02974"></a>
 <a class="el" href="classColumnBundle.html">ColumnBundle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga9b1aa6b1760cd88c94c5437460d02974">DD</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, int iDir, int jDir)</td></tr>
 <tr class="memdesc:ga9b1aa6b1760cd88c94c5437460d02974"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute second spatial derivative of a column bundle along directions# iDir, jDir. <br /></td></tr>
 <tr class="separator:ga9b1aa6b1760cd88c94c5437460d02974"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga2e2d594da9f22588fbea9783cf49b29b"><td class="memItemLeft" align="right" valign="top"><a id="ga2e2d594da9f22588fbea9783cf49b29b"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga2e2d594da9f22588fbea9783cf49b29b">precond_inv_kinetic</a> (<a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, double KErollover)</td></tr>
-<tr class="memdesc:ga2e2d594da9f22588fbea9783cf49b29b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply inverse kinetic preconditioner (Roughly inv((k+G)^2/2)) in-place. <br /></td></tr>
-<tr class="separator:ga2e2d594da9f22588fbea9783cf49b29b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga07c4d087e063a4641b46f5dfb4bc0c17"><td class="memItemLeft" align="right" valign="top"><a id="ga07c4d087e063a4641b46f5dfb4bc0c17"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga07c4d087e063a4641b46f5dfb4bc0c17">precond_inv_kinetic</a> (<a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y, double KErollover, bool sqrtop=false)</td></tr>
+<tr class="memdesc:ga07c4d087e063a4641b46f5dfb4bc0c17"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply inverse kinetic preconditioner (Roughly inv((k+G)^2/2)) in-place. <br /></td></tr>
+<tr class="separator:ga07c4d087e063a4641b46f5dfb4bc0c17"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga6a00802e4e875034fd6a161c6da0711a"><td class="memItemLeft" align="right" valign="top"><a id="ga6a00802e4e875034fd6a161c6da0711a"></a>
 <a class="el" href="classdiagMatrix.html">diagMatrix</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#ga6a00802e4e875034fd6a161c6da0711a">diagDot</a> (const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;X, const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;Y)</td></tr>
 <tr class="memdesc:ga6a00802e4e875034fd6a161c6da0711a"><td class="mdescLeft">&#160;</td><td class="mdescRight">compute diag(X^Y) efficiently (avoid the off-diagonals) <br /></td></tr>
@@ -1681,6 +1708,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <tr class="separator:gaa738ca3a7d2d3d6aac2c10fda8c7212c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gad788864d7bc82045338671fae87ae4f7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DataStructures.html#gad788864d7bc82045338671fae87ae4f7">diagouterI</a> (const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;F, const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;X, int nDensities, const <a class="el" href="classGridInfo.html">GridInfo</a> *gInfoOut=0)</td></tr>
 <tr class="separator:gad788864d7bc82045338671fae87ae4f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad00aff56ca34ea4b5ba5532fd2549b4a"><td class="memItemLeft" align="right" valign="top"><a id="gad00aff56ca34ea4b5ba5532fd2549b4a"></a>
+<a class="el" href="group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe">complexScalarFieldArray</a>&#160;</td><td class="memItemRight" valign="bottom"><b>diagouterI</b> (const <a class="el" href="classdiagMatrix.html">diagMatrix</a> &amp;F, const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;A, const <a class="el" href="classColumnBundle.html">ColumnBundle</a> &amp;B, int nDensities, const <a class="el" href="classGridInfo.html">GridInfo</a> *gInfoOut)</td></tr>
+<tr class="separator:gad00aff56ca34ea4b5ba5532fd2549b4a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <h2 class="groupheader">Macro Definition Documentation</h2>
@@ -2063,8 +2093,8 @@ template&lt;typename scalar &gt; </div>
 
 </div>
 </div>
-<a id="gae191889c0b98fc1d935678ea22c0b93c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gae191889c0b98fc1d935678ea22c0b93c">&#9670;&nbsp;</a></span>Idag_DiagV_I()</h2>
+<a id="gabe0da6cfe4dd920dc25454ccc5eaf58b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabe0da6cfe4dd920dc25454ccc5eaf58b">&#9670;&nbsp;</a></span>Idag_DiagV_I()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -2079,7 +2109,13 @@ template&lt;typename scalar &gt; </div>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const <a class="el" href="group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c">ScalarFieldArray</a> &amp;&#160;</td>
-          <td class="paramname"><em>V</em>&#160;</td>
+          <td class="paramname"><em>V</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classColumnBundle.html">ColumnBundle</a> *&#160;</td>
+          <td class="paramname"><em>Cout</em> = <code>0</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -2088,7 +2124,7 @@ template&lt;typename scalar &gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Return Idag V .* I C (evaluated columnwise) The handling of the spin structure of V parallels that of diagouterI, with V.size() taking the role of nDensities </p>
+<p>Return Idag V .* I C (evaluated columnwise) The handling of the spin structure of V parallels that of diagouterI, with V.size() taking the role of nDensities If Cout is specified, return output at the k-point and basis of Cout, else use k-point and basis of C. </p>
 
 </div>
 </div>

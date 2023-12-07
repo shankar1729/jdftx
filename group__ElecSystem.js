@@ -145,7 +145,7 @@ var group__ElecSystem =
       [ "EdensityAndVscloc", "classElecVars.html#a344954949e356af10fec58f003ad99e1", null ],
       [ "elecEnergyAndGrad", "classElecVars.html#ab4e025ca7cc627ae77b43edc11b227e5", null ],
       [ "get_nTot", "classElecVars.html#a53995954069e23d9733245d3e56bf52d", null ],
-      [ "get_nXC", "classElecVars.html#a3d231b59cee0ab26f3daca92a365c596", null ],
+      [ "get_nXC", "classElecVars.html#a217f087430eff14e772a650e9f98eefd", null ],
       [ "KEdensity", "classElecVars.html#a815b28c0bf64ce6a5f5aeb64ce323fd7", null ],
       [ "latticeGrad", "classElecVars.html#a84f0dccd90683c8392e0750dce45805f", null ],
       [ "orthonormalize", "classElecVars.html#aec59211b62ea0b47c1346a4fc4561c63", null ],

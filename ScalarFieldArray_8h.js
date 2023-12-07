@@ -1,16 +1,22 @@
 var ScalarFieldArray_8h =
 [
     [ "TptrCollection", "group__DataStructures.html#gae25dfb7042291399ba969bfb8f6b461d", null ],
+    [ "complexScalarFieldArray", "group__DataStructures.html#gadfd98e9d610f1a3a04f590e323087ebe", null ],
+    [ "complexScalarFieldTildeArray", "group__DataStructures.html#gaa7c2f49d2bfe42632872b22dd6ae9b54", null ],
     [ "ScalarFieldArray", "group__DataStructures.html#ga76a7258e8ec5efe14ca37d36fc98554c", null ],
     [ "ScalarFieldTildeArray", "group__DataStructures.html#ga8d907909fee035ff906972703c7bb870", null ],
     [ "axpy", "group__DataStructures.html#ga1aa0262ff08942d2dddc095b08b69fc7", null ],
     [ "clone", "group__DataStructures.html#ga335a675efaf87654939af260b19f1eb1", null ],
+    [ "Complex", "group__DataStructures.html#gaf619819360b94aef1e93e3347f699173", null ],
+    [ "Complex", "group__DataStructures.html#gac30374722ada638c0adc096fae7acf13", null ],
+    [ "conj", "group__DataStructures.html#ga7d2a79552c232cd1e95e4d94dd47e51a", null ],
     [ "constDataPref", "group__DataStructures.html#ga9647e0beebdc5ad817746e7d44cd09ef", null ],
     [ "dataPref", "group__DataStructures.html#ga1c45d78b51539468c7e6fadb996ae481", null ],
     [ "dot", "group__DataStructures.html#ga4e8d210b6902c4dac989797f78c58e34", null ],
     [ "I", "group__DataStructures.html#gae0e63766e02ef5435f2210b89707d7e8", null ],
     [ "I", "group__DataStructures.html#gafa96630e687b22abef9d7dd44f2f52c6", null ],
     [ "Idag", "group__DataStructures.html#ga9ee10502e52f49eeccfb7fd86968ce8a", null ],
+    [ "Imag", "group__DataStructures.html#gaf801af2cb201f4c304c3174fc7866599", null ],
     [ "initRandomFlat", "group__DataStructures.html#ga223dd6e071635d4d5070ec56d2a03495", null ],
     [ "initZero", "group__DataStructures.html#ga0ed56eefb9b45cbac470cfdb458319b2", null ],
     [ "J", "group__DataStructures.html#ga88d01a14efba8b01b4079f5136c0c473", null ],
@@ -45,5 +51,6 @@ var ScalarFieldArray_8h =
     [ "operator-", "group__DataStructures.html#ga36e4c377fc716f91448d25dc5b7c4c48", null ],
     [ "operator-=", "group__DataStructures.html#ga6aa2512bb38e5993c0e73effa3f6e147", null ],
     [ "randomize", "group__DataStructures.html#ga5acf0b67c60d2fdff2d6626909d9cd4f", null ],
+    [ "Real", "group__DataStructures.html#ga03039594484db61cc90c349f210b11f0", null ],
     [ "saveToFile", "group__DataStructures.html#ga9746cdaa57b85151551cecba596b4413", null ]
 ];

@@ -23,6 +23,7 @@ var classEverything =
     [ "ionicDynParams", "classEverything.html#a0ba23d7a065ce3d1f237edb872c9310b", null ],
     [ "ionicMinParams", "classEverything.html#aab973a64d0bf498876bdb4c64425d8c4", null ],
     [ "latticeMinParams", "classEverything.html#a14dc9f8f3155dfb48f9e5634aac304fb", null ],
+    [ "pertInfo", "classEverything.html#a649810de834cd3ea9229cc596d4f489b", null ],
     [ "scfParams", "classEverything.html#af1d98cdc21a9b866c7771a82ba40e2c0", null ],
     [ "symm", "classEverything.html#af363c35bdeb8475b29782b544e85f50d", null ],
     [ "symmUnperturbed", "classEverything.html#a91027057a2beb123fb2489a69fe627bf", null ],
