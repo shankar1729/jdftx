@@ -28,7 +28,7 @@ PhononEverything::PhononEverything(Phonon& phonon) : phonon(phonon)
 }
 
 Phonon::Phonon()
-: dr(0.1), VPTstepSize(1e-3), T(298*Kelvin), Fcut(1e-8), rSmooth(1.), iPerturbation(-1), collectPerturbations(false), saveHsub(true), useVPT(false), e(*this), eSupTemplate(*this)
+: dr(0.1), T(298*Kelvin), Fcut(1e-8), rSmooth(1.), iPerturbation(-1), collectPerturbations(false), saveHsub(true), useVPT(false), e(*this), eSupTemplate(*this)
 {
 }
 

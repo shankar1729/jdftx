@@ -28,7 +28,6 @@ enum PhononMember
 	PM_collectPerturbations,
 	PM_saveHsub,
 	PM_useVPT,
-	PM_VPTstepSize,
  	PM_T,
 	PM_Fcut,
 	PM_rSmooth,
@@ -42,7 +41,6 @@ EnumStringMap<PhononMember> phononMemberMap
 	PM_collectPerturbations, "collectPerturbations",
 	PM_saveHsub, "saveHsub",
 	PM_useVPT, "useVPT",
-	PM_VPTstepSize, "VPTstepSize",
 	PM_T, "T",
 	PM_Fcut, "Fcut",
 	PM_rSmooth, "rSmooth"
@@ -76,9 +74,8 @@ struct CommandPhonon : public Command
 			"   Default: yes.\n"
 			"\n+ useVPT\n\n"
 			"    Compute perturbations using variational perturbation theory (VPT) instead of finite differencing.\n"
-			"\n+ VPTstepSize\n\n"
-			"    Finite difference step size used by VPT at the very end to calculate second derivative of energy (default 1e-3).\n"
-			"    Set to 0 to compute analytically instead (only available for non-ultrasoft potentials, and slightly slower.)\n"
+			"    Finite difference with step size dr is still used to calculate second derivative of energy.\n"
+			"    Set dr to 0 to compute analytically instead (only for non-ultrasoft potentials, and slightly slower.)\n"
 			"\n+ T <T>\n\n"
 			"   Temperature (in Kelvins) used for vibrational free energy estimation (default 298).\n"
 			"\n+ Fcut <Fcut>\n\n"
@@ -128,9 +125,6 @@ struct CommandPhonon : public Command
 					break;
 				case PM_useVPT:
 					phonon.useVPT = true;
-					break;
-				case PM_VPTstepSize:
-					pl.get(phonon.dr, 0., "VPTstepSize", true);
 					break;
 				case PM_T:
 					pl.get(phonon.T, 0., "T", true);

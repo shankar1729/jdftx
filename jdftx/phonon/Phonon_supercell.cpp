@@ -81,12 +81,13 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	
 	//Apply perturbation and then setup (so that symmetries reflect perturbed state):
 	std::shared_ptr<AtomPerturbation> vptMode;
-	if (useVPT) {
-		vptMode = std::make_shared<AtomPerturbation>(pert.sp, pert.at, pert.dir, *eSup);
+	if (useVPT)
+	{	vptMode = std::make_shared<AtomPerturbation>(pert.sp, pert.at, pert.dir, *eSup);
 		vptMode->mode.dirLattice = inv(eSup->gInfo.R) * pert.dir; //Manually set since gInfo not initialized
 		eSup->pertInfo.datom = vptMode; //Must go before eSup->setup because of symmetry checks
-	} else {
-		vector3<> dxPert = inv(eSup->gInfo.R) * dr * pert.dir; //perturbation in lattice coordinates
+	}
+	else
+	{	vector3<> dxPert = inv(eSup->gInfo.R) * dr * pert.dir; //perturbation in lattice coordinates
 		eSup->iInfo.species[pert.sp]->atpos[pert.at] += dxPert; //apply perturbation
 	}
 	eSup->setup();
@@ -147,9 +148,8 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 		if(saveHsub && !useVPT) eSup->iInfo.augmentDensityGridGrad(eSup->eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's (needed by getPerturbedHsub)
 	}
 	else
-	{
-		if (useVPT) {
-			eSup->spring = std::make_shared<SpringConstant>(*eSup);
+	{	if(useVPT)
+		{	eSup->spring = std::make_shared<SpringConstant>(*eSup);
 			dgrad_pert = eSup->spring->getPhononMatrixColumn(vptMode, dr);
 			for (int s = 0; s < nSpins; s++) {
 				ostringstream fname;
@@ -158,8 +158,9 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 				matrix dHsub = eSup->pertInfo.dHsub[0]+eSup->pertInfo.dHsubatom[0];
 				dHsub.write(eSup->dump.getFilename(fname.str()).c_str());
 			}
-		} else {	
-			IonicGradient grad;
+		}
+		else
+		{	IonicGradient grad;
 			IonicMinimizer(*eSup).compute(&grad, 0);
 			dgrad_pert = (grad - grad0) * (1./dr);
 			logPrintf("Energy change: %lg / unit cell\n", (relevantFreeEnergy(*eSup) - E0)/prodSup);
@@ -187,26 +188,27 @@ void Phonon::processPerturbation(const Perturbation& pert, string fnamePattern)
 	//Subspace hamiltonian change:
 	std::vector<matrix> Hsub, dHsub_pert(nSpins);
 	if(saveHsub)
-	{	
-		if (useVPT) {
-			if(collectPerturbations) {
-				for (int s = 0; s < nSpins; s++) {
-					dHsub_pert[s].init(eSup->eInfo.nStates, eSup->eInfo.nStates);
+	{	if (useVPT)
+		{	if(collectPerturbations)
+			{	for (int s = 0; s < nSpins; s++)
+				{	dHsub_pert[s].init(eSup->eInfo.nStates, eSup->eInfo.nStates);
 					ostringstream fname;
 					if (nSpins > 1) fname << s;
 					fname << ".dHsub";
 					dHsub_pert[s].read(eSup->dump.getFilename(fname.str()).c_str());
 				}
-			} else {
-				for (int s = 0; s < nSpins; s++) {
-					int qSup = s*(eSup->eInfo.nStates/nSpins);
+			}
+			else
+			{	for (int s = 0; s < nSpins; s++)
+				{	int qSup = s*(eSup->eInfo.nStates/nSpins);
 					assert(eSup->eInfo.qnums[qSup].k.length_squared() == 0);
 					dHsub_pert[s] = eSup->pertInfo.CdagdHC[qSup]+eSup->pertInfo.dHsubatom[qSup];
 					//dHsub_pert[s] = eSup->pertInfo.dHsub[qSup]+eSup->pertInfo.dHsubatom[qSup];
 				}
 			}
-		} else {
-			Hsub = getPerturbedHsub(pert, Hsub0);
+		}
+		else
+		{	Hsub = getPerturbedHsub(pert, Hsub0);
 			for(size_t s=0; s<Hsub.size(); s++)
 				dHsub_pert[s] = (1./dr) * (Hsub[s] - Hsub0[s]);
 		}
