@@ -353,11 +353,19 @@ void SpeciesInfo::populationAnalysis(const std::vector<matrix>& RhoAll) const
 	assert(atomMap);
 	std::vector<double> Nsym(atpos.size());
 	std::vector< vector3<> > Msym(atpos.size());
-	for(unsigned atom=0; atom<atpos.size(); atom++)
-	{	double den = 1./atomMap->at(atom).size();
-		for(unsigned atom2: atomMap->at(atom))
-		{	Nsym[atom] += den * Narr[atom2];
-			Msym[atom] += den * Marr[atom2];
+	const std::vector<SpaceGroupOp>& sym = e->symm.getMatrices();
+	double den = 1.0 / sym.size();
+	matrix3<> spinRot(1.0, 1.0, 1.0); //initialize to identity
+	for(unsigned iSym=0; iSym<sym.size(); iSym++)
+	{	if(e->eInfo.nDensities==4)
+		{	//Non-trivial spin rotation for vector spins:
+			spinRot = e->gInfo.R * sym[iSym].rot * e->gInfo.invR;
+			if(det(spinRot) < 0.0) spinRot = -spinRot;  //axial vector
+		}
+		for(unsigned atom=0; atom<atpos.size(); atom++)
+		{	unsigned atom2 = atomMap->at(atom)[iSym];
+			Nsym[atom] += den * Narr[atom2];
+			Msym[atom] += den * (spinRot * Marr[atom2]);
 		}
 	}
 	std::swap(Nsym, Narr);
