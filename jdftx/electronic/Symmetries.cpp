@@ -80,7 +80,7 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 	//Compile list of inversions to check:
 	std::vector<int> invertList;
 	invertList.push_back(+1);
-	if(kReduceUseInversion)
+	if(kReduceUseInversion and (e->eInfo.spinType != SpinVector))
 		invertList.push_back(-1);
 	for(const SpaceGroupOp& op: sym)
 		if(op.rot==matrix3<int>(-1,-1,-1))
