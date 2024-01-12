@@ -21,6 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/DumpBGW_internal.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/ExactExchange.h>
+#include <core/CoulombIsolated.h>
 
 #ifndef HDF5_ENABLED
 void Dump::dumpBGW()
@@ -413,6 +414,20 @@ void BGW::write_rALDA(bool write_q0) const
 		fxLDA[i] = -M_PI/kFsq;
 	}
 	
+	//Prepare truncation:
+	//NOTE: only non-embedded spherical truncation supported as of now
+	double Rc = 0.0;
+	if(e.coulombParams.geometry != CoulombParams::Periodic)
+	{	if((e.coulombParams.geometry == CoulombParams::Spherical) and (not e.coulombParams.embed))
+		{	Rc = std::static_pointer_cast<CoulombSpherical>(e.coulomb)->Rc;
+			logPrintf("rALDA Coulomb kernel will be spherical-truncated with Rc = %lg\n", Rc);
+		}
+		else logPrintf(
+			"\nWARNING: only non-embedded spherical kernel supported for rALDA.\n"
+			"Falling back to periodic coulomb kernel for rALDA output.\n\n");
+	}
+	else logPrintf("rALDA Coulomb kernel will be periodic.\n");
+	
 	//------------ Calculate and write matrices --------------
 	//--- Process grid:
 	int nProcesses = mpiWorld->nProcesses();
@@ -465,7 +480,9 @@ void BGW::write_rALDA(bool write_q0) const
 					if(qSqSym < qSqCut[i])
 						fxc += phase * fxLDA[i];
 					else
-						coulombS -= phase * (4*M_PI/qSqSym);  //difference between screened and bare Coulomb parts
+					{	double truncation = (Rc ? (1.0 - cos(Rc * sqrt(qSqSym))) : 1.0);
+						coulombS -= phase * (truncation * 4*M_PI/qSqSym);  //difference between screened and bare Coulomb parts
+					}
 				)
 				//Set spin diagonal and off-diagonal components:
 				double prefac = 1./gInfo.nr; //scale factor to convert above sum to unit cell average
