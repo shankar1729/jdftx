@@ -34,6 +34,7 @@ struct BGWparams
 	bool saveVxc; //!< whether to write ecxhange-correlation matrix elements
 	bool saveVxx; //!< whether to write exact-exchange matrix elements
 	bool rpaExx; //!< whether to compute RPA-consistent exact-exchange energy
+	bool offDiagV; //!< whether to write off-diagonal matrix elements of Vxc and/or Vxx (default: false)
 
 	double EcutChiFluid; //!< KE cutoff for fluid polarizability output (enabled if non-zero)
 	bool elecOnly; //!< whether to only output electronic polarizability of fluid (default: true)
@@ -47,7 +48,7 @@ struct BGWparams
 	double Ecut_rALDA; //!< KE cutoff (in Eh) for rALDA output (enabled if non-zero)
 	
 	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10),
-		saveVxc(true), saveVxx(false), rpaExx(false),
+		saveVxc(true), saveVxx(false), rpaExx(false), offDiagV(false),
 		EcutChiFluid(0.), elecOnly(true),
 		freqReMax_eV(30.), freqReStep_eV(1.), freqBroaden_eV(0.1),
 		freqNimag(25), freqPlasma(1.), Ecut_rALDA(0.)

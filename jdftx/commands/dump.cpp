@@ -965,6 +965,7 @@ enum BGWparamsMember
 	BGWpm_saveVxc,
 	BGWpm_saveVxx,
 	BGWpm_rpaExx,
+	BGWpm_offDiagV,
 	BGWpm_EcutChiFluid,
 	BGWpm_elecOnly,
 	BGWpm_q0,
@@ -983,6 +984,7 @@ EnumStringMap<BGWparamsMember> bgwpmMap
 	BGWpm_saveVxc, "saveVxc",
 	BGWpm_saveVxx, "saveVxx",
 	BGWpm_rpaExx, "rpaExx",
+	BGWpm_offDiagV, "offDiagV",
 	BGWpm_EcutChiFluid, "EcutChiFluid",
 	BGWpm_elecOnly, "elecOnly",
 	BGWpm_q0, "q0",
@@ -1000,6 +1002,7 @@ EnumStringMap<BGWparamsMember> bgwpmDescMap
 	BGWpm_saveVxc, "Whether to write exchange-correlation matrix elements (default: yes)",
 	BGWpm_saveVxx, "Whether to write exact-exchange matrix elements (default: no)",
 	BGWpm_rpaExx, "Whether to compute RPA-consistent exact-exchange energy (default: no)",
+	BGWpm_offDiagV, "Whether to write off-diagonal matrix elements of Vxc and/or Vxx (default: no)",
 	BGWpm_EcutChiFluid, "KE cutoff in hartrees for fluid polarizability output (default: 0; set non-zero to enable)",
 	BGWpm_elecOnly, "Whether fluid polarizability output should only include electronic response (default: true)",
 	BGWpm_q0, "Zero wavevector replacement to be used for polarizability output (default: (0,0,0))",
@@ -1043,6 +1046,7 @@ struct CommandBGWparams : public Command
 				READ_BOOL(saveVxc)
 				READ_BOOL(saveVxx)
 				READ_BOOL(rpaExx)
+				READ_BOOL(offDiagV)
 				READ_AND_CHECK(EcutChiFluid, >=, 0.)
 				READ_BOOL(elecOnly)
 				case BGWpm_q0:
@@ -1073,6 +1077,7 @@ struct CommandBGWparams : public Command
 		PRINT_BOOL(saveVxc)
 		PRINT_BOOL(saveVxx)
 		PRINT_BOOL(rpaExx)
+		PRINT_BOOL(offDiagV)
 		PRINT(EcutChiFluid, "%lg")
 		PRINT_BOOL(elecOnly)
 		logPrintf(" \\\n\tq0 %lg %lg %lg", bgwp.q0[0], bgwp.q0[1], bgwp.q0[2]);

@@ -241,12 +241,13 @@ void BGW::writeV(std::vector<matrix>& Vsub, string fname) const
 					fprintf(fp, "%4d %4d %+14.9f %+14.9f\n", iSpin+1, b+1, V_eV.real(), V_eV.imag());
 				}
 				//Off-diagonal elements:
-				for(int b2=0; b2<nBands; b2++)
-				{	for(int b1=0; b1<nBands; b1++)
-					{	complex V_eV = Vsub[q](b1,b2) / eV; //convert to eV
-						fprintf(fp, "%4d %4d %4d %+14.9f %+14.9f\n", iSpin+1, b1+1, b2+1, V_eV.real(), V_eV.imag());
+				if(bgwp.offDiagV)
+					for(int b2=0; b2<nBands; b2++)
+					{	for(int b1=0; b1<nBands; b1++)
+						{	complex V_eV = Vsub[q](b1,b2) / eV; //convert to eV
+							fprintf(fp, "%4d %4d %4d %+14.9f %+14.9f\n", iSpin+1, b1+1, b2+1, V_eV.real(), V_eV.imag());
+						}
 					}
-				}
 				if(!eInfo.isMine(q)) Vsub[q] = 0; //cleanup temporary memory
 			}
 		}
