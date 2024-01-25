@@ -228,7 +228,7 @@ void BGW::writeV(std::vector<matrix>& Vsub, string fname) const
 		if(!fp) die_alone("failed to open for writing.\n");
 		for(int ik=0; ik<nReducedKpts; ik++)
 		{	fprintf(fp, "%.9f %.9f %.9f %4d %4d\n", k[ik][0], k[ik][1], k[ik][2],
-				nBands*nSpins, nBands*nBands*nSpins);
+				nBands*nSpins, bgwp.offDiagV ? nBands*nBands*nSpins : 0);
 			for(int iSpin=0; iSpin<nSpins; iSpin++)
 			{	int q=iSpin*nReducedKpts+ik;
 				if(!eInfo.isMine(q))
