@@ -23,6 +23,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Vibrations.h>
 #include <electronic/DOS.h>
 #include <electronic/DumpBGW_internal.h>
+#include <electronic/IonicMinimizer.h>
+#include <electronic/LatticeMinimizer.h>
 #include <perturb/SpringConstant.h>
 #include <core/LatticeUtils.h>
 #include <fluid/FluidSolver.h>
@@ -173,7 +175,8 @@ void Everything::setup()
 	ionicMinParams.linePrefix = "IonicMinimize: ";
 	ionicMinParams.energyLabel = relevantFreeEnergyName(*this);
 	ionicMinParams.energyFormat = "%+.15lf";
-	
+	ionicMinParams.maxCalculator = (double (*)(const void*))IonicGradient::maxComponent;
+
 	//Setup fluid minimization parameters:
 	switch(eVars.fluidParams.fluidType)
 	{	case FluidLinearPCM:
@@ -208,6 +211,7 @@ void Everything::setup()
 	latticeMinParams.linePrefix = "LatticeMinimize: ";
 	latticeMinParams.energyLabel = relevantFreeEnergyName(*this);
 	latticeMinParams.energyFormat = "%+.15lf";
+	latticeMinParams.maxCalculator = (double (*)(const void*))LatticeGradient::maxComponent;
 
 	//Set up variational perturbation solver
 	pertInfo.setup(*this, eVars);

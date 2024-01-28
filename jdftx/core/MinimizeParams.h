@@ -53,9 +53,11 @@ struct MinimizeParams
 	const char* energyLabel; //!< Label for the minimized quantity (default "E")
 	const char* energyFormat; //!< printf format for the minimized quantity (default "%22.15le")
 	double knormThreshold; //!< stop when norm of residual against preconditioner falls below this (default: 0)
+	bool maxThreshold; //!< use max component instead of knorm for knormThreshold  (default: False)
+	double (*maxCalculator)(const void*); //!< function to calculate max component, needed if maxThreshold = True.
 	double energyDiffThreshold; //!< stop when energy change is below this for nEnergyDiff successive iterations (default: 0)
 	int nEnergyDiff; //!< number of successive iterations for energyDiffThreshold check (default: 2)
-	
+
 	double alphaTstart; //!< initial value for the test-step size (default: 1.0)
 	double alphaTmin; //!< minimum value of the test-step size (algorithm gives up when difficulties cause alphaT to fall below this value) (default:1e-10)
 	bool updateTestStepSize; //!< set alphaT=alpha after every iteration if true (default: true)
@@ -68,13 +70,15 @@ struct MinimizeParams
 	double wolfeGradient; //!< Wolfe criterion dimensionless threshold for gradient
 	
 	bool fdTest; //!< whether to perform a finite difference test before each minimization (default false)
-	
+
+
 	//! Set the default values
 	MinimizeParams() 
 	: dirUpdateScheme(PolakRibiere), linminMethod(DirUpdateRecommended),
 		nIterations(100), nDim(1), history(15), fpLog(stdout),
 		linePrefix("CG\t"), energyLabel("E"), energyFormat("%22.15le"),
-		knormThreshold(0), energyDiffThreshold(0), nEnergyDiff(2),
+		knormThreshold(0), maxThreshold(false), maxCalculator(NULL),
+		energyDiffThreshold(0), nEnergyDiff(2),
 		alphaTstart(1.0), alphaTmin(1e-10), updateTestStepSize(true),
 		alphaTreduceFactor(0.1), alphaTincreaseFactor(3.0), nAlphaAdjustMax(3),
 		wolfeEnergy(1e-4), wolfeGradient(0.9),

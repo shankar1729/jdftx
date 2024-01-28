@@ -37,7 +37,8 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 
 	double alpha = 0.; //step size (note BFGS always tries alpha=alphaTstart first, which is recommended to be 1)
 	double linminTest = 0.;
-	
+	const char* knormName = p.maxThreshold ? "grad_max" : "|grad|_K";
+
 	//History of variable and residual changes:
 	struct History
 	{	Vector s; //change in variable (= alpha d)
@@ -62,17 +63,18 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		}
 		
 		double gKnorm = sync(dot(g,Kg));
+		double knormValue = p.maxThreshold ? p.maxCalculator(&Kg) : sqrt(gKnorm/p.nDim);
 		fprintf(p.fpLog, "%sIter: %3d  %s: ", p.linePrefix, iter, p.energyLabel);
 		fprintf(p.fpLog, p.energyFormat, E);
-		fprintf(p.fpLog, "  |grad|_K: %10.3le", sqrt(gKnorm/p.nDim));
+		fprintf(p.fpLog, "  %s: %10.3le", knormName, knormValue);
 		if(alpha) fprintf(p.fpLog, "  alpha: %10.3le", alpha);
 		if(linminTest) fprintf(p.fpLog, "  linmin: %10.3le", linminTest);
 		fprintf(p.fpLog, "  t[s]: %9.2lf", clock_sec());
 		
 		//Check stopping conditions:
 		fprintf(p.fpLog, "\n"); fflush(p.fpLog);
-		if(sqrt(gKnorm/p.nDim) < p.knormThreshold)
-		{	fprintf(p.fpLog, "%sConverged (|grad|_K<%le).\n", p.linePrefix, p.knormThreshold);
+		if(knormValue < p.knormThreshold)
+		{	fprintf(p.fpLog, "%sConverged (%s<%le).\n", p.linePrefix, knormName, p.knormThreshold);
 			fflush(p.fpLog); return E;
 		}
 		if(ediffCheck.checkConvergence(E))

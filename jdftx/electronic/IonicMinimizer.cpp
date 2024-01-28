@@ -120,6 +120,15 @@ IonicGradient IonicGradient::operator-(const IonicGradient& other) const
 	return result;
 }
 
+double IonicGradient::maxComponent(const IonicGradient* x)
+{	double result = 0.0;
+	for(const std::vector<vector3<>>& force_sp: (*x))
+		for(const vector3<>& force_atom: force_sp)
+			for(int iDir=0; iDir<3; iDir++)
+				result = std::max(result, fabs(force_atom[iDir]));
+	return result;
+}
+
 void axpy(double alpha, const IonicGradient& x, IonicGradient& y)
 {	assert(x.size() == y.size());
 	for(unsigned sp=0; sp<x.size(); sp++)

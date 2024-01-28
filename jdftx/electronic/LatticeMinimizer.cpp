@@ -56,6 +56,14 @@ LatticeGradient LatticeGradient::operator-(const LatticeGradient& other) const
 	return result;
 }
 
+double LatticeGradient::maxComponent(const LatticeGradient* x)
+{	double result = IonicGradient::maxComponent(&(x->ionic));
+	for(int iDir=0; iDir<3; iDir++)
+		for(int jDir=0; jDir<3; jDir++)
+			result = std::max(result, fabs(x->lattice(iDir, jDir)));
+	return result;
+}
+
 void axpy(double alpha, const LatticeGradient& x, LatticeGradient& y)
 {	y.lattice += alpha * x.lattice;
 	axpy(alpha, x.ionic, y.ionic);

@@ -120,6 +120,7 @@ public:
 
 template<typename Vector> double Minimizable<Vector>::minimize(const MinimizeParams& p)
 {	if(p.fdTest) fdTest(p); // finite difference test
+	if(p.maxThreshold) assert(p.maxCalculator != NULL);
 	if(p.dirUpdateScheme == MinimizeParams::LBFGS) return lBFGS(p);
 	
 	Vector g, gPrev, Kg; //current, previous and preconditioned gradients
@@ -144,6 +145,7 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 	double alpha = alphaT; //actual step size
 	double beta = 0.0; //CG prev search direction mix factor
 	double gKNorm = 0.0, gKNormPrev = 0.0; //current and previous norms of the preconditioned gradient
+	const char* knormName = p.maxThreshold ? "grad_max" : "|grad|_K";
 
 	//Select the linmin method:
 	Linmin linmin = getLinmin(p);
@@ -160,9 +162,10 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 		}
 		
 		gKNorm = sync(dot(g,Kg));
+		double knormValue = p.maxThreshold ? p.maxCalculator(&Kg) : sqrt(gKNorm/p.nDim);
 		fprintf(p.fpLog, "%sIter: %3d  %s: ", p.linePrefix, iter, p.energyLabel);
 		fprintf(p.fpLog, p.energyFormat, E);
-		fprintf(p.fpLog, "  |grad|_K: %10.3le  alpha: %10.3le", sqrt(gKNorm/p.nDim), alpha);
+		fprintf(p.fpLog, "  %s: %10.3le  alpha: %10.3le", knormName, knormValue, alpha);
 
 		//Print prev step stats and set CG direction parameter if necessary
 		beta = 0.0;
@@ -190,8 +193,8 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 		}
 		forceGradDirection = false;
 		fprintf(p.fpLog, "\n"); fflush(p.fpLog);
-		if(sqrt(gKNorm/p.nDim) < p.knormThreshold)
-		{	fprintf(p.fpLog, "%sConverged (|grad|_K<%le).\n", p.linePrefix, p.knormThreshold);
+		if(knormValue < p.knormThreshold)
+		{	fprintf(p.fpLog, "%sConverged (%s<%le).\n", p.linePrefix, knormName, p.knormThreshold);
 			fflush(p.fpLog); return E;
 		}
 		if(ediffCheck.checkConvergence(E))

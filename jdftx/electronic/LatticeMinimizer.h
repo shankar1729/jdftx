@@ -39,6 +39,8 @@ struct LatticeGradient
 	LatticeGradient& operator+=(const LatticeGradient&);
 	LatticeGradient operator+(const LatticeGradient&) const;
 	LatticeGradient operator-(const LatticeGradient&) const;
+
+	static double maxComponent(const LatticeGradient*); //!< MinimizeParams::maxCalculator for max force/stress component
 };
 
 //Functions required by Minimizable<LatticeGradient>

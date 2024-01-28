@@ -41,6 +41,7 @@ enum MinimizeParamsMember
 	MPM_nIterations,
 	MPM_history,
 	MPM_knormThreshold,
+	MPM_maxThreshold,
 	MPM_energyDiffThreshold,
 	MPM_nEnergyDiff,
 	MPM_alphaTstart,
@@ -61,6 +62,7 @@ EnumStringMap<MinimizeParamsMember> mpmMap
 	MPM_nIterations, "nIterations",
 	MPM_history, "history",
 	MPM_knormThreshold, "knormThreshold",
+	MPM_maxThreshold, "maxThreshold",
 	MPM_energyDiffThreshold, "energyDiffThreshold",
 	MPM_nEnergyDiff, "nEnergyDiff",
 	MPM_alphaTstart, "alphaTstart",
@@ -79,6 +81,7 @@ EnumStringMap<MinimizeParamsMember> mpmDescMap
 	MPM_nIterations, "maximum iterations (single point calculation if 0)",
 	MPM_history, "number of past states and gradients retained for L-BFGS",
 	MPM_knormThreshold, "convergence threshold for gradient (preconditioned) norm",
+	MPM_maxThreshold, boolMap.optionList() + ", whether max component should be used for knorm",
 	MPM_energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
 	MPM_nEnergyDiff, "number of iteration pairs that must satisfy energyDiffThreshold",
 	MPM_alphaTstart, "initial test step size (constant step-size factor for Relax linmin)",
@@ -113,6 +116,7 @@ void CommandMinimize::process(ParamList& pl, Everything& e)
 			case MPM_nIterations: pl.get(mp.nIterations, 0, "nIterations", true); break;
 			case MPM_history: pl.get(mp.history, 0, "history", true); break;
 			case MPM_knormThreshold: pl.get(mp.knormThreshold, 0., "knormThreshold", true); break;
+			case MPM_maxThreshold: pl.get(mp.maxThreshold, false, boolMap, "maxThreshold", true); break;
 			case MPM_energyDiffThreshold: pl.get(mp.energyDiffThreshold, 0., "energyDiffThreshold", true); break;
 			case MPM_nEnergyDiff: pl.get(mp.nEnergyDiff, 0, "nEnergyDiff", true); break;
 			case MPM_alphaTstart: pl.get(mp.alphaTstart, 0., "alphaTstart", true); break;
@@ -136,6 +140,7 @@ void CommandMinimize::printStatus(Everything& e, int iRep)
 	logPrintf(" \\\n\tnIterations          %d", mp.nIterations);
 	logPrintf(" \\\n\thistory              %d", mp.history);
 	logPrintf(" \\\n\tknormThreshold       %lg", mp.knormThreshold);
+	logPrintf(" \\\n\tmaxThreshold         %s", boolMap.getString(mp.maxThreshold));
 	logPrintf(" \\\n\tenergyDiffThreshold  %lg", mp.energyDiffThreshold);
 	logPrintf(" \\\n\tnEnergyDiff          %d", mp.nEnergyDiff);
 	logPrintf(" \\\n\talphaTstart          %lg", mp.alphaTstart);
