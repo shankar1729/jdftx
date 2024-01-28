@@ -112,7 +112,7 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		}
 	}
 	else
-	{	logPrintf("Reading initial fillings from file %s.\n", initialFillingsFilename.c_str());
+	{	logPrintf("Reading initial fillings from '%s'.\n", initialFillingsFilename.c_str());
 		if(nBandsOld <= 0) nBandsOld=nBands;
 		read(F, initialFillingsFilename.c_str(), nBandsOld);
 		

@@ -146,7 +146,8 @@ void ElecVars::setup(const Everything &everything)
 	if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 		Haux_eigs.resize(eInfo.nStates);
 	if(eigsFilename.length())
-	{	eInfo.read(Hsub_eigs, eigsFilename.c_str());
+	{	logPrintf("Reading eigenvalues from '%s'.\n", eigsFilename.c_str());
+		eInfo.read(Hsub_eigs, eigsFilename.c_str());
 		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 		{	Haux_eigs = Hsub_eigs;
 			HauxInitialized = true;
