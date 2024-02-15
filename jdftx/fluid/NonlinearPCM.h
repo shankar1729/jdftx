@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_NONLINEARPCM_H
 
 #include <fluid/PCM.h>
+#include <fluid/NonlinearCommon.h>
 #include <core/VectorField.h>
 #include <core/Minimize.h>
 #include <core/Pulay.h>
@@ -30,12 +31,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //! @{
 //! @file NonlinearPCM.h NonlinearPCM and helper classes
 
-namespace NonlinearPCMeval { struct Screening; struct Dielectric; } //Forward declaration of helper classes
-
 typedef ScalarFieldMultiplet<ScalarFieldData,5> ScalarFieldMuEps; //!< ion chemical potentials and effective local electric field
 
 //! Nonlinear solvation models: shared electrostatic part implementation
-class NonlinearPCM : public PCM, public Minimizable<ScalarFieldMuEps>, public Pulay<ScalarFieldTilde>
+class NonlinearPCM : public PCM, public Minimizable<ScalarFieldMuEps>, public Pulay<ScalarFieldTilde>, public NonlinearCommon
 {
 public:
 	ScalarFieldMuEps state; //!< State of the solver = ion chemical potentials and effective local electric field
@@ -64,12 +63,8 @@ protected:
 	double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const;
 
 private:
-	double pMol, ionNbulk, ionZ;
-	NonlinearPCMeval::Screening* screeningEval; //!< Internal helper class for Screening from PCM_internal
-	NonlinearPCMeval::Dielectric* dielectricEval; //!< Internal helper class for Dielectric from PCM_internal
 	RadialFunctionG preconditioner; //!< preconditioner for minimizer version
 	std::shared_ptr<RealKernel> metric; //!< Pulay metric for SCF version
-	RadialFunctionG gLookup, xLookup; //!< lookup tables for transcendental solutions involved in the dielectric and ionic SCF method
 	std::shared_ptr<class LinearPCM> linearPCM;
 
 protected:
