@@ -47,6 +47,18 @@ double Sf_calc(double G, const std::vector<double>* rArr)
 	return Sf;
 }
 
+inline double getSigmaVdw(double Ztot, double Rvdw, double nc)
+{	//Compute the gaussian width parameter from Rvdw:
+	double sigmaVdw = 1.;
+	for(int iter=0; iter<50; iter++) //-- solve (Ztot wCavity * Ztot wCavity)(2 Rvdw) = nc by fixed-point (Picard) iteration
+	{	double sigmaVdwNew = (2*Rvdw) / sqrt(-4. * log(nc * pow(2*sqrt(M_PI)*sigmaVdw, 3) / pow(Ztot,2)));
+		if(fabs(sigmaVdwNew/sigmaVdw - 1.) < 1e-12) break;
+		sigmaVdw = sigmaVdwNew;
+	}
+	logPrintf("   Nonlocal vdW cavity from gaussian model electron density with norm = %lg and sigma = %lg bohr\n", Ztot, sigmaVdw);
+	return sigmaVdw;
+}
+
 
 PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 {
@@ -75,20 +87,23 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			dispNLatomic = true;
 			break;
 		}
+		case PCM_CANON:
+		{	Citations::add("Charge-Asymmetric Nonlinear Optimally-Nonlocal (CANON) fluid model",
+					"K. A. Schwarz and R. Sundararaman, under preparation (2024)");
+			cavitationNL = true;
+			dispNLunified = true;
+			sigmaVdw = getSigmaVdw(fsp.Ztot, solvent->Rvdw, fsp.nc);
+			logPrintf("   Extent of nonlocality of response based on radius Res = %lg\n", fsp.Res);
+			logPrintf("   Charge asymmetry of nonlocal response based on Zcenter = %lg\n", fsp.Zcenter);
+			break;
+		}
 		case PCM_CANDLE:
 		{	Citations::add("Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model",
 					"R. Sundararaman and W.A. Goddard III, J. Chem. Phys. 142, 064107 (2015)");
 			useEta = true;
 			cavitationNL = true;
 			dispNLunified = true;
-			//Compute the gaussian width parameter from Rvdw:
-			sigmaVdw = 1.;
-			for(int iter=0; iter<50; iter++) //-- solve (Ztot wCavity * Ztot wCavity)(2 Rvdw) = nc by fixed-point (Picard) iteration
-			{	double sigmaVdwNew = (2*solvent->Rvdw) / sqrt(-4. * log(fsp.nc * pow(2*sqrt(M_PI)*sigmaVdw, 3) / pow(fsp.Ztot,2)));
-				if(fabs(sigmaVdwNew/sigmaVdw - 1.) < 1e-12) break;
-				sigmaVdw = sigmaVdwNew;
-			}
-			logPrintf("   Nonlocal vdW cavity from gaussian model electron density with norm = %lg and sigma = %lg bohr\n", fsp.Ztot, sigmaVdw);
+			sigmaVdw = getSigmaVdw(fsp.Ztot, solvent->Rvdw, fsp.nc);
 			logPrintf("   Charge asymmetry in cavity with sensitivity pCavity = %lg e-bohr/Eh\n", fsp.pCavity);
 			break;
 		}
@@ -227,7 +242,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	if(dispNLunified)
 	{	logPrintf("   Weighted density dispersion model using vdW pair potentials with single solvent site with sqrtC6eff: %lg SI.\n", fsp.sqrtC6eff);
 		Sf.resize(1);  //simplified model: use single site rather than explicit molecule geometry
-		Sf[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, RadialFunctionG::gaussTilde, 1., sigmaVdw); //CANDLE also uses this for vdW cavity
+		Sf[0].init(0, e.gInfo.dGradial, e.gInfo.GmaxGrid, RadialFunctionG::gaussTilde, 1., sigmaVdw); //CANDLE and CANON also use this for vdW cavity
 		atomicNumbers.assign(1, VanDerWaalsD2::unitParticle); //signals point-particle with unit C6 to class VanDerWaals
 	}
 	
@@ -305,7 +320,7 @@ void PCM::updateCavity()
 	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
 		ShapeFunctionSCCS::compute(nCavity, shape[0], fsp.rhoMin, fsp.rhoMax, epsBulk);
-	else //Compute directly from nCavity (which is a density product for SaLSA):
+	else //Compute directly from nCavity (which is a density product for SaLSA and CANON):
 		ShapeFunction::compute(nCavity, shape[0], fsp.nc, fsp.sigma);
 	
 	//Apply cavity masks (if any):
@@ -327,10 +342,12 @@ void PCM::updateCavity()
 	const auto& solvent = fsp.solvents[0];
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
+		case PCM_CANON:
 		case PCM_CANDLE:
 		case PCM_SGA13:
 		{	//Select relevant shape function:
-			const ScalarFieldTilde sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape[0] : shapeVdw);
+			bool useShape0 = (fsp.pcmVariant==PCM_SaLSA) or (fsp.pcmVariant==PCM_CANON);
+			const ScalarFieldTilde sTilde = J(useShape0 ? shape[0] : shapeVdw);
 			ScalarFieldTilde A_sTilde;
 			//Cavitation:
 			const double nlT = solvent->Nbulk * fsp.T;
@@ -350,7 +367,8 @@ void PCM::updateCavity()
 			ScalarFieldTildeArray Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
 			for(unsigned i=0; i<Sf.size(); i++)
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
-			const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
+			bool useSqrtC6eff = (fsp.pcmVariant==PCM_CANDLE) or (fsp.pcmVariant==PCM_CANON);
+			const double vdwScaleEff = useSqrtC6eff ? fsp.sqrtC6eff : fsp.vdwScale;
 			Adiel["Dispersion"] = e.vanDerWaalsFluid->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde,
 				0, e.iInfo.computeStress ? &Acavity_RRT : 0);
 			A_vdwScale = Adiel["Dispersion"]/vdwScaleEff;
@@ -361,7 +379,7 @@ void PCM::updateCavity()
 						Acavity_RRT += (solvent->Nbulk/gInfo.nr) * convolveStress(Sf[i], A_Ntilde[i], sTilde);
 				}
 			//Propagate gradients to appropriate shape function:
-			(fsp.pcmVariant==PCM_SaLSA ? Acavity_shape : Acavity_shapeVdw) = Jdag(A_sTilde);
+			(useShape0 ? Acavity_shape : Acavity_shapeVdw) = Jdag(A_sTilde);
 			break;
 		}
 		case PCM_GLSSA13:
@@ -487,7 +505,7 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		ShapeFunctionSCCS::propagateGradient(nCavity+(0.5*fsp.rhoDelta), -A_shapeMinus, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
 		ShapeFunctionSCCS::propagateGradient(nCavity-(0.5*fsp.rhoDelta),  A_shapeMinus, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
 	}
-	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
+	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA and CANON)
 	{	ShapeFunction::propagateGradient(nCavity, A_shape[0] + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
 	}
@@ -500,14 +518,17 @@ void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCav
 	//VDW contribution:
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
+		case PCM_CANON:
 		case PCM_CANDLE:
 		case PCM_SGA13:
 		{	const auto& solvent = fsp.solvents[0];
-			const ScalarFieldTilde sTilde = J(fsp.pcmVariant==PCM_SaLSA ? shape[0] : shapeVdw);
+			bool useShape0 = (fsp.pcmVariant==PCM_SaLSA) or (fsp.pcmVariant==PCM_CANON);
+			bool useSqrtC6eff = (fsp.pcmVariant==PCM_CANDLE) or (fsp.pcmVariant==PCM_CANON);
+			const ScalarFieldTilde sTilde = J(useShape0 ? shape[0] : shapeVdw);
 			ScalarFieldTildeArray Ntilde(Sf.size());
 			for(unsigned i=0; i<Sf.size(); i++)
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
-			const double vdwScaleEff = (fsp.pcmVariant==PCM_CANDLE) ? fsp.sqrtC6eff : fsp.vdwScale;
+			const double vdwScaleEff = useSqrtC6eff ? fsp.sqrtC6eff : fsp.vdwScale;
 			e.vanDerWaalsFluid->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, 0, forces);
 			break;
 		}
@@ -517,6 +538,7 @@ void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCav
 	//Full core contribution:
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
+		case PCM_CANON:
 		case PCM_CANDLE:
 		{	VectorFieldTilde gradAtpos; nullToZero(gradAtpos, gInfo);
 			for(unsigned iSp=0; iSp<atpos.size(); iSp++)
@@ -534,6 +556,7 @@ void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCav
 ScalarFieldTilde PCM::getFullCore() const
 {	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
+		case PCM_CANON:
 		case PCM_CANDLE:
 		{	ScalarFieldTilde nFullCore, SG(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
 			for(unsigned iSp=0; iSp<atpos.size(); iSp++)
@@ -589,6 +612,8 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_SGA13:
 			fprintf(fp, "   E_vdwScale = %.15lg\n", A_vdwScale);
 			break;
+		case PCM_CANON:
+			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
 		case PCM_CANDLE:
 			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
 			fprintf(fp, "   E_eta_wDiel = %.15lg\n", A_eta_wDiel);

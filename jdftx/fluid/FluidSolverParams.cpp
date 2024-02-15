@@ -107,6 +107,17 @@ void FluidSolverParams::setPCMparams()
 			assert(fluidType == FluidSaLSA);
 			break;
 		}
+		case PCM_CANON:
+		{	switch(solvents[0]->name)
+			{	case FluidComponent::H2O:
+					Ztot = 8;
+					Res = 1.0 * Angstrom;
+					Zcenter = -0.8476;
+					break;
+				default:
+					throw string("CANON has not been parametrized for this solvent");
+			}
+		}
 		case PCM_CANDLE:
 		{	nc = 1.42e-3;
 			sigma = sqrt(0.5);

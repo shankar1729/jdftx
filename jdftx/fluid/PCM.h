@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_PCM_H
-#define JDFTX_ELECTRONIC_PCM_H
+#ifndef JDFTX_FLUID_PCM_H
+#define JDFTX_FLUID_PCM_H
 
 #include <fluid/FluidSolver.h>
 #include <core/RadialFunction.h>
@@ -80,4 +80,4 @@ protected:
 };
 
 //! @}
-#endif // JDFTX_ELECTRONIC_PCM_H
+#endif // JDFTX_FLUID_PCM_H

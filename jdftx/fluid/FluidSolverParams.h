@@ -35,6 +35,7 @@ enum FluidType
 	FluidLinearPCM, //!< Linear local-dielectric fluid, optionally including non-electrostatic terms \cite PCM-Kendra
 	FluidNonlinearPCM, //!< Nonlinear local-dielectric fluid including non-electrostatic terms \cite NonlinearPCM
 	FluidSaLSA, //!< Spherically-averaged liquid susceptibility ansatz \cite SaLSA
+	FluidCANON, //!< Charge-asymmetric nonlinear and nonlocal model \cite CANON
 	FluidClassicalDFT //!< Classical density functional description of fluid \cite PolarizableCDFT \cite RigidCDFT
 };
 
@@ -63,6 +64,7 @@ struct FmixParams
 
 enum PCMVariant
 {	PCM_SaLSA, //!< Use only with fluid type FluidSaLSA \cite SaLSA
+	PCM_CANON, //!< Use only with fluid type FluidCANON \cite CANON
 	PCM_CANDLE, //!< Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model \cite CANDLE
 	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavitation and dispersion \cite CavityWDA
 	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension \cite NonlinearPCM
@@ -119,9 +121,9 @@ struct FluidSolverParams
 	double vdwScale; //!< overall scale factor for Grimme pair potentials (or damping range scale factor for vdw-TS when implemented)
 	
 	//For CANDLE alone:
-	double Ztot; //!< number of valence electrons
+	double Ztot; //!< number of valence electrons (also used by CANON)
 	double eta_wDiel; //!< electrostatic cavity expansion widthin bohrs (fit parameter)
-	double sqrtC6eff; //!< (effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this)
+	double sqrtC6eff; //!< effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this); also used by CANON
 	double pCavity; //!< sensitivity of cavity to surface electric field to emulate charge asymmetry [e-a0/Eh]  (fit parameter)
 	
 	//For SCCS alone:
@@ -132,10 +134,14 @@ struct FluidSolverParams
 	//For SaLSA alone:
 	int lMax;
 	
+	//For CANON alone:
+	double Res; //! Electrostatic radius used for dielectric nonlocality in CANON
+	double Zcenter; //!< Charge at center used to determine asymmetry in CANON
+	
 	//For soft sphere model alone:
 	double getAtomicRadius(const class SpeciesInfo& sp) const; //!< get the solute atom radius for the soft-sphere solvation model given species
 	double cavityScale; //!< radius scale factor
-	double ionSpacing; //!< extra spacing from dielectric to ionic cavity (in bohrs)
+	double ionSpacing; //!< extra spacing from dielectric to ionic cavity (in bohrs); also used by CANON
 	
 	//For fixed-cavity model alone:
 	string cavityFile; //!< filename of cavity to read in

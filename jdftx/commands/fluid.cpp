@@ -26,6 +26,7 @@ EnumStringMap<FluidType> fluidTypeMap
 	FluidLinearPCM, "LinearPCM",
 	FluidNonlinearPCM, "NonlinearPCM",
 	FluidSaLSA, "SaLSA",
+	FluidCANON, "CANON",
 	FluidClassicalDFT, "ClassicalDFT"
 );
 
@@ -47,6 +48,9 @@ struct CommandFluid : public Command
 			"\n+ SaLSA: \\cite SaLSA\n\n"
 			"   Use the non-empirical nonlocal-response solvation model based on the\n"
 			"   Spherically-averaged Liquid Susceptibility Ansatz.\n"
+			"\n+ CANON: \\cite CANON\n\n"
+			"   Use the Charge-Asymmetric Nonlinear and Optimally Nonlocal\n"
+			"   (CANON) solvation model.\n"
 			"\n+ ClassicalDFT: \\cite PolarizableCDFT \\cite RigidCDFT \\cite BondedVoids\n\n"
 			"   Full joint density-functional theory with a classical density-functional\n"
 			"   description of the solvent. See fluid-solvent, fluid-cation, fluid-anion\n"
@@ -109,7 +113,7 @@ EnumStringMap<FluidSolveFrequency> fluidSolveFreqMap
 EnumStringMap<FluidSolveFrequency> fluidSolveFreqDescMap
 (	FluidFreqInner, "Solve fluid every electronic step",
 	FluidFreqGummel, "Alternately minimize fluid and electrons (fluid-gummel-loop)",
-	FluidFreqDefault,  "Decide based on fluid type (Inner for LinearPCM/SaLSA, Gummel for rest)"
+	FluidFreqDefault,  "Decide based on fluid type (Inner for LinearPCM/SaLSA/CANON, Gummel for rest)"
 );
 
 struct CommandFluidSolveFrequency : public Command
@@ -130,6 +134,7 @@ struct CommandFluidSolveFrequency : public Command
 		if(fsp.solveFrequency==FluidFreqGummel)
 		{	if(fsp.fluidType==FluidLinearPCM) throw string("Fluid type 'LinearPCM' does not support fluid-solve-frequency Gummel");
 			if(fsp.fluidType==FluidSaLSA) throw string("Fluid type 'SaLSA' does not support fluid-solve-frequency Gummel");
+			if(fsp.fluidType==FluidCANON) throw string("Fluid type 'CANON' does not support fluid-solve-frequency Gummel");
 		}
 	}
 
@@ -461,6 +466,7 @@ struct CommandFluidSolvent : public CommandFluidComponent
 		{	case FluidLinearPCM:
 			case FluidNonlinearPCM:
 			case FluidSaLSA:
+			case FluidCANON:
 				if(e.eVars.fluidParams.solvents.size()>1)
 					throw string("PCMs require exactly one solvent component - more than one specified.");
 				e.eVars.fluidParams.setPCMparams();

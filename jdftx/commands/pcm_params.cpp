@@ -72,6 +72,8 @@ struct CommandPcmVariant : public Command
 		pl.get(fsp.pcmVariant, PCM_GLSSA13, pcmVariantMap, "variant");
 		if(fsp.fluidType==FluidSaLSA)
 			 fsp.pcmVariant = PCM_SaLSA; //only option for SaLSA
+		if(fsp.fluidType==FluidCANON)
+			 fsp.pcmVariant = PCM_CANON; //only option for CANON
 		//Check variant compatibility with fluidType
 		if(fsp.fluidType!=FluidNone)
 		{	//check only when fluid is not None, so that you can switch any
@@ -84,6 +86,7 @@ struct CommandPcmVariant : public Command
 	void printStatus(Everything& e, int iRep)
 	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
 		if(fsp.fluidType==FluidSaLSA) logPrintf("SaLSA"); //only option for SaLSA
+		else if(fsp.fluidType==FluidCANON) logPrintf("CANON"); //only option for CANON
 		else logPrintf("%s", pcmVariantMap.getString(fsp.pcmVariant));
 	}
 }
@@ -96,7 +99,7 @@ enum PCMparameter
 	PCMp_cavityTension, //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
 	PCMp_cavityPressure, //!< effective pressure on the cavity (hartree per bohr^3) for SCCS and SoftSphere models
 	PCMp_cavityScale, //!< atomic radius scale factor for soft sphere solvation model
-	PCMp_ionSpacing, //!< extra spacing from dielectric to ionic cavity in bohrs for soft sphere model
+	PCMp_ionSpacing, //!< extra spacing from dielectric to ionic cavity in bohrs for soft sphere and CANON models
 	PCMp_cavityFile, //!< filename for fixed cavity model
 	PCMp_zMask0, //z center in lattice coordinates for cavity mask
 	PCMp_zMaskH, //half-width in z lattice coordinates for cavity mask
@@ -108,7 +111,9 @@ enum PCMparameter
 	PCMp_eta_wDiel, //!< fit parameter for dielectric cavity in CANDLE
 	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for CANDLE
 	PCMp_pCavity, //!< sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
-	PCMp_Ztot, //! Total valence charge on the solvent, used by CANDLE
+	PCMp_Ztot, //!< Total valence charge on the solvent, used by CANDLE and CANON for vdW cavity determination
+	PCMp_Res, //! Electrostatic radius used for dielectric nonlocality in CANON
+	PCMp_Zcenter, //!< Charge at center used to determine asymmetry in CANON
 	PCMp_screenOverride, //! Overrides screening length
 	PCMp_Delim //!< Delimiter used in parsing
 };
@@ -132,6 +137,8 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_sqrtC6eff, "sqrtC6eff",
 	PCMp_pCavity, "pCavity",
 	PCMp_Ztot, "Ztot",
+  	PCMp_Res, "Res",
+	PCMp_Zcenter, "Zcenter",
 	PCMp_screenOverride, "screenOverride"
 );
 EnumStringMap<PCMparameter> pcmParamDescMap
@@ -141,7 +148,7 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_cavityTension, "effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)",
 	PCMp_cavityPressure, "effective pressure on the cavity (hartree per bohr^3) for SCCS and soft sphere models",
 	PCMp_cavityScale, "atomic radius scale factor for soft sphere model",
-	PCMp_ionSpacing, "extra spacing from dielectric to ionic cavity in bohrs for soft sphere model",
+	PCMp_ionSpacing, "extra spacing from dielectric to ionic cavity in bohrs for soft sphere and CANON models",
 	PCMp_cavityFile, "filename for fixed cavity model (should be on double-sized box when using Coulomb truncation)",
 	PCMp_zMask0, "center in z lattice coordinates for cavity mask (default: 0)",
 	PCMp_zMaskIonH, "half-width in z lattice coordinates for ion cavity mask (default: 0 => disabled)",
@@ -153,7 +160,9 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_eta_wDiel, "fit parameter for dielectric cavity in CANDLE",
 	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for CANDLE",
 	PCMp_pCavity, "sensitivity of cavity to surface electric fields [a.u.] in CANDLE",
-	PCMp_Ztot, "total valence charge on the solvent, used by CANDLE",
+	PCMp_Ztot, "total valence charge on the solvent, used by CANDLE and CANON",
+	PCMp_Res, "electrostatic radius [bohrs] used for dielectric nonlocality in CANON",
+	PCMp_Zcenter, "charge at center used to determine asymmetry in CANON",
 	PCMp_screenOverride, "overrides the screening length calculated from fluid-components"
 );
 
@@ -201,6 +210,8 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(sqrtC6eff, >=, 0.)
 				READ_AND_CHECK(pCavity, <, DBL_MAX)
 				READ_AND_CHECK(Ztot, >, 0.)
+				READ_AND_CHECK(Res, >, 0.)
+				READ_AND_CHECK(Zcenter, <, DBL_MAX)
 				READ_AND_CHECK(screenOverride, >, 0.)
 				case PCMp_Delim: return; //end of input
 			}
@@ -230,6 +241,8 @@ struct CommandPcmParams : public Command
 		PRINT(sqrtC6eff)
 		PRINT(pCavity)
 		PRINT(Ztot)
+		PRINT(Res)
+		PRINT(Zcenter)
 		PRINT(screenOverride)
 		#undef PRINT
 	}

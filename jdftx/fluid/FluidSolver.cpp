@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <fluid/FluidSolver.h>
 #include <electronic/Everything.h>
 #include <fluid/SaLSA.h>
+#include <fluid/CANON.h>
 #include <fluid/NonlinearPCM.h>
 #include <fluid/LinearPCM.h>
 #include <fluid/ConvCoupling.h>
@@ -374,17 +375,17 @@ FluidSolver* createFluidSolver(const Everything& e, const FluidSolverParams& fsp
 {	logPrintf("%s", fsp.initWarnings.c_str());
 	switch(fsp.fluidType)
 	{	case FluidNone:
-			return 0; //No solver needed
+			return NULL; //No solver needed
 		case FluidLinearPCM:
 			return new LinearPCM(e, fsp);
 		case FluidNonlinearPCM:
 			return new NonlinearPCM(e, fsp);
 		case FluidSaLSA:
 			return new SaLSA(e, fsp);
+		case FluidCANON:
+			return new CANON(e, fsp);
 		case FluidClassicalDFT:
 			return new ConvolutionJDFT(e, fsp);
-		default:
-			assert(!"Unknown fluid type");
-			return 0;
 	}
+	return NULL;
 }
