@@ -18,9 +18,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <fluid/CANON.h>
+#include <fluid/PCM_internal.h>
 #include <core/ScalarFieldIO.h>
 #include <core/SphericalHarmonics.h>
 #include <electronic/Everything.h>
+
 
 inline void setKernels(int i, double Gsq, double* preconditioner, double* metric)
 {	preconditioner[i] = 1.0; 
@@ -56,7 +58,8 @@ CANON::~CANON()
 }
 
 void CANON::minimizeFluid()
-{	minimize();
+{	logPrintf("\tCANON fluid occupying %lf of unit cell:", integral(shape[0])/gInfo.detR); logFlush();
+	minimize();
 }
 
 void CANON::loadState(const char* filename)
@@ -81,7 +84,12 @@ void CANON::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarF
 	updateCavity();
 
 	//Initialize the state if it hasn't been loaded:
-	if(!phiTot) nullToZero(phiTot, gInfo);
+	if(!phiTot)
+	{	phiTot = coulomb(rhoExplicitTilde);
+		nullToZero(eps, gInfo);
+		nullToZero(muPlus, gInfo);
+		nullToZero(muMinus, gInfo);
+	}
 }
 
 
@@ -95,7 +103,49 @@ void CANON::getSusceptibility_internal(const std::vector<complex>& omega, std::v
 }
 
 double CANON::cycle(double dEprev, std::vector<double>& extraValues)
-{	die("Not yet implemented.\n");
+{
+	//Get eps, mu from electrostatic potential:
+	const VectorField Dphi = I(gradient(w1 * phiTot));
+	callPref(dielectricEval->phiToState)(
+		gInfo.nr, Dphi.dataPref(), shape[0]->dataPref(),
+		gLookup, true, eps.dataPref(), NULL);
+	double phiGzero = 0.0;
+	if(screeningEval)
+	{	//TODO: set phiGzero based on charge neutrality
+		phiTot->setGzero(phiGzero);
+		ScalarField phi = I(phiTot);
+		callPref(screeningEval->phiToState)(
+			gInfo.nr, phi->dataPref(), shape.back()->dataPref(),
+			xLookup, true, muPlus->dataPref(), muMinus->dataPref(), NULL);
+	}
+	
+	//Compute internal energy and bound charge:
+	ScalarFieldTilde rhoFluidTilde; 
+	if(screeningEval)
+	{	//Compute ionic free energy and bound charge
+		ScalarField Aout, rhoIon;
+		initZero(Aout, gInfo);
+		initZero(rhoIon, gInfo);
+		callPref(screeningEval->freeEnergy)(gInfo.nr, 0.0, muPlus->dataPref(), muMinus->dataPref(), shape.back()->dataPref(),
+			rhoIon->dataPref(), Aout->dataPref(), NULL, NULL, NULL);
+		Adiel["Akappa"] = integral(Aout);
+		rhoFluidTilde += J(rhoIon); //include bound charge due to ions
+	}
+	{	ScalarField Aout; initZero(Aout, gInfo);
+		VectorField p; nullToZero(p, gInfo);
+		callPref(dielectricEval->freeEnergy)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
+			p.dataPref(), Aout->dataPref(), vector3<double*>(NULL, NULL, NULL), NULL);
+		Adiel["Aeps"] = integral(Aout);
+		rhoFluidTilde -= w1 * divergence(J(p)); //include bound charge due to dielectric
+	}
+	
+	//Compute new potential and electrostatic energies:
+	ScalarFieldTilde phiFluidTilde = coulomb(rhoFluidTilde);
+	ScalarFieldTilde phiExplicitTilde = coulomb(rhoExplicitTilde);
+	Adiel["Coulomb"] = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
+	phiTot = phiExplicitTilde + phiFluidTilde;
+	if(screeningEval) phiTot->setGzero(phiGzero);
+	return Adiel;
 }
 
 void CANON::readVariable(ScalarFieldTilde& X, FILE* fp) const

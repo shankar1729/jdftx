@@ -343,11 +343,11 @@ namespace NonlinearPCMeval
 		__hostanddev__ void freeEnergy_calc(size_t i, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s) const
 		{	double F, F_muPlus, F_muMinus, Rho, Rho_muPlus, Rho_muMinus;
 			compute(muPlus[i]+mu0, muMinus[i]+mu0, F, F_muPlus, F_muMinus, Rho, Rho_muPlus, Rho_muMinus);
-			A[i] = s[i] * F;
-			A_muPlus[i] += s[i] * F_muPlus;
-			A_muMinus[i] += s[i] * F_muMinus;
-			if(A_s) A_s[i] += F;
 			rho[i] = s[i] * Rho;
+			A[i] = s[i] * F;
+			if(A_muPlus) A_muPlus[i] += s[i] * F_muPlus;
+			if(A_muMinus) A_muMinus[i] += s[i] * F_muMinus;
+			if(A_s) A_s[i] += F;
 		}
 		void freeEnergy(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s) const;
 		#ifdef GPU_ENABLED
@@ -470,10 +470,10 @@ namespace NonlinearPCMeval
 			double epsSqHlf = 0.5*epsVec.length_squared();
 			double F, F_epsSqHlf, ChiEff, ChiEff_epsSqHlf;
 			compute(epsSqHlf, F, F_epsSqHlf, ChiEff, ChiEff_epsSqHlf);
-			A[i] = F * s[i];
-			accumVector((F_epsSqHlf * s[i]) * epsVec, A_eps, i);
-			if(A_s) A_s[i] += F;
 			storeVector((ChiEff * s[i]) * epsVec, p, i);
+			A[i] = F * s[i];
+			if(A_eps[0]) accumVector((F_epsSqHlf * s[i]) * epsVec, A_eps, i);
+			if(A_s) A_s[i] += F;
 		}
 		void freeEnergy(size_t N, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s) const;
 		#ifdef GPU_ENABLED

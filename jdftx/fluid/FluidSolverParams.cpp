@@ -117,6 +117,7 @@ void FluidSolverParams::setPCMparams()
 				default:
 					throw string("CANON has not been parametrized for this solvent");
 			}
+			nonlinearSCF = true; //CANON always needs this
 		}
 		case PCM_CANDLE:
 		{	nc = 1.42e-3;

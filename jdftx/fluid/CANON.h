@@ -60,6 +60,8 @@ protected:
 
 private:
 	ScalarFieldTilde phiTot; //!< total electrostatic potential (internal state of fluid)
+	VectorField eps; //!< Internal effective electric field
+	ScalarField muPlus, muMinus; //!< Effective chemical potentials of cations and anions
 	ScalarFieldTilde nCavityNetTilde; //!< input nCavity + full core before convolution
 	RadialFunctionG w0, w1; //!< Solvent l=0 and l=1 weight functions
 	std::shared_ptr<RealKernel> preconditioner, metric; //!< Pulay mixing and metric kernels
