@@ -534,6 +534,33 @@ namespace NonlinearPCMeval
 		#ifdef GPU_ENABLED
 		void phiToState_gpu(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const;
 		#endif
+		
+		//! Apply nonlinear susceptibility and compute corresponding energy.
+		//! The susceptibility is applied in-place on Dphi, and energy density is returned in A.
+		__hostanddev__ void apply_calc(size_t i, const RadialFunctionG& dielEnergyLookup,
+			const double* s, vector3<double*> Dphi, double* A) const
+		{
+			vector3<> Evec = loadVector(Dphi, i);
+			double E = Evec.length();
+			double x = pByT * E;
+			double inv_x_plus_1 = 1.0 / (1 + x);
+			double xMapped = x * inv_x_plus_1;
+			double energy_by_x_sq = dielEnergyLookup(xMapped);
+			double energy = energy_by_x_sq * (x * x);
+			double energy_E_by_E = (
+				dielEnergyLookup.deriv(xMapped) * xMapped * inv_x_plus_1
+				+ 2.0 * energy_by_x_sq) * (pByT * pByT);
+			constexpr double oneBy4pi = 1.0/(4 * M_PI);
+			A[i] = (oneBy4pi * 0.5) * (E * E) + s[i] * energy;
+			double A_E_by_E = oneBy4pi + s[i] * energy_E_by_E;
+			storeVector(A_E_by_E * Evec, Dphi, i);
+		}
+		void apply(size_t N, const RadialFunctionG& dielEnergyLookup,
+			const double* s, vector3<double*> Dphi, double* A) const;
+		#ifdef GPU_ENABLED
+		void apply_gpu(size_t N, const RadialFunctionG& dielEnergyLookup,
+			const double* s, vector3<double*> Dphi, double* A) const;
+		#endif
 	};
 }
 

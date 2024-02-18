@@ -180,9 +180,10 @@ void Everything::setup()
 	//Setup fluid minimization parameters:
 	switch(eVars.fluidParams.fluidType)
 	{	case FluidLinearPCM:
+		case FluidNonlinearPCM:
 		case FluidSaLSA:
-			fluidMinParams.nDim = gInfo.nr; break;
-		case FluidNonlinearPCM: fluidMinParams.nDim = 4 * gInfo.nr; break;
+			fluidMinParams.nDim = gInfo.nr;
+			break;
 		case FluidClassicalDFT:
 			fluidMinParams.nDim = 4 * gInfo.nr; 
 			break;

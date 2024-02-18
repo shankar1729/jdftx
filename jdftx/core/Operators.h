@@ -256,6 +256,7 @@ template<typename T> void initZero(Tptr& X, const GridInfo& gInfo) { if(X) X->ze
 template<typename T> void nullToZero(Tptr& X, const GridInfo& gInfo) { if(!X) { X=T::alloc(gInfo,isGpuEnabled()); initZero(X); } } //!< If X is null, allocate and initialize to 0
 void initRandom(ScalarField&, double cap=0.0); //!< initialize element-wise with a unit-normal random number (with a cap if cap>0)
 void initRandomFlat(ScalarField&); //!< initialize element-wise with a unit-flat [0:1) random number
+void randomize(ScalarFieldTilde&); //!< alternate interface needed for Mnimize
 void initGaussianKernel(RealKernel&, double x0); //!< initialize to gaussian kernel exp(-(G x0/2)^2)
 void initTranslation(ScalarFieldTilde&, const vector3<>& r);  //!< initialize to translation operator exp(-i G.r)
 ScalarFieldTilde gaussConvolve(const ScalarFieldTilde&, double sigma); //!< convolve with a gaussian

@@ -50,44 +50,79 @@ NonlinearCommon::NonlinearCommon(const FluidSolverParams& fsp, double epsBulk)
 		screeningEval = 0;
 	}
 	
-	if(fsp.nonlinearSCF)
-	{	//Initialize lookup tables for SCF version:
-		//--- Dielectric lookup table
-		double dxMapped = 1./512;
+	//Dielectric lookup table
+	double dxMapped = 1./512;
+	std::vector<double> gSamples, energySamples;
+	for(double xMapped=0.; xMapped<=1.; xMapped+=dxMapped)
+	{	double x;
+		if(xMapped==0.) x = 1e-12;
+		else if(xMapped==1.) x = 1e+12;
+		else x = xMapped/(1.-xMapped); //inverse of xMapped = x / (1 + x)
+		double eps = dielectricEval->eps_from_x(x), frac, frac_epsSqHlf, logsinch;
+		dielectricEval->calcFunctions(eps, frac, frac_epsSqHlf, logsinch);
+		double energy = dielectricEval->NT * (
+			logsinch - 0.5 * dielectricEval->alpha * std::pow(eps * frac, 2)
+			+ 0.5 * dielectricEval->X * (x * x)
+		);
+		gSamples.push_back(eps/x);
+		energySamples.push_back(energy/(x*x));
+	}
+	gLookup.init(0, gSamples, dxMapped);
+	dielEnergyLookup.init(0, energySamples, dxMapped);
+	
+// 	for(double xMapped=0.001; xMapped<1.0; xMapped+=0.01)
+// 	{	double x = xMapped/(1.-xMapped);
+// 		double E = x / dielectricEval->pByT;
+// 		vector3<> Evec(0.0, 0.0, E);
+// 		double s = 1.0;
+// 		
+// 		//Epsilon from phiToState:
+// 		double epsilon = 0.0;
+// 		vector3<const double*> Dphi_const(&Evec[0], &Evec[1], &Evec[2]);
+// 		dielectricEval->phiToState_calc(0, Dphi_const, &s, gLookup, false, vector3<double*>(NULL, NULL, NULL), &epsilon);
+// 		
+// 		//Chi from apply:
+// 		double A = 0.0;
+// 		vector3<double*> Dphi(&Evec[0], &Evec[1], &Evec[2]);
+// 		dielectricEval->apply_calc(0, dielEnergyLookup, &s, Dphi, &A);
+// 		const double epsilon2 = (4*M_PI) * Dphi[2][0] / E;
+// 		
+// 		logPrintf("%.6lf %12.9lf %12.9lf\n", x, epsilon, epsilon2);
+// 	}
+// 	die("Testing.\n");
+
+// 	FILE* fp = fopen("energyTest.dat", "w");
+// 	for(double x=0.001; x<1.0; x+=0.001)
+// 		fprintf(fp, "%lg %le\n", x, dielEnergyLookup(x));
+// 	fclose(fp);
+// 	die("Testing.\n");
+	
+	//Screening lookup table
+	if(screeningEval)
+	{
+		double dVmapped = 1./512;
 		std::vector<double> samples;
-		for(double xMapped=0.; xMapped<=1.; xMapped+=dxMapped)
-		{	double x;
-			if(xMapped==0.) x = 1e-12;
-			else if(xMapped==1.) x = 1e+12;
-			else x = xMapped/(1.-xMapped); //inverse of xMapped = x / (1 + x)
-			samples.push_back(dielectricEval->eps_from_x(x)/x);
-		}
-		gLookup.init(0, samples, dxMapped);
-		//--- Screening lookup table
-		if(screeningEval)
-		{
-			double dVmapped = 1./512;
-			std::vector<double> samples;
-			for(double Vmapped=-1.; Vmapped<=1.; Vmapped+=dVmapped)
-			{	if(fabs(Vmapped)==1)
-					samples.push_back(0.);
-				else
-				{	double V = std::pow(Vmapped/(1.-Vmapped*Vmapped), 3.); //inverse of Vmapped = copysign(2cbrt(V) / (1 + sqrt(1 + (2cbrt(V))^2)), V)
-					double x = screeningEval->x_from_V(V);
-					double xMapped = 1./(1.+x); //maps [0,infty) -> (0,1]
-					samples.push_back(xMapped);
-				}
+		for(double Vmapped=-1.; Vmapped<=1.; Vmapped+=dVmapped)
+		{	if(fabs(Vmapped)==1)
+				samples.push_back(0.);
+			else
+			{	double V = std::pow(Vmapped/(1.-Vmapped*Vmapped), 3.); //inverse of Vmapped = copysign(2cbrt(V) / (1 + sqrt(1 + (2cbrt(V))^2)), V)
+				double x = screeningEval->x_from_V(V);
+				double xMapped = 1./(1.+x); //maps [0,infty) -> (0,1]
+				samples.push_back(xMapped);
 			}
-			xLookup.init(1, samples, dVmapped);
 		}
+		xLookup.init(1, samples, dVmapped);
 	}
 }
 
 NonlinearCommon::~NonlinearCommon()
 {	delete dielectricEval;
-	if(screeningEval) delete screeningEval;
-	if(gLookup) gLookup.free();
-	if(xLookup) xLookup.free();
+	gLookup.free();
+	dielEnergyLookup.free();
+	if(screeningEval)
+	{	delete screeningEval;
+		xLookup.free();
+		ionEnergyLookup.free();
+	}
 }
-
-

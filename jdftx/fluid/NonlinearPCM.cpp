@@ -24,6 +24,137 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/ScalarFieldIO.h>
 #include <core/Util.h>
 
+
+//Initialize Kkernel to square-root of the inverse kinetic operator
+
+inline void setPreconditioner(int i, double Gsq, double* preconditioner, double epsBulk, double kappaSq)
+{	preconditioner[i] = (Gsq || kappaSq) ? 1./(epsBulk*Gsq + kappaSq) : 0.;
+}
+
+
+NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
+: PCM(e, fsp), NonlinearCommon(fsp, epsBulk)
+{
+	//Initialize preconditioner:
+	preconditioner = std::make_shared<RealKernel>(gInfo);
+	applyFuncGsq(gInfo, setPreconditioner, preconditioner->data(), epsBulk, k2factor);
+}
+
+NonlinearPCM::~NonlinearPCM()
+{
+}
+
+void NonlinearPCM::loadState(const char* filename)
+{	ScalarField Iphi(ScalarFieldData::alloc(gInfo));
+	loadRawBinary(Iphi, filename); //saved data is in real space
+	phiTot = J(Iphi);
+}
+
+void NonlinearPCM::saveState(const char* filename) const
+{	if(mpiWorld->isHead()) saveRawBinary(I(phiTot), filename); //saved data is in real space
+}
+
+void NonlinearPCM::dumpDensities(const char* filenamePattern) const
+{	PCM::dumpDensities(filenamePattern);
+	die("Not yet implemented.\n");
+}
+
+void NonlinearPCM::minimizeFluid()
+{	//Info:
+	logPrintf("\tNonlinear fluid (bulk dielectric constant: %g) occupying %lf of unit cell\n",
+		epsBulk, integral(shape[0])/gInfo.detR);
+	if(k2factor)
+		logPrintf("\tNonlinear screening (bulk screening length: %g bohrs) occupying %lf of unit cell\n",
+		sqrt(epsBulk/k2factor), integral(shape.back())/gInfo.detR);
+	logFlush();
+
+	//Minimize:
+	minimize(e.fluidMinParams);
+}
+
+void NonlinearPCM::step(const ScalarFieldTilde& dir, double alpha)
+{	::axpy(alpha, dir, phiTot);
+}
+
+double NonlinearPCM::compute(ScalarFieldTilde* grad, ScalarFieldTilde* Kgrad)
+{
+	VectorField Dphi = I(gradient(phiTot));
+	ScalarField A; nullToZero(A, gInfo);
+	callPref(dielectricEval->apply)(gInfo.nr, dielEnergyLookup,
+		shape[0]->dataPref(), Dphi.dataPref(), A->dataPref());
+	if(grad)
+	{	*grad = O(-rhoExplicitTilde - divergence(J(Dphi)));
+		if(Kgrad)
+		{	*Kgrad = (*preconditioner) * (*grad);
+		}
+	}
+	return -dot(rhoExplicitTilde, O(phiTot)) + integral(A);
+}
+
+void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
+{	//Store the explicit system charge:
+	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
+	
+	//Update cavity:
+	this->nCavity = I(nCavityTilde + getFullCore());
+	updateCavity();
+	
+	//Initialize the state if it hasn't been loaded:
+	if(!phiTot) nullToZero(phiTot, gInfo);
+}
+
+
+double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const
+{
+	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
+	ScalarFieldArray Adiel_shape; nullToZero(Adiel_shape, gInfo, shape.size());
+	
+	//Get eps from phi:
+	const VectorField Dphi = I(gradient(phiTot));
+	VectorField eps; nullToZero(eps, gInfo);
+	callPref(dielectricEval->phiToState)(
+		gInfo.nr, Dphi.dataPref(), shape[0]->dataPref(),
+		gLookup, true, eps.dataPref(), NULL);
+
+	//Compute the dielectric free energy and bound charge:
+	VectorField p, Adiel_eps;
+	ScalarFieldTilde rhoFluidTilde;
+	{	ScalarField Aout;
+		initZero(Aout, gInfo);
+		nullToZero(p, gInfo);
+		nullToZero(Adiel_eps, gInfo);
+		callPref(dielectricEval->freeEnergy)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
+			p.dataPref(), Aout->dataPref(), Adiel_eps.dataPref(), Adiel_shape.size() ? Adiel_shape[0]->dataPref() : 0);
+		Adiel["Aeps"] = integral(Aout);
+		rhoFluidTilde -= divergence(J(p)); //include bound charge due to dielectric
+		if(!Adiel_RRT) p = 0; //only need later for lattice derivative
+	} //scoped to automatically deallocate temporaries
+	
+	//Compute the electrostatic terms:
+	ScalarFieldTilde phiFluidTilde = coulomb(rhoFluidTilde);
+	ScalarFieldTilde phiExplicitTilde = coulomb(rhoExplicitTilde);
+	Adiel["Coulomb"] = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
+	if(Adiel_RRT)
+		*Adiel_RRT += matrix3<>(1,1,1)*(Adiel["Coulomb"] + Adiel["Aeps"] + Adiel["Akappa"])
+			+ coulombStress(rhoFluidTilde, 0.5*rhoFluidTilde+rhoExplicitTilde);
+	
+	//Propagate gradients from p to eps, shape
+	{	VectorField Adiel_p = I(gradient(phiTot));
+		callPref(dielectricEval->convertDerivative)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
+			Adiel_p.const_dataPref(), Adiel_eps.dataPref(), Adiel_shape.size() ? Adiel_shape[0]->dataPref() : 0);
+		if(Adiel_RRT) *Adiel_RRT -= gInfo.dV * dotOuter(p, Adiel_p);
+	}
+	
+	//Derivatives w.r.t electronic charge and density:
+	Adiel_rhoExplicitTilde = phiTot - phiExplicitTilde;
+	ScalarField Adiel_nCavity;
+	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
+	Adiel_nCavityTilde = J(Adiel_nCavity);
+	accumExtraForces(extraForces, Adiel_nCavityTilde);
+	return Adiel;
+}
+
+/*
 //Utility functions to extract/set the members of a MuEps
 inline ScalarField& getMuPlus(ScalarFieldMuEps& X) { return X[0]; }
 inline const ScalarField& getMuPlus(const ScalarFieldMuEps& X) { return X[0]; }
@@ -33,53 +164,13 @@ inline VectorField getEps(ScalarFieldMuEps& X) { return VectorField(&X[2]); }
 inline const VectorField getEps(const ScalarFieldMuEps& X) { return VectorField(&X[2]); }
 inline void setMuEps(ScalarFieldMuEps& mueps, ScalarField muPlus, ScalarField muMinus, VectorField eps) { mueps[0]=muPlus; mueps[1]=muMinus; for(int k=0; k<3; k++) mueps[k+2]=eps[k]; }
 
-
-inline double setPreconditioner(double G, double kappaSqByEpsilon, double muByEpsSq)
-{	double G2 = G*G;
-	double den = G2 + kappaSqByEpsilon;
-	return den ? muByEpsSq*G2/(den*den) : 0.;
-}
-
 inline void setMetric(int i, double Gsq, double qMetricSq, double* metric)
 {	metric[i] = qMetricSq ? Gsq / (qMetricSq + Gsq) : 1.;
 }
 
-NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
-: PCM(e, fsp), Pulay(fsp.scfParams), NonlinearCommon(fsp, epsBulk)
-{
-	if(fsp.nonlinearSCF)
-	{	//Pulay metric:
-		metric = std::make_shared<RealKernel>(gInfo);
-		applyFuncGsq(e.gInfo, setMetric, std::pow(fsp.scfParams.qMetric,2), metric->data());
-	}
-	else
-	{	//Initialize preconditioner (for mu channel):
-		double muByEps = (ionZ/pMol) * (1.-dielectricEval->alpha/3); //relative scale between mu and eps
-		preconditioner.init(0, 0.02, gInfo.GmaxGrid, setPreconditioner, k2factor/epsBulk, muByEps*muByEps);
-	}
-}
-
-NonlinearPCM::~NonlinearPCM()
-{	if(preconditioner) preconditioner.free();
-}
-
-
 void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 {	
 	bool setPhiFromState = false; //whether to set linearPCM phi from state (first time in SCF version when state has been read in)
-	
-	if(fsp.nonlinearSCF || (!state))
-	{	if(!linearPCM)
-		{	logSuspend();
-			linearPCM = std::make_shared<LinearPCM>(e, fsp);
-			logResume();
-			if(state) setPhiFromState = true; //set phi from state which has already been loaded (only in SCF mode)
-		}
-		logSuspend();
-		linearPCM->atpos = atpos;
-		linearPCM->set_internal(rhoExplicitTilde, nCavityTilde);
-		logResume();
-	}
 	
 	//Initialize state if required:
 	if(!state)
@@ -238,8 +329,8 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 	return A;
 }
 
-void NonlinearPCM::step(const ScalarFieldMuEps& dir, double alpha)
-{	::axpy(alpha, dir, state);
+void NonlinearPCM::step(const ScalarFieldTilde& dir, double alpha)
+{	::axpy(alpha, dir, phiTot);
 }
 
 double NonlinearPCM::compute(ScalarFieldMuEps* grad, ScalarFieldMuEps* Kgrad)
@@ -360,3 +451,4 @@ void NonlinearPCM::phiToState(bool setState)
 	else
 		linearPCM->override(epsilon, kappaSq);
 }
+*/

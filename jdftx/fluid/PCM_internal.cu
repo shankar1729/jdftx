@@ -197,4 +197,16 @@ namespace NonlinearPCMeval
 		DielectricPhiToState_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, Dphi, s, gLookup, setState, eps, epsilon, *this);
 		gpuErrorCheck();
 	}
+
+	__global__
+	void DielectricApply_kernel(size_t N, const RadialFunctionG dielEnergyLookup,
+			const double* s, vector3<double*> Dphi, double* A, const Dielectric eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.apply_calc(i, dielEnergyLookup, s, Dphi, A);
+	}
+	void Dielectric::apply_gpu(size_t N, const RadialFunctionG& dielEnergyLookup,
+			const double* s, vector3<double*> Dphi, double* A) const
+	{	GpuLaunchConfig1D glc(DielectricApply_kernel, N);
+		DielectricApply_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, dielEnergyLookup, s, Dphi, A, *this);
+		gpuErrorCheck();
+	}
 }

@@ -283,4 +283,12 @@ namespace NonlinearPCMeval
 	{	threadLaunch(DielectricPhiToState_sub, N, Dphi, s, gLookup, setState, eps, epsilon, *this);
 	}
 
+	void DielectricApply_sub(size_t iStart, size_t iStop, const RadialFunctionG& dielEnergyLookup,
+			const double* s, vector3<double*> Dphi, double* A, const Dielectric& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.apply_calc(i, dielEnergyLookup, s, Dphi, A);
+	}
+	void Dielectric::apply(size_t N, const RadialFunctionG& dielEnergyLookup,
+			const double* s, vector3<double*> Dphi, double* A) const
+	{	threadLaunch(DielectricApply_sub, N, dielEnergyLookup, s, Dphi, A, *this);
+	}
 }

@@ -49,7 +49,7 @@ CANON::CANON(const Everything& e, const FluidSolverParams& fsp)
 	//Setup the mixing and metric kernels
 	preconditioner = std::make_shared<RealKernel>(gInfo);
 	metric = std::make_shared<RealKernel>(gInfo);
-	applyFuncGsq(e.gInfo, setKernels, preconditioner->data(), metric->data());
+	applyFuncGsq(gInfo, setKernels, preconditioner->data(), metric->data());
 }
 
 CANON::~CANON()
