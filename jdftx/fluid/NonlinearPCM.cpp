@@ -108,7 +108,21 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 {
 	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
 	ScalarFieldArray Adiel_shape; nullToZero(Adiel_shape, gInfo, shape.size());
+	ScalarFieldTilde rhoFluidTilde;
+
+	//Compute dielectric free energy and derivatives:
+	{	const VectorField Dphi = I(gradient(phiTot));
+		ScalarField Aout; initZero(Aout, gInfo);
+		VectorField p; nullToZero(p, gInfo);
+		callPref(dielectricEval->freeEnergy)(gInfo.nr, gLookup, 
+			shape[0]->dataPref(), Dphi.const_dataPref(),
+			Aout->dataPref(), Adiel_shape[0]->dataPref(), p.dataPref());
+		Adiel["Aeps"] = integral(Aout);
+		rhoFluidTilde -= divergence(J(p)); //include bound charge due to dielectric
+		if(Adiel_RRT) *Adiel_RRT -= gInfo.dV * dotOuter(p, Dphi);
+	}
 	
+	/*
 	//Get eps from phi:
 	const VectorField Dphi = I(gradient(phiTot));
 	VectorField eps; nullToZero(eps, gInfo);
@@ -118,7 +132,6 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 
 	//Compute the dielectric free energy and bound charge:
 	VectorField p, Adiel_eps;
-	ScalarFieldTilde rhoFluidTilde;
 	{	ScalarField Aout;
 		initZero(Aout, gInfo);
 		nullToZero(p, gInfo);
@@ -126,9 +139,9 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 		callPref(dielectricEval->freeEnergy)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
 			p.dataPref(), Aout->dataPref(), Adiel_eps.dataPref(), Adiel_shape.size() ? Adiel_shape[0]->dataPref() : 0);
 		Adiel["Aeps"] = integral(Aout);
-		rhoFluidTilde -= divergence(J(p)); //include bound charge due to dielectric
 		if(!Adiel_RRT) p = 0; //only need later for lattice derivative
 	} //scoped to automatically deallocate temporaries
+	*/
 	
 	//Compute the electrostatic terms:
 	ScalarFieldTilde phiFluidTilde = coulomb(rhoFluidTilde);
@@ -138,15 +151,17 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 		*Adiel_RRT += matrix3<>(1,1,1)*(Adiel["Coulomb"] + Adiel["Aeps"] + Adiel["Akappa"])
 			+ coulombStress(rhoFluidTilde, 0.5*rhoFluidTilde+rhoExplicitTilde);
 	
+	/*
 	//Propagate gradients from p to eps, shape
-	{	VectorField Adiel_p = I(gradient(phiTot));
+	{	VectorField Adiel_p = Dphi;
 		callPref(dielectricEval->convertDerivative)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
 			Adiel_p.const_dataPref(), Adiel_eps.dataPref(), Adiel_shape.size() ? Adiel_shape[0]->dataPref() : 0);
 		if(Adiel_RRT) *Adiel_RRT -= gInfo.dV * dotOuter(p, Adiel_p);
 	}
+	*/
 	
 	//Derivatives w.r.t electronic charge and density:
-	Adiel_rhoExplicitTilde = phiTot - phiExplicitTilde;
+	Adiel_rhoExplicitTilde = phiFluidTilde;
 	ScalarField Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
 	Adiel_nCavityTilde = J(Adiel_nCavity);

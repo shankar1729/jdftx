@@ -106,9 +106,9 @@ double CANON::cycle(double dEprev, std::vector<double>& extraValues)
 {
 	//Get eps, mu from electrostatic potential:
 	const VectorField Dphi = I(gradient(w1 * phiTot));
-	callPref(dielectricEval->phiToState)(
-		gInfo.nr, Dphi.dataPref(), shape[0]->dataPref(),
-		gLookup, true, eps.dataPref(), NULL);
+// 	callPref(dielectricEval->phiToState)(
+// 		gInfo.nr, Dphi.dataPref(), shape[0]->dataPref(),
+// 		gLookup, true, eps.dataPref(), NULL);
 	double phiGzero = 0.0;
 	if(screeningEval)
 	{	//TODO: set phiGzero based on charge neutrality
@@ -133,8 +133,8 @@ double CANON::cycle(double dEprev, std::vector<double>& extraValues)
 	}
 	{	ScalarField Aout; initZero(Aout, gInfo);
 		VectorField p; nullToZero(p, gInfo);
-		callPref(dielectricEval->freeEnergy)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
-			p.dataPref(), Aout->dataPref(), vector3<double*>(NULL, NULL, NULL), NULL);
+// 		callPref(dielectricEval->freeEnergy)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
+// 			p.dataPref(), Aout->dataPref(), vector3<double*>(NULL, NULL, NULL), NULL);
 		Adiel["Aeps"] = integral(Aout);
 		rhoFluidTilde -= w1 * divergence(J(p)); //include bound charge due to dielectric
 	}

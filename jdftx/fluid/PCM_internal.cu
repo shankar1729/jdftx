@@ -167,7 +167,8 @@ namespace NonlinearPCMeval
 		ScreeningPhiToState_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, phi, s, xLookup, setState, muPlus, muMinus, kappaSq, *this);
 		gpuErrorCheck();
 	}
-	
+
+/*
 	__global__
 	void DielectricFreeEnergy_kernel(size_t N, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s, const Dielectric eval)
 	{	int i = kernelIndex1D(); if(i<N) eval.freeEnergy_calc(i, eps, s, p, A, A_eps, A_s);
@@ -197,7 +198,7 @@ namespace NonlinearPCMeval
 		DielectricPhiToState_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, Dphi, s, gLookup, setState, eps, epsilon, *this);
 		gpuErrorCheck();
 	}
-
+*/
 	__global__
 	void DielectricApply_kernel(size_t N, const RadialFunctionG dielEnergyLookup,
 			const double* s, vector3<double*> Dphi, double* A, const Dielectric eval)
@@ -207,6 +208,20 @@ namespace NonlinearPCMeval
 			const double* s, vector3<double*> Dphi, double* A) const
 	{	GpuLaunchConfig1D glc(DielectricApply_kernel, N);
 		DielectricApply_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, dielEnergyLookup, s, Dphi, A, *this);
+		gpuErrorCheck();
+	}
+	
+	__global__
+	void DielectricFreeEnergy_kernel(size_t N, const RadialFunctionG gLookup,
+				const double* s, vector3<const double*> Dphi,
+				double* A, double* A_s, vector3<double*> p, const Dielectric eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.freeEnergy_calc(i, gLookup, s, Dphi, A, A_s, p);
+	}
+	void Dielectric::freeEnergy_gpu(size_t N, const RadialFunctionG& gLookup,
+				const double* s, vector3<const double*> Dphi,
+				double* A, double* A_s, vector3<double*> p) const
+	{	GpuLaunchConfig1D glc(DielectricFreeEnergy_kernel, N);
+		DielectricFreeEnergy_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, gLookup, s, Dphi, A, A_s, p, *this);
 		gpuErrorCheck();
 	}
 }

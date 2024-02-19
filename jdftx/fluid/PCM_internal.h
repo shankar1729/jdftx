@@ -449,6 +449,7 @@ namespace NonlinearPCMeval
 			}
 		}
 		
+		/*
 		//! Compute the nonlinear functions in the free energy and effective susceptibility (p/eps) prior to scaling by shape function
 		__hostanddev__ void compute(double epsSqHlf, double& F, double& F_epsSqHlf, double& ChiEff, double& ChiEff_epsSqHlf) const
 		{	double epsSq = 2.*epsSqHlf, eps = sqrt(epsSq);
@@ -495,7 +496,8 @@ namespace NonlinearPCMeval
 		#ifdef GPU_ENABLED
 		void convertDerivative_gpu(size_t N, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const;
 		#endif
-		
+		*/
+
 		//! Calculate x = pMol E / T given eps
 		__hostanddev__ double x_from_eps(double eps) const
 		{	double frac, frac_epsSqHlf, logsinch;
@@ -520,6 +522,7 @@ namespace NonlinearPCMeval
 			return eps;
 		}
 		
+		/*
 		//! Given shape function s and gradient of phi Dphi, calculate state vector eps if setState=true or effective epsilon if setState=false
 		__hostanddev__ void phiToState_calc(size_t i, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const
 		{	vector3<> xVec = -pByT * loadVector(Dphi, i);
@@ -534,6 +537,7 @@ namespace NonlinearPCMeval
 		#ifdef GPU_ENABLED
 		void phiToState_gpu(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const;
 		#endif
+		*/
 		
 		//! Apply nonlinear susceptibility and compute corresponding energy.
 		//! The susceptibility is applied in-place on Dphi, and energy density is returned in A.
@@ -560,6 +564,41 @@ namespace NonlinearPCMeval
 		#ifdef GPU_ENABLED
 		void apply_gpu(size_t N, const RadialFunctionG& dielEnergyLookup,
 			const double* s, vector3<double*> Dphi, double* A) const;
+		#endif
+
+		//! Compute variational internal free energy of dielectric and its derivatives.
+		//! Optionally also collect polarization density p (only needed for stress).
+		__hostanddev__ void freeEnergy_calc(size_t i, const RadialFunctionG& gLookup,
+				const double* s, vector3<const double*> Dphi,
+				double* A, double* A_s, vector3<double*> p) const
+		{
+			//! Get eps from field:
+			vector3<> Evec = loadVector(Dphi, i); //technically -E, but only magnitude matters (except in p below)
+			double Esq = Evec.length_squared();
+			double x = pByT * sqrt(Esq);
+			double g = gLookup(x/(1.+x));
+			double eps = x * g;
+			
+			//! Compute internal free energy and its derivatives:
+			double frac, frac_epsSqHlf, logsinch;
+			calcFunctions(eps, frac, frac_epsSqHlf, logsinch);
+			double screen = 1 - alpha*frac; //correlation screening factor = (pE/T) / eps where E is the real electric field
+			double F = NT * (eps*eps*(frac - 0.5*alpha*frac*frac + 0.5*X*screen*screen) - logsinch);
+			A[i] = F * s[i];
+			A_s[i] += F;
+			
+			//! Compute contributions through polarization:
+			double chi = -pByT * g * Np * (frac + X*screen);  //ratio of p to Dphi (hence - sign)
+			A_s[i] += chi * Esq;
+			if(p[0]) storeVector((chi * s[i]) * Evec, p, i);
+		}
+		void freeEnergy(size_t N, const RadialFunctionG& gLookup,
+				const double* s, vector3<const double*> Dphi,
+				double* A, double* A_s, vector3<double*> p) const;
+		#ifdef GPU_ENABLED
+		void freeEnergy_gpu(size_t N, const RadialFunctionG& gLookup,
+				const double* s, vector3<const double*> Dphi,
+				double* A, double* A_s, vector3<double*> p) const;
 		#endif
 	};
 }
