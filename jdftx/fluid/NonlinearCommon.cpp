@@ -100,19 +100,55 @@ NonlinearCommon::NonlinearCommon(const FluidSolverParams& fsp, double epsBulk)
 	//Screening lookup table
 	if(screeningEval)
 	{
-		double dVmapped = 1./512;
-		std::vector<double> samples;
+		double dVmapped = 1./1024;
+		std::vector<double> samples, energySamples;
 		for(double Vmapped=-1.; Vmapped<=1.; Vmapped+=dVmapped)
 		{	if(fabs(Vmapped)==1)
-				samples.push_back(0.);
+			{	samples.push_back(0.);
+				energySamples.push_back(0.);
+			}
 			else
-			{	double V = std::pow(Vmapped/(1.-Vmapped*Vmapped), 3.); //inverse of Vmapped = copysign(2cbrt(V) / (1 + sqrt(1 + (2cbrt(V))^2)), V)
+			{	//double V = std::pow(Vmapped/(1.-Vmapped*Vmapped), 3.); //inverse of Vmapped = copysign(2cbrt(V) / (1 + sqrt(1 + (2cbrt(V))^2)), V)
+				double V = Vmapped / (1 - Vmapped*Vmapped); //inverse of Vmapped = 2V/(1 + sqrt(1 + 4V^2))
 				double x = screeningEval->x_from_V(V);
-				double xMapped = 1./(1.+x); //maps [0,infty) -> (0,1]
-				samples.push_back(xMapped);
+				samples.push_back(1.0 - x); //makes result -> 0 at edges, because x -> 1 for infinite |V|
+				
+				//Corresponding energy for the nonlinear screening:
+				double f_x, f = screeningEval->fHS(x, f_x);
+				double energy = screeningEval->NT * 
+					( exp(+V - f_x * screeningEval->x0minus)
+					+ exp(-V - f_x * screeningEval->x0plus)
+					+ f_x * x - f);
+				energySamples.push_back(1.0 / energy); //makes result -> 0 at edges, because energy -> infty at infinite |V|
 			}
 		}
 		xLookup.init(1, samples, dVmapped);
+		ionEnergyLookup.init(1, energySamples, dVmapped);
+
+		for(double Vmapped=-0.992; Vmapped<1.0; Vmapped+=0.005)
+		{	double V = Vmapped / (1 - Vmapped*Vmapped);
+			const double phi = V / screeningEval->ZbyT;
+			const double s = 1.0;
+			
+			//kappa^2 from phiToState:
+			double kappaSq = 0.0;
+			screeningEval->phiToState_calc(0, &phi, &s, xLookup, false, NULL, NULL, &kappaSq);
+			
+			//kappa^2 from apply:
+			double A=0.0, A_phi=0.0;
+			screeningEval->apply_calc(0, ionEnergyLookup, &s, &phi, &A, &A_phi);
+			const double kappaSq2 = (4*M_PI) * A_phi / phi;
+			
+			logPrintf("%.6lf %12.9lf %12.9lf\n", V, kappaSq, kappaSq2);
+		}
+			
+		FILE* fp = fopen("energyTest.dat", "w");
+		for(double Vmapped=-1.0; Vmapped<=1.0; Vmapped+=0.0001)
+			fprintf(fp, "%lg %le %le\n", Vmapped,
+				xLookup(1.0 + Vmapped),
+				ionEnergyLookup(1.0 + Vmapped));
+		fclose(fp);
+		die("Testing.\n");
 	}
 }
 

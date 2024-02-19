@@ -302,11 +302,11 @@ namespace NonlinearPCMeval
 		//! Hard sphere free energy per particle and derivative, where x is total packing fraction
 		__hostanddev__ double fHS(double xIn, double& f_xIn) const
 		{	double x = xIn, x_xIn = 1.;
-			if(xIn > 0.5) //soft packing: remap [0.5,infty) on to [0.5,1)
+			/*if(xIn > 0.5) //soft packing: remap [0.5,infty) on to [0.5,1)
 			{	double xInInv = 1./xIn;
 				x = 1.-0.25*xInInv;
 				x_xIn = 0.25*xInInv*xInInv;
-			}
+			}*/
 			double den = 1./(1-x), den0 = 1./(1-x0);
 			double comb = (x-x0)*den*den0, comb_x = den*den;
 			double prefac = (2./x0);
@@ -376,7 +376,7 @@ namespace NonlinearPCMeval
 		//! Calculate self-consistent packing fraction x at given dimensionless potential V = Z phi / T using a bisection method
 		__hostanddev__ double x_from_V(double V) const
 		{	double xLo = x0; while(rootFunc(xLo, V) > 0.) xLo *= 0.5;
-			double xHi = xLo; while(rootFunc(xHi, V) < 0.) xHi *= 2.;
+			double xHi = xLo; while(rootFunc(xHi, V) < 0.) xHi = 0.5*(1 + xHi); //never exceed 1
 			double x = 0.5*(xHi+xLo);
 			double dx = x*1e-13;
 			while(xHi-xLo > dx)
@@ -397,10 +397,8 @@ namespace NonlinearPCMeval
 				if(fabs(V) < 1e-7)
 					V = copysign(1e-7, V);
 			}
-			double twoCbrtV= 2.*pow(fabs(V), 1./3);
-			double Vmapped = copysign(twoCbrtV / (1. + sqrt(1. + twoCbrtV*twoCbrtV)), V);
-			double xMapped = xLookup(1.+Vmapped);
-			double x = 1./xMapped - 1.;
+			double Vmapped_plus_1 = 1.0 + 2*V/(1. + sqrt(1. + 4*V*V)); //In [0, 2] range of lookup
+			double x = 1 - xLookup(Vmapped_plus_1);
 			double f_x; fHS(x, f_x); //hard sphere potential
 			double logEtaPlus = -V - f_x*x0plus;
 			double logEtaMinus = +V - f_x*x0minus;
@@ -416,6 +414,20 @@ namespace NonlinearPCMeval
 		void phiToState_gpu(size_t N, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq) const;
 		#endif
 
+		//! Apply nonlinear screening and compute corresponding energy.
+		//! Energy and its phi derivative are accumulated to A and A_phi.
+		//! Note that A_phi contribution is effectively kappa^2(phi) phi.
+		__hostanddev__ void apply_calc(size_t i, const RadialFunctionG& ionEnergyLookup,
+			const double* s, const double* phi, double* A, double* A_phi) const
+		{	double V = ZbyT * phi[i];
+			double sqrtTerm = sqrt(1. + 4*V*V);
+			double Vmapped_plus_1 = 1.0 + 2*V/(1. + sqrtTerm); //In [0, 2] range of lookup
+			double Vmapped_phi = 2.0 * ZbyT / (sqrtTerm * (1. + sqrtTerm));
+			double energy = 1.0 / ionEnergyLookup(Vmapped_plus_1);
+			double energy_phi = (-energy*energy) * ionEnergyLookup.deriv(Vmapped_plus_1) * Vmapped_phi;
+			A[i] += s[i] * energy;
+			A_phi[i] += s[i] * energy_phi;
+		}
 	};
 	
 	//!Helper class for dielectric portion of NonlinearPCM
