@@ -49,12 +49,15 @@ public:
 	// Interface for Minimizable:
 	void step(const ScalarFieldTilde& dir, double alpha);
 	double compute(ScalarFieldTilde* grad, ScalarFieldTilde* Kgrad);
+	bool report(int iter);
 
 protected:
 	void set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde);
 	double get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const;
 
 private:
+	int iterLast; //latest iteration number in fluid minimize (used to report iteration count when inner log hidden)
+	double A0; //constant energy term added during potential optimization
 	std::shared_ptr<RealKernel> preconditioner;
 };
 

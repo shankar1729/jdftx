@@ -70,6 +70,7 @@ void NonlinearPCM::minimizeFluid()
 
 	//Minimize:
 	minimize(e.fluidMinParams);
+	logPrintf("\tNonlinear solve completed after %d iterations at t[s]: %9.2lf\n", iterLast, clock_sec());
 }
 
 void NonlinearPCM::step(const ScalarFieldTilde& dir, double alpha)
@@ -83,17 +84,24 @@ double NonlinearPCM::compute(ScalarFieldTilde* grad, ScalarFieldTilde* Kgrad)
 	callPref(dielectricEval->apply)(gInfo.nr, dielEnergyLookup,
 		shape[0]->dataPref(), Dphi.dataPref(), A->dataPref());
 	if(grad)
-	{	*grad = O(-rhoExplicitTilde - divergence(J(Dphi)));
+	{	*grad = O(-divergence(J(Dphi)) - rhoExplicitTilde);
 		if(Kgrad)
 		{	*Kgrad = (*preconditioner) * (*grad);
 		}
 	}
-	return -dot(rhoExplicitTilde, O(phiTot)) + integral(A);
+	return A0 + integral(A) - dot(rhoExplicitTilde, O(phiTot));
 }
+
+bool NonlinearPCM::report(int iter)
+{	iterLast = iter;
+	return false;
+}
+
 
 void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const ScalarFieldTilde& nCavityTilde)
 {	//Store the explicit system charge:
 	this->rhoExplicitTilde = rhoExplicitTilde; zeroNyquist(this->rhoExplicitTilde);
+	A0 = 0.5 * dot(rhoExplicitTilde, O(coulomb(rhoExplicitTilde)));
 	
 	//Update cavity:
 	this->nCavity = I(nCavityTilde + getFullCore());
@@ -122,27 +130,6 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 		if(Adiel_RRT) *Adiel_RRT -= gInfo.dV * dotOuter(p, Dphi);
 	}
 	
-	/*
-	//Get eps from phi:
-	const VectorField Dphi = I(gradient(phiTot));
-	VectorField eps; nullToZero(eps, gInfo);
-	callPref(dielectricEval->phiToState)(
-		gInfo.nr, Dphi.dataPref(), shape[0]->dataPref(),
-		gLookup, true, eps.dataPref(), NULL);
-
-	//Compute the dielectric free energy and bound charge:
-	VectorField p, Adiel_eps;
-	{	ScalarField Aout;
-		initZero(Aout, gInfo);
-		nullToZero(p, gInfo);
-		nullToZero(Adiel_eps, gInfo);
-		callPref(dielectricEval->freeEnergy)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
-			p.dataPref(), Aout->dataPref(), Adiel_eps.dataPref(), Adiel_shape.size() ? Adiel_shape[0]->dataPref() : 0);
-		Adiel["Aeps"] = integral(Aout);
-		if(!Adiel_RRT) p = 0; //only need later for lattice derivative
-	} //scoped to automatically deallocate temporaries
-	*/
-	
 	//Compute the electrostatic terms:
 	ScalarFieldTilde phiFluidTilde = coulomb(rhoFluidTilde);
 	ScalarFieldTilde phiExplicitTilde = coulomb(rhoExplicitTilde);
@@ -150,15 +137,6 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 	if(Adiel_RRT)
 		*Adiel_RRT += matrix3<>(1,1,1)*(Adiel["Coulomb"] + Adiel["Aeps"] + Adiel["Akappa"])
 			+ coulombStress(rhoFluidTilde, 0.5*rhoFluidTilde+rhoExplicitTilde);
-	
-	/*
-	//Propagate gradients from p to eps, shape
-	{	VectorField Adiel_p = Dphi;
-		callPref(dielectricEval->convertDerivative)(gInfo.nr, eps.const_dataPref(), shape[0]->dataPref(),
-			Adiel_p.const_dataPref(), Adiel_eps.dataPref(), Adiel_shape.size() ? Adiel_shape[0]->dataPref() : 0);
-		if(Adiel_RRT) *Adiel_RRT -= gInfo.dV * dotOuter(p, Adiel_p);
-	}
-	*/
 	
 	//Derivatives w.r.t electronic charge and density:
 	Adiel_rhoExplicitTilde = phiFluidTilde;

@@ -428,80 +428,28 @@ namespace NonlinearPCMeval
 		Dielectric(bool linear, double T, double Nmol, double pMol, double epsBulk, double epsInf);
 		
 		//! Calculate the various nonlinear functions of epsilon used in calculating the free energy and its derivatives
-		__hostanddev__ void calcFunctions(double eps, double& frac, double& frac_epsSqHlf, double& logsinch) const
+		__hostanddev__ void calcFunctions(double eps, double& frac, double& logsinch) const
 		{	double epsSq = eps*eps;
 			if(linear)
 			{	frac = 1.0/3;
-				frac_epsSqHlf = 0.;
 				logsinch = epsSq*(1.0/6);
 			}
 			else
 			{	if(eps < 1e-1) //Use series expansions
 				{	frac = 1.0/3 + epsSq*(-1.0/45 + epsSq*(2.0/945 + epsSq*(-1.0/4725)));
-					frac_epsSqHlf = -2.0/45 + epsSq*(8.0/945 + epsSq*(-6.0/4725));
 					logsinch = epsSq*(1.0/6 + epsSq*(-1.0/180 + epsSq*(1.0/2835)));
 				}
 				else
 				{	frac = (eps/tanh(eps)-1)/epsSq;
-					frac_epsSqHlf = (2 - eps/tanh(eps) - pow(eps/sinh(eps),2))/(epsSq*epsSq);
 					logsinch = eps<20. ? log(sinh(eps)/eps) : eps - log(2.*eps);
 				}
 			}
 		}
 		
-		/*
-		//! Compute the nonlinear functions in the free energy and effective susceptibility (p/eps) prior to scaling by shape function
-		__hostanddev__ void compute(double epsSqHlf, double& F, double& F_epsSqHlf, double& ChiEff, double& ChiEff_epsSqHlf) const
-		{	double epsSq = 2.*epsSqHlf, eps = sqrt(epsSq);
-			//----- Nonlinear functions of eps
-			double frac, frac_epsSqHlf, logsinch;
-			calcFunctions(eps, frac, frac_epsSqHlf, logsinch);
-			//----- Free energy and derivative
-			double screen = 1 - alpha*frac; //correlation screening factor = (pE/T) / eps where E is the real electric field
-			F = NT * (epsSq*(frac - 0.5*alpha*frac*frac + 0.5*X*screen*screen) - logsinch);
-			F_epsSqHlf = NT * (frac + X*screen + epsSq*frac_epsSqHlf*(1.-X*alpha)) * screen; //Simplified using logsinch_epsSqHlf = frac
-			//----- Effective susceptibility and derivative
-			ChiEff = Np * (frac + X*screen);
-			ChiEff_epsSqHlf = Np * frac_epsSqHlf * (1.-X*alpha);
-		}
-		
-		//! Given shape function s and gradient of phi eps, compute polarization p, free energy density A and accumulate its derivatives
-		__hostanddev__ void freeEnergy_calc(size_t i, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s) const
-		{	vector3<> epsVec = loadVector(eps, i);
-			double epsSqHlf = 0.5*epsVec.length_squared();
-			double F, F_epsSqHlf, ChiEff, ChiEff_epsSqHlf;
-			compute(epsSqHlf, F, F_epsSqHlf, ChiEff, ChiEff_epsSqHlf);
-			storeVector((ChiEff * s[i]) * epsVec, p, i);
-			A[i] = F * s[i];
-			if(A_eps[0]) accumVector((F_epsSqHlf * s[i]) * epsVec, A_eps, i);
-			if(A_s) A_s[i] += F;
-		}
-		void freeEnergy(size_t N, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s) const;
-		#ifdef GPU_ENABLED
-		void freeEnergy_gpu(size_t N, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s) const;
-		#endif
-		
-		//! Propagate derivative A_p and accumulate to A_eps and A_s
-		__hostanddev__ void convertDerivative_calc(size_t i, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const
-		{	vector3<> epsVec = loadVector(eps, i);
-			double epsSqHlf = 0.5*epsVec.length_squared();
-			double F, F_epsSqHlf, ChiEff, ChiEff_epsSqHlf;
-			compute(epsSqHlf, F, F_epsSqHlf, ChiEff, ChiEff_epsSqHlf);
-			//Propagate derivatives:
-			vector3<> A_pVec = loadVector(A_p, i);
-			accumVector(s[i]*( ChiEff*A_pVec + ChiEff_epsSqHlf*epsVec*dot(A_pVec, epsVec)), A_eps, i);
-			if(A_s) A_s[i] += ChiEff * dot(A_pVec, epsVec);
-		}
-		void convertDerivative(size_t N, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const;
-		#ifdef GPU_ENABLED
-		void convertDerivative_gpu(size_t N, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const;
-		#endif
-		*/
-
 		//! Calculate x = pMol E / T given eps
 		__hostanddev__ double x_from_eps(double eps) const
-		{	double frac, frac_epsSqHlf, logsinch;
-			calcFunctions(eps, frac, frac_epsSqHlf, logsinch);
+		{	double frac, logsinch;
+			calcFunctions(eps, frac, logsinch);
 			return eps*(1. - alpha*frac);
 		}
 		
@@ -521,23 +469,6 @@ namespace NonlinearPCMeval
 			}
 			return eps;
 		}
-		
-		/*
-		//! Given shape function s and gradient of phi Dphi, calculate state vector eps if setState=true or effective epsilon if setState=false
-		__hostanddev__ void phiToState_calc(size_t i, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const
-		{	vector3<> xVec = -pByT * loadVector(Dphi, i);
-			double x = xVec.length();
-			double g = gLookup(x/(1.+x));
-			if(setState)
-				storeVector(g * xVec, eps,i);
-			else
-				epsilon[i] = 1. + (4*M_PI)*s[i]*(Np*pByT)*((g-1.)/alpha + X);
-		}
-		void phiToState(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const;
-		#ifdef GPU_ENABLED
-		void phiToState_gpu(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const;
-		#endif
-		*/
 		
 		//! Apply nonlinear susceptibility and compute corresponding energy.
 		//! The susceptibility is applied in-place on Dphi, and energy density is returned in A.
@@ -580,8 +511,8 @@ namespace NonlinearPCMeval
 			double eps = x * g;
 			
 			//! Compute internal free energy and its derivatives:
-			double frac, frac_epsSqHlf, logsinch;
-			calcFunctions(eps, frac, frac_epsSqHlf, logsinch);
+			double frac, logsinch;
+			calcFunctions(eps, frac, logsinch);
 			double screen = 1 - alpha*frac; //correlation screening factor = (pE/T) / eps where E is the real electric field
 			double F = NT * (eps*eps*(frac - 0.5*alpha*frac*frac + 0.5*X*screen*screen) - logsinch);
 			A[i] = F * s[i];

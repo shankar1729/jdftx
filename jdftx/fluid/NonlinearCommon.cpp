@@ -58,8 +58,8 @@ NonlinearCommon::NonlinearCommon(const FluidSolverParams& fsp, double epsBulk)
 		if(xMapped==0.) x = 1e-12;
 		else if(xMapped==1.) x = 1e+12;
 		else x = xMapped/(1.-xMapped); //inverse of xMapped = x / (1 + x)
-		double eps = dielectricEval->eps_from_x(x), frac, frac_epsSqHlf, logsinch;
-		dielectricEval->calcFunctions(eps, frac, frac_epsSqHlf, logsinch);
+		double eps = dielectricEval->eps_from_x(x), frac, logsinch;
+		dielectricEval->calcFunctions(eps, frac, logsinch);
 		double energy = dielectricEval->NT * (
 			logsinch - 0.5 * dielectricEval->alpha * std::pow(eps * frac, 2)
 			+ 0.5 * dielectricEval->X * (x * x)

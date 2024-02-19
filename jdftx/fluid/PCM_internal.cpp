@@ -261,29 +261,6 @@ namespace NonlinearPCMeval
 		else logPrintf("   Nonlinear dielectric with epsBulk = %lg and epsInf = %lg with density Nmol = %lg of dipoles pMol = %lg at T = %lg K.\n", epsBulk, epsInf, Nmol, pMol, T/Kelvin);
 	}
 
-/*
-	void DielectricFreeEnergy_sub(size_t iStart, size_t iStop, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s, const Dielectric& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.freeEnergy_calc(i, eps, s, p, A, A_eps, A_s);
-	}
-	void Dielectric::freeEnergy(size_t N,
-		vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s) const
-	{	threadLaunch(DielectricFreeEnergy_sub, N, eps, s, p, A, A_eps, A_s, *this);
-	}
-	
-	void DielectricConvertDerivative_sub(size_t iStart, size_t iStop, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s, const Dielectric& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.convertDerivative_calc(i, eps, s, A_p, A_eps, A_s);
-	}
-	void Dielectric::convertDerivative(size_t N, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const
-	{	threadLaunch(DielectricConvertDerivative_sub, N, eps, s, A_p, A_eps, A_s, *this);
-	}
-	
-	void DielectricPhiToState_sub(size_t iStart, size_t iStop, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon, const Dielectric& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.phiToState_calc(i, Dphi, s, gLookup, setState, eps, epsilon);
-	}
-	void Dielectric::phiToState(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const
-	{	threadLaunch(DielectricPhiToState_sub, N, Dphi, s, gLookup, setState, eps, epsilon, *this);
-	}
-*/
 	void DielectricApply_sub(size_t iStart, size_t iStop, const RadialFunctionG& dielEnergyLookup,
 			const double* s, vector3<double*> Dphi, double* A, const Dielectric& eval)
 	{	for(size_t i=iStart; i<iStop; i++) eval.apply_calc(i, dielEnergyLookup, s, Dphi, A);
