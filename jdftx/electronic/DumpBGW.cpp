@@ -344,16 +344,29 @@ void BGW::writeHeaderMF(hid_t fid) const
 	hid_t gidSymm = h5createGroup(gidHeader, "symmetry");
 	size_t nSymmMax = 48;
 	const std::vector<SpaceGroupOp> ops = e.symm.getMatrices();
-	std::vector<matrix3<int> > rots(nSymmMax);
-	std::vector<vector3<> > trans(nSymmMax);
-	for(size_t iSym=0; iSym<std::min(ops.size(),nSymmMax); iSym++)
-	{	matrix3<int> rotInv = det(ops[iSym].rot) * adjugate(ops[iSym].rot); //since |det(rot)| = 1
-		rots[iSym] = rotInv; //BGW uses inverse convention
-		trans[iSym] = (2*M_PI)*ops[iSym].a; //BGW used 2*pi times translation
+	std::vector<matrix3<int> > rots;
+	std::vector<vector3<> > trans;
+	for(size_t iSym=0; iSym<ops.size(); iSym++)
+	{	//Check if this is the first op with this rotation:
+		bool notFirstTranslation = false;
+		for(size_t jSym=0; jSym<iSym; jSym++)
+			if(ops[jSym].rot == ops[iSym].rot)
+			{	notFirstTranslation = true;
+				break;
+			}
+		//Only add first op of each rotation:
+		if(notFirstTranslation) continue;
+		matrix3<int> rotInv = det(ops[iSym].rot) * adjugate(ops[iSym].rot); //since |det(rot)| = 1
+		rots.push_back(rotInv); //BGW uses inverse convention
+		trans.push_back((2*M_PI)*ops[iSym].a); //BGW used 2*pi times translation
 	}
+	size_t nSymmReduced = rots.size();
+	assert(nSymmReduced <= nSymmMax);
+	rots.resize(nSymmMax); //BGW alwayes expects 48 entries in HDF5 regardless of actual number
+	trans.resize(nSymmMax);
 	hsize_t dimsRot[3] = { nSymmMax, 3, 3 };
 	hsize_t dimsTrans[2] = { nSymmMax, 3 };
-	h5writeScalar(gidSymm, "ntran", int(ops.size()));
+	h5writeScalar(gidSymm, "ntran", int(nSymmReduced));
 	h5writeScalar(gidSymm, "cell_symmetry", 0);
 	h5writeVector(gidSymm, "mtrx", &rots[0](0,0), dimsRot, 3);
 	h5writeVector(gidSymm, "tnp", &trans[0][0], dimsTrans, 2);
