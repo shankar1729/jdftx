@@ -247,6 +247,15 @@ namespace NonlinearPCMeval
 	{	threadLaunch(ScreeningPhiToState_sub, N, phi, s, xLookup, setState, muPlus, muMinus, kappaSq, *this);
 	}
 	
+	void ScreeningApply_sub(size_t iStart, size_t iStop, const RadialFunctionG& ionEnergyLookup,
+			const double* s, const double* phi, double* A, double* A_phi, const Screening& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.apply_calc(i, ionEnergyLookup, s, phi, A, A_phi);
+	}
+	void Screening::apply(size_t N, const RadialFunctionG& ionEnergyLookup,
+			const double* s, const double* phi, double* A, double* A_phi) const
+	{	threadLaunch(ScreeningApply_sub, N, ionEnergyLookup, s, phi, A, A_phi, *this);
+	}
+	
 	
 	Dielectric::Dielectric(bool linear, double T, double Nmol, double pMol, double epsBulk, double epsInf)
 	: linear(linear), Np(Nmol * pMol), pByT(pMol/T), NT(Nmol * T),
@@ -262,12 +271,12 @@ namespace NonlinearPCMeval
 	}
 
 	void DielectricApply_sub(size_t iStart, size_t iStop, const RadialFunctionG& dielEnergyLookup,
-			const double* s, vector3<double*> Dphi, double* A, const Dielectric& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.apply_calc(i, dielEnergyLookup, s, Dphi, A);
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi, const Dielectric& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.apply_calc(i, dielEnergyLookup, s, Dphi, A, A_Dphi);
 	}
 	void Dielectric::apply(size_t N, const RadialFunctionG& dielEnergyLookup,
-			const double* s, vector3<double*> Dphi, double* A) const
-	{	threadLaunch(DielectricApply_sub, N, dielEnergyLookup, s, Dphi, A, *this);
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi) const
+	{	threadLaunch(DielectricApply_sub, N, dielEnergyLookup, s, Dphi, A, A_Dphi, *this);
 	}
 
 	void DielectricFreeEnergy_sub(size_t iStart, size_t iStop, const RadialFunctionG& gLookup,

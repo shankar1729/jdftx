@@ -422,12 +422,20 @@ namespace NonlinearPCMeval
 		{	double V = ZbyT * phi[i];
 			double sqrtTerm = sqrt(1. + 4*V*V);
 			double Vmapped_plus_1 = 1.0 + 2*V/(1. + sqrtTerm); //In [0, 2] range of lookup
-			double Vmapped_phi = 2.0 * ZbyT / (sqrtTerm * (1. + sqrtTerm));
 			double energy = 1.0 / ionEnergyLookup(Vmapped_plus_1);
-			double energy_phi = (-energy*energy) * ionEnergyLookup.deriv(Vmapped_plus_1) * Vmapped_phi;
 			A[i] += s[i] * energy;
-			A_phi[i] += s[i] * energy_phi;
+			if(A_phi)
+			{	double Vmapped_phi = 2.0 * ZbyT / (sqrtTerm * (1. + sqrtTerm));
+				double energy_phi = (-energy*energy) * ionEnergyLookup.deriv(Vmapped_plus_1) * Vmapped_phi;
+				A_phi[i] += s[i] * energy_phi;
+			}
 		}
+		void apply(size_t N, const RadialFunctionG& ionEnergyLookup,
+			const double* s, const double* phi, double* A, double* A_phi) const;
+		#ifdef GPU_ENABLED
+		void apply_gpu(size_t N, const RadialFunctionG& ionEnergyLookup,
+			const double* s, const double* phi, double* A, double* A_phi) const;
+		#endif
 	};
 	
 	//!Helper class for dielectric portion of NonlinearPCM
@@ -483,9 +491,9 @@ namespace NonlinearPCMeval
 		}
 		
 		//! Apply nonlinear susceptibility and compute corresponding energy.
-		//! The susceptibility is applied in-place on Dphi, and energy density is returned in A.
+		//! Set (NOT accumulate) energy density in A, and susceptibility times Phi optionally in A_Dphi.
 		__hostanddev__ void apply_calc(size_t i, const RadialFunctionG& dielEnergyLookup,
-			const double* s, vector3<double*> Dphi, double* A) const
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi) const
 		{
 			vector3<> Evec = loadVector(Dphi, i);
 			double E = Evec.length();
@@ -494,19 +502,21 @@ namespace NonlinearPCMeval
 			double xMapped = x * inv_x_plus_1;
 			double energy_by_x_sq = dielEnergyLookup(xMapped);
 			double energy = energy_by_x_sq * (x * x);
-			double energy_E_by_E = (
-				dielEnergyLookup.deriv(xMapped) * xMapped * inv_x_plus_1
-				+ 2.0 * energy_by_x_sq) * (pByT * pByT);
 			constexpr double oneBy4pi = 1.0/(4 * M_PI);
 			A[i] = (oneBy4pi * 0.5) * (E * E) + s[i] * energy;
-			double A_E_by_E = oneBy4pi + s[i] * energy_E_by_E;
-			storeVector(A_E_by_E * Evec, Dphi, i);
+			if(A_Dphi[0])
+			{	double energy_E_by_E = (
+					dielEnergyLookup.deriv(xMapped) * xMapped * inv_x_plus_1
+					+ 2.0 * energy_by_x_sq) * (pByT * pByT);
+				double A_E_by_E = oneBy4pi + s[i] * energy_E_by_E;
+				storeVector(A_E_by_E * Evec, A_Dphi, i);
+			}
 		}
 		void apply(size_t N, const RadialFunctionG& dielEnergyLookup,
-			const double* s, vector3<double*> Dphi, double* A) const;
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi) const;
 		#ifdef GPU_ENABLED
 		void apply_gpu(size_t N, const RadialFunctionG& dielEnergyLookup,
-			const double* s, vector3<double*> Dphi, double* A) const;
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi) const;
 		#endif
 
 		//! Compute variational internal free energy of dielectric and its derivatives.

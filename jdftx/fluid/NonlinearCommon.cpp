@@ -124,7 +124,8 @@ NonlinearCommon::NonlinearCommon(const FluidSolverParams& fsp, double epsBulk)
 		}
 		xLookup.init(1, samples, dVmapped);
 		ionEnergyLookup.init(1, energySamples, dVmapped);
-
+		
+		/*
 		for(double Vmapped=-0.992; Vmapped<1.0; Vmapped+=0.005)
 		{	double V = Vmapped / (1 - Vmapped*Vmapped);
 			const double phi = V / screeningEval->ZbyT;
@@ -149,6 +150,7 @@ NonlinearCommon::NonlinearCommon(const FluidSolverParams& fsp, double epsBulk)
 				ionEnergyLookup(1.0 + Vmapped));
 		fclose(fp);
 		die("Testing.\n");
+		*/
 	}
 }
 

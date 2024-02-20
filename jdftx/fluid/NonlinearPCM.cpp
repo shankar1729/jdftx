@@ -79,12 +79,25 @@ void NonlinearPCM::step(const ScalarFieldTilde& dir, double alpha)
 
 double NonlinearPCM::compute(ScalarFieldTilde* grad, ScalarFieldTilde* Kgrad)
 {
-	VectorField Dphi = I(gradient(phiTot));
 	ScalarField A; nullToZero(A, gInfo);
+	VectorField Dphi = I(gradient(phiTot)), A_Dphi_null;
+	VectorField& A_Dphi = grad ? Dphi : A_Dphi_null; //Retrieve gradient in place (since Dphi no longer needed)
 	callPref(dielectricEval->apply)(gInfo.nr, dielEnergyLookup,
-		shape[0]->dataPref(), Dphi.dataPref(), A->dataPref());
+		shape[0]->dataPref(), Dphi.const_dataPref(), A->dataPref(), A_Dphi.dataPref());
+	
+	ScalarField A_phi;
+	if(screeningEval)
+	{	ScalarField phi = I(phiTot);
+		if(grad) nullToZero(A_phi, gInfo);
+		callPref(screeningEval->apply)(gInfo.nr, ionEnergyLookup,
+			shape.back()->dataPref(), phi->dataPref(),
+			A->dataPref(), grad ? A_phi->dataPref() : NULL);
+	}
+	
 	if(grad)
-	{	*grad = O(-divergence(J(Dphi)) - rhoExplicitTilde);
+	{	ScalarFieldTilde A_phiTilde = -divergence(J(A_Dphi));
+		if(A_phi) A_phiTilde += J(A_phi);
+		*grad = O(A_phiTilde - rhoExplicitTilde);
 		if(Kgrad)
 		{	*Kgrad = (*preconditioner) * (*grad);
 		}
