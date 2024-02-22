@@ -138,6 +138,7 @@ namespace ShapeFunctionSCCS
 //------------- Helper classes for NonlinearPCM  -------------
 namespace NonlinearPCMeval
 {
+	/*
 	__global__
 	void ScreeningFreeEnergy_kernel(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s, const Screening eval)
 	{	int i = kernelIndex1D(); if(i<N) eval.freeEnergy_calc(i, mu0, muPlus, muMinus, s, rho, A, A_muPlus, A_muMinus, A_s);
@@ -167,9 +168,9 @@ namespace NonlinearPCMeval
 		ScreeningPhiToState_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, phi, s, xLookup, setState, muPlus, muMinus, kappaSq, *this);
 		gpuErrorCheck();
 	}
-	
+*/
 	__global__
-	void ScreeningApply_kernel(size_t N, const RadialFunctionG& ionEnergyLookup,
+	void ScreeningApply_kernel(size_t N, const RadialFunctionG ionEnergyLookup,
 			const double* s, const double* phi, double* A, double* A_phi, const Screening eval)
 	{	int i = kernelIndex1D(); if(i<N) eval.apply_calc(i, ionEnergyLookup, s, phi, A, A_phi);
 	}
@@ -177,6 +178,18 @@ namespace NonlinearPCMeval
 			const double* s, const double* phi, double* A, double* A_phi) const
 	{	GpuLaunchConfig1D glc(ScreeningApply_kernel, N);
 		ScreeningApply_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, ionEnergyLookup, s, phi, A, A_phi, *this);
+		gpuErrorCheck();
+	}
+
+	__global__
+	void ScreeningFreeEnergy_kernel(size_t N, const RadialFunctionG xLookup,
+			const double* s, const double* phi, double* A, double* A_s, double* rho, const Screening eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.freeEnergy_calc(i, xLookup, s, phi, A, A_s, rho);
+	}
+	void Screening::freeEnergy_gpu(size_t N, const RadialFunctionG& xLookup,
+			const double* s, const double* phi, double* A, double* A_s, double* rho) const
+	{	GpuLaunchConfig1D glc(ScreeningFreeEnergy_kernel, N);
+		ScreeningFreeEnergy_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, xLookup, s, phi, A, A_s, rho, *this);
 		gpuErrorCheck();
 	}
 

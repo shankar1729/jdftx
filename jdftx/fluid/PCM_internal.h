@@ -302,11 +302,11 @@ namespace NonlinearPCMeval
 		//! Hard sphere free energy per particle and derivative, where x is total packing fraction
 		__hostanddev__ double fHS(double xIn, double& f_xIn) const
 		{	double x = xIn, x_xIn = 1.;
-			/*if(xIn > 0.5) //soft packing: remap [0.5,infty) on to [0.5,1)
+			if(xIn > 0.5) //soft packing: remap [0.5,infty) on to [0.5,1)
 			{	double xInInv = 1./xIn;
 				x = 1.-0.25*xInInv;
 				x_xIn = 0.25*xInInv*xInInv;
-			}*/
+			}
 			double den = 1./(1-x), den0 = 1./(1-x0);
 			double comb = (x-x0)*den*den0, comb_x = den*den;
 			double prefac = (2./x0);
@@ -314,7 +314,8 @@ namespace NonlinearPCMeval
 			f_xIn = prefac * 2.*comb*comb_x * x_xIn;
 			return f;
 		}
-		
+
+/*
 		//! Compute the nonlinear functions in the free energy and charge density prior to scaling by shape function
 		//! Note that each mu here is mu(r) + mu0, i.e. after imposing charge neutrality constraint
 		__hostanddev__ void compute(double muPlus, double muMinus, double& F, double& F_muPlus, double& F_muMinus, double& Rho, double& Rho_muPlus, double& Rho_muMinus) const
@@ -366,7 +367,7 @@ namespace NonlinearPCMeval
 		#ifdef GPU_ENABLED
 		void convertDerivative_gpu(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s) const;
 		#endif
-		
+*/
 		//! Root function used for finding packing fraction x at a given dimensionless potential V = Z phi / T
 		__hostanddev__ double rootFunc(double x, double V) const
 		{	double f_x; fHS(x, f_x); //hard sphere potential
@@ -376,7 +377,7 @@ namespace NonlinearPCMeval
 		//! Calculate self-consistent packing fraction x at given dimensionless potential V = Z phi / T using a bisection method
 		__hostanddev__ double x_from_V(double V) const
 		{	double xLo = x0; while(rootFunc(xLo, V) > 0.) xLo *= 0.5;
-			double xHi = xLo; while(rootFunc(xHi, V) < 0.) xHi = 0.5*(1 + xHi); //never exceed 1
+			double xHi = xLo; while(rootFunc(xHi, V) < 0.) xHi *= 2.0; //xHi = 0.5*(1 + xHi); //never exceed 1
 			double x = 0.5*(xHi+xLo);
 			double dx = x*1e-13;
 			while(xHi-xLo > dx)
@@ -388,7 +389,7 @@ namespace NonlinearPCMeval
 			}
 			return x;
 		}
-		
+
 		//! Given shape function s and phi, calculate state mu's if setState=true or effective kappaSq if setState=false
 		__hostanddev__ void phiToState_calc(size_t i, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq) const
 		{	double V = ZbyT * phi[i];
@@ -422,12 +423,13 @@ namespace NonlinearPCMeval
 		{	double V = ZbyT * phi[i];
 			double sqrtTerm = sqrt(1. + 4*V*V);
 			double Vmapped_plus_1 = 1.0 + 2*V/(1. + sqrtTerm); //In [0, 2] range of lookup
-			double energy = 1.0 / ionEnergyLookup(Vmapped_plus_1);
-			A[i] += s[i] * energy;
+			double E = 1.0 / ionEnergyLookup(Vmapped_plus_1);
+			double F = (E - 1.0) * NT;
+			A[i] += s[i] * F;
 			if(A_phi)
 			{	double Vmapped_phi = 2.0 * ZbyT / (sqrtTerm * (1. + sqrtTerm));
-				double energy_phi = (-energy*energy) * ionEnergyLookup.deriv(Vmapped_plus_1) * Vmapped_phi;
-				A_phi[i] += s[i] * energy_phi;
+				double F_phi = (-E*E*NT) * ionEnergyLookup.deriv(Vmapped_plus_1) * Vmapped_phi;
+				A_phi[i] += s[i] * F_phi;
 			}
 		}
 		void apply(size_t N, const RadialFunctionG& ionEnergyLookup,
@@ -435,6 +437,48 @@ namespace NonlinearPCMeval
 		#ifdef GPU_ENABLED
 		void apply_gpu(size_t N, const RadialFunctionG& ionEnergyLookup,
 			const double* s, const double* phi, double* A, double* A_phi) const;
+		#endif
+		
+		//! Compute variational internal free energy of ions, its cavity derivative and charge density contribution
+		__hostanddev__ void freeEnergy_calc(size_t i, //const RadialFunctionG& xLookup,
+			const RadialFunctionG& ionEnergyLookup,
+			const double* s, const double* phi, double* A, double* A_s, double* rho) const
+		{
+			//Get packing fraction 
+			double V = ZbyT * phi[i];
+			double sqrtTerm = sqrt(1. + 4*V*V);
+			double Vmapped_plus_1 = 1.0 + 2*V/(1. + sqrtTerm); //In [0, 2] range of lookup
+			double E = 1.0 / ionEnergyLookup(Vmapped_plus_1);
+			double F = (E - 1.0) * NT;
+			double Vmapped_phi = 2.0 * ZbyT / (sqrtTerm * (1. + sqrtTerm));
+			double F_phi = (-E*E*NT) * ionEnergyLookup.deriv(Vmapped_plus_1) * Vmapped_phi;
+
+			A[i] = s[i] * (F_phi * phi[i] - F);
+			A_s[i] -= F;
+			rho[i] = s[i] * (-F_phi);
+
+			/*
+			double x = 1 - xLookup(Vmapped_plus_1);
+
+			//Evaluate internal free energy and cavity derivative:
+			double f_x, f = fHS(x, f_x); //hard sphere energy and potential
+			double logEtaPlus = -V - f_x*x0plus, etaPlus = exp(logEtaPlus);
+			double logEtaMinus = +V - f_x*x0minus, etaMinus = exp(logEtaMinus);
+			double F = NT * (2. + etaPlus*(logEtaPlus-1.) + etaMinus*(logEtaMinus-1.) + f);
+			A[i] = s[i] * F;
+			A_s[i] += F;
+			
+			//Compute contributions through charge density:
+			double Rho = NZ * (etaPlus - etaMinus);
+			rho[i] = s[i] * Rho;
+			A_s[i] += phi[i] * Rho;  //cavity derivative of Coulomb term
+			*/
+		}
+		void freeEnergy(size_t N, const RadialFunctionG& xLookup,
+			const double* s, const double* phi, double* A, double* A_s, double* rho) const;
+		#ifdef GPU_ENABLED
+		void freeEnergy_gpu(size_t N, const RadialFunctionG& xLookup,
+			const double* s, const double* phi, double* A, double* A_s, double* rho) const;
 		#endif
 	};
 	
@@ -519,8 +563,7 @@ namespace NonlinearPCMeval
 			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi) const;
 		#endif
 
-		//! Compute variational internal free energy of dielectric and its derivatives.
-		//! Optionally also collect polarization density p (only needed for stress).
+		//! Compute variational internal free energy of dielectric, its cavity derivative and polarization p.
 		__hostanddev__ void freeEnergy_calc(size_t i, const RadialFunctionG& gLookup,
 				const double* s, vector3<const double*> Dphi,
 				double* A, double* A_s, vector3<double*> p) const
@@ -542,8 +585,8 @@ namespace NonlinearPCMeval
 			
 			//! Compute contributions through polarization:
 			double chi = -pByT * g * Np * (frac + X*screen);  //ratio of p to Dphi (hence - sign)
-			A_s[i] += chi * Esq;
-			if(p[0]) storeVector((chi * s[i]) * Evec, p, i);
+			A_s[i] += chi * Esq;  //cavity derivative from Coulomb
+			storeVector((chi * s[i]) * Evec, p, i);
 		}
 		void freeEnergy(size_t N, const RadialFunctionG& gLookup,
 				const double* s, vector3<const double*> Dphi,

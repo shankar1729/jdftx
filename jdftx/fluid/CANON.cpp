@@ -114,9 +114,9 @@ double CANON::cycle(double dEprev, std::vector<double>& extraValues)
 	{	//TODO: set phiGzero based on charge neutrality
 		phiTot->setGzero(phiGzero);
 		ScalarField phi = I(phiTot);
-		callPref(screeningEval->phiToState)(
-			gInfo.nr, phi->dataPref(), shape.back()->dataPref(),
-			xLookup, true, muPlus->dataPref(), muMinus->dataPref(), NULL);
+// 		callPref(screeningEval->phiToState)(
+// 			gInfo.nr, phi->dataPref(), shape.back()->dataPref(),
+// 			xLookup, true, muPlus->dataPref(), muMinus->dataPref(), NULL);
 	}
 	
 	//Compute internal energy and bound charge:
@@ -126,8 +126,8 @@ double CANON::cycle(double dEprev, std::vector<double>& extraValues)
 		ScalarField Aout, rhoIon;
 		initZero(Aout, gInfo);
 		initZero(rhoIon, gInfo);
-		callPref(screeningEval->freeEnergy)(gInfo.nr, 0.0, muPlus->dataPref(), muMinus->dataPref(), shape.back()->dataPref(),
-			rhoIon->dataPref(), Aout->dataPref(), NULL, NULL, NULL);
+// 		callPref(screeningEval->freeEnergy)(gInfo.nr, 0.0, muPlus->dataPref(), muMinus->dataPref(), shape.back()->dataPref(),
+// 			rhoIon->dataPref(), Aout->dataPref(), NULL, NULL, NULL);
 		Adiel["Akappa"] = integral(Aout);
 		rhoFluidTilde += J(rhoIon); //include bound charge due to ions
 	}

@@ -100,7 +100,7 @@ NonlinearCommon::NonlinearCommon(const FluidSolverParams& fsp, double epsBulk)
 	//Screening lookup table
 	if(screeningEval)
 	{
-		double dVmapped = 1./1024;
+		double dVmapped = 1./512;
 		std::vector<double> samples, energySamples;
 		for(double Vmapped=-1.; Vmapped<=1.; Vmapped+=dVmapped)
 		{	if(fabs(Vmapped)==1)
@@ -115,16 +115,16 @@ NonlinearCommon::NonlinearCommon(const FluidSolverParams& fsp, double epsBulk)
 				
 				//Corresponding energy for the nonlinear screening:
 				double f_x, f = screeningEval->fHS(x, f_x);
-				double energy = screeningEval->NT * 
+				double energy =
 					( exp(+V - f_x * screeningEval->x0minus)
 					+ exp(-V - f_x * screeningEval->x0plus)
-					+ f_x * x - f);
-				energySamples.push_back(1.0 / energy); //makes result -> 0 at edges, because energy -> infty at infinite |V|
+					+ f_x * x - f - 2.0); //upto factor of NT; zero energy at V=0 and energy -> infty at infinite |V|
+				energySamples.push_back(1./(1. + energy)); //map from [0, infty) -> [1, 0), with zero at Vmapped = +/-1
 			}
 		}
 		xLookup.init(1, samples, dVmapped);
 		ionEnergyLookup.init(1, energySamples, dVmapped);
-		
+	
 		/*
 		for(double Vmapped=-0.992; Vmapped<1.0; Vmapped+=0.005)
 		{	double V = Vmapped / (1 - Vmapped*Vmapped);

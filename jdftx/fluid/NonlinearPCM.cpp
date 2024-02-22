@@ -124,7 +124,6 @@ void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const 
 	if(!phiTot) nullToZero(phiTot, gInfo);
 }
 
-
 double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExplicitTilde, ScalarFieldTilde& Adiel_nCavityTilde, IonicGradient* extraForces, matrix3<>* Adiel_RRT) const
 {
 	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
@@ -133,7 +132,7 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 
 	//Compute dielectric free energy and derivatives:
 	{	const VectorField Dphi = I(gradient(phiTot));
-		ScalarField Aout; initZero(Aout, gInfo);
+		ScalarField Aout; nullToZero(Aout, gInfo);
 		VectorField p; nullToZero(p, gInfo);
 		callPref(dielectricEval->freeEnergy)(gInfo.nr, gLookup, 
 			shape[0]->dataPref(), Dphi.const_dataPref(),
@@ -142,7 +141,19 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 		rhoFluidTilde -= divergence(J(p)); //include bound charge due to dielectric
 		if(Adiel_RRT) *Adiel_RRT -= gInfo.dV * dotOuter(p, Dphi);
 	}
-	
+
+	//Compute screening free energy and derivatives:
+	if(screeningEval)
+	{	const ScalarField phi = I(phiTot);
+		ScalarField Aout; nullToZero(Aout, gInfo);
+		ScalarField rhoIon; nullToZero(rhoIon, gInfo);
+		callPref(screeningEval->freeEnergy)(gInfo.nr, ionEnergyLookup, //xLookup, 
+			shape.back()->dataPref(), phi->dataPref(),
+			Aout->dataPref(), Adiel_shape.back()->dataPref(), rhoIon->dataPref());
+		Adiel["Akappa"] = integral(Aout);
+		rhoFluidTilde += J(rhoIon); //include bound charge due to ions
+	}
+
 	//Compute the electrostatic terms:
 	ScalarFieldTilde phiFluidTilde = coulomb(rhoFluidTilde);
 	ScalarFieldTilde phiExplicitTilde = coulomb(rhoExplicitTilde);
@@ -152,11 +163,13 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 			+ coulombStress(rhoFluidTilde, 0.5*rhoFluidTilde+rhoExplicitTilde);
 	
 	//Derivatives w.r.t electronic charge and density:
-	Adiel_rhoExplicitTilde = phiFluidTilde;
+	Adiel_rhoExplicitTilde = phiTot - phiExplicitTilde; //Same as phiFluidTilde, except for G=0
 	ScalarField Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
 	Adiel_nCavityTilde = J(Adiel_nCavity);
 	accumExtraForces(extraForces, Adiel_nCavityTilde);
+
+	Adiel.print(globalLog, false); //die("Testing.\n");
 	return Adiel;
 }
 

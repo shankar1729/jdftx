@@ -225,7 +225,7 @@ namespace NonlinearPCMeval
 		if(linear) logPrintf("   Linear ions with screening length = %lg bohrs.\n", screenLength);
 		else logPrintf("   Nonlinear ions with screening length = %lg bohrs and Z = %lg at T = %lg K.\n", screenLength, Zion, T/Kelvin);
 	}
-	
+	/*
 	void ScreeningFreeEnergy_sub(size_t iStart, size_t iStop, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s, const Screening& eval)
 	{	for(size_t i=iStart; i<iStop; i++) eval.freeEnergy_calc(i, mu0, muPlus, muMinus, s, rho, A, A_muPlus, A_muMinus, A_s);
 	}
@@ -246,7 +246,7 @@ namespace NonlinearPCMeval
 	void Screening::phiToState(size_t N, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq) const
 	{	threadLaunch(ScreeningPhiToState_sub, N, phi, s, xLookup, setState, muPlus, muMinus, kappaSq, *this);
 	}
-	
+	*/
 	void ScreeningApply_sub(size_t iStart, size_t iStop, const RadialFunctionG& ionEnergyLookup,
 			const double* s, const double* phi, double* A, double* A_phi, const Screening& eval)
 	{	for(size_t i=iStart; i<iStop; i++) eval.apply_calc(i, ionEnergyLookup, s, phi, A, A_phi);
@@ -256,6 +256,15 @@ namespace NonlinearPCMeval
 	{	threadLaunch(ScreeningApply_sub, N, ionEnergyLookup, s, phi, A, A_phi, *this);
 	}
 	
+	void ScreeningFreeEnergy_sub(size_t iStart, size_t iStop, const RadialFunctionG& xLookup,
+			const double* s, const double* phi, double* A, double* A_s, double* rho, const Screening& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.freeEnergy_calc(i, xLookup, s, phi, A, A_s, rho);
+	}
+	void Screening::freeEnergy(size_t N, const RadialFunctionG& xLookup,
+			const double* s, const double* phi, double* A, double* A_s, double* rho) const
+	{	threadLaunch(ScreeningFreeEnergy_sub, N, xLookup, s, phi, A, A_s, rho, *this);
+	}
+
 	
 	Dielectric::Dielectric(bool linear, double T, double Nmol, double pMol, double epsBulk, double epsInf)
 	: linear(linear), Np(Nmol * pMol), pByT(pMol/T), NT(Nmol * T),
