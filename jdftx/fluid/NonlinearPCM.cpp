@@ -83,7 +83,7 @@ double NonlinearPCM::compute(ScalarFieldTilde* grad, ScalarFieldTilde* Kgrad)
 	VectorField Dphi = I(gradient(phiTot)), A_Dphi_null;
 	VectorField& A_Dphi = grad ? Dphi : A_Dphi_null; //Retrieve gradient in place (since Dphi no longer needed)
 	callPref(dielectricEval->apply)(gInfo.nr, dielEnergyLookup,
-		shape[0]->dataPref(), Dphi.const_dataPref(), A->dataPref(), A_Dphi.dataPref());
+		shape[0]->dataPref(), Dphi.const_dataPref(), A->dataPref(), A_Dphi.dataPref(), NULL);
 	
 	ScalarField A_phi;
 	if(screeningEval)
@@ -91,7 +91,7 @@ double NonlinearPCM::compute(ScalarFieldTilde* grad, ScalarFieldTilde* Kgrad)
 		if(grad) nullToZero(A_phi, gInfo);
 		callPref(screeningEval->apply)(gInfo.nr, ionEnergyLookup,
 			shape.back()->dataPref(), phi->dataPref(),
-			A->dataPref(), grad ? A_phi->dataPref() : NULL);
+			A->dataPref(), grad ? A_phi->dataPref() : NULL, NULL);
 	}
 	
 	if(grad)
@@ -128,48 +128,43 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 {
 	EnergyComponents& Adiel = ((NonlinearPCM*)this)->Adiel;
 	ScalarFieldArray Adiel_shape; nullToZero(Adiel_shape, gInfo, shape.size());
-	ScalarFieldTilde rhoFluidTilde;
+	ScalarField F; nullToZero(F, gInfo); //Hessian energy contributions
 
-	//Compute dielectric free energy and derivatives:
+	//Compute dielectric contributions:
 	{	const VectorField Dphi = I(gradient(phiTot));
-		ScalarField Aout; nullToZero(Aout, gInfo);
-		VectorField p; nullToZero(p, gInfo);
-		callPref(dielectricEval->freeEnergy)(gInfo.nr, gLookup, 
-			shape[0]->dataPref(), Dphi.const_dataPref(),
-			Aout->dataPref(), Adiel_shape[0]->dataPref(), p.dataPref());
-		Adiel["Aeps"] = integral(Aout);
-		rhoFluidTilde -= divergence(J(p)); //include bound charge due to dielectric
-		if(Adiel_RRT) *Adiel_RRT -= gInfo.dV * dotOuter(p, Dphi);
+		VectorField F_Dphi; vector3<double*> F_DphiData;
+		if(Adiel_RRT)
+		{	nullToZero(F_Dphi, gInfo); //only needed for stress
+			F_DphiData = F_Dphi.dataPref();
+		}
+		callPref(dielectricEval->apply)(gInfo.nr, dielEnergyLookup,
+			shape[0]->dataPref(), Dphi.const_dataPref(), F->dataPref(),
+			F_DphiData, Adiel_shape[0]->dataPref());
+		if(Adiel_RRT) *Adiel_RRT += gInfo.dV * dotOuter(F_Dphi, Dphi);
 	}
 
-	//Compute screening free energy and derivatives:
+	//Compute screening contributions
 	if(screeningEval)
 	{	const ScalarField phi = I(phiTot);
-		ScalarField Aout; nullToZero(Aout, gInfo);
-		ScalarField rhoIon; nullToZero(rhoIon, gInfo);
-		callPref(screeningEval->freeEnergy)(gInfo.nr, ionEnergyLookup, //xLookup, 
-			shape.back()->dataPref(), phi->dataPref(),
-			Aout->dataPref(), Adiel_shape.back()->dataPref(), rhoIon->dataPref());
-		Adiel["Akappa"] = integral(Aout);
-		rhoFluidTilde += J(rhoIon); //include bound charge due to ions
+		callPref(screeningEval->apply)(gInfo.nr, ionEnergyLookup,
+			shape.back()->dataPref(), phi->dataPref(), F->dataPref(),
+			NULL, Adiel_shape.back()->dataPref());
 	}
 
-	//Compute the electrostatic terms:
-	ScalarFieldTilde phiFluidTilde = coulomb(rhoFluidTilde);
+	//Compute the energy:
 	ScalarFieldTilde phiExplicitTilde = coulomb(rhoExplicitTilde);
-	Adiel["Coulomb"] = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
+	Adiel["Electrostatic"] = -integral(F) + dot(phiTot - 0.5*phiExplicitTilde, O(rhoExplicitTilde));
 	if(Adiel_RRT)
-		*Adiel_RRT += matrix3<>(1,1,1)*(Adiel["Coulomb"] + Adiel["Aeps"] + Adiel["Akappa"])
-			+ coulombStress(rhoFluidTilde, 0.5*rhoFluidTilde+rhoExplicitTilde);
+	{	*Adiel_RRT += Adiel["Electrostatic"] * matrix3<>(1,1,1) //volume contribution
+			- 0.5*coulombStress(rhoExplicitTilde, rhoExplicitTilde); //through coulomb in phiExt
+	}
 	
 	//Derivatives w.r.t electronic charge and density:
-	Adiel_rhoExplicitTilde = phiTot - phiExplicitTilde; //Same as phiFluidTilde, except for G=0
+	Adiel_rhoExplicitTilde = phiTot - phiExplicitTilde;
 	ScalarField Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
 	Adiel_nCavityTilde = J(Adiel_nCavity);
 	accumExtraForces(extraForces, Adiel_nCavityTilde);
-
-	Adiel.print(globalLog, false); //die("Testing.\n");
 	return Adiel;
 }
 

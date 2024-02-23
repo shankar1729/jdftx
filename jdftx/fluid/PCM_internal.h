@@ -418,8 +418,9 @@ namespace NonlinearPCMeval
 		//! Apply nonlinear screening and compute corresponding energy.
 		//! Energy and its phi derivative are accumulated to A and A_phi.
 		//! Note that A_phi contribution is effectively kappa^2(phi) phi.
+		//! Optionally also accumulate cavity gradient to A_s.
 		__hostanddev__ void apply_calc(size_t i, const RadialFunctionG& ionEnergyLookup,
-			const double* s, const double* phi, double* A, double* A_phi) const
+			const double* s, const double* phi, double* A, double* A_phi, double* A_s) const
 		{	double V = ZbyT * phi[i];
 			double sqrtTerm = sqrt(1. + 4*V*V);
 			double Vmapped_plus_1 = 1.0 + 2*V/(1. + sqrtTerm); //In [0, 2] range of lookup
@@ -431,12 +432,13 @@ namespace NonlinearPCMeval
 				double F_phi = (-E*E*NT) * ionEnergyLookup.deriv(Vmapped_plus_1) * Vmapped_phi;
 				A_phi[i] += s[i] * F_phi;
 			}
+			if(A_s) A_s[i] -= F;
 		}
 		void apply(size_t N, const RadialFunctionG& ionEnergyLookup,
-			const double* s, const double* phi, double* A, double* A_phi) const;
+			const double* s, const double* phi, double* A, double* A_phi, double* A_s) const;
 		#ifdef GPU_ENABLED
 		void apply_gpu(size_t N, const RadialFunctionG& ionEnergyLookup,
-			const double* s, const double* phi, double* A, double* A_phi) const;
+			const double* s, const double* phi, double* A, double* A_phi, double* A_s) const;
 		#endif
 		
 		//! Compute variational internal free energy of ions, its cavity derivative and charge density contribution
@@ -536,31 +538,31 @@ namespace NonlinearPCMeval
 		
 		//! Apply nonlinear susceptibility and compute corresponding energy.
 		//! Set (NOT accumulate) energy density in A, and susceptibility times Phi optionally in A_Dphi.
+		//! Optionally also set cavity gradient in A_s.
 		__hostanddev__ void apply_calc(size_t i, const RadialFunctionG& dielEnergyLookup,
-			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi) const
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi, double* A_s) const
 		{
 			vector3<> Evec = loadVector(Dphi, i);
 			double E = Evec.length();
 			double x = pByT * E;
 			double inv_x_plus_1 = 1.0 / (1 + x);
 			double xMapped = x * inv_x_plus_1;
-			double energy_by_x_sq = dielEnergyLookup(xMapped);
-			double energy = energy_by_x_sq * (x * x);
+			double F_by_x_sq = dielEnergyLookup(xMapped);
+			double F = F_by_x_sq * (x * x);
 			constexpr double oneBy4pi = 1.0/(4 * M_PI);
-			A[i] = (oneBy4pi * 0.5) * (E * E) + s[i] * energy;
+			A[i] = (oneBy4pi * 0.5) * (E * E) + s[i] * F;
 			if(A_Dphi[0])
-			{	double energy_E_by_E = (
-					dielEnergyLookup.deriv(xMapped) * xMapped * inv_x_plus_1
-					+ 2.0 * energy_by_x_sq) * (pByT * pByT);
-				double A_E_by_E = oneBy4pi + s[i] * energy_E_by_E;
+			{	double F_E_by_E = (dielEnergyLookup.deriv(xMapped) * xMapped * inv_x_plus_1 + 2.0 * F_by_x_sq) * (pByT * pByT);
+				double A_E_by_E = oneBy4pi + s[i] * F_E_by_E;
 				storeVector(A_E_by_E * Evec, A_Dphi, i);
 			}
+			if(A_s) A_s[i] = -F;
 		}
 		void apply(size_t N, const RadialFunctionG& dielEnergyLookup,
-			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi) const;
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi, double* A_s) const;
 		#ifdef GPU_ENABLED
 		void apply_gpu(size_t N, const RadialFunctionG& dielEnergyLookup,
-			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi) const;
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi, double* A_s) const;
 		#endif
 
 		//! Compute variational internal free energy of dielectric, its cavity derivative and polarization p.

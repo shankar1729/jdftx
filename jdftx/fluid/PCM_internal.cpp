@@ -248,12 +248,12 @@ namespace NonlinearPCMeval
 	}
 	*/
 	void ScreeningApply_sub(size_t iStart, size_t iStop, const RadialFunctionG& ionEnergyLookup,
-			const double* s, const double* phi, double* A, double* A_phi, const Screening& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.apply_calc(i, ionEnergyLookup, s, phi, A, A_phi);
+			const double* s, const double* phi, double* A, double* A_phi, double* A_s, const Screening& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.apply_calc(i, ionEnergyLookup, s, phi, A, A_phi, A_s);
 	}
 	void Screening::apply(size_t N, const RadialFunctionG& ionEnergyLookup,
-			const double* s, const double* phi, double* A, double* A_phi) const
-	{	threadLaunch(ScreeningApply_sub, N, ionEnergyLookup, s, phi, A, A_phi, *this);
+			const double* s, const double* phi, double* A, double* A_phi, double* A_s) const
+	{	threadLaunch(ScreeningApply_sub, N, ionEnergyLookup, s, phi, A, A_phi, A_s,  *this);
 	}
 	
 	void ScreeningFreeEnergy_sub(size_t iStart, size_t iStop, const RadialFunctionG& xLookup,
@@ -280,12 +280,13 @@ namespace NonlinearPCMeval
 	}
 
 	void DielectricApply_sub(size_t iStart, size_t iStop, const RadialFunctionG& dielEnergyLookup,
-			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi, const Dielectric& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.apply_calc(i, dielEnergyLookup, s, Dphi, A, A_Dphi);
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi, double* A_s,
+			const Dielectric& eval)
+	{	for(size_t i=iStart; i<iStop; i++) eval.apply_calc(i, dielEnergyLookup, s, Dphi, A, A_Dphi, A_s);
 	}
 	void Dielectric::apply(size_t N, const RadialFunctionG& dielEnergyLookup,
-			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi) const
-	{	threadLaunch(DielectricApply_sub, N, dielEnergyLookup, s, Dphi, A, A_Dphi, *this);
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi, double* A_s) const
+	{	threadLaunch(DielectricApply_sub, N, dielEnergyLookup, s, Dphi, A, A_Dphi, A_s, *this);
 	}
 
 	void DielectricFreeEnergy_sub(size_t iStart, size_t iStop, const RadialFunctionG& gLookup,
