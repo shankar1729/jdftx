@@ -37,7 +37,6 @@ protected:
 	double pMol, ionNbulk, ionZ;
 	NonlinearPCMeval::Screening* screeningEval; //!< Internal helper class for Screening from PCM_internal
 	NonlinearPCMeval::Dielectric* dielectricEval; //!< Internal helper class for Dielectric from PCM_internal
-	RadialFunctionG gLookup, xLookup; //!< lookup tables for transcendental solutions involved in the dielectric and ionic SCF method
 	RadialFunctionG dielEnergyLookup, ionEnergyLookup; //!< lookup tables for energy during nonlinear Poisson-Boltzmann solve
 };
 

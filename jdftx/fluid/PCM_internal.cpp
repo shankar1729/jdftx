@@ -225,28 +225,7 @@ namespace NonlinearPCMeval
 		if(linear) logPrintf("   Linear ions with screening length = %lg bohrs.\n", screenLength);
 		else logPrintf("   Nonlinear ions with screening length = %lg bohrs and Z = %lg at T = %lg K.\n", screenLength, Zion, T/Kelvin);
 	}
-	/*
-	void ScreeningFreeEnergy_sub(size_t iStart, size_t iStop, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s, const Screening& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.freeEnergy_calc(i, mu0, muPlus, muMinus, s, rho, A, A_muPlus, A_muMinus, A_s);
-	}
-	void Screening::freeEnergy(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s) const
-	{	threadLaunch(ScreeningFreeEnergy_sub, N, mu0, muPlus, muMinus, s, rho, A, A_muPlus, A_muMinus, A_s, *this);
-	}
 	
-	void ScreeningConvertDerivative_sub(size_t iStart, size_t iStop, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s, const Screening& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.convertDerivative_calc(i, mu0, muPlus, muMinus, s, A_rho, A_muPlus, A_muMinus, A_s);
-	}
-	void Screening::convertDerivative(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s) const
-	{	threadLaunch(ScreeningConvertDerivative_sub, N, mu0, muPlus, muMinus, s, A_rho, A_muPlus, A_muMinus, A_s, *this);
-	}
-	
-	void ScreeningPhiToState_sub(size_t iStart, size_t iStop, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq, const Screening& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.phiToState_calc(i, phi, s, xLookup, setState, muPlus, muMinus, kappaSq);
-	}
-	void Screening::phiToState(size_t N, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq) const
-	{	threadLaunch(ScreeningPhiToState_sub, N, phi, s, xLookup, setState, muPlus, muMinus, kappaSq, *this);
-	}
-	*/
 	void ScreeningApply_sub(size_t iStart, size_t iStop, const RadialFunctionG& ionEnergyLookup,
 			const double* s, const double* phi, double* A, double* A_phi, double* A_s, const Screening& eval)
 	{	for(size_t i=iStart; i<iStop; i++) eval.apply_calc(i, ionEnergyLookup, s, phi, A, A_phi, A_s);
@@ -256,15 +235,13 @@ namespace NonlinearPCMeval
 	{	threadLaunch(ScreeningApply_sub, N, ionEnergyLookup, s, phi, A, A_phi, A_s,  *this);
 	}
 	
-	void ScreeningFreeEnergy_sub(size_t iStart, size_t iStop, const RadialFunctionG& xLookup,
-			const double* s, const double* phi, double* A, double* A_s, double* rho, const Screening& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.freeEnergy_calc(i, xLookup, s, phi, A, A_s, rho);
+	void Screening::operator()(const RadialFunctionG& ionEnergyLookup, const ScalarField& s,
+			const ScalarField& phi, ScalarField& A, ScalarField& A_phi, ScalarField& A_s) const
+	{	callPref(apply)(s->gInfo.nr, ionEnergyLookup,
+			s->dataPref(), phi->dataPref(), A->dataPref(),
+			A_phi ? A_phi->dataPref() : NULL,
+			A_s ? A_s->dataPref(): NULL);
 	}
-	void Screening::freeEnergy(size_t N, const RadialFunctionG& xLookup,
-			const double* s, const double* phi, double* A, double* A_s, double* rho) const
-	{	threadLaunch(ScreeningFreeEnergy_sub, N, xLookup, s, phi, A, A_s, rho, *this);
-	}
-
 	
 	Dielectric::Dielectric(bool linear, double T, double Nmol, double pMol, double epsBulk, double epsInf)
 	: linear(linear), Np(Nmol * pMol), pByT(pMol/T), NT(Nmol * T),
@@ -288,15 +265,11 @@ namespace NonlinearPCMeval
 			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi, double* A_s) const
 	{	threadLaunch(DielectricApply_sub, N, dielEnergyLookup, s, Dphi, A, A_Dphi, A_s, *this);
 	}
-
-	void DielectricFreeEnergy_sub(size_t iStart, size_t iStop, const RadialFunctionG& gLookup,
-				const double* s, vector3<const double*> Dphi,
-				double* A, double* A_s, vector3<double*> p, const Dielectric& eval)
-	{	for(size_t i=iStart; i<iStop; i++) eval.freeEnergy_calc(i, gLookup, s, Dphi, A, A_s, p);
-	}
-	void Dielectric::freeEnergy(size_t N, const RadialFunctionG& gLookup,
-				const double* s, vector3<const double*> Dphi,
-				double* A, double* A_s, vector3<double*> p) const
-	{	threadLaunch(DielectricFreeEnergy_sub, N, gLookup, s, Dphi, A, A_s, p, *this);
+	
+	void Dielectric::operator()(const RadialFunctionG& dielEnergyLookup, const ScalarField& s,
+			const VectorField& Dphi, ScalarField& A, VectorField& A_Dphi, ScalarField& A_s) const
+	{	callPref(apply)(s->gInfo.nr, dielEnergyLookup,
+			s->dataPref(), Dphi.dataPref(), A->dataPref(),
+			A_Dphi.dataPref(), A_s ? A_s->dataPref() : NULL);
 	}
 }

@@ -441,52 +441,6 @@ void elecFluidMinimize(Everything &e)
 			eVars.Haux_eigs[q] += eye(eInfo.nBands)*(eInfo.mu-mu);
 	}
 	
-	//HACK: FD testing of FluidSolver
-	{	Energies ener;
-		eVars.elecEnergyAndGrad(ener);
-		ScalarFieldTilde nTilde = J(eVars.get_nTot());
-		ScalarFieldTilde nCavityTilde = clone(nTilde);
-		if(e.iInfo.nCore) nCavityTilde += J(e.iInfo.nCore);
-		ScalarFieldTilde rhoExplicitTilde = nTilde + e.iInfo.rhoIon;
-		
-		//Random perturbation of both of above that stays within electronic region
-		ScalarFieldTilde pertTilde;
-		nullToZero(pertTilde, e.gInfo);
-		randomize(pertTilde);
-		pertTilde = gaussConvolve(pertTilde, 1.0); //smoothen
-		pertTilde = J(eVars.get_nTot() * I(pertTilde)); //mask by electron density
-		pertTilde->setGzero(0.0);
-		
-		//Value and derivatives at initial point:
-		eVars.fluidSolver->set(rhoExplicitTilde, nCavityTilde);
-		eVars.fluidSolver->minimizeFluid();
-		ScalarFieldTilde A_rhoExplicitTilde, A_nCavityTilde;
-		double A0 = eVars.fluidSolver->get_Adiel_and_grad(&A_rhoExplicitTilde, &A_nCavityTilde);
-		
-		//nCavity test:
-		double dA = dot(A_nCavityTilde, O(pertTilde));
-		for(double scale=1E-5; scale<=10.1; scale*=10.0)
-		{	eVars.fluidSolver->set(rhoExplicitTilde, nCavityTilde + scale*pertTilde);
-			eVars.fluidSolver->minimizeFluid();
-			double A = eVars.fluidSolver->get_Adiel_and_grad();
-			double dA_expected = dA * scale;
-			double dA_actual = A - A0;
-			logPrintf("FDTEST(nCavity)  scale: %lf  ratio: %.9lf\n", scale, dA_actual/dA_expected);
-		}
-		
-		//rho test:
-		dA = dot(A_rhoExplicitTilde, O(pertTilde));
-		for(double scale=1E-5; scale<=10.1; scale*=10.0)
-		{	eVars.fluidSolver->set(rhoExplicitTilde + scale*pertTilde, nCavityTilde);
-			eVars.fluidSolver->minimizeFluid();
-			double A = eVars.fluidSolver->get_Adiel_and_grad();
-			double dA_expected = dA * scale;
-			double dA_actual = A - A0;
-			logPrintf("FDTEST(rhoExp)  scale: %lf  ratio: %.9lf\n", scale, dA_actual/dA_expected);
-		}
-		die("Testing.\n");
-	}
-	
 	//First electronic minimization (with fluid if present) in most cases
 	logPrintf("\n-------- Electronic minimization -----------\n"); logFlush();
 	elecMinimize(e); //non-gummel fluid will be minimized each EdensityAndVscloc() [see ElecVars.cpp]
