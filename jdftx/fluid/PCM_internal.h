@@ -254,11 +254,6 @@ namespace NonlinearPCMeval
 		//! Hard sphere free energy per particle and derivative, where x is total packing fraction
 		__hostanddev__ double fHS(double xIn, double& f_xIn) const
 		{	double x = xIn, x_xIn = 1.;
-			if(xIn > 0.5) //soft packing: remap [0.5,infty) on to [0.5,1)
-			{	double xInInv = 1./xIn;
-				x = 1.-0.25*xInInv;
-				x_xIn = 0.25*xInInv*xInInv;
-			}
 			double den = 1./(1-x), den0 = 1./(1-x0);
 			double comb = (x-x0)*den*den0, comb_x = den*den;
 			double prefac = (2./x0);

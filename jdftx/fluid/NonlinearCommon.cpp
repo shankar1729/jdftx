@@ -54,17 +54,20 @@ NonlinearCommon::NonlinearCommon(const FluidSolverParams& fsp, double epsBulk)
 	double dxMapped = 1./512;
 	std::vector<double> samples;
 	for(double xMapped=0.; xMapped<=1.; xMapped+=dxMapped)
-	{	double x;
-		if(xMapped==0.) x = 1e-12;
-		else if(xMapped==1.) x = 1e+12;
-		else x = xMapped/(1.-xMapped); //inverse of xMapped = x / (1 + x)
-		double eps = dielectricEval->eps_from_x(x), frac, logsinch;
-		dielectricEval->calcFunctions(eps, frac, logsinch);
-		double energy = dielectricEval->NT * (
-			logsinch - 0.5 * dielectricEval->alpha * std::pow(eps * frac, 2)
-			+ 0.5 * dielectricEval->X * (x * x)
-		);
-		samples.push_back(energy/(x*x));
+	{	if(xMapped==0.) //x -> 0
+			samples.push_back(0.5 * dielectricEval->NT * (1.0/(3.0 - dielectricEval->alpha) + dielectricEval->X));
+		else if(xMapped==1.) //x -> infty
+			samples.push_back(0.5 * dielectricEval->NT * dielectricEval->X);
+		else
+		{	double x = xMapped/(1.-xMapped); //inverse of xMapped = x / (1 + x)
+			double eps = dielectricEval->eps_from_x(x), frac, logsinch;
+			dielectricEval->calcFunctions(eps, frac, logsinch);
+			double energy = dielectricEval->NT * (
+				logsinch - 0.5 * dielectricEval->alpha * std::pow(eps * frac, 2)
+				+ 0.5 * dielectricEval->X * (x * x)
+			);
+			samples.push_back(energy/(x*x));
+		}
 	}
 	dielEnergyLookup.init(0, samples, dxMapped);
 	
