@@ -271,7 +271,7 @@ namespace NonlinearPCMeval
 		//! Calculate self-consistent packing fraction x at given dimensionless potential V = Z phi / T using a bisection method
 		__hostanddev__ double x_from_V(double V) const
 		{	double xLo = x0; while(rootFunc(xLo, V) > 0.) xLo *= 0.5;
-			double xHi = xLo; while(rootFunc(xHi, V) < 0.) xHi *= 2.0; //xHi = 0.5*(1 + xHi); //never exceed 1
+			double xHi = xLo; while(rootFunc(xHi, V) < 0.) xHi = 0.5*(1 + xHi); //never exceed 1
 			double x = 0.5*(xHi+xLo);
 			double dx = x*1e-13;
 			while(xHi-xLo > dx)
