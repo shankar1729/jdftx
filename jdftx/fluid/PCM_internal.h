@@ -301,7 +301,7 @@ namespace NonlinearPCMeval
 				double F_phi = (-E*E*NT) * ionEnergyLookup.deriv(Vmapped_plus_1) * Vmapped_phi;
 				A_phi[i] += s[i] * F_phi;
 			}
-			if(A_s) A_s[i] -= F;
+			if(A_s) A_s[i] += F;
 		}
 		void apply(size_t N, const RadialFunctionG& ionEnergyLookup,
 			const double* s, const double* phi, double* A, double* A_phi, double* A_s) const;
@@ -380,14 +380,12 @@ namespace NonlinearPCMeval
 			double xMapped = x * inv_x_plus_1;
 			double F_by_x_sq = dielEnergyLookup(xMapped);
 			double F = F_by_x_sq * (x * x);
-			constexpr double oneBy4pi = 1.0/(4 * M_PI);
-			A[i] = (oneBy4pi * 0.5) * (E * E) + s[i] * F;
+			A[i] = s[i] * F;
 			if(A_Dphi[0])
 			{	double F_E_by_E = (dielEnergyLookup.deriv(xMapped) * xMapped * inv_x_plus_1 + 2.0 * F_by_x_sq) * (pByT * pByT);
-				double A_E_by_E = oneBy4pi + s[i] * F_E_by_E;
-				storeVector(A_E_by_E * Evec, A_Dphi, i);
+				storeVector((s[i] * F_E_by_E) * Evec, A_Dphi, i);
 			}
-			if(A_s) A_s[i] = -F;
+			if(A_s) A_s[i] = F;
 		}
 		void apply(size_t N, const RadialFunctionG& dielEnergyLookup,
 			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi, double* A_s) const;

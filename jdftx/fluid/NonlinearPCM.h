@@ -64,6 +64,10 @@ private:
 	NonlinearPCMeval::Dielectric* dielectricEval; //!< Internal helper class for Dielectric from PCM_internal
 	RadialFunctionG dielEnergyLookup, ionEnergyLookup; //!< lookup tables for energy during nonlinear Poisson-Boltzmann solve
 	std::shared_ptr<RealKernel> preconditioner;
+	
+	//Extra quantities for CANON alone:
+	ScalarFieldTilde nCavityNetTilde; //!< input nCavity + full core before convolution
+	RadialFunctionG w0, w1; //!< Solvent l=0 and l=1 weight functions
 };
 
 //! @}

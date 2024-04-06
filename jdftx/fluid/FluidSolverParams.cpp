@@ -426,7 +426,7 @@ bool FluidSolverParams::needsVDW() const
 			return false;
 		case FluidLinearPCM:
 		case FluidNonlinearPCM:
-			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_CANDLE);
+			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_CANDLE || pcmVariant==PCM_CANON);
 		case FluidSaLSA:
 		case FluidClassicalDFT:
 		default:
