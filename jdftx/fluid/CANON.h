@@ -21,14 +21,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_FLUID_CANON_H
 
 #include <fluid/PCM.h>
-#include <fluid/NonlinearCommon.h>
 #include <core/Pulay.h>
 
 //! @addtogroup Solvation
 //! @{
 
 //! Nonlocal CANON \cite CANON solvation model implementation (electrostatic part)
-class CANON : public PCM, public Pulay<ScalarFieldTilde>, public NonlinearCommon
+class CANON : public PCM, public Pulay<ScalarFieldTilde>
 {
 public:
 	CANON(const Everything& e, const FluidSolverParams& fsp); //!< Parameters same as createFluidSolver()

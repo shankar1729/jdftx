@@ -22,15 +22,16 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #define JDFTX_ELECTRONIC_NONLINEARPCM_H
 
 #include <fluid/PCM.h>
-#include <fluid/NonlinearCommon.h>
 #include <core/Minimize.h>
+
+namespace NonlinearPCMeval { struct Screening; struct Dielectric; } //Forward declaration of helper classes
 
 //! @addtogroup Solvation
 //! @{
 //! @file NonlinearPCM.h NonlinearPCM and helper classes
 
 //! Nonlinear solvation models: shared electrostatic part implementation
-class NonlinearPCM : public PCM, public Minimizable<ScalarFieldTilde>, public NonlinearCommon
+class NonlinearPCM : public PCM, public Minimizable<ScalarFieldTilde>
 {
 public:
 	ScalarFieldTilde phiTot; //!< State of the solver = total electrostatic potential
@@ -58,6 +59,10 @@ protected:
 private:
 	int iterLast; //latest iteration number in fluid minimize (used to report iteration count when inner log hidden)
 	double A0; //constant energy term added during potential optimization
+	double pMol, ionNbulk, ionZ;
+	NonlinearPCMeval::Screening* screeningEval; //!< Internal helper class for Screening from PCM_internal
+	NonlinearPCMeval::Dielectric* dielectricEval; //!< Internal helper class for Dielectric from PCM_internal
+	RadialFunctionG dielEnergyLookup, ionEnergyLookup; //!< lookup tables for energy during nonlinear Poisson-Boltzmann solve
 	std::shared_ptr<RealKernel> preconditioner;
 };
 

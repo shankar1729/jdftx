@@ -30,7 +30,7 @@ inline void setKernels(int i, double Gsq, double* preconditioner, double* metric
 }
 
 CANON::CANON(const Everything& e, const FluidSolverParams& fsp)
-: PCM(e, fsp), Pulay(e.eVars.fluidParams.scfParams), NonlinearCommon(fsp, epsBulk)
+: PCM(e, fsp), Pulay(e.eVars.fluidParams.scfParams)
 {
 	//Setup weight functions
 	const double dG = gInfo.dGradial, Gmax = gInfo.GmaxGrid;
@@ -104,6 +104,7 @@ void CANON::getSusceptibility_internal(const std::vector<complex>& omega, std::v
 
 double CANON::cycle(double dEprev, std::vector<double>& extraValues)
 {
+/*
 	//Get eps, mu from electrostatic potential:
 	const VectorField Dphi = I(gradient(w1 * phiTot));
 // 	callPref(dielectricEval->phiToState)(
@@ -145,6 +146,7 @@ double CANON::cycle(double dEprev, std::vector<double>& extraValues)
 	Adiel["Coulomb"] = dot(rhoFluidTilde, O(0.5*phiFluidTilde + phiExplicitTilde));
 	phiTot = phiExplicitTilde + phiFluidTilde;
 	if(screeningEval) phiTot->setGzero(phiGzero);
+*/
 	return Adiel;
 }
 
