@@ -66,8 +66,10 @@ private:
 	std::shared_ptr<RealKernel> preconditioner;
 	
 	//Extra quantities for CANON alone:
+	bool isNonlocal; //!< whether nonlocal extensions to NonlinearPCM (CANON) are active
 	ScalarFieldTilde nCavityNetTilde; //!< input nCavity + full core before convolution
-	RadialFunctionG w0, w1; //!< Solvent l=0 and l=1 weight functions
+	ScalarFieldTilde rhoLiquidTilde0; //!< built-in charge density in liquid
+	RadialFunctionG Nw0, w1; //!< Solvent l=0 and l=1 weight functions (Nw0 includes Nbulk)
 };
 
 //! @}

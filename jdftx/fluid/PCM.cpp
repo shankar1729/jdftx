@@ -614,6 +614,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 			break;
 		case PCM_CANON:
 			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
+			break;
 		case PCM_CANDLE:
 			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
 			fprintf(fp, "   E_eta_wDiel = %.15lg\n", A_eta_wDiel);
