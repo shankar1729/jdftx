@@ -35,7 +35,6 @@ enum FluidType
 	FluidLinearPCM, //!< Linear local-dielectric fluid, optionally including non-electrostatic terms \cite PCM-Kendra
 	FluidNonlinearPCM, //!< Nonlinear local-dielectric fluid including non-electrostatic terms \cite NonlinearPCM
 	FluidSaLSA, //!< Spherically-averaged liquid susceptibility ansatz \cite SaLSA
-	FluidCANON, //!< Charge-asymmetric nonlinear and nonlocal model \cite CANON
 	FluidClassicalDFT //!< Classical density functional description of fluid \cite PolarizableCDFT \cite RigidCDFT
 };
 
@@ -64,7 +63,7 @@ struct FmixParams
 
 enum PCMVariant
 {	PCM_SaLSA, //!< Use only with fluid type FluidSaLSA \cite SaLSA
-	PCM_CANON, //!< Use only with fluid type FluidCANON \cite CANON
+	PCM_CANON, //!< Use only with fluid type FluidNonlinearPCM \cite CANON
 	PCM_CANDLE, //!< Charge-asymmetric nonlocally-determined local-electric (CANDLE) solvation model \cite CANDLE
 	PCM_SGA13, //!< Local-response dielectric fluid or electrolyte with weighted-density cavitation and dispersion \cite CavityWDA
 	PCM_GLSSA13, //!< Local-response dielectric fluid or electrolyte with empirical cavity tension \cite NonlinearPCM

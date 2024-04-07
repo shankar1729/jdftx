@@ -139,62 +139,27 @@ namespace ShapeFunctionSCCS
 namespace NonlinearPCMeval
 {
 	__global__
-	void ScreeningFreeEnergy_kernel(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s, const Screening eval)
-	{	int i = kernelIndex1D(); if(i<N) eval.freeEnergy_calc(i, mu0, muPlus, muMinus, s, rho, A, A_muPlus, A_muMinus, A_s);
+	void ScreeningApply_kernel(size_t N, const RadialFunctionG ionEnergyLookup,
+			const double* s, const double* phi, double* A, double* A_phi, double* A_s, const Screening eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.apply_calc(i, ionEnergyLookup, s, phi, A, A_phi, A_s);
 	}
-	void Screening::freeEnergy_gpu(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, double* rho, double* A, double* A_muPlus, double* A_muMinus, double* A_s) const
-	{	GpuLaunchConfig1D glc(ScreeningFreeEnergy_kernel, N);
-		ScreeningFreeEnergy_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, mu0, muPlus, muMinus, s, rho, A, A_muPlus, A_muMinus, A_s, *this);
-		gpuErrorCheck();
-	}
-	
-	__global__
-	void ScreeningConvertDerivative_kernel(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s, const Screening eval)
-	{	int i = kernelIndex1D(); if(i<N) eval.convertDerivative_calc(i, mu0, muPlus, muMinus, s, A_rho, A_muPlus, A_muMinus, A_s);
-	}
-	void Screening::convertDerivative_gpu(size_t N, double mu0, const double* muPlus, const double* muMinus, const double* s, const double* A_rho, double* A_muPlus, double* A_muMinus, double* A_s) const
-	{	GpuLaunchConfig1D glc(ScreeningConvertDerivative_kernel, N);
-		ScreeningConvertDerivative_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, mu0, muPlus, muMinus, s, A_rho, A_muPlus, A_muMinus, A_s, *this);
-		gpuErrorCheck();
-	}
-	
-	__global__
-	void ScreeningPhiToState_kernel(size_t N, const double* phi, const double* s, const RadialFunctionG xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq, const Screening eval)
-	{	int i = kernelIndex1D(); if(i<N) eval.phiToState_calc(i, phi, s, xLookup, setState, muPlus, muMinus, kappaSq);
-	}
-	void Screening::phiToState_gpu(size_t N, const double* phi, const double* s, const RadialFunctionG& xLookup, bool setState, double* muPlus, double* muMinus, double* kappaSq) const
-	{	GpuLaunchConfig1D glc(ScreeningPhiToState_kernel, N);
-		ScreeningPhiToState_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, phi, s, xLookup, setState, muPlus, muMinus, kappaSq, *this);
-		gpuErrorCheck();
-	}
-	
-	__global__
-	void DielectricFreeEnergy_kernel(size_t N, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s, const Dielectric eval)
-	{	int i = kernelIndex1D(); if(i<N) eval.freeEnergy_calc(i, eps, s, p, A, A_eps, A_s);
-	}
-	void Dielectric::freeEnergy_gpu(size_t N, vector3<const double*> eps, const double* s, vector3<double*> p, double* A, vector3<double*> A_eps, double* A_s) const
-	{	GpuLaunchConfig1D glc(DielectricFreeEnergy_kernel, N);
-		DielectricFreeEnergy_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, eps, s, p, A, A_eps, A_s, *this);
-		gpuErrorCheck();
-	}
-	
-	__global__
-	void DielectricConvertDerivative_kernel(size_t N, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s, const Dielectric eval)
-	{	int i = kernelIndex1D(); if(i<N) eval.convertDerivative_calc(i, eps, s, A_p, A_eps, A_s);
-	}
-	void Dielectric::convertDerivative_gpu(size_t N, vector3<const double*> eps, const double* s, vector3<const double*> A_p, vector3<double*> A_eps, double* A_s) const
-	{	GpuLaunchConfig1D glc(DielectricConvertDerivative_kernel, N);
-		DielectricConvertDerivative_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, eps, s, A_p, A_eps, A_s, *this);
+	void Screening::apply_gpu(size_t N, const RadialFunctionG& ionEnergyLookup,
+			const double* s, const double* phi, double* A, double* A_phi, double* A_s) const
+	{	GpuLaunchConfig1D glc(ScreeningApply_kernel, N);
+		ScreeningApply_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, ionEnergyLookup, s, phi, A, A_phi, A_s, *this);
 		gpuErrorCheck();
 	}
 
 	__global__
-	void DielectricPhiToState_kernel(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG gLookup, bool setState, vector3<double*> eps, double* epsilon, const Dielectric eval)
-	{	int i = kernelIndex1D(); if(i<N) eval.phiToState_calc(i, Dphi, s, gLookup, setState, eps, epsilon);
+	void DielectricApply_kernel(size_t N, const RadialFunctionG dielEnergyLookup,
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi, double* A_s,
+			const Dielectric eval)
+	{	int i = kernelIndex1D(); if(i<N) eval.apply_calc(i, dielEnergyLookup, s, Dphi, A, A_Dphi, A_s);
 	}
-	void Dielectric::phiToState_gpu(size_t N, vector3<const double*> Dphi, const double* s, const RadialFunctionG& gLookup, bool setState, vector3<double*> eps, double* epsilon) const
-	{	GpuLaunchConfig1D glc(DielectricPhiToState_kernel, N);
-		DielectricPhiToState_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, Dphi, s, gLookup, setState, eps, epsilon, *this);
+	void Dielectric::apply_gpu(size_t N, const RadialFunctionG& dielEnergyLookup,
+			const double* s, vector3<const double*> Dphi, double* A, vector3<double*> A_Dphi, double* A_s) const
+	{	GpuLaunchConfig1D glc(DielectricApply_kernel, N);
+		DielectricApply_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, dielEnergyLookup, s, Dphi, A, A_Dphi, A_s, *this);
 		gpuErrorCheck();
 	}
 }

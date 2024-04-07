@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 EnumStringMap<PCMVariant> pcmVariantMap
 (	PCM_CANDLE,  "CANDLE",
+	PCM_CANON,   "CANON",
 	PCM_SGA13,   "SGA13", 
 	PCM_GLSSA13, "GLSSA13",
 	PCM_LA12,    "LA12",
@@ -38,6 +39,7 @@ EnumStringMap<PCMVariant> pcmVariantMap
 );
 EnumStringMap<PCMVariant> pcmVariantDescMap
 (	PCM_CANDLE,  "Charge-asymmetry corrected, local-response, nonlocal-cavity solvation model \\cite CANDLE",
+	PCM_CANON,   "Charge-asymmetric nonlinear and nonlocal model \\cite CANON",
 	PCM_SGA13,   "PCM with weighted-density cavitation and dispersion \\cite CavityWDA", 
 	PCM_GLSSA13, "PCM with empirical cavity tension \\cite NonlinearPCM",
 	PCM_LA12,    "PCM with no cavitation/dispersion contributions \\cite PCM-Kendra", 
@@ -72,21 +74,20 @@ struct CommandPcmVariant : public Command
 		pl.get(fsp.pcmVariant, PCM_GLSSA13, pcmVariantMap, "variant");
 		if(fsp.fluidType==FluidSaLSA)
 			 fsp.pcmVariant = PCM_SaLSA; //only option for SaLSA
-		if(fsp.fluidType==FluidCANON)
-			 fsp.pcmVariant = PCM_CANON; //only option for CANON
 		//Check variant compatibility with fluidType
 		if(fsp.fluidType!=FluidNone)
 		{	//check only when fluid is not None, so that you can switch any
 			//fluid input file to vacuum simply by commenting out fluid line
 			if(fsp.fluidType!=FluidLinearPCM && ( fsp.pcmVariant==PCM_CANDLE || isPCM_SCCS(fsp.pcmVariant) ) )
 				throw string("CANDLE and SCCS variants can only be used with fluid LinearPCM");
+			if(fsp.fluidType!=FluidNonlinearPCM && fsp.pcmVariant==PCM_CANON)
+				throw string("CANON variant can only be used with fluid NonlinearPCM");
 		}
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const FluidSolverParams& fsp = e.eVars.fluidParams;
 		if(fsp.fluidType==FluidSaLSA) logPrintf("SaLSA"); //only option for SaLSA
-		else if(fsp.fluidType==FluidCANON) logPrintf("CANON"); //only option for CANON
 		else logPrintf("%s", pcmVariantMap.getString(fsp.pcmVariant));
 	}
 }

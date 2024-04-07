@@ -180,9 +180,10 @@ void Everything::setup()
 	//Setup fluid minimization parameters:
 	switch(eVars.fluidParams.fluidType)
 	{	case FluidLinearPCM:
+		case FluidNonlinearPCM:
 		case FluidSaLSA:
-			fluidMinParams.nDim = gInfo.nr; break;
-		case FluidNonlinearPCM: fluidMinParams.nDim = 4 * gInfo.nr; break;
+			fluidMinParams.nDim = gInfo.nr;
+			break;
 		case FluidClassicalDFT:
 			fluidMinParams.nDim = 4 * gInfo.nr; 
 			break;
@@ -190,7 +191,9 @@ void Everything::setup()
 			fluidMinParams.nDim = 0;
 	}
 	fluidMinParams.fpLog = globalLog;
-	fluidMinParams.energyLabel = relevantFreeEnergyName(*this);
+	fluidMinParams.energyLabel = (eVars.fluidParams.fluidType == FluidNonlinearPCM)
+		? "-Acoulomb"
+		: relevantFreeEnergyName(*this);
 	fluidMinParams.energyFormat = "%+.15lf";
 	if(eVars.fluidSolver && eVars.fluidSolver->useGummel())
 	{	fluidMinParams.linePrefix = "FluidMinimize: ";
@@ -199,10 +202,8 @@ void Everything::setup()
 	else //indent for inner minimization:
 	{	fluidMinParams.linePrefix = "\tFluidMinimize: ";
 		eVars.fluidParams.scfParams.linePrefix = "\tNonlinearFluidSCF: ";
-		//Disable inner iterations for linear solvers:
-		if(!eVars.fluidParams.verboseLog
-			&& (eVars.fluidParams.fluidType==FluidLinearPCM
-			 || eVars.fluidParams.fluidType==FluidSaLSA) )
+		//Disable inner iterations for non-classical-DFT solvers:
+		if(!eVars.fluidParams.verboseLog && (eVars.fluidParams.fluidType!=FluidClassicalDFT))
 			fluidMinParams.fpLog = nullLog;
 	}
 	
