@@ -222,7 +222,7 @@ void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const 
 	
 	//Update cavity:
 	nCavityNetTilde = nCavityTilde + getFullCore();
-	nCavity = I(isNonlocal ? Sf[0]*nCavityNetTilde : nCavityNetTilde);
+	nCavity = I(isNonlocal ? fsp.Ztot*(Sf[0]*nCavityNetTilde) : nCavityNetTilde);
 	updateCavity();
 	
 	//Built-in charge for CANON:
@@ -283,7 +283,7 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 	ScalarField Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
 	ScalarFieldTilde Adiel_nCavityTildeLocal = J(Adiel_nCavity);
-	Adiel_nCavityTilde = isNonlocal ? Sf[0]*Adiel_nCavityTildeLocal : Adiel_nCavityTildeLocal;
+	Adiel_nCavityTilde = isNonlocal ? fsp.Ztot*(Sf[0]*Adiel_nCavityTildeLocal) : Adiel_nCavityTildeLocal;
 	if(Adiel_RRT and isNonlocal) *Adiel_RRT += convolveStress(Sf[0], Adiel_nCavityTildeLocal, nCavityNetTilde);
 	
 	accumExtraForces(extraForces, Adiel_nCavityTilde);
