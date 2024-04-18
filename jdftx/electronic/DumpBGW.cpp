@@ -503,7 +503,8 @@ void BGW::write_rALDA(bool write_q0) const
 				for(int iSpin=0; iSpin<nSpins; iSpin++)
 					buf[iSpin].set(iRowMine, iColMine, prefac*(
 						coulombS //coulomb in both diagonal and off-diagonal
-						+ (iSpin==0 ? nSpins*fxc : 0))); //fxc only in spin-diagonal part
+						+ (iSpin==0 ? nSpins*fxc : 0) //fxc only in spin-diagonal part
+					) / Ryd); //convert to Rydberg for BGW
 			}
 		}
 		for(int iSpin=0; iSpin<nSpins; iSpin++)
