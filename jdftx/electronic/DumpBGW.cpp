@@ -448,11 +448,16 @@ void BGW::write_rALDA(bool write_q0) const
 		die("\tNo data on some processes: reduce # processes.\n");
 	//--- create dataset:
 	hid_t gidMats = h5createGroup(fid, "mats");
-	hsize_t dims[6] = { hsize_t(q.size()), hsize_t(nSpins), hsize_t(freq.size()),
+	hsize_t dims[6] = { hsize_t(q.size()), hsize_t(nSpins), hsize_t(1),
 		hsize_t(nBasisMax), hsize_t(nBasisMax), 2 };
 	hid_t sid = H5Screate_simple(6, dims, NULL);
 	hid_t did = H5Dcreate(gidMats, "matrix", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	hid_t plid = H5Pcreate(H5P_DATASET_XFER);
+	H5Sclose(sid);
+	//--- create dataset for Coulomb kernel:
+	hsize_t dimsVc[2] = { hsize_t(q.size()), hsize_t(nBasisMax) };
+	sid = H5Screate_simple(2, dimsVc, NULL);
+	hid_t didVc = H5Dcreate(gidMats, "Vc", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	H5Sclose(sid);
 	//--- loop over q:
 	logPrintf("\tState:"); logFlush();
@@ -466,6 +471,7 @@ void BGW::write_rALDA(bool write_q0) const
 			Vc = (*e.coulomb)(Complex(delta), q[iq], 0.0);
 		}
 		const complex* VcData = Vc->data(); //ensure on CPU
+		std::vector<double> bufVc(nColsMine);
 		
 		for(int iColMine=0; iColMine<nColsMine; iColMine++)
 		{	int iCol = colStart + iColMine;
@@ -474,6 +480,7 @@ void BGW::write_rALDA(bool write_q0) const
 			//Wave vector and coulomb kernel:
 			double qSqCol = gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iCol]);
 			double VcCol = VcData[gInfo.fullGindex(iGarr[iq][iCol])].real();
+			bufVc[iColMine] = VcCol / Ryd; //output in Ryd for BGW
 			
 			for(int iRowMine=0; iRowMine<nRowsMine; iRowMine++)
 			{	int iRow = rowStart + iRowMine;
@@ -518,12 +525,22 @@ void BGW::write_rALDA(bool write_q0) const
 			H5Dwrite(did, H5T_NATIVE_DOUBLE, sidMem, sid, plid, buf[iSpin].data());
 			H5Sclose(sidMem);
 		}
+		//Write coulomb kernel:
+		{	hsize_t offset[2] = { hsize_t(iq), hsize_t(colStart) };
+			hsize_t count[2] = { 1, hsize_t(nColsMine) };
+			sid = H5Dget_space(didVc);
+			H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
+			hid_t sidMem = H5Screate_simple(2, count, NULL);
+			H5Dwrite(didVc, H5T_NATIVE_DOUBLE, sidMem, sid, plid, bufVc.data());
+			H5Sclose(sidMem);
+		}
 		logPrintf(" %d", iq+1); logFlush();
 	}
 	logPrintf("\n"); logFlush();
 	//--- close dataset:
 	H5Pclose(plid);
 	H5Dclose(did);
+	H5Dclose(didVc);
 	H5Gclose(gidMats);
 	
 	//Close file:
