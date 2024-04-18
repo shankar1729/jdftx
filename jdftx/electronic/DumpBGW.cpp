@@ -428,20 +428,6 @@ void BGW::write_rALDA(bool write_q0) const
 		fxLDA[i] = -M_PI/kFsq;
 	}
 	
-	//Prepare truncation:
-	//NOTE: only non-embedded spherical truncation supported as of now
-	double Rc = 0.0;
-	if(e.coulombParams.geometry != CoulombParams::Periodic)
-	{	if((e.coulombParams.geometry == CoulombParams::Spherical) and (not e.coulombParams.embed))
-		{	Rc = std::static_pointer_cast<CoulombSpherical>(e.coulomb)->Rc;
-			logPrintf("rALDA Coulomb kernel will be spherical-truncated with Rc = %lg\n", Rc);
-		}
-		else logPrintf(
-			"\nWARNING: only non-embedded spherical kernel supported for rALDA.\n"
-			"Falling back to periodic coulomb kernel for rALDA output.\n\n");
-	}
-	else logPrintf("rALDA Coulomb kernel will be periodic.\n");
-	
 	//------------ Calculate and write matrices --------------
 	//--- Process grid:
 	int nProcesses = mpiWorld->nProcesses();
@@ -472,31 +458,46 @@ void BGW::write_rALDA(bool write_q0) const
 	logPrintf("\tState:"); logFlush();
 	for(int iq=0; iq<int(q.size()); iq++)
 	{	std::vector<matrix> buf(nSpins, zeroes(nRowsMine, nColsMine));
+		
+		//Get Coulomb kernel at this q
+		complexScalarFieldTilde Vc;
+		{	ScalarFieldTilde delta; nullToZero(delta, gInfo);
+			initTranslation(delta, vector3<>()); //set to 1 at all G
+			Vc = (*e.coulomb)(Complex(delta), q[iq], 0.0);
+		}
+		const complex* VcData = Vc->data(); //ensure on CPU
+		
 		for(int iColMine=0; iColMine<nColsMine; iColMine++)
 		{	int iCol = colStart + iColMine;
 			if(iCol >= nBasis[iq]) continue;
+			
+			//Wave vector and coulomb kernel:
+			double qSqCol = gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iCol]);
+			double VcCol = VcData[gInfo.fullGindex(iGarr[iq][iCol])].real();
+			
 			for(int iRowMine=0; iRowMine<nRowsMine; iRowMine++)
 			{	int iRow = rowStart + iRowMine;
 				if(iRow >= nBasis[iq]) continue;
-				//Current wave vectors:
+				
+				//Wave vector and coulomb kernel:
 				vector3<int> iGdiff = iGarr[iq][iCol] - iGarr[iq][iRow]; //(G'-G) in recip coords for G in row, G' in col
-				double qSqSym = sqrt(
-					gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iCol]) *
-					gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iRow]));
+				double qSqRow = gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iRow]);
+				double VcRow = VcData[gInfo.fullGindex(iGarr[iq][iRow])].real();
+
 				//Collect contributions to XC and short-ranged coulomb-screening parts separately:
 				complex fxc, coulombS;
 				//--- loop over grid points
 				const vector3<int>& S = gInfo.S;
 				vector3<> iGdiffByS = inv(Diag(vector3<>(S))) * iGdiff; //elementwise iGdiff / S
 				size_t iStart=0, iStop=gInfo.nr;
+				double qSqSym = sqrt(qSqCol * qSqRow);
+				double VcSym = sqrt(VcCol * VcRow);
 				THREAD_rLoop(
 					complex phase = cis(2*M_PI*dot(iGdiffByS, iv)); //exp(-i(G-G').r) for G in row, G' in col
 					if(qSqSym < qSqCut[i])
 						fxc += phase * fxLDA[i];
 					else
-					{	double truncation = (Rc ? (1.0 - cos(Rc * sqrt(qSqSym))) : 1.0);
-						coulombS -= phase * (truncation * 4*M_PI/qSqSym);  //difference between screened and bare Coulomb parts
-					}
+						coulombS -= phase * VcSym;  //difference between screened and bare Coulomb parts
 				)
 				//Set spin diagonal and off-diagonal components:
 				double prefac = 1./gInfo.nr; //scale factor to convert above sum to unit cell average

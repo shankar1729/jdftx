@@ -112,7 +112,7 @@ void Everything::setup()
 	for(auto ec: exCorrDiff) //Check the comparison functionals next
 		if(ec->exxFactor())
 			coulombParams.omegaSet.insert(ec->exxRange());
-	if(dump.bgwParams and (dump.bgwParams->saveVxx or dump.bgwParams->rpaExx))
+	if(dump.bgwParams and (dump.bgwParams->saveVxx or dump.bgwParams->rpaExx or dump.bgwParams->Ecut_rALDA))
 		coulombParams.omegaSet.insert(0.); //bare exchange output for BGW
 	bool exxPresent = coulombParams.omegaSet.size();
 	if(dump.polarizability || dump.electronScattering) coulombParams.omegaSet.insert(0.); //These are not EXX, but they use Coulomb_ExchangeEval
