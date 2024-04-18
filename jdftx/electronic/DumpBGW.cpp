@@ -497,15 +497,34 @@ void BGW::write_rALDA(bool write_q0) const
 				const vector3<int>& S = gInfo.S;
 				vector3<> iGdiffByS = inv(Diag(vector3<>(S))) * iGdiff; //elementwise iGdiff / S
 				size_t iStart=0, iStop=gInfo.nr;
-				double qSqSym = sqrt(qSqCol * qSqRow);
-				double VcSym = sqrt(VcCol * VcRow);
-				THREAD_rLoop(
-					complex phase = cis(2*M_PI*dot(iGdiffByS, iv)); //exp(-i(G-G').r) for G in row, G' in col
-					if(qSqSym < qSqCut[i])
-						fxc += phase * fxLDA[i];
-					else
-						coulombS -= phase * VcSym;  //difference between screened and bare Coulomb parts
-				)
+				if(bgwp.kernelSym_rALDA)
+				{	//Kernel symmetrization:
+					THREAD_rLoop(
+						complex phase = cis(2*M_PI*dot(iGdiffByS, iv)); //exp(-i(G-G').r) for G in row, G' in col
+						//Direct contribution:
+						if(qSqRow < qSqCut[i])
+							fxc += phase * (fxLDA[i] * 0.5);
+						else
+							coulombS -= phase * (VcRow * 0.5);
+						//Hermitian conjugate contribution:
+						if(qSqCol < qSqCut[i])
+							fxc += phase * (fxLDA[i] * 0.5);
+						else
+							coulombS -= phase * (VcCol * 0.5);
+					)
+				}
+				else
+				{	//Wave-vector symmetrization:
+					double qSqSym = sqrt(qSqCol * qSqRow);
+					double VcSym = sqrt(VcCol * VcRow);
+					THREAD_rLoop(
+						complex phase = cis(2*M_PI*dot(iGdiffByS, iv)); //exp(-i(G-G').r) for G in row, G' in col
+						if(qSqSym < qSqCut[i])
+							fxc += phase * fxLDA[i];
+						else
+							coulombS -= phase * VcSym;  //difference between screened and bare Coulomb parts
+					)
+				}
 				//Set spin diagonal and off-diagonal components:
 				double prefac = 1./gInfo.nr; //scale factor to convert above sum to unit cell average
 				for(int iSpin=0; iSpin<nSpins; iSpin++)
