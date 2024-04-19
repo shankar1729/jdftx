@@ -457,7 +457,7 @@ void BGW::write_rALDA(bool write_q0) const
 	//--- create dataset for Coulomb kernel:
 	hsize_t dimsVc[2] = { hsize_t(q.size()), hsize_t(nBasisMax) };
 	sid = H5Screate_simple(2, dimsVc, NULL);
-	hid_t didVc = H5Dcreate(gidMats, "Vc", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	hid_t didVc = H5Dcreate(fid, "/eps_header/gspace/vcoul", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	H5Sclose(sid);
 	//--- loop over q:
 	logPrintf("\tState:"); logFlush();
