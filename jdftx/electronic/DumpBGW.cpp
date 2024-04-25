@@ -421,12 +421,15 @@ void BGW::write_rALDA(bool write_q0) const
 	const double* n = nTot->data();
 	double* qSqCut = xcData[0]->data();
 	double* fxLDA = xcData[1]->data();
+	double qSqMax = 0.0;
 	for(int i=0; i<gInfo.nr; i++)
 	{	double n_i = std::max(n[i], nCut); //regularized density
 		double kFsq = std::pow((3*M_PI*M_PI)*n_i, 2./3); //Fermi wave-vector squared
 		qSqCut[i] = 4*kFsq;
 		fxLDA[i] = -M_PI/kFsq;
+		qSqMax = std::max(qSqMax, qSqCut[i]);
 	}
+	logPrintf("\tMax rALDA cutoff necessary ~ %lg Ry (%lg Eh)\n", qSqMax, 0.5*qSqMax);
 	
 	//------------ Calculate and write matrices --------------
 	//--- Process grid:
