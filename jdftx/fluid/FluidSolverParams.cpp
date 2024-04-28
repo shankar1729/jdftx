@@ -108,7 +108,9 @@ void FluidSolverParams::setPCMparams()
 			break;
 		}
 		case PCM_CANON:
-		{	switch(solvents[0]->name)
+		{	nc = 1.42e-3;
+			sigma = sqrt(0.5);
+			switch(solvents[0]->name)
 			{	case FluidComponent::H2O:
 					Ztot = 8;
 					Res = 1.0 * Angstrom;
@@ -118,6 +120,7 @@ void FluidSolverParams::setPCMparams()
 					throw string("CANON has not been parametrized for this solvent");
 			}
 			nonlinearSCF = true; //CANON always needs this
+			break;
 		}
 		case PCM_CANDLE:
 		{	nc = 1.42e-3;
