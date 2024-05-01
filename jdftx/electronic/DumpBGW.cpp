@@ -422,9 +422,11 @@ void BGW::write_rALDA(bool write_q0) const
 	double* qSqCut = xcData[0]->data();
 	double* fxLDA = xcData[1]->data();
 	double qSqMax = 0.0;
+	double kFsqMax = std::pow(bgwp.kFcut_rALDA, 2);
 	for(int i=0; i<gInfo.nr; i++)
 	{	double n_i = std::max(n[i], nCut); //regularized density
 		double kFsq = std::pow((3*M_PI*M_PI)*n_i, 2./3); //Fermi wave-vector squared
+		if(bgwp.kFcut_rALDA) kFsq = std::min(kFsq, kFsqMax);
 		qSqCut[i] = 4*kFsq;
 		fxLDA[i] = -M_PI/kFsq;
 		qSqMax = std::max(qSqMax, qSqCut[i]);

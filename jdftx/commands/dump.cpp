@@ -975,6 +975,7 @@ enum BGWparamsMember
 	BGWpm_freqNimag,
 	BGWpm_freqPlasma,
 	BGWpm_Ecut_rALDA,
+	BGWpm_kFcut_rALDA,
 	BGWpm_kernelSym_rALDA,
 	BGWpm_Delim
 };
@@ -995,6 +996,7 @@ EnumStringMap<BGWparamsMember> bgwpmMap
 	BGWpm_freqNimag, "freqNimag",
 	BGWpm_freqPlasma, "freqPlasma",
 	BGWpm_Ecut_rALDA, "Ecut_rALDA",
+	BGWpm_kFcut_rALDA, "kFcut_rALDA",
 	BGWpm_kernelSym_rALDA, "kernelSym_rALDA"
 );
 EnumStringMap<BGWparamsMember> bgwpmDescMap
@@ -1014,6 +1016,7 @@ EnumStringMap<BGWparamsMember> bgwpmDescMap
 	BGWpm_freqNimag, "Number of imaginary frequencies (default: 25)",
 	BGWpm_freqPlasma, "Plasma frequency in Hartrees used in GW imaginary frequency grid (default: 1.), set to zero for RPA frequency grid",
 	BGWpm_Ecut_rALDA, "KE cutoff in hartrees for rALDA polarizability output (default: 0; set non-zero to enable)",
+	BGWpm_kFcut_rALDA, "kF cutoff (in 1/a0) for rALDA regularization (enabled if non-zero)",
 	BGWpm_kernelSym_rALDA, "Kernel symmetrization for rALDA if true, and wavevector symmetrization if false (default)"
 );
 
@@ -1062,6 +1065,7 @@ struct CommandBGWparams : public Command
 				READ_AND_CHECK(freqNimag, >, 0)
 				READ_AND_CHECK(freqPlasma, >=, 0.)
 				READ_AND_CHECK(Ecut_rALDA, >=, 0.)
+				READ_AND_CHECK(kFcut_rALDA, >=, 0.)
 				READ_BOOL(kernelSym_rALDA)
 				case BGWpm_Delim: return; //end of input
 			}
@@ -1091,6 +1095,7 @@ struct CommandBGWparams : public Command
 		PRINT(freqNimag, "%d")
 		PRINT(freqPlasma, "%lg")
 		PRINT(Ecut_rALDA, "%lg")
+		PRINT(kFcut_rALDA, "%lg")
 		PRINT_BOOL(kernelSym_rALDA)
 		#undef PRINT
 		#undef PRINT_BOOL
