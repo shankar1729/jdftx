@@ -1,5 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
-cmake_policy(VERSION 3.12)
+cmake_minimum_required(VERSION 3.12)
 
 project(JDFTx)
 
@@ -147,7 +146,6 @@ endif()
 
 #Base flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_COMPILE_FLAGS} -Wall -O3")
-set(JDFTX_CPU_FLAGS "-std=c++0x") #Flags used for host compiler alone (i.e. not for gpu device code)
 
 #Additional compiler-dependent flags:
 include(CheckCXXCompilerFlag)
@@ -222,7 +220,7 @@ macro(set_JDFTx_flags targetName isGpu)
 		set(GPU_ENABLED "")
 	endif()
 	set_target_properties(${targetName} PROPERTIES
-		COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${JDFTX_CPU_FLAGS} ${GPU_ENABLED}"
+		COMPILE_FLAGS "${EXTRA_CXX_FLAGS} ${GPU_ENABLED}"
 		LINK_FLAGS "${EXTRA_CXX_FLAGS} ${MPI_CXX_LINK_FLAGS}"
 		INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib"
 		INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -254,57 +252,26 @@ set_JDFTx_flags(jdftxlib OFF)
 #----- Add another set of libraries and executables with a _gpu suffix
 option(EnableCUDA "Enable NVIDIA GPU support using CUDA" OFF)
 option(EnableCuSolver "Whether to use cuSolver GPU LAPACK (Requires CUDA >= 9)" OFF)
-
 if(EnableCUDA)
-	find_package(CUDA REQUIRED)
-	set(CUDA_ARCH "compute_35" CACHE STRING "CUDA virtual architecture to compile for")
-	set(CUDA_CODE "sm_35" CACHE STRING "CUDA gpu feature set version (sm_*) to compile for")
-	set(CUDA_AUX_LIBRARIES ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES})
-		
-	#remove libcuda.so from CUDA_LIBRARIES and save to CUDART_LIBRARY
-	foreach(lib IN LISTS CUDA_LIBRARIES)
-		if("${lib}" MATCHES "libcuda.so")
-			list(REMOVE_ITEM CUDA_LIBRARIES "${lib}")
-		endif("${lib}" MATCHES "libcuda.so")
-	endforeach(lib)
-	include_directories(${CUDA_INCLUDE_DIRS})
-
-	#Check for cublasLt in newer cuda versions:
-	find_library(CUBLASLT_LIBRARY NAMES cublasLt PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
-	if(CUBLASLT_LIBRARY)
-		set(CUDA_AUX_LIBRARIES ${CUDA_AUX_LIBRARIES} ${CUBLASLT_LIBRARY})
-	endif()
-
-	#Check for cuSolver:
-	if(EnableCuSolver)
-		if(CUDA_VERSION_MAJOR LESS 9)
-			message(FATAL_ERROR "cuSolver support requires CUDA >= 9.")
-		endif()
-		find_library(CUSOLVER_LIBRARY NAMES cusolver PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
-		if(CUSOLVER_LIBRARY)
-			find_package(OpenMP REQUIRED)
-			set(CUDA_AUX_LIBRARIES ${CUDA_AUX_LIBRARIES} ${CUSOLVER_LIBRARY} ${OpenMP_CXX_FLAGS})
-			add_definitions("-DCUSOLVER_ENABLED")
-		else()
-			message(FATAL_ERROR "Could not find the cuSolver library in the CUDA toolkkt located at ${CUDA_TOOLKIT_ROOT_DIR}.")
-		endif()
-	endif()
-	message(STATUS "CUDA_LIBRARIES = ${CUDA_LIBRARIES};${CUDA_AUX_LIBRARIES}")
-	
-	set(CUDA_NVCC_FLAGS "-D_FORCE_INLINES;${CUDA_NVCC_FLAGS};-arch=${CUDA_ARCH};-code=${CUDA_CODE};-DGPU_ENABLED;--compiler-options;-fpic")
-	message(STATUS "CUDA_NVCC_FLAGS = ${CUDA_NVCC_FLAGS}")
-
-	FILE(GLOB gpukernelsSources core/*.cu fluid/*.cu electronic/*.cu commands/*.cu tests/*.cu)
-	cuda_add_library(gpukernels ${gpukernelsSources})
-	target_link_libraries(gpukernels ${CUDA_AUX_LIBRARIES})
+	enable_language(CUDA)
+	find_package(CUDAToolkit REQUIRED)
+	set(CMAKE_CUDA_FLAGS "${CUDA_NVCC_FLAGS}")
+	include_directories(${CUDAToolkit_INCLUDE_DIRS})
 
 	#Library with all the functionality:
 	FILE(GLOB jdftxlibSources core/*.cpp fluid/*.cpp electronic/*.cpp perturb/*.cpp commands/*.cpp)
-	add_library(jdftxlib_gpu ${LINK_TYPE} ${jdftxlibSources})
-	target_link_libraries(jdftxlib_gpu ${EXTERNAL_LIBS} gpukernels)
+	FILE(GLOB gpukernelsSources core/*.cu fluid/*.cu electronic/*.cu commands/*.cu tests/*.cu)
+	add_library(jdftxlib_gpu ${LINK_TYPE} ${jdftxlibSources} ${gpukernelsSources})
+	target_link_libraries(jdftxlib_gpu ${EXTERNAL_LIBS} CUDA::cublas CUDA::cufft)
 	set_target_properties(jdftxlib_gpu PROPERTIES OUTPUT_NAME "jdftx_gpu")
 	install(TARGETS jdftxlib_gpu LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 	set_JDFTx_flags(jdftxlib_gpu ON)
+
+	#Add cuSolver support:
+	if(EnableCuSolver)
+		target_link_libraries(jdftxlib_gpu CUDA::cusolver)
+		add_definitions("-DCUSOLVER_ENABLED")
+	endif()
 endif()
 
 option(PinnedHostMemory "Use page-locked host memory to speed up GPU transfers" OFF)
@@ -330,7 +297,7 @@ macro(add_JDFTx_executable execName execSources)
 	
 	if(EnableCUDA) #GPU version
 		add_executable(${execName}_gpu ${ARGN} ${execSources})
-		target_link_libraries(${execName}_gpu ${LINK_PREFIX} jdftxlib_gpu ${LINK_SUFFIX})
+		target_link_libraries(${execName}_gpu ${LINK_PREFIX} jdftxlib_gpu CUDA::cudart ${LINK_SUFFIX})
 		if(NOT "${ARGN}" MATCHES EXCLUDE_FROM_ALL)
 			install(TARGETS ${execName}_gpu RUNTIME DESTINATION bin)
 		endif()
