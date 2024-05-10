@@ -61,6 +61,11 @@ public:
 		m[1][0] = m10; m[1][1] = m11; m[1][2] = m12;
 		m[2][0] = m20; m[2][1] = m21; m[2][2] = m22;
 	}
+	__hostanddev__ matrix3(const matrix3<scalar>& n) //!< Copy
+	{	for(int i=0; i<3; i++)
+			for(int j=0; j<3; j++)
+				m[i][j] = n(i,j);
+	}
 	template<typename scalar2> explicit __hostanddev__ matrix3(const matrix3<scalar2>& n) //!< Convert type
 	{	for(int i=0; i<3; i++)
 			for(int j=0; j<3; j++)
