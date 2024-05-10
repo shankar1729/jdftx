@@ -409,16 +409,19 @@ public:
 				READ_AND_CHECK(quad_nGamma, >=, 0u)
 				READ_ENUM(translationMode, FluidComponent::LinearSpline)
 				READ_AND_CHECK(Nnorm, >=, 0.)
-				case FCM_Delim: return; //end of input
+				case FCM_Delim:
+				{
+					if(poleElAdded)
+					{	double A0sum = 0.;
+						for(const FluidComponent::PoleLD& pole: c->polesEl)
+							A0sum += pole.A0;
+						if(fabs(A0sum-1) > 1e-3) throw string("poleEl::A0 should add up to 1.");
+					}
+					return; //end of input
+				}
 			}
 			#undef READ_AND_CHECK
 			#undef READ_ENUM
-		}
-		if(poleElAdded)
-		{	double A0sum = 0.;
-			for(const FluidComponent::PoleLD& pole: c->polesEl)
-				A0sum += pole.A0;
-			if(fabs(A0sum-1) > 1e-3) throw string("poleEl::A0 should add up to 1.");
 		}
 	}
 	

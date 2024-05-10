@@ -128,7 +128,7 @@ void DefectSupercell::initialize(const Wannier* wannier)
 				{	for(vector3<> pos: spUnit.atpos)
 					{	vector3<> x = invSupIn * (pos + iR);
 						//Find corresponding closest atom in defect supercell:
-						double rSqSmallest = DBL_MAX; unsigned iClosest = -1;
+						double rSqSmallest = DBL_MAX; unsigned iClosest = 0;
 						for(unsigned iAtom=0; iAtom<sp.atpos.size(); iAtom++)
 						{	vector3<> dx = x - sp.atpos[iAtom];
 							for(int dir=0; dir<3; dir++) dx[dir] -= floor(0.5 + dx[dir]); //minimum-image convention

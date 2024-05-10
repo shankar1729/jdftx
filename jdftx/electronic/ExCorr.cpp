@@ -406,10 +406,10 @@ void ExCorr::setup(const Everything& everything)
 				}
 				functionals->add(xcCorr, "correlation");
 			}
+			if(exxScaleOverride) die("Exact-exchange scale factor cannot be overriden for LibXC functionals.\n")
+			if(exxOmegaOverride) die("Exact-exchange screening parameter cannot be overriden for LibXC functionals.\n")
 			break;
 		}
-		if(exxScaleOverride) die("Exact-exchange scale factor cannot be overriden for LibXC functionals.\n")
-		if(exxOmegaOverride) die("Exact-exchange screening parameter cannot be overriden for LibXC functionals.\n")
 		#endif //LIBXC_ENABLED
 		
 		case ExCorrLDA_PZ:
