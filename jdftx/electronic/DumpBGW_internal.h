@@ -46,12 +46,15 @@ struct BGWparams
 	double freqPlasma; //!< plasma frequency in Hartrees used in GW imaginary frequency grid, set to zero for RPA frequency grid
 	
 	double Ecut_rALDA; //!< KE cutoff (in Eh) for rALDA output (enabled if non-zero)
+	double kFcut_rALDA; //!< kF cutoff (in 1/a0) for rALDA regularization (enabled if non-zero)
+	bool kernelSym_rALDA; //!< whether to use kernel symmetrization for rALDA (wavevector symmetrization if false, the default)
 	
 	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10),
 		saveVxc(true), saveVxx(false), rpaExx(false), offDiagV(false),
 		EcutChiFluid(0.), elecOnly(true),
 		freqReMax_eV(30.), freqReStep_eV(1.), freqBroaden_eV(0.1),
-		freqNimag(25), freqPlasma(1.), Ecut_rALDA(0.)
+		freqNimag(25), freqPlasma(1.),
+		Ecut_rALDA(0.), kFcut_rALDA(0.), kernelSym_rALDA(false)
 	{}
 };
 

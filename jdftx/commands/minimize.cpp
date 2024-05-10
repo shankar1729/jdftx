@@ -198,7 +198,7 @@ struct CommandFluidMinimize : public CommandMinimize
 				e.fluidMinParams.knormThreshold = (fluidType==FluidSaLSA) ? 1e-12 : 1e-11;
 				break;
 			case FluidNonlinearPCM:
-				e.fluidMinParams.knormThreshold = 1e-11;
+				e.fluidMinParams.energyDiffThreshold = 1E-10;
 				break;
 			default:;
 		}

@@ -913,6 +913,12 @@ void initRandomFlat(ScalarField& X)
 		Xdata[i] = Random::uniform();
 }
 
+void randomize(ScalarFieldTilde& Xtilde)
+{	ScalarField X; nullToZero(X, Xtilde->gInfo);
+	initRandom(X, 0.0);
+	Xtilde = J(X);
+}
+
 void initGaussianKernel_sub(int i, double Gsq, double expfac, double* X)
 {	X[i] = exp(expfac*Gsq);
 }

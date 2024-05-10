@@ -421,26 +421,17 @@ void BGW::write_rALDA(bool write_q0) const
 	const double* n = nTot->data();
 	double* qSqCut = xcData[0]->data();
 	double* fxLDA = xcData[1]->data();
+	double qSqMax = 0.0;
+	double kFsqMax = std::pow(bgwp.kFcut_rALDA, 2);
 	for(int i=0; i<gInfo.nr; i++)
 	{	double n_i = std::max(n[i], nCut); //regularized density
 		double kFsq = std::pow((3*M_PI*M_PI)*n_i, 2./3); //Fermi wave-vector squared
+		if(bgwp.kFcut_rALDA) kFsq = std::min(kFsq, kFsqMax);
 		qSqCut[i] = 4*kFsq;
 		fxLDA[i] = -M_PI/kFsq;
+		qSqMax = std::max(qSqMax, qSqCut[i]);
 	}
-	
-	//Prepare truncation:
-	//NOTE: only non-embedded spherical truncation supported as of now
-	double Rc = 0.0;
-	if(e.coulombParams.geometry != CoulombParams::Periodic)
-	{	if((e.coulombParams.geometry == CoulombParams::Spherical) and (not e.coulombParams.embed))
-		{	Rc = std::static_pointer_cast<CoulombSpherical>(e.coulomb)->Rc;
-			logPrintf("rALDA Coulomb kernel will be spherical-truncated with Rc = %lg\n", Rc);
-		}
-		else logPrintf(
-			"\nWARNING: only non-embedded spherical kernel supported for rALDA.\n"
-			"Falling back to periodic coulomb kernel for rALDA output.\n\n");
-	}
-	else logPrintf("rALDA Coulomb kernel will be periodic.\n");
+	logPrintf("\tMax rALDA cutoff necessary ~ %lg Ry (%lg Eh)\n", qSqMax, 0.5*qSqMax);
 	
 	//------------ Calculate and write matrices --------------
 	//--- Process grid:
@@ -462,48 +453,90 @@ void BGW::write_rALDA(bool write_q0) const
 		die("\tNo data on some processes: reduce # processes.\n");
 	//--- create dataset:
 	hid_t gidMats = h5createGroup(fid, "mats");
-	hsize_t dims[6] = { hsize_t(q.size()), hsize_t(nSpins), hsize_t(freq.size()),
+	hsize_t dims[6] = { hsize_t(q.size()), hsize_t(nSpins), hsize_t(1),
 		hsize_t(nBasisMax), hsize_t(nBasisMax), 2 };
 	hid_t sid = H5Screate_simple(6, dims, NULL);
 	hid_t did = H5Dcreate(gidMats, "matrix", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	hid_t plid = H5Pcreate(H5P_DATASET_XFER);
 	H5Sclose(sid);
+	//--- create dataset for Coulomb kernel:
+	hsize_t dimsVc[2] = { hsize_t(q.size()), hsize_t(nBasisMax) };
+	sid = H5Screate_simple(2, dimsVc, NULL);
+	hid_t didVc = H5Dcreate(fid, "/eps_header/gspace/vcoul", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	H5Sclose(sid);
 	//--- loop over q:
 	logPrintf("\tState:"); logFlush();
 	for(int iq=0; iq<int(q.size()); iq++)
 	{	std::vector<matrix> buf(nSpins, zeroes(nRowsMine, nColsMine));
+		
+		//Get Coulomb kernel at this q
+		complexScalarFieldTilde Vc;
+		{	ScalarFieldTilde delta; nullToZero(delta, gInfo);
+			initTranslation(delta, vector3<>()); //set to 1 at all G
+			Vc = (*e.coulomb)(Complex(delta), q[iq], 0.0);
+		}
+		const complex* VcData = Vc->data(); //ensure on CPU
+		std::vector<double> bufVc(nColsMine);
+		
 		for(int iColMine=0; iColMine<nColsMine; iColMine++)
 		{	int iCol = colStart + iColMine;
 			if(iCol >= nBasis[iq]) continue;
+			
+			//Wave vector and coulomb kernel:
+			double qSqCol = gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iCol]);
+			double VcCol = VcData[gInfo.fullGindex(iGarr[iq][iCol])].real();
+			bufVc[iColMine] = VcCol / Ryd; //output in Ryd for BGW
+			
 			for(int iRowMine=0; iRowMine<nRowsMine; iRowMine++)
 			{	int iRow = rowStart + iRowMine;
 				if(iRow >= nBasis[iq]) continue;
-				//Current wave vectors:
+				
+				//Wave vector and coulomb kernel:
 				vector3<int> iGdiff = iGarr[iq][iCol] - iGarr[iq][iRow]; //(G'-G) in recip coords for G in row, G' in col
-				double qSqSym = sqrt(
-					gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iCol]) *
-					gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iRow]));
+				double qSqRow = gInfo.GGT.metric_length_squared(q[iq] + iGarr[iq][iRow]);
+				double VcRow = VcData[gInfo.fullGindex(iGarr[iq][iRow])].real();
+
 				//Collect contributions to XC and short-ranged coulomb-screening parts separately:
 				complex fxc, coulombS;
 				//--- loop over grid points
 				const vector3<int>& S = gInfo.S;
 				vector3<> iGdiffByS = inv(Diag(vector3<>(S))) * iGdiff; //elementwise iGdiff / S
 				size_t iStart=0, iStop=gInfo.nr;
-				THREAD_rLoop(
-					complex phase = cis(2*M_PI*dot(iGdiffByS, iv)); //exp(-i(G-G').r) for G in row, G' in col
-					if(qSqSym < qSqCut[i])
-						fxc += phase * fxLDA[i];
-					else
-					{	double truncation = (Rc ? (1.0 - cos(Rc * sqrt(qSqSym))) : 1.0);
-						coulombS -= phase * (truncation * 4*M_PI/qSqSym);  //difference between screened and bare Coulomb parts
-					}
-				)
+				if(bgwp.kernelSym_rALDA)
+				{	//Kernel symmetrization:
+					THREAD_rLoop(
+						complex phase = cis(2*M_PI*dot(iGdiffByS, iv)); //exp(-i(G-G').r) for G in row, G' in col
+						//Direct contribution:
+						if(qSqRow < qSqCut[i])
+							fxc += phase * (fxLDA[i] * 0.5);
+						else
+							coulombS -= phase * (VcRow * 0.5);
+						//Hermitian conjugate contribution:
+						if(qSqCol < qSqCut[i])
+							fxc += phase * (fxLDA[i] * 0.5);
+						else
+							coulombS -= phase * (VcCol * 0.5);
+					)
+				}
+				else
+				{	//Wave-vector symmetrization:
+					double qSqSym = sqrt(qSqCol * qSqRow);
+					double VcSym = sqrt(VcCol * VcRow);
+					THREAD_rLoop(
+						complex phase = cis(2*M_PI*dot(iGdiffByS, iv)); //exp(-i(G-G').r) for G in row, G' in col
+						if(qSqSym < qSqCut[i])
+							fxc += phase * fxLDA[i];
+						else
+							coulombS -= phase * VcSym;  //difference between screened and bare Coulomb parts
+					)
+				}
 				//Set spin diagonal and off-diagonal components:
 				double prefac = 1./gInfo.nr; //scale factor to convert above sum to unit cell average
 				for(int iSpin=0; iSpin<nSpins; iSpin++)
 					buf[iSpin].set(iRowMine, iColMine, prefac*(
 						coulombS //coulomb in both diagonal and off-diagonal
-						+ (iSpin==0 ? nSpins*fxc : 0))); //fxc only in spin-diagonal part
+						+ (iSpin==0 ? nSpins*fxc : 0) //fxc only in spin-diagonal part
+					) / Ryd); //convert to Rydberg for BGW
 			}
 		}
 		for(int iSpin=0; iSpin<nSpins; iSpin++)
@@ -516,12 +549,22 @@ void BGW::write_rALDA(bool write_q0) const
 			H5Dwrite(did, H5T_NATIVE_DOUBLE, sidMem, sid, plid, buf[iSpin].data());
 			H5Sclose(sidMem);
 		}
+		//Write coulomb kernel:
+		{	hsize_t offset[2] = { hsize_t(iq), hsize_t(colStart) };
+			hsize_t count[2] = { 1, hsize_t(nColsMine) };
+			sid = H5Dget_space(didVc);
+			H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
+			hid_t sidMem = H5Screate_simple(2, count, NULL);
+			H5Dwrite(didVc, H5T_NATIVE_DOUBLE, sidMem, sid, plid, bufVc.data());
+			H5Sclose(sidMem);
+		}
 		logPrintf(" %d", iq+1); logFlush();
 	}
 	logPrintf("\n"); logFlush();
 	//--- close dataset:
 	H5Pclose(plid);
 	H5Dclose(did);
+	H5Dclose(didVc);
 	H5Gclose(gidMats);
 	
 	//Close file:
