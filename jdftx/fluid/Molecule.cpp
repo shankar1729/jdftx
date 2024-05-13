@@ -64,8 +64,9 @@ RadialFunctionR getLogGridKernel()
 		double rVecMin = 1e-7; //minimum value in realspace log grid
 		double rLogScale = 1.005; //rLogScale=r[i+1]/r[i]
 		KernelR.r.resize(NRpts);
-		for(int i=0; i<NRpts; i++)
-			KernelR.r[i] = i ? (KernelR.r[i-1] * rLogScale) : rVecMin;
+		KernelR.r[0] = rVecMin;
+		for(int i=1; i<NRpts; i++)
+			KernelR.r[i] = KernelR.r[i-1] * rLogScale;
 		KernelR.dr.resize(NRpts);
 		KernelR.f.resize(NRpts);
 		KernelR.initWeights();
