@@ -145,7 +145,7 @@ endif()
 #------------------------- Compilation flags ------------------------
 
 #Base flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_COMPILE_FLAGS} -Wall -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_COMPILE_FLAGS} -Wall")
 
 #Additional compiler-dependent flags:
 include(CheckCXXCompilerFlag)
