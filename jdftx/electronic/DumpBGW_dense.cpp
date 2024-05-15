@@ -89,8 +89,14 @@ template<typename T> std::vector<T> indexVector(const T* v, const std::vector<in
 	return result;
 }
 
+inline std::vector<int> commonIndices(const std::vector<int>& v1, const std::vector<int>& v2)
+{	std::vector<int> result;
+	std::set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), std::back_inserter(result));
+	return result;
+}
 
-void transformV(int q, matrix& V, const matrix& evecs, std::vector<matrix>& Vsub,
+void transformV(int q, matrix& V, const matrix& evecs,
+	std::vector<matrix>& Vsub, std::vector<diagMatrix>& Vdiag, bool offDiag,
 	const ElecInfo& eInfo, int desc[9], int nProcsRow, int nProcsCol,
 	int nRows, int nEigs, int nRowsMine, int nColsMine, int blockSize,
 	int iProcRow, int iProcCol)
@@ -111,16 +117,22 @@ void transformV(int q, matrix& V, const matrix& evecs, std::vector<matrix>& Vsub
 	
 	//Collect required portion of V on a single process (the one that owns state q):
 	if(eInfo.isMine(q))
-	{	Vsub[q] = zeroes(nEigs, nEigs);
+	{	Vdiag[q].resize(nEigs);
+		if(offDiag) Vsub[q] = zeroes(nEigs, nEigs);
 		for(int jProcRow=0; jProcRow<nProcsRow; jProcRow++)
 			for(int jProcCol=0; jProcCol<nProcsCol; jProcCol++)
 			{	int jProcess = jProcRow * nProcsCol + jProcCol;
 				//Determine indices within nEigs for this block:
 				std::vector<int> jEigRowsMine = distributedIndices(nEigs, blockSize, jProcRow, nProcsRow);
 				std::vector<int> jEigColsMine = distributedIndices(nEigs, blockSize, jProcCol, nProcsCol);
+				std::vector<int> jEigDiagMine = commonIndices(jEigRowsMine, jEigColsMine);
 				
-				if((!jEigRowsMine.size()) or (!jEigColsMine.size()))
+				if(not (
+					jEigRowsMine.size() and jEigColsMine.size() //any entry present in block
+					and (offDiag or jEigDiagMine.size()) //any diagonal entry present, or need off-diagonals
+				))
 					continue; //nothing from this block
+				
 				//Get current block: locally or from another process
 				matrix Vcur;
 				if(jProcess == mpiWorld->iProcess())
@@ -129,17 +141,21 @@ void transformV(int q, matrix& V, const matrix& evecs, std::vector<matrix>& Vsub
 				{	Vcur.init(jEigRowsMine.size(), jEigColsMine.size());
 					mpiWorld->recvData(Vcur, jProcess, 0);
 				}
-				//Distribute to full matrix:
+				//Distribute to full matrix / diagonal:
 				const complex* inData = Vcur.data();
 				for(int c: jEigColsMine)
 					for(int r: jEigRowsMine)
-						Vsub[q].set(r, c, *(inData++));
+					{	if(c == r) Vdiag[q][c] = inData->real();
+						if(offDiag) Vsub[q].set(r, c, *inData);
+						inData++;
+					}
 			}
 	}
 	else
 	{	std::vector<int> iEigRowsMine = distributedIndices(nEigs, blockSize, iProcRow, nProcsRow);
 		std::vector<int> iEigColsMine = distributedIndices(nEigs, blockSize, iProcCol, nProcsCol);
-		if(iEigRowsMine.size() and iEigColsMine.size())
+		std::vector<int> iEigDiagMine = commonIndices(iEigRowsMine, iEigColsMine);
+		if(iEigRowsMine.size() and iEigColsMine.size() and (offDiag or iEigDiagMine.size()))
 			mpiWorld->sendData(matrix(V(0,iEigRowsMine.size(), 0,iEigColsMine.size())), eInfo.whose(q), 0);
 	}
 	watch.stop();
@@ -405,12 +421,12 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		
 		//Transform Vxc to eigenbasis:
 		if(bgwp.saveVxc)
-			transformV(q, Vxc, evecs, VxcSub, eInfo, descH, nProcsRow, nProcsCol,
+			transformV(q, Vxc, evecs, VxcSub, VxcDiag, bgwp.offDiagV, eInfo, descH, nProcsRow, nProcsCol,
 				nRows, nBandsV, nRowsMine, nColsMine, blockSize, iProcRow, iProcCol);
 		
 		if(bgwp.saveVxx)
 			//Transform Vxx to eigenbasis:
-			transformV(q, Vxx, evecs, VxxSub, eInfo, descH, nProcsRow, nProcsCol,
+			transformV(q, Vxx, evecs, VxxSub, VxxDiag, bgwp.offDiagV, eInfo, descH, nProcsRow, nProcsCol,
 				nRows, nBandsV, nRowsMine, nColsMine, blockSize, iProcRow, iProcCol);
 	}
 	H5Pclose(plid);

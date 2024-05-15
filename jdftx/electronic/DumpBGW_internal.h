@@ -90,6 +90,7 @@ class BGW
 	std::vector<diagMatrix> E, F; //!< eigenvalues and fillings
 	std::vector<matrix> VxcSub; //!< exchange-correlation matrix elements
 	std::vector<matrix> VxxSub; //!< exact exchange matrix elements
+	std::vector<diagMatrix> VxcDiag, VxxDiag; //!< diagonal parts of the above
 	
 	hid_t openHDF5(string fname) const; //!< Open HDF5 file for collective access
 	void writeHeaderMF(hid_t fid) const; //!< Write common HDF5 header specifying the mean-field claculation for BGW outputs
@@ -97,8 +98,8 @@ class BGW
 		std::vector<vector3<>>& q, std::vector<complex>& freq,
 		std::vector<std::vector<vector3<int>>>& iGarr,
 		std::vector<int>& nBasis, int& nBasisMax) const; //!< Initialize header for polarizabilities, along with q and G-space quantities
-
-	void writeV(std::vector<matrix>& Vsub, string fname) const; //!< Common matrix elements I/O for writeVxc and writeVxx
+	
+	void writeV(std::vector<matrix>& Vsub, std::vector<diagMatrix>& Vdiag, string fname) const; //!< Common matrix elements I/O for writeVxc and writeVxx
 
 public:
 	BGW(const Everything& e, const BGWparams& bgwp);

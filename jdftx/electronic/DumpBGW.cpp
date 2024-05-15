@@ -102,6 +102,8 @@ nSpins(eInfo.nSpins()), nSpinor(eInfo.spinorLength()), nReducedKpts(eInfo.nState
 	F = eVars.F;
 	VxcSub.resize(eInfo.nStates);
 	VxxSub.resize(eInfo.nStates);
+	VxcDiag.resize(eInfo.nStates);
+	VxxDiag.resize(eInfo.nStates);
 }
 
 
@@ -176,9 +178,10 @@ void BGW::writeWfn() const
 void BGW::writeVxc() const
 {	logPrintf("Computing Vxc ... "); logFlush();
 	std::vector<matrix>& VxcSub = ((BGW*)this)->VxcSub;
+	std::vector<diagMatrix>& VxcDiag = ((BGW*)this)->VxcDiag;
 	if(e.exCorr.exxFactor()) e.exx->prepareHamiltonian(e.exCorr.exxRange(), e.eVars.F, e.eVars.C);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	if(VxcSub[q]) continue; //already calculated (dense version)
+	{	if(VxcDiag[q].size()) continue; //already calculated (dense version)
 		//Calculate X-C matrix elements:
 		ColumnBundle HCq = gInfo.dV * Idag_DiagV_I(eVars.C[q], eVars.Vxc);
 		if(e.exCorr.needsKEdensity() && eVars.Vtau[eInfo.qnums[q].index()]) //metaGGA KE potential
@@ -191,9 +194,10 @@ void BGW::writeVxc() const
 			e.exx->applyHamiltonian(e.exCorr.exxFactor(), e.exCorr.exxRange(), q, eVars.F[q], eVars.C[q], HCq);
 		VxcSub[q] = eVars.C[q] ^ HCq;
 		if(nBandsV < nBands) VxcSub[q] = VxcSub[q](0, nBandsV, 0, nBandsV);
+		VxcDiag[q] = diag(VxcSub[q]);
 	}
 	logPrintf("Done.\n");
-	writeV(VxcSub, e.dump.getFilename("bgw.vxc.dat"));
+	writeV(VxcSub, VxcDiag, e.dump.getFilename("bgw.vxc.dat"));
 }
 
 
@@ -204,16 +208,18 @@ void BGW::writeVxx() const
 		e.exx->prepareHamiltonian(0., e.eVars.F, e.eVars.C);
 	logPrintf("Computing Vxx ... "); logFlush();
 	std::vector<matrix>& VxxSub = ((BGW*)this)->VxxSub;
+	std::vector<diagMatrix>& VxxDiag = ((BGW*)this)->VxxDiag;
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	if(VxxSub[q]) continue; //already calculated (dense version)
+	{	if(VxxDiag[q].size()) continue; //already calculated (dense version)
 		//Calculate Vxx matrix elements:
 		ColumnBundle HCq = eVars.C[q].similar(); HCq.zero();
 		e.exx->applyHamiltonian(1., 0., q, eVars.F[q], eVars.C[q], HCq);
 		VxxSub[q] = eVars.C[q] ^ HCq;
 		if(nBandsV < nBands) VxxSub[q] = VxxSub[q](0, nBandsV, 0, nBandsV);
+		VxxDiag[q] = diag(VxxSub[q]);
 	}
 	logPrintf("Done.\n");
-	writeV(VxxSub, e.dump.getFilename("bgw.vxx.dat"));
+	writeV(VxxSub, VxxDiag, e.dump.getFilename("bgw.vxx.dat"));
 	
 	//Report EXX energy computed from matrix elements:
 	double EXX = 0;
@@ -225,7 +231,7 @@ void BGW::writeVxx() const
 }
 
 
-void BGW::writeV(std::vector<matrix>& Vsub, string fname) const
+void BGW::writeV(std::vector<matrix>& Vsub, std::vector<diagMatrix>& Vdiag, string fname) const
 {	//Output from head
 	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 	if(mpiWorld->isHead())
@@ -237,14 +243,16 @@ void BGW::writeV(std::vector<matrix>& Vsub, string fname) const
 			for(int iSpin=0; iSpin<nSpins; iSpin++)
 			{	int q=iSpin*nReducedKpts+ik;
 				if(!eInfo.isMine(q))
-				{	Vsub[q] = zeroes(nBandsV, nBandsV);
-					mpiWorld->recvData(Vsub[q], eInfo.whose(q), q);
+				{	Vdiag[q].resize(nBandsV);
+					mpiWorld->recvData(Vdiag[q], eInfo.whose(q), q);
+					if(bgwp.offDiagV)
+					{	Vsub[q] = zeroes(nBandsV, nBandsV);
+						mpiWorld->recvData(Vsub[q], eInfo.whose(q), q + e.eInfo.nStates);
+					}
 				}
 				//Diagonal elements:
 				for(int b=0; b<nBandsV; b++)
-				{	complex V_eV = Vsub[q](b,b) / eV; //convert to eV
-					fprintf(fp, "%4d %4d %+14.9f %+14.9f\n", iSpin+1, b+1, V_eV.real(), V_eV.imag());
-				}
+					fprintf(fp, "%4d %4d %+14.9f %+14.9f\n", iSpin+1, b+1, Vdiag[q][b]/eV, 0.0);
 				//Off-diagonal elements:
 				if(bgwp.offDiagV)
 					for(int b2=0; b2<nBandsV; b2++)
@@ -261,7 +269,10 @@ void BGW::writeV(std::vector<matrix>& Vsub, string fname) const
 	else //send ones stored on other processes to head
 	{	for(int q=0; q<eInfo.nStates; q++)
 			if(eInfo.isMine(q))
-				mpiWorld->sendData(Vsub[q], 0, q);
+			{	mpiWorld->sendData(Vdiag[q], 0, q);
+				if(bgwp.offDiagV)
+					mpiWorld->sendData(Vsub[q], 0, q+ e.eInfo.nStates);
+			}
 	}
 	logPrintf("Done.\n");
 }
