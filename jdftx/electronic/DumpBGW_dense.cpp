@@ -195,7 +195,7 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		
 		//Initialize matrix distribution:
 		const int nRows = basis.nbasis * nSpinor; //Hamiltonian dimension
-		logPrintf(" with dimension %d\n", nRows); logFlush();
+		logPrintf(" with dimension %d at t[s]: %.2lf\n", nRows, clock_sec()); logFlush();
 		const int blockSize = bgwp.blockSize; //block dimensions
 		const int nEigs = bgwp.nBandsDense; //number of eigenvalues/eigenvectors requested
 		if(nRows < blockSize * (std::max(nProcsRow, nProcsCol) - 1))
