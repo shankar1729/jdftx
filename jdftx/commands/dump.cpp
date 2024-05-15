@@ -962,6 +962,7 @@ enum BGWparamsMember
 {	BGWpm_nBandsDense,
 	BGWpm_blockSize,
 	BGWpm_clusterSize,
+	BGWpm_nBandsV,
 	BGWpm_saveVxc,
 	BGWpm_saveVxx,
 	BGWpm_rpaExx,
@@ -983,6 +984,7 @@ EnumStringMap<BGWparamsMember> bgwpmMap
 (	BGWpm_nBandsDense, "nBandsDense",
 	BGWpm_blockSize, "blockSize",
 	BGWpm_clusterSize, "clusterSize",
+	BGWpm_nBandsV, "nBandsV",
 	BGWpm_saveVxc, "saveVxc",
 	BGWpm_saveVxx, "saveVxx",
 	BGWpm_rpaExx, "rpaExx",
@@ -1003,6 +1005,7 @@ EnumStringMap<BGWparamsMember> bgwpmDescMap
 (	BGWpm_nBandsDense, "If non-zero, use a dense ScaLAPACK solver to calculate more bands",
 	BGWpm_blockSize, "Block size for ScaLAPACK diagonalization (default: 32)",
 	BGWpm_clusterSize, "Maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for (default: 10)",
+	BGWpm_nBandsV, "If non-zero, number of bands for Vxc and Vxx output",
 	BGWpm_saveVxc, "Whether to write exchange-correlation matrix elements (default: yes)",
 	BGWpm_saveVxx, "Whether to write exact-exchange matrix elements (default: no)",
 	BGWpm_rpaExx, "Whether to compute RPA-consistent exact-exchange energy (default: no)",
@@ -1049,6 +1052,7 @@ struct CommandBGWparams : public Command
 			{	READ_AND_CHECK(nBandsDense, >=, 0)
 				READ_AND_CHECK(blockSize, >, 0)
 				READ_AND_CHECK(clusterSize, >, 0)
+				READ_AND_CHECK(nBandsV, >=, 0)
 				READ_BOOL(saveVxc)
 				READ_BOOL(saveVxx)
 				READ_BOOL(rpaExx)
@@ -1082,6 +1086,7 @@ struct CommandBGWparams : public Command
 		PRINT(nBandsDense, "%d")
 		PRINT(blockSize, "%d")
 		PRINT(clusterSize, "%d")
+		PRINT(nBandsV, "%d")
 		PRINT_BOOL(saveVxc)
 		PRINT_BOOL(saveVxx)
 		PRINT_BOOL(rpaExx)

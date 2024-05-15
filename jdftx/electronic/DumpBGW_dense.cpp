@@ -93,7 +93,7 @@ template<typename T> std::vector<T> indexVector(const T* v, const std::vector<in
 void transformV(int q, matrix& V, const matrix& evecs, std::vector<matrix>& Vsub,
 	const ElecInfo& eInfo, int desc[9], int nProcsRow, int nProcsCol,
 	int nRows, int nEigs, int nRowsMine, int nColsMine, int blockSize,
-	int iProcRow, const std::vector<int>& iEigColsMine)
+	int iProcRow, int iProcCol)
 {
 	static StopWatch watch("scalapackTransformV"); watch.start();
 	matrix Vevecs = zeroes(nRowsMine, nColsMine); //local part of V * evecs
@@ -138,6 +138,7 @@ void transformV(int q, matrix& V, const matrix& evecs, std::vector<matrix>& Vsub
 	}
 	else
 	{	std::vector<int> iEigRowsMine = distributedIndices(nEigs, blockSize, iProcRow, nProcsRow);
+		std::vector<int> iEigColsMine = distributedIndices(nEigs, blockSize, iProcCol, nProcsCol);
 		if(iEigRowsMine.size() and iEigColsMine.size())
 			mpiWorld->sendData(matrix(V(0,iEigRowsMine.size(), 0,iEigColsMine.size())), eInfo.whose(q), 0);
 	}
@@ -150,6 +151,8 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 {	static StopWatch watchDiag("scalapackDiagonalize"), watchSetup("scalapackMatrixSetup"), watchIO("scalapackWriteHDF5");
 	logPrintf("\n");
 	nBands = bgwp.nBandsDense;
+	nBandsV = bgwp.nBandsV ? bgwp.nBandsV : nBands;
+	if(nBandsV > nBands) die("nBandsV = %d must be less than nBandsDense = %d\n", nBandsV, nBands);
 	if(nSpinor > 1) die("\nDense diagonalization not yet implemented for spin-orbit / vector-spin modes.\n");
 	for(const auto& sp: e.iInfo.species)
 		if(sp->isUltrasoft())
@@ -360,12 +363,6 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		
 		//Select needed eigenvalues:
 		eigs.resize(nEigs); //rest zero
-		std::vector<int> iEigColsMine = iColsMine;
-		for(int jMine=0; jMine<nColsMine; jMine++)
-			if(iEigColsMine[jMine] >= nEigs)
-			{	iEigColsMine.resize(jMine); //remaining columns irrelevant
-				break;
-			}
 		if(eInfo.isMine(q))
 		{	E[q] = eigs;
 			F[q].resize(nBands, 0.); //update to nBandsDense (padded with zeroes)
@@ -404,15 +401,17 @@ void BGW::denseWriteWfn(hid_t gidWfns)
 		buf = 0; //cleanup
 		watchIO.stop();
 		
+		//Truncate eigenvectors down to those needed for V output:
+		
 		//Transform Vxc to eigenbasis:
 		if(bgwp.saveVxc)
 			transformV(q, Vxc, evecs, VxcSub, eInfo, descH, nProcsRow, nProcsCol,
-				nRows, nEigs, nRowsMine, nColsMine, blockSize, iProcRow, iEigColsMine);
+				nRows, nBandsV, nRowsMine, nColsMine, blockSize, iProcRow, iProcCol);
 		
 		if(bgwp.saveVxx)
 			//Transform Vxx to eigenbasis:
 			transformV(q, Vxx, evecs, VxxSub, eInfo, descH, nProcsRow, nProcsCol,
-				nRows, nEigs, nRowsMine, nColsMine, blockSize, iProcRow, iEigColsMine);
+				nRows, nBandsV, nRowsMine, nColsMine, blockSize, iProcRow, iProcCol);
 	}
 	H5Pclose(plid);
 	H5Dclose(did);

@@ -95,6 +95,9 @@ nSpins(eInfo.nSpins()), nSpinor(eInfo.spinorLength()), nReducedKpts(eInfo.nState
 	
 	//DFT nBands; corresponding E and F:
 	nBands = eInfo.nBands;
+	nBandsV = bgwp.nBandsV ? bgwp.nBandsV : nBands;
+	if((not bgwp.nBandsDense) and (nBandsV > nBands))
+		die("nBandsV = %d must be less than nBands = %d\n", nBandsV, nBands);
 	E = eVars.Hsub_eigs;
 	F = eVars.F;
 	VxcSub.resize(eInfo.nStates);
@@ -187,6 +190,7 @@ void BGW::writeVxc() const
 		if(e.exCorr.exxFactor()) //Exact-exchange contributions:
 			e.exx->applyHamiltonian(e.exCorr.exxFactor(), e.exCorr.exxRange(), q, eVars.F[q], eVars.C[q], HCq);
 		VxcSub[q] = eVars.C[q] ^ HCq;
+		if(nBandsV < nBands) VxcSub[q] = VxcSub[q](0, nBandsV, 0, nBandsV);
 	}
 	logPrintf("Done.\n");
 	writeV(VxcSub, e.dump.getFilename("bgw.vxc.dat"));
@@ -206,6 +210,7 @@ void BGW::writeVxx() const
 		ColumnBundle HCq = eVars.C[q].similar(); HCq.zero();
 		e.exx->applyHamiltonian(1., 0., q, eVars.F[q], eVars.C[q], HCq);
 		VxxSub[q] = eVars.C[q] ^ HCq;
+		if(nBandsV < nBands) VxxSub[q] = VxxSub[q](0, nBandsV, 0, nBandsV);
 	}
 	logPrintf("Done.\n");
 	writeV(VxxSub, e.dump.getFilename("bgw.vxx.dat"));
@@ -228,22 +233,22 @@ void BGW::writeV(std::vector<matrix>& Vsub, string fname) const
 		if(!fp) die_alone("failed to open for writing.\n");
 		for(int ik=0; ik<nReducedKpts; ik++)
 		{	fprintf(fp, "%.9f %.9f %.9f %4d %4d\n", k[ik][0], k[ik][1], k[ik][2],
-				nBands*nSpins, bgwp.offDiagV ? nBands*nBands*nSpins : 0);
+				nBandsV*nSpins, bgwp.offDiagV ? nBandsV*nBandsV*nSpins : 0);
 			for(int iSpin=0; iSpin<nSpins; iSpin++)
 			{	int q=iSpin*nReducedKpts+ik;
 				if(!eInfo.isMine(q))
-				{	Vsub[q] = zeroes(nBands, nBands);
+				{	Vsub[q] = zeroes(nBandsV, nBandsV);
 					mpiWorld->recvData(Vsub[q], eInfo.whose(q), q);
 				}
 				//Diagonal elements:
-				for(int b=0; b<nBands; b++)
+				for(int b=0; b<nBandsV; b++)
 				{	complex V_eV = Vsub[q](b,b) / eV; //convert to eV
 					fprintf(fp, "%4d %4d %+14.9f %+14.9f\n", iSpin+1, b+1, V_eV.real(), V_eV.imag());
 				}
 				//Off-diagonal elements:
 				if(bgwp.offDiagV)
-					for(int b2=0; b2<nBands; b2++)
-					{	for(int b1=0; b1<nBands; b1++)
+					for(int b2=0; b2<nBandsV; b2++)
+					{	for(int b1=0; b1<nBandsV; b1++)
 						{	complex V_eV = Vsub[q](b1,b2) / eV; //convert to eV
 							fprintf(fp, "%4d %4d %4d %+14.9f %+14.9f\n", iSpin+1, b1+1, b2+1, V_eV.real(), V_eV.imag());
 						}

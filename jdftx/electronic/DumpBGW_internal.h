@@ -31,7 +31,8 @@ struct BGWparams
 {	int nBandsDense; //!< if non-zero, use a dense ScaLAPACK solver to calculate more bands
 	int blockSize; //!< block size for ScaLAPACK diagonalization
 	int clusterSize; //!< maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for
-	bool saveVxc; //!< whether to write ecxhange-correlation matrix elements
+	int nBandsV; //!< if non-zero, number of bands for Vxc and Vxx output
+	bool saveVxc; //!< whether to write exchange-correlation matrix elements
 	bool saveVxx; //!< whether to write exact-exchange matrix elements
 	bool rpaExx; //!< whether to compute RPA-consistent exact-exchange energy
 	bool offDiagV; //!< whether to write off-diagonal matrix elements of Vxc and/or Vxx (default: false)
@@ -49,7 +50,7 @@ struct BGWparams
 	double kFcut_rALDA; //!< kF cutoff (in 1/a0) for rALDA regularization (enabled if non-zero)
 	bool kernelSym_rALDA; //!< whether to use kernel symmetrization for rALDA (wavevector symmetrization if false, the default)
 	
-	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10),
+	BGWparams() : nBandsDense(0), blockSize(32), clusterSize(10), nBandsV(0),
 		saveVxc(true), saveVxx(false), rpaExx(false), offDiagV(false),
 		EcutChiFluid(0.), elecOnly(true),
 		freqReMax_eV(30.), freqReStep_eV(1.), freqBroaden_eV(0.1),
@@ -85,6 +86,7 @@ class BGW
 	std::vector<vector3<int>> iGrho; //!< charge-density G-vector mesh
 	
 	int nBands; //!< eInfo.nBands, or overridden by nBandsDense
+	int nBandsV; //!< same as nBands, unless overridden by non-zero BGWParams::nBandsV
 	std::vector<diagMatrix> E, F; //!< eigenvalues and fillings
 	std::vector<matrix> VxcSub; //!< exchange-correlation matrix elements
 	std::vector<matrix> VxxSub; //!< exact exchange matrix elements
