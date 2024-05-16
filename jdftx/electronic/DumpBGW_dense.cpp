@@ -105,14 +105,14 @@ void transformV(int q, matrix& V, const matrix& evecs,
 	matrix Vevecs = zeroes(nRowsMine, nColsMine); //local part of V * evecs
 	//--- parallel matrix multiplies:
 	complex alpha(1.,0.), beta(0.,0.); int one = 1;
-	pzgemm_("N", "N", &nRows, &nRows, &nRows, &alpha,
+	pzgemm_("N", "N", &nRows, &nEigs, &nRows, &alpha,
 		V.data(), &one, &one, desc,
 		evecs.data(), &one, &one, desc, &beta,
-		Vevecs.data(), &one, &one, desc); //VEvecs = V * evecs
-	pzgemm_("C", "N", &nRows, &nRows, &nRows, &alpha,
+		Vevecs.data(), &one, &one, desc); //VEvecs[:, :nEigs] = V * evecs[:, :nEigs]
+	pzgemm_("C", "N", &nEigs, &nEigs, &nRows, &alpha,
 		evecs.data(), &one, &one, desc,
 		Vevecs.data(), &one, &one, desc, &beta,
-		V.data(), &one, &one, desc); //VNew = evecx' * VEvecs
+		V.data(), &one, &one, desc); //VNew[:nEigs, :nEigs] = evecs[:, :nEigs]' * VEvecs[:, :nEigs]
 	Vevecs = 0; //cleanup memory
 	
 	//Collect required portion of V on a single process (the one that owns state q):
