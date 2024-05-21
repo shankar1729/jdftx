@@ -193,7 +193,7 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 		}
 		forceGradDirection = false;
 		fprintf(p.fpLog, "\n"); fflush(p.fpLog);
-		if(knormValue < p.knormThreshold)
+		if(fabs(knormValue) < p.knormThreshold)
 		{	fprintf(p.fpLog, "%sConverged (%s<%le).\n", p.linePrefix, knormName, p.knormThreshold);
 			fflush(p.fpLog); return E;
 		}
