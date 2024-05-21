@@ -162,7 +162,7 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 		}
 		
 		gKNorm = sync(dot(g,Kg));
-		double knormValue = p.maxThreshold ? p.maxCalculator(&Kg) : sqrt(gKNorm/p.nDim);
+		double knormValue = p.maxThreshold ? p.maxCalculator(&Kg) : std::copysign(sqrt(fabs(gKNorm)/p.nDim), gKNorm);
 		fprintf(p.fpLog, "%sIter: %3d  %s: ", p.linePrefix, iter, p.energyLabel);
 		fprintf(p.fpLog, p.energyFormat, E);
 		fprintf(p.fpLog, "  %s: %10.3le  alpha: %10.3le", knormName, knormValue, alpha);
