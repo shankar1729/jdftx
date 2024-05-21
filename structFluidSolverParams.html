@@ -209,7 +209,7 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <tr class="separator:a614f8626026a0bc7ff20f10d53fa3148"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9b954a752d0895e93603bdb1a7622c7d"><td class="memItemLeft" align="right" valign="top"><a id="a9b954a752d0895e93603bdb1a7622c7d"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a9b954a752d0895e93603bdb1a7622c7d">Ztot</a></td></tr>
-<tr class="memdesc:a9b954a752d0895e93603bdb1a7622c7d"><td class="mdescLeft">&#160;</td><td class="mdescRight">number of valence electrons <br /></td></tr>
+<tr class="memdesc:a9b954a752d0895e93603bdb1a7622c7d"><td class="mdescLeft">&#160;</td><td class="mdescRight">number of valence electrons (also used by CANON) <br /></td></tr>
 <tr class="separator:a9b954a752d0895e93603bdb1a7622c7d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a819e080231f1a5d3e8249256d4705576"><td class="memItemLeft" align="right" valign="top"><a id="a819e080231f1a5d3e8249256d4705576"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a819e080231f1a5d3e8249256d4705576">eta_wDiel</a></td></tr>
@@ -217,7 +217,7 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <tr class="separator:a819e080231f1a5d3e8249256d4705576"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a342bba0659e996782806dde899bd6bd5"><td class="memItemLeft" align="right" valign="top"><a id="a342bba0659e996782806dde899bd6bd5"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a342bba0659e996782806dde899bd6bd5">sqrtC6eff</a></td></tr>
-<tr class="memdesc:a342bba0659e996782806dde899bd6bd5"><td class="mdescLeft">&#160;</td><td class="mdescRight">(effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this) <br /></td></tr>
+<tr class="memdesc:a342bba0659e996782806dde899bd6bd5"><td class="mdescLeft">&#160;</td><td class="mdescRight">effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this); also used by CANON <br /></td></tr>
 <tr class="separator:a342bba0659e996782806dde899bd6bd5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a355e8e1fc05929d61ddeee896c34f614"><td class="memItemLeft" align="right" valign="top"><a id="a355e8e1fc05929d61ddeee896c34f614"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a355e8e1fc05929d61ddeee896c34f614">pCavity</a></td></tr>
@@ -241,13 +241,19 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <tr class="memitem:a23cf41b48966721c8ef69c80fb0d6008"><td class="memItemLeft" align="right" valign="top"><a id="a23cf41b48966721c8ef69c80fb0d6008"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>lMax</b></td></tr>
 <tr class="separator:a23cf41b48966721c8ef69c80fb0d6008"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7ff64c85c14666fb1ab546b912dfe841"><td class="memItemLeft" align="right" valign="top"><a id="a7ff64c85c14666fb1ab546b912dfe841"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><b>Res</b></td></tr>
+<tr class="separator:a7ff64c85c14666fb1ab546b912dfe841"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add589fd5373d3d1f171c1d95c7f92538"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#add589fd5373d3d1f171c1d95c7f92538">Zcenter</a></td></tr>
+<tr class="memdesc:add589fd5373d3d1f171c1d95c7f92538"><td class="mdescLeft">&#160;</td><td class="mdescRight">Electrostatic radius used for dielectric nonlocality in CANON.  <a href="structFluidSolverParams.html#add589fd5373d3d1f171c1d95c7f92538">More...</a><br /></td></tr>
+<tr class="separator:add589fd5373d3d1f171c1d95c7f92538"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a61f035ba179e32f6df198277cc72c82e"><td class="memItemLeft" align="right" valign="top"><a id="a61f035ba179e32f6df198277cc72c82e"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#a61f035ba179e32f6df198277cc72c82e">cavityScale</a></td></tr>
 <tr class="memdesc:a61f035ba179e32f6df198277cc72c82e"><td class="mdescLeft">&#160;</td><td class="mdescRight">radius scale factor <br /></td></tr>
 <tr class="separator:a61f035ba179e32f6df198277cc72c82e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aab96da8e927dbb512c8d223ccf5fe223"><td class="memItemLeft" align="right" valign="top"><a id="aab96da8e927dbb512c8d223ccf5fe223"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#aab96da8e927dbb512c8d223ccf5fe223">ionSpacing</a></td></tr>
-<tr class="memdesc:aab96da8e927dbb512c8d223ccf5fe223"><td class="mdescLeft">&#160;</td><td class="mdescRight">extra spacing from dielectric to ionic cavity (in bohrs) <br /></td></tr>
+<tr class="memdesc:aab96da8e927dbb512c8d223ccf5fe223"><td class="mdescLeft">&#160;</td><td class="mdescRight">extra spacing from dielectric to ionic cavity (in bohrs); also used by CANON <br /></td></tr>
 <tr class="separator:aab96da8e927dbb512c8d223ccf5fe223"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad49a63a52881bae26fbb63adfddd7c41"><td class="memItemLeft" align="right" valign="top"><a id="ad49a63a52881bae26fbb63adfddd7c41"></a>
 <a class="el" href="group__Utilities.html#ga8365eedfd1b02393873732bfaab5c018">string</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFluidSolverParams.html#ad49a63a52881bae26fbb63adfddd7c41">cavityFile</a></td></tr>
@@ -313,6 +319,23 @@ std::vector&lt; <a class="el" href="structFmixParams.html">FmixParams</a> &gt;&#
 
 <p>overrides screening factor with this value </p>
 <p>parameters controlling <a class="el" href="classPulay.html" title="Pulay mixing to optimize self-consistent field optimization .">Pulay</a> mixing for <a class="el" href="classSCF.html" title="Self-Consistent Field method for converging electronic state.">SCF</a> version of nonlinear <a class="el" href="classPCM.html" title="Base class for all PCMs.">PCM</a> </p>
+
+</div>
+</div>
+<a id="add589fd5373d3d1f171c1d95c7f92538"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#add589fd5373d3d1f171c1d95c7f92538">&#9670;&nbsp;</a></span>Zcenter</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">double FluidSolverParams::Zcenter</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Electrostatic radius used for dielectric nonlocality in CANON. </p>
+<p>Charge at center used to determine asymmetry in CANON </p>
 
 </div>
 </div>

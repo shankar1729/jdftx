@@ -1,9 +1,5 @@
 var NAVTREEINDEX3 =
 {
-"classAtomPerturbation.html#a7733a2b757d56d674c441f538cdb6196":[2,4,0,5,13],
-"classAtomPerturbation.html#a7dda5ece8867a0e40982cd7e92c56d2d":[2,4,0,5,10],
-"classAtomPerturbation.html#a81b88a3b0b448b3ac8bdf0dd523a9869":[2,4,0,5,1],
-"classAtomPerturbation.html#a968159582bd7f90927855121e7e10130":[2,4,0,5,11],
 "classAtomPerturbation.html#a9c7d05fb7039ca0432d5b08f33825769":[2,4,0,5,7],
 "classAtomPerturbation.html#ab30eb4c65fa5be7be120147e6b3adc13":[2,4,0,5,8],
 "classAtomPerturbation.html#abe7137f246cdb63a74a216977f9d17d1":[2,4,0,5,4],
@@ -179,11 +175,12 @@ var NAVTREEINDEX3 =
 "classCoulombSlab.html#aab3e4c58dbcf46b78f3c4d77bd0ca9a6":[2,2,1,3,27,0],
 "classCoulombSlab.html#ab2d94835d9b52abfa3f906fff1e881ca":[2,2,1,3,27,1],
 "classCoulombSpherical.html":[2,2,1,3,24],
-"classCoulombSpherical.html#a0557e3a5974e41919365303fb98cac87":[2,2,1,3,24,4],
+"classCoulombSpherical.html#a0557e3a5974e41919365303fb98cac87":[2,2,1,3,24,5],
 "classCoulombSpherical.html#a1f468660cb1472eae74e9783f767df65":[2,2,1,3,24,2],
 "classCoulombSpherical.html#a8dc3ca43c2e32771c9f22f372746cf14":[2,2,1,3,24,3],
 "classCoulombSpherical.html#a9488043c058e3b0a59dc2b961298d19a":[2,2,1,3,24,0],
 "classCoulombSpherical.html#abca5c31be02aba8860569dfbc237758c":[2,2,1,3,24,1],
+"classCoulombSpherical.html#ad2f8d32809def61eb7b9ba84c7921718":[2,2,1,3,24,4],
 "classCoulombWire.html":[2,2,1,3,28],
 "classCoulombWire.html#a9bfb2506d677e2611bfac48334fd28f7":[2,2,1,3,28,1],
 "classCoulombWire.html#ac3b5f5dca328dde827ffd9cb4b327391":[2,2,1,3,28,0],
@@ -249,5 +246,8 @@ var NAVTREEINDEX3 =
 "classEdiffCheck.html#aaf53b23b15fa5c538ba3534dd979ef3e":[2,2,0,2,3,0],
 "classElecInfo.html":[2,2,1,0,8],
 "classElecInfo.html#a00a15bf6d64940f4588cad8c2a65872c":[2,2,1,0,8,53],
-"classElecInfo.html#a11e682b702900987689e5aeaa68f3cbb":[2,2,1,0,8,45]
+"classElecInfo.html#a11e682b702900987689e5aeaa68f3cbb":[2,2,1,0,8,45],
+"classElecInfo.html#a12320d6bfd2f3eb8b68b2dddcdcfd548":[2,2,1,0,8,35],
+"classElecInfo.html#a144f7672bcd7c758589aaf3e7b91a82c":[2,2,1,0,8,11],
+"classElecInfo.html#a1ae73ca692605a52ff5fd9e49bb6c437":[2,2,1,0,8,64]
 };

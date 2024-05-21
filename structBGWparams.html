@@ -127,9 +127,13 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struc
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structBGWparams.html#a4467718884cfb205934e3120d2912ecd">clusterSize</a></td></tr>
 <tr class="memdesc:a4467718884cfb205934e3120d2912ecd"><td class="mdescLeft">&#160;</td><td class="mdescRight">maximum eigenvalue cluster size to allocate extra ScaLAPACK workspace for <br /></td></tr>
 <tr class="separator:a4467718884cfb205934e3120d2912ecd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adfc50105551bcd968f921d469559b3c5"><td class="memItemLeft" align="right" valign="top"><a id="adfc50105551bcd968f921d469559b3c5"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structBGWparams.html#adfc50105551bcd968f921d469559b3c5">nBandsV</a></td></tr>
+<tr class="memdesc:adfc50105551bcd968f921d469559b3c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">if non-zero, number of bands for Vxc and Vxx output <br /></td></tr>
+<tr class="separator:adfc50105551bcd968f921d469559b3c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a00cdf9b6ba16ad18430ea4843ba920a4"><td class="memItemLeft" align="right" valign="top"><a id="a00cdf9b6ba16ad18430ea4843ba920a4"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structBGWparams.html#a00cdf9b6ba16ad18430ea4843ba920a4">saveVxc</a></td></tr>
-<tr class="memdesc:a00cdf9b6ba16ad18430ea4843ba920a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether to write ecxhange-correlation matrix elements <br /></td></tr>
+<tr class="memdesc:a00cdf9b6ba16ad18430ea4843ba920a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether to write exchange-correlation matrix elements <br /></td></tr>
 <tr class="separator:a00cdf9b6ba16ad18430ea4843ba920a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8478e4cce9586ecceb013dd16e0825b9"><td class="memItemLeft" align="right" valign="top"><a id="a8478e4cce9586ecceb013dd16e0825b9"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structBGWparams.html#a8478e4cce9586ecceb013dd16e0825b9">saveVxx</a></td></tr>
@@ -139,6 +143,10 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structBGWparams.html#a7ad938857e431d12c63b4ebd4588aff2">rpaExx</a></td></tr>
 <tr class="memdesc:a7ad938857e431d12c63b4ebd4588aff2"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether to compute RPA-consistent exact-exchange energy <br /></td></tr>
 <tr class="separator:a7ad938857e431d12c63b4ebd4588aff2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5c1f3b135e0e3a0c60c86eda52def1f5"><td class="memItemLeft" align="right" valign="top"><a id="a5c1f3b135e0e3a0c60c86eda52def1f5"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structBGWparams.html#a5c1f3b135e0e3a0c60c86eda52def1f5">offDiagV</a></td></tr>
+<tr class="memdesc:a5c1f3b135e0e3a0c60c86eda52def1f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether to write off-diagonal matrix elements of Vxc and/or Vxx (default: false) <br /></td></tr>
+<tr class="separator:a5c1f3b135e0e3a0c60c86eda52def1f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeb8db3ce3e4140a8df3cf633919980ff"><td class="memItemLeft" align="right" valign="top"><a id="aeb8db3ce3e4140a8df3cf633919980ff"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structBGWparams.html#aeb8db3ce3e4140a8df3cf633919980ff">EcutChiFluid</a></td></tr>
 <tr class="memdesc:aeb8db3ce3e4140a8df3cf633919980ff"><td class="mdescLeft">&#160;</td><td class="mdescRight">KE cutoff for fluid polarizability output (enabled if non-zero) <br /></td></tr>
@@ -175,6 +183,14 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structBGWparams.html#a1b58df3536d4e5db88ce055c9acfa57d">Ecut_rALDA</a></td></tr>
 <tr class="memdesc:a1b58df3536d4e5db88ce055c9acfa57d"><td class="mdescLeft">&#160;</td><td class="mdescRight">KE cutoff (in Eh) for rALDA output (enabled if non-zero) <br /></td></tr>
 <tr class="separator:a1b58df3536d4e5db88ce055c9acfa57d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acd408523000540eef5a40caad22bf3e2"><td class="memItemLeft" align="right" valign="top"><a id="acd408523000540eef5a40caad22bf3e2"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structBGWparams.html#acd408523000540eef5a40caad22bf3e2">kFcut_rALDA</a></td></tr>
+<tr class="memdesc:acd408523000540eef5a40caad22bf3e2"><td class="mdescLeft">&#160;</td><td class="mdescRight">kF cutoff (in 1/a0) for rALDA regularization (enabled if non-zero) <br /></td></tr>
+<tr class="separator:acd408523000540eef5a40caad22bf3e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aac340864c35857defef6572f9147462b"><td class="memItemLeft" align="right" valign="top"><a id="aac340864c35857defef6572f9147462b"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structBGWparams.html#aac340864c35857defef6572f9147462b">kernelSym_rALDA</a></td></tr>
+<tr class="memdesc:aac340864c35857defef6572f9147462b"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether to use kernel symmetrization for rALDA (wavevector symmetrization if false, the default) <br /></td></tr>
+<tr class="separator:aac340864c35857defef6572f9147462b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Parameters for BGW output. </p>

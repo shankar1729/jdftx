@@ -132,6 +132,7 @@ var Operators_8h =
     [ "radialFunction", "group__Operators.html#gab1abe1e7e20e216cc53c873e4859351d", null ],
     [ "radialFunctionG", "group__Operators.html#ga863b1f8ec326f0263724a0c948a034fa", null ],
     [ "radialFunctionG", "group__Operators.html#ga0ad6e4116d1e13ad56d8db567923fe53", null ],
+    [ "randomize", "group__Operators.html#gaaf889def108e687373cbd59f2e5d11cc", null ],
     [ "Real", "group__Operators.html#ga71338497668fd7c941ef5ceb95f117f5", null ],
     [ "Real", "group__Operators.html#gabf85997f29a53ce518ac99de34317074", null ],
     [ "removePhase", "group__Operators.html#gab3b8ee5929a836d73ccf24bb582c46ef", null ],

@@ -2,6 +2,7 @@ var classmatrix3 =
 [
     [ "matrix3", "classmatrix3.html#a4bdc1c4d5eddcc1c10cb698851c0ced2", null ],
     [ "matrix3", "classmatrix3.html#a5e3bb3af8e49cf082ae817278d03be62", null ],
+    [ "matrix3", "classmatrix3.html#a504f70afae675c5d8fb10b250b428aca", null ],
     [ "matrix3", "classmatrix3.html#ac59e3dc508eaf8807fc3407e82059b46", null ],
     [ "column", "classmatrix3.html#aabdd15ac5f821aec9768e09fda967a7f", null ],
     [ "metric_length_squared", "classmatrix3.html#a188f245acf15d67fa60f9367b3b6d2fc", null ],

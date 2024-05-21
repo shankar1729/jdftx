@@ -1,11 +1,11 @@
 var searchData=
 [
-  ['wannier_2474',['Wannier',['../classWannier.html',1,'']]],
-  ['wanniereverything_2475',['WannierEverything',['../structWannierEverything.html',1,'']]],
-  ['wanniergradient_2476',['WannierGradient',['../structWannierGradient.html',1,'']]],
-  ['wannierminimizer_2477',['WannierMinimizer',['../classWannierMinimizer.html',1,'']]],
-  ['wannierminimizerfd_2478',['WannierMinimizerFD',['../classWannierMinimizerFD.html',1,'']]],
-  ['wannierminimizerrs_2479',['WannierMinimizerRS',['../classWannierMinimizerRS.html',1,'']]],
-  ['weight_2480',['Weight',['../structDOS_1_1Weight.html',1,'DOS']]],
-  ['wignerseitz_2481',['WignerSeitz',['../classWignerSeitz.html',1,'']]]
+  ['wannier_2473',['Wannier',['../classWannier.html',1,'']]],
+  ['wanniereverything_2474',['WannierEverything',['../structWannierEverything.html',1,'']]],
+  ['wanniergradient_2475',['WannierGradient',['../structWannierGradient.html',1,'']]],
+  ['wannierminimizer_2476',['WannierMinimizer',['../classWannierMinimizer.html',1,'']]],
+  ['wannierminimizerfd_2477',['WannierMinimizerFD',['../classWannierMinimizerFD.html',1,'']]],
+  ['wannierminimizerrs_2478',['WannierMinimizerRS',['../classWannierMinimizerRS.html',1,'']]],
+  ['weight_2479',['Weight',['../structDOS_1_1Weight.html',1,'DOS']]],
+  ['wignerseitz_2480',['WignerSeitz',['../classWignerSeitz.html',1,'']]]
 ];

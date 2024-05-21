@@ -119,34 +119,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a6a75022e573fcd3b4372cb602e299178"><td class="memItemLeft" align="right" valign="top"><a id="a6a75022e573fcd3b4372cb602e299178"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>Dielectric</b> (bool <a class="el" href="structNonlinearPCMeval_1_1Dielectric.html#ac47b510516e7d810d76d48e2a40c75e5">linear</a>, double T, double Nmol, double pMol, double epsBulk, double epsInf)</td></tr>
 <tr class="separator:a6a75022e573fcd3b4372cb602e299178"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac1c80549d9e4fd6d1ec77a1b0c9a5dd9"><td class="memItemLeft" align="right" valign="top"><a id="ac1c80549d9e4fd6d1ec77a1b0c9a5dd9"></a>
-__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Dielectric.html#ac1c80549d9e4fd6d1ec77a1b0c9a5dd9">calcFunctions</a> (double eps, double &amp;frac, double &amp;frac_epsSqHlf, double &amp;logsinch) const</td></tr>
-<tr class="memdesc:ac1c80549d9e4fd6d1ec77a1b0c9a5dd9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the various nonlinear functions of epsilon used in calculating the free energy and its derivatives. <br /></td></tr>
-<tr class="separator:ac1c80549d9e4fd6d1ec77a1b0c9a5dd9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa442b5d1084746c1b5a8a7052169625a"><td class="memItemLeft" align="right" valign="top"><a id="aa442b5d1084746c1b5a8a7052169625a"></a>
-__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Dielectric.html#aa442b5d1084746c1b5a8a7052169625a">compute</a> (double epsSqHlf, double &amp;F, double &amp;F_epsSqHlf, double &amp;ChiEff, double &amp;ChiEff_epsSqHlf) const</td></tr>
-<tr class="memdesc:aa442b5d1084746c1b5a8a7052169625a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the nonlinear functions in the free energy and effective susceptibility (p/eps) prior to scaling by shape function. <br /></td></tr>
-<tr class="separator:aa442b5d1084746c1b5a8a7052169625a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0dce8f1a98fc2ce700d63cfe9d630e31"><td class="memItemLeft" align="right" valign="top"><a id="a0dce8f1a98fc2ce700d63cfe9d630e31"></a>
-__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Dielectric.html#a0dce8f1a98fc2ce700d63cfe9d630e31">freeEnergy_calc</a> (size_t i, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; eps, const double *s, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; p, double *A, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; A_eps, double *A_s) const</td></tr>
-<tr class="memdesc:a0dce8f1a98fc2ce700d63cfe9d630e31"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given shape function s and gradient of phi eps, compute polarization p, free energy density A and accumulate its derivatives. <br /></td></tr>
-<tr class="separator:a0dce8f1a98fc2ce700d63cfe9d630e31"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad7db6f0b37a22191a7b34f56e821cb50"><td class="memItemLeft" align="right" valign="top"><a id="ad7db6f0b37a22191a7b34f56e821cb50"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>freeEnergy</b> (size_t N, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; eps, const double *s, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; p, double *A, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; A_eps, double *A_s) const</td></tr>
-<tr class="separator:ad7db6f0b37a22191a7b34f56e821cb50"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a22f75b4c6de9f42ccfaca42f3b8b2095"><td class="memItemLeft" align="right" valign="top"><a id="a22f75b4c6de9f42ccfaca42f3b8b2095"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>freeEnergy_gpu</b> (size_t N, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; eps, const double *s, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; p, double *A, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; A_eps, double *A_s) const</td></tr>
-<tr class="separator:a22f75b4c6de9f42ccfaca42f3b8b2095"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac51bed0942875d33b8bead349d753784"><td class="memItemLeft" align="right" valign="top"><a id="ac51bed0942875d33b8bead349d753784"></a>
-__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Dielectric.html#ac51bed0942875d33b8bead349d753784">convertDerivative_calc</a> (size_t i, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; eps, const double *s, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; A_p, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; A_eps, double *A_s) const</td></tr>
-<tr class="memdesc:ac51bed0942875d33b8bead349d753784"><td class="mdescLeft">&#160;</td><td class="mdescRight">Propagate derivative A_p and accumulate to A_eps and A_s. <br /></td></tr>
-<tr class="separator:ac51bed0942875d33b8bead349d753784"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac92b4ee8b1150409ffe05996f18454f4"><td class="memItemLeft" align="right" valign="top"><a id="ac92b4ee8b1150409ffe05996f18454f4"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>convertDerivative</b> (size_t N, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; eps, const double *s, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; A_p, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; A_eps, double *A_s) const</td></tr>
-<tr class="separator:ac92b4ee8b1150409ffe05996f18454f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a20d4c3a733af0f05323fefbef6a0090c"><td class="memItemLeft" align="right" valign="top"><a id="a20d4c3a733af0f05323fefbef6a0090c"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>convertDerivative_gpu</b> (size_t N, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; eps, const double *s, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; A_p, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; A_eps, double *A_s) const</td></tr>
-<tr class="separator:a20d4c3a733af0f05323fefbef6a0090c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab4e2fcdf227279da73e91264a9a9cfa9"><td class="memItemLeft" align="right" valign="top"><a id="ab4e2fcdf227279da73e91264a9a9cfa9"></a>
+__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Dielectric.html#ab4e2fcdf227279da73e91264a9a9cfa9">calcFunctions</a> (double eps, double &amp;frac, double &amp;logsinch) const</td></tr>
+<tr class="memdesc:ab4e2fcdf227279da73e91264a9a9cfa9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the various nonlinear functions of epsilon used in calculating the free energy and its derivatives. <br /></td></tr>
+<tr class="separator:ab4e2fcdf227279da73e91264a9a9cfa9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3804e0f415ffacf1aa7f507032208222"><td class="memItemLeft" align="right" valign="top"><a id="a3804e0f415ffacf1aa7f507032208222"></a>
 __hostanddev__ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Dielectric.html#a3804e0f415ffacf1aa7f507032208222">x_from_eps</a> (double eps) const</td></tr>
 <tr class="memdesc:a3804e0f415ffacf1aa7f507032208222"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate x = pMol E / T given eps. <br /></td></tr>
@@ -155,16 +131,17 @@ __hostanddev__ double&#160;</td><td class="memItemRight" valign="bottom"><a clas
 __hostanddev__ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Dielectric.html#a6a69429bdee25b1a84a724f69813ecae">eps_from_x</a> (double x) const</td></tr>
 <tr class="memdesc:a6a69429bdee25b1a84a724f69813ecae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invert <a class="el" href="structNonlinearPCMeval_1_1Dielectric.html#a3804e0f415ffacf1aa7f507032208222" title="Calculate x = pMol E / T given eps.">x_from_eps()</a> using a bisection method. Note that x must be positive and finite. <br /></td></tr>
 <tr class="separator:a6a69429bdee25b1a84a724f69813ecae"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a59b61d1728774d1f1ff6dfb96783e627"><td class="memItemLeft" align="right" valign="top"><a id="a59b61d1728774d1f1ff6dfb96783e627"></a>
-__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Dielectric.html#a59b61d1728774d1f1ff6dfb96783e627">phiToState_calc</a> (size_t i, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; Dphi, const double *s, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;gLookup, bool setState, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; eps, double *epsilon) const</td></tr>
-<tr class="memdesc:a59b61d1728774d1f1ff6dfb96783e627"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given shape function s and gradient of phi Dphi, calculate state vector eps if setState=true or effective epsilon if setState=false. <br /></td></tr>
-<tr class="separator:a59b61d1728774d1f1ff6dfb96783e627"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6c92b5fa23689fd9926841fc325e4cf2"><td class="memItemLeft" align="right" valign="top"><a id="a6c92b5fa23689fd9926841fc325e4cf2"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>phiToState</b> (size_t N, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; Dphi, const double *s, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;gLookup, bool setState, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; eps, double *epsilon) const</td></tr>
-<tr class="separator:a6c92b5fa23689fd9926841fc325e4cf2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a12ec792b962785e4d3aaeb24971e2017"><td class="memItemLeft" align="right" valign="top"><a id="a12ec792b962785e4d3aaeb24971e2017"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>phiToState_gpu</b> (size_t N, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; Dphi, const double *s, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;gLookup, bool setState, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; eps, double *epsilon) const</td></tr>
-<tr class="separator:a12ec792b962785e4d3aaeb24971e2017"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ace0cb901f9a176c37a9cbf89721f4857"><td class="memItemLeft" align="right" valign="top">__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Dielectric.html#ace0cb901f9a176c37a9cbf89721f4857">apply_calc</a> (size_t i, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;dielEnergyLookup, const double *s, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; Dphi, double *A, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; A_Dphi, double *A_s) const</td></tr>
+<tr class="separator:ace0cb901f9a176c37a9cbf89721f4857"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba1d1ba6cf28478e7e662c0f3444421f"><td class="memItemLeft" align="right" valign="top"><a id="aba1d1ba6cf28478e7e662c0f3444421f"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>apply</b> (size_t N, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;dielEnergyLookup, const double *s, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; Dphi, double *A, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; A_Dphi, double *A_s) const</td></tr>
+<tr class="separator:aba1d1ba6cf28478e7e662c0f3444421f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae90fcc45b5eb5734372cfe7e4283f70f"><td class="memItemLeft" align="right" valign="top"><a id="ae90fcc45b5eb5734372cfe7e4283f70f"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>apply_gpu</b> (size_t N, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;dielEnergyLookup, const double *s, <a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt; Dphi, double *A, <a class="el" href="classvector3.html">vector3</a>&lt; double * &gt; A_Dphi, double *A_s) const</td></tr>
+<tr class="separator:ae90fcc45b5eb5734372cfe7e4283f70f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5bad16f7f770f632f8e3a9682189df32"><td class="memItemLeft" align="right" valign="top"><a id="a5bad16f7f770f632f8e3a9682189df32"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;dielEnergyLookup, const <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;s, const <a class="el" href="group__DataStructures.html#ga99abc7575c2216d80ed5d3e5d137b901">VectorField</a> &amp;Dphi, <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;A, <a class="el" href="group__DataStructures.html#ga99abc7575c2216d80ed5d3e5d137b901">VectorField</a> &amp;A_Dphi, <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;A_s) const</td></tr>
+<tr class="separator:a5bad16f7f770f632f8e3a9682189df32"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -192,7 +169,75 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Helper class for dielectric portion of <a class="el" href="classNonlinearPCM.html" title="Nonlinear solvation models: shared electrostatic part implementation.">NonlinearPCM</a>. </p>
-</div><hr/>The documentation for this struct was generated from the following file:<ul>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="ace0cb901f9a176c37a9cbf89721f4857"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ace0cb901f9a176c37a9cbf89721f4857">&#9670;&nbsp;</a></span>apply_calc()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">__hostanddev__ void NonlinearPCMeval::Dielectric::apply_calc </td>
+          <td>(</td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>i</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;&#160;</td>
+          <td class="paramname"><em>dielEnergyLookup</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const double *&#160;</td>
+          <td class="paramname"><em>s</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classvector3.html">vector3</a>&lt; const double * &gt;&#160;</td>
+          <td class="paramname"><em>Dphi</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double *&#160;</td>
+          <td class="paramname"><em>A</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classvector3.html">vector3</a>&lt; double * &gt;&#160;</td>
+          <td class="paramname"><em>A_Dphi</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double *&#160;</td>
+          <td class="paramname"><em>A_s</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Apply nonlinear susceptibility and compute corresponding energy. Set (NOT accumulate) energy density in A, and susceptibility times Phi optionally in A_Dphi. Optionally also set cavity gradient in A_s. </p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
 <li>fluid/<a class="el" href="PCM__internal_8h.html">PCM_internal.h</a></li>
 </ul>
 </div><!-- contents -->

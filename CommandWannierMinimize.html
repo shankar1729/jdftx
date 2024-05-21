@@ -121,6 +121,7 @@ Description:</h2>
 <li>history : number of past states and gradients retained for L-BFGS</li>
 <li>knormThreshold : convergence threshold for gradient (preconditioned) norm</li>
 <li>linminMethod : CubicWolfe|DirUpdateRecommended|Quad|Relax (line minimization method)</li>
+<li>maxThreshold : no|yes, whether max component should be used for knorm</li>
 <li>nAlphaAdjustMax : maximum step-size adjustments per linmin</li>
 <li>nEnergyDiff : number of iteration pairs that must satisfy energyDiffThreshold</li>
 <li>nIterations : maximum iterations (single point calculation if 0)</li>
@@ -140,6 +141,7 @@ Properties:</h2>
     nIterations          100 \
     history              15 \
     knormThreshold       0 \
+    maxThreshold         no \
     energyDiffThreshold  1e-08 \
     nEnergyDiff          2 \
     alphaTstart          1 \

@@ -174,6 +174,7 @@ var group__Fluid =
       [ "P", "structFluidSolverParams.html#a343eeb9da18fcb4f9618c89ad28a776a", null ],
       [ "pCavity", "structFluidSolverParams.html#a355e8e1fc05929d61ddeee896c34f614", null ],
       [ "pcmVariant", "structFluidSolverParams.html#a1a29ea237ddefc223735c91e39efc071", null ],
+      [ "Res", "structFluidSolverParams.html#a7ff64c85c14666fb1ab546b912dfe841", null ],
       [ "rhoDelta", "structFluidSolverParams.html#ace9ca84b6380c32ca8b217b19b127fea", null ],
       [ "rhoMax", "structFluidSolverParams.html#a55c92f9664d4eec864f86f75d41d6b5c", null ],
       [ "rhoMin", "structFluidSolverParams.html#a3b59ea89277326c823237b224516f1f4", null ],
@@ -186,6 +187,7 @@ var group__Fluid =
       [ "T", "structFluidSolverParams.html#a71238661b50171aaac0bbe0be76161a8", null ],
       [ "vdwScale", "structFluidSolverParams.html#a614f8626026a0bc7ff20f10d53fa3148", null ],
       [ "verboseLog", "structFluidSolverParams.html#ac4fe32ad71d0a32508bd5feb81a131ff", null ],
+      [ "Zcenter", "structFluidSolverParams.html#add589fd5373d3d1f171c1d95c7f92538", null ],
       [ "zMask0", "structFluidSolverParams.html#a9c9e2ab6772a9ce46aac31966b353aff", null ],
       [ "zMaskH", "structFluidSolverParams.html#ab7b303f6aa1dfb54154d9b7d51ed6ee1", null ],
       [ "zMaskIonH", "structFluidSolverParams.html#acb0b11d5c1aa0e8857a89bd2ec3993ff", null ],
@@ -260,6 +262,7 @@ var group__Fluid =
     ] ],
     [ "PCMVariant", "group__Fluid.html#gad53b127f79607410b6e76643c9cc23c2", [
       [ "PCM_SaLSA", "group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a871bad946651898c28b7e8ed2dc1eb88", null ],
+      [ "PCM_CANON", "group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2ae0849195734818bebd3c9e67cc8b3cd7", null ],
       [ "PCM_CANDLE", "group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a2e99edcdbafc804a807f2cc9200be225", null ],
       [ "PCM_SGA13", "group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a3f74398b7e584536a3e559cedad49d29", null ],
       [ "PCM_GLSSA13", "group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a91e8ad81b35b0e042efc56bab796fd17", null ],

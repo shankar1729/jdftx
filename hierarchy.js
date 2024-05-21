@@ -241,7 +241,7 @@ var hierarchy =
     [ "Minimizable< ScalarFieldArray >", "structMinimizable.html", [
       [ "FluidMixture", "classFluidMixture.html", null ]
     ] ],
-    [ "Minimizable< ScalarFieldMuEps >", "structMinimizable.html", [
+    [ "Minimizable< ScalarFieldTilde >", "structMinimizable.html", [
       [ "NonlinearPCM", "classNonlinearPCM.html", null ]
     ] ],
     [ "Minimizable< WannierGradient >", "structMinimizable.html", [
@@ -278,9 +278,6 @@ var hierarchy =
     [ "FieldData< T >::PrivateTag", "structFieldData_1_1PrivateTag.html", null ],
     [ "MPIUtil::ProcDivision", "structMPIUtil_1_1ProcDivision.html", null ],
     [ "Pulay< Variable >", "classPulay.html", null ],
-    [ "Pulay< ScalarFieldTilde >", "classPulay.html", [
-      [ "NonlinearPCM", "classNonlinearPCM.html", null ]
-    ] ],
     [ "Pulay< SCFvariable >", "classPulay.html", [
       [ "SCF", "classSCF.html", null ]
     ] ],
@@ -324,7 +321,6 @@ var hierarchy =
     ] ],
     [ "ScalarFieldMultiplet< T, N >", "structScalarFieldMultiplet.html", null ],
     [ "ScalarFieldMultiplet< ScalarFieldData, 3 >", "structScalarFieldMultiplet.html", null ],
-    [ "ScalarFieldMultiplet< ScalarFieldData, 5 >", "structScalarFieldMultiplet.html", null ],
     [ "scaled< T >", "structscaled.html", null ],
     [ "SCFvariable", "structSCFvariable.html", null ],
     [ "NonlinearPCMeval::Screening", "structNonlinearPCMeval_1_1Screening.html", null ],

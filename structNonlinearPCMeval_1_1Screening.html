@@ -119,36 +119,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:afa6a34dee6ff7af6251c321fdad510b6"><td class="memItemLeft" align="right" valign="top"><a id="afa6a34dee6ff7af6251c321fdad510b6"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>Screening</b> (bool <a class="el" href="structNonlinearPCMeval_1_1Screening.html#abf52f427c6b4cc2f3754b5f0cee4dd1e">linear</a>, double T, double Nion, double Zion, double VhsPlus, double VhsMinus, double epsBulk)</td></tr>
 <tr class="separator:afa6a34dee6ff7af6251c321fdad510b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6ffa96de39019494867606ee98f454fa"><td class="memItemLeft" align="right" valign="top"><a id="a6ffa96de39019494867606ee98f454fa"></a>
-double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Screening.html#a6ffa96de39019494867606ee98f454fa">neutralityConstraint</a> (const <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;muPlus, const <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;muMinus, const <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;shape, double Qexp, <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> *mu0_muPlus=0, <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> *mu0_muMinus=0, <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> *mu0_shape=0, double *mu0_Qexp=0)</td></tr>
-<tr class="memdesc:a6ffa96de39019494867606ee98f454fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the neutrality Lagrange multiplier mu0 and optionally its derivatives. <br /></td></tr>
-<tr class="separator:a6ffa96de39019494867606ee98f454fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5b703e364d5302ce0ae5245b3e935ffb"><td class="memItemLeft" align="right" valign="top"><a id="a5b703e364d5302ce0ae5245b3e935ffb"></a>
 __hostanddev__ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Screening.html#a5b703e364d5302ce0ae5245b3e935ffb">fHS</a> (double xIn, double &amp;f_xIn) const</td></tr>
 <tr class="memdesc:a5b703e364d5302ce0ae5245b3e935ffb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hard sphere free energy per particle and derivative, where x is total packing fraction. <br /></td></tr>
 <tr class="separator:a5b703e364d5302ce0ae5245b3e935ffb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a33caea747add8152257c02b7bfff69b3"><td class="memItemLeft" align="right" valign="top">__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Screening.html#a33caea747add8152257c02b7bfff69b3">compute</a> (double muPlus, double muMinus, double &amp;F, double &amp;F_muPlus, double &amp;F_muMinus, double &amp;Rho, double &amp;Rho_muPlus, double &amp;Rho_muMinus) const</td></tr>
-<tr class="separator:a33caea747add8152257c02b7bfff69b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aca86029c26799702f8e060933e44e827"><td class="memItemLeft" align="right" valign="top"><a id="aca86029c26799702f8e060933e44e827"></a>
-__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Screening.html#aca86029c26799702f8e060933e44e827">freeEnergy_calc</a> (size_t i, double mu0, const double *muPlus, const double *muMinus, const double *s, double *rho, double *A, double *A_muPlus, double *A_muMinus, double *A_s) const</td></tr>
-<tr class="memdesc:aca86029c26799702f8e060933e44e827"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given shape function s and potential mu, compute induced charge rho, free energy density A and accumulate its derivatives. <br /></td></tr>
-<tr class="separator:aca86029c26799702f8e060933e44e827"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac84069a73da605c01a5bd387a96eb77b"><td class="memItemLeft" align="right" valign="top"><a id="ac84069a73da605c01a5bd387a96eb77b"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>freeEnergy</b> (size_t N, double mu0, const double *muPlus, const double *muMinus, const double *s, double *rho, double *A, double *A_muPlus, double *A_muMinus, double *A_s) const</td></tr>
-<tr class="separator:ac84069a73da605c01a5bd387a96eb77b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4dac73deb6d664b1f4c9fb33d2f21511"><td class="memItemLeft" align="right" valign="top"><a id="a4dac73deb6d664b1f4c9fb33d2f21511"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>freeEnergy_gpu</b> (size_t N, double mu0, const double *muPlus, const double *muMinus, const double *s, double *rho, double *A, double *A_muPlus, double *A_muMinus, double *A_s) const</td></tr>
-<tr class="separator:a4dac73deb6d664b1f4c9fb33d2f21511"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4c382d0dae57b3bd819d1c50bd308816"><td class="memItemLeft" align="right" valign="top"><a id="a4c382d0dae57b3bd819d1c50bd308816"></a>
-__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Screening.html#a4c382d0dae57b3bd819d1c50bd308816">convertDerivative_calc</a> (size_t i, double mu0, const double *muPlus, const double *muMinus, const double *s, const double *A_rho, double *A_muPlus, double *A_muMinus, double *A_s) const</td></tr>
-<tr class="memdesc:a4c382d0dae57b3bd819d1c50bd308816"><td class="mdescLeft">&#160;</td><td class="mdescRight">Propagate derivative A_rho and accumulate to A_mu and A_s. <br /></td></tr>
-<tr class="separator:a4c382d0dae57b3bd819d1c50bd308816"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad3dbfe156234141f5e1e7ef5f470c3ce"><td class="memItemLeft" align="right" valign="top"><a id="ad3dbfe156234141f5e1e7ef5f470c3ce"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>convertDerivative</b> (size_t N, double mu0, const double *muPlus, const double *muMinus, const double *s, const double *A_rho, double *A_muPlus, double *A_muMinus, double *A_s) const</td></tr>
-<tr class="separator:ad3dbfe156234141f5e1e7ef5f470c3ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab7f98d94ff14a73a3c214c51dd409502"><td class="memItemLeft" align="right" valign="top"><a id="ab7f98d94ff14a73a3c214c51dd409502"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>convertDerivative_gpu</b> (size_t N, double mu0, const double *muPlus, const double *muMinus, const double *s, const double *A_rho, double *A_muPlus, double *A_muMinus, double *A_s) const</td></tr>
-<tr class="separator:ab7f98d94ff14a73a3c214c51dd409502"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af85fd0b14d2ba1cd3cc76a50e4ee8e70"><td class="memItemLeft" align="right" valign="top"><a id="af85fd0b14d2ba1cd3cc76a50e4ee8e70"></a>
 __hostanddev__ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Screening.html#af85fd0b14d2ba1cd3cc76a50e4ee8e70">rootFunc</a> (double x, double V) const</td></tr>
 <tr class="memdesc:af85fd0b14d2ba1cd3cc76a50e4ee8e70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Root function used for finding packing fraction x at a given dimensionless potential V = Z phi / T. <br /></td></tr>
@@ -157,16 +131,17 @@ __hostanddev__ double&#160;</td><td class="memItemRight" valign="bottom"><a clas
 __hostanddev__ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Screening.html#aeba18db86a1b7aaca479183f4f650845">x_from_V</a> (double V) const</td></tr>
 <tr class="memdesc:aeba18db86a1b7aaca479183f4f650845"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate self-consistent packing fraction x at given dimensionless potential V = Z phi / T using a bisection method. <br /></td></tr>
 <tr class="separator:aeba18db86a1b7aaca479183f4f650845"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adbd3fb75b0fe79b56e5f03d36528d99e"><td class="memItemLeft" align="right" valign="top"><a id="adbd3fb75b0fe79b56e5f03d36528d99e"></a>
-__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Screening.html#adbd3fb75b0fe79b56e5f03d36528d99e">phiToState_calc</a> (size_t i, const double *phi, const double *s, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;xLookup, bool setState, double *muPlus, double *muMinus, double *kappaSq) const</td></tr>
-<tr class="memdesc:adbd3fb75b0fe79b56e5f03d36528d99e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given shape function s and phi, calculate state mu's if setState=true or effective kappaSq if setState=false. <br /></td></tr>
-<tr class="separator:adbd3fb75b0fe79b56e5f03d36528d99e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4201bd0588ce9c97455b71091733f9a8"><td class="memItemLeft" align="right" valign="top"><a id="a4201bd0588ce9c97455b71091733f9a8"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>phiToState</b> (size_t N, const double *phi, const double *s, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;xLookup, bool setState, double *muPlus, double *muMinus, double *kappaSq) const</td></tr>
-<tr class="separator:a4201bd0588ce9c97455b71091733f9a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa98772b4d740efc2a1f001a22775fda2"><td class="memItemLeft" align="right" valign="top"><a id="aa98772b4d740efc2a1f001a22775fda2"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>phiToState_gpu</b> (size_t N, const double *phi, const double *s, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;xLookup, bool setState, double *muPlus, double *muMinus, double *kappaSq) const</td></tr>
-<tr class="separator:aa98772b4d740efc2a1f001a22775fda2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a48f8f57d70cb05c8a7010ab987ebdc2a"><td class="memItemLeft" align="right" valign="top">__hostanddev__ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNonlinearPCMeval_1_1Screening.html#a48f8f57d70cb05c8a7010ab987ebdc2a">apply_calc</a> (size_t i, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;ionEnergyLookup, const double *s, const double *phi, double *A, double *A_phi, double *A_s) const</td></tr>
+<tr class="separator:a48f8f57d70cb05c8a7010ab987ebdc2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a10a6859322c1b25c8efcbc02edd56561"><td class="memItemLeft" align="right" valign="top"><a id="a10a6859322c1b25c8efcbc02edd56561"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>apply</b> (size_t N, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;ionEnergyLookup, const double *s, const double *phi, double *A, double *A_phi, double *A_s) const</td></tr>
+<tr class="separator:a10a6859322c1b25c8efcbc02edd56561"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad57a8b64d0d9967777de601fb3462abe"><td class="memItemLeft" align="right" valign="top"><a id="ad57a8b64d0d9967777de601fb3462abe"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>apply_gpu</b> (size_t N, const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;ionEnergyLookup, const double *s, const double *phi, double *A, double *A_phi, double *A_s) const</td></tr>
+<tr class="separator:ad57a8b64d0d9967777de601fb3462abe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae26d231f81bae93bf35b753b8b7da70f"><td class="memItemLeft" align="right" valign="top"><a id="ae26d231f81bae93bf35b753b8b7da70f"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;ionEnergyLookup, const <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;s, const <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;phi, <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;A, <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;A_phi, <a class="el" href="group__DataStructures.html#gaba3dacad6ffc23d9625d87ea805b2bd9">ScalarField</a> &amp;A_s) const</td></tr>
+<tr class="separator:ae26d231f81bae93bf35b753b8b7da70f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -198,8 +173,8 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Helper class for ionic screening portion of <a class="el" href="classNonlinearPCM.html" title="Nonlinear solvation models: shared electrostatic part implementation.">NonlinearPCM</a>. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a id="a33caea747add8152257c02b7bfff69b3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a33caea747add8152257c02b7bfff69b3">&#9670;&nbsp;</a></span>compute()</h2>
+<a id="a48f8f57d70cb05c8a7010ab987ebdc2a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a48f8f57d70cb05c8a7010ab987ebdc2a">&#9670;&nbsp;</a></span>apply_calc()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -208,52 +183,46 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">__hostanddev__ void NonlinearPCMeval::Screening::compute </td>
+          <td class="memname">__hostanddev__ void NonlinearPCMeval::Screening::apply_calc </td>
           <td>(</td>
-          <td class="paramtype">double&#160;</td>
-          <td class="paramname"><em>muPlus</em>, </td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>i</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">double&#160;</td>
-          <td class="paramname"><em>muMinus</em>, </td>
+          <td class="paramtype">const <a class="el" href="structRadialFunctionG.html">RadialFunctionG</a> &amp;&#160;</td>
+          <td class="paramname"><em>ionEnergyLookup</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">double &amp;&#160;</td>
-          <td class="paramname"><em>F</em>, </td>
+          <td class="paramtype">const double *&#160;</td>
+          <td class="paramname"><em>s</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">double &amp;&#160;</td>
-          <td class="paramname"><em>F_muPlus</em>, </td>
+          <td class="paramtype">const double *&#160;</td>
+          <td class="paramname"><em>phi</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">double &amp;&#160;</td>
-          <td class="paramname"><em>F_muMinus</em>, </td>
+          <td class="paramtype">double *&#160;</td>
+          <td class="paramname"><em>A</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">double &amp;&#160;</td>
-          <td class="paramname"><em>Rho</em>, </td>
+          <td class="paramtype">double *&#160;</td>
+          <td class="paramname"><em>A_phi</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">double &amp;&#160;</td>
-          <td class="paramname"><em>Rho_muPlus</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double &amp;&#160;</td>
-          <td class="paramname"><em>Rho_muMinus</em>&#160;</td>
+          <td class="paramtype">double *&#160;</td>
+          <td class="paramname"><em>A_s</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -267,7 +236,7 @@ double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Compute the nonlinear functions in the free energy and charge density prior to scaling by shape function Note that each mu here is mu(r) + mu0, i.e. after imposing charge neutrality constraint </p>
+<p>Apply nonlinear screening and compute corresponding energy. Energy and its phi derivative are accumulated to A and A_phi. Note that A_phi contribution is effectively kappa^2(phi) phi. Optionally also accumulate cavity gradient to A_s. </p>
 
 </div>
 </div>

@@ -115,21 +115,23 @@ Description:</h2>
 <li>cavityScale : atomic radius scale factor for soft sphere model</li>
 <li>cavityTension : effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)</li>
 <li>eta_wDiel : fit parameter for dielectric cavity in CANDLE</li>
-<li>ionSpacing : extra spacing from dielectric to ionic cavity in bohrs for soft sphere model</li>
+<li>ionSpacing : extra spacing from dielectric to ionic cavity in bohrs for soft sphere and CANON models</li>
 <li>lMax : angular momentum truncation in <a class="el" href="classSaLSA.html" title="Nonlocal SaLSA  solvation model implementation (electrostatic part)">SaLSA</a></li>
 <li>nc : critical density for the <a class="el" href="classPCM.html" title="Base class for all PCMs.">PCM</a> cavity shape function</li>
 <li>pCavity : sensitivity of cavity to surface electric fields [a.u.] in CANDLE</li>
+<li>Res : electrostatic radius [bohrs] used for dielectric nonlocality in CANON</li>
 <li>rhoDelta : electron density change (bohr^-3) for SCCS cavity area calculation</li>
 <li>rhoMax : max electron density (bohr^-3) for SCCS cavity switching function</li>
 <li>rhoMin : min electron density (bohr^-3) for SCCS cavity switching function</li>
 <li>screenOverride: overrides the screening length calculated from fluid-components</li>
 <li>sigma : smoothing factor for the <a class="el" href="classPCM.html" title="Base class for all PCMs.">PCM</a> cavity shape function</li>
 <li>sqrtC6eff : sqrt(effective molecule C6 coefficient) for CANDLE</li>
+<li>Zcenter : charge at center used to determine asymmetry in CANON</li>
 <li>zMask0 : center in z lattice coordinates for cavity mask (default: 0)</li>
 <li>zMaskH : half-width in z lattice coordinates for cavity mask (default: 0 =&gt; disabled)</li>
 <li>zMaskIonH : half-width in z lattice coordinates for ion cavity mask (default: 0 =&gt; disabled)</li>
 <li>zMaskSigma : smoothness of z-mask in bohrs (default: 0.5)</li>
-<li>Ztot : total valence charge on the solvent, used by CANDLE</li>
+<li>Ztot : total valence charge on the solvent, used by CANDLE and CANON</li>
 </ul>
 <p>Any number of these key-value pairs may be specified in any order.</p>
 <h2><a class="anchor" id="autotoc_md304"></a>

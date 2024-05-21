@@ -1,11 +1,5 @@
 var NAVTREEINDEX20 =
 {
-"structD3_1_1PairParams.html#a30ae732ad42ed910e3f36559d01e3186":[2,4,0,0,1,0],
-"structD3_1_1PairParams.html#a9bd1a6909510c602d2f7a6f968dc5973":[2,4,0,0,1,1],
-"structDOS_1_1Weight.html":[2,2,1,4,9,0],
-"structDOS_1_1Weight.html#a45cb9eafdbd1b50d7c2f5aa7666119e8":[2,2,1,4,9,0,9],
-"structDOS_1_1Weight.html#a4681140faf3631ce3ab1bb09fdad9fc9":[2,2,1,4,9,0,10],
-"structDOS_1_1Weight.html#a4a354c544b3a072557b28911b4d21f64":[2,2,1,4,9,0,13],
 "structDOS_1_1Weight.html#a511610ec9f31f244b37d23809a612f7f":[2,2,1,4,9,0,6],
 "structDOS_1_1Weight.html#a55140df1ea41ca1250393edf53e5c1ab":[2,2,1,4,9,0,14],
 "structDOS_1_1Weight.html#a7b268021ad9e5c0afd2ef94a88ebd772":[2,2,1,4,9,0,3],
@@ -249,5 +243,11 @@ var NAVTREEINDEX20 =
 "structFluidMixture_1_1Outputs.html#a253553bd4eb2c883fe00a73c4a5f5a43":[2,2,2,0,21,0,3],
 "structFluidMixture_1_1Outputs.html#a2d09415acfc84c1c71ceccb1444e9fe2":[2,2,2,0,21,0,4],
 "structFluidMixture_1_1Outputs.html#ab5752bf2ca0cfe23070da975d988afdc":[2,2,2,0,21,0,2],
-"structFluidMixture_1_1Outputs.html#ac728313b8a8bd74ac25e7566385a1456":[2,2,2,0,21,0,1]
+"structFluidMixture_1_1Outputs.html#ac728313b8a8bd74ac25e7566385a1456":[2,2,2,0,21,0,1],
+"structFluidSolver.html":[2,2,2,5],
+"structFluidSolver.html#a09868af916f73949d4334eaf78d4066f":[2,2,2,5,4],
+"structFluidSolver.html#a207e08943f0dce874691e508e26345e1":[2,2,2,5,13],
+"structFluidSolver.html#a31c19b3d3b6adb016723a65d1950cb85":[2,2,2,5,23],
+"structFluidSolver.html#a427c49935db7222e83d786e9910fb555":[2,2,2,5,17],
+"structFluidSolver.html#a4b3c25337d6be705fb9f57a145e408cb":[2,2,2,5,18]
 };

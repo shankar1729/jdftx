@@ -20,6 +20,7 @@ var FluidSolverParams_8h =
     ] ],
     [ "PCMVariant", "group__Fluid.html#gad53b127f79607410b6e76643c9cc23c2", [
       [ "PCM_SaLSA", "group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a871bad946651898c28b7e8ed2dc1eb88", null ],
+      [ "PCM_CANON", "group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2ae0849195734818bebd3c9e67cc8b3cd7", null ],
       [ "PCM_CANDLE", "group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a2e99edcdbafc804a807f2cc9200be225", null ],
       [ "PCM_SGA13", "group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a3f74398b7e584536a3e559cedad49d29", null ],
       [ "PCM_GLSSA13", "group__Fluid.html#ggad53b127f79607410b6e76643c9cc23c2a91e8ad81b35b0e042efc56bab796fd17", null ],
