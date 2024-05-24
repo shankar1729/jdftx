@@ -153,7 +153,7 @@ std::vector<string> getCaseVariations(string s)
 	return result;
 }
 
-std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e)
+std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e, bool addSpecies)
 {
 	//Search existing species first:
 	for(auto sp: e.iInfo.species)
@@ -173,7 +173,9 @@ std::shared_ptr<SpeciesInfo> findSpecies(string id, Everything& e)
 			{	string fname = patternLeft + idVariant + patternRight;
 				if(fileSize(fname.c_str()) > 0) //file exists and non-empty
 				{	CommandIonSpecies::addSpecies(fname, e, true);
-					return e.iInfo.species.back();
+					std::shared_ptr<SpeciesInfo> sp = e.iInfo.species.back();
+					if(not addSpecies) e.iInfo.species.pop_back(); //keep iInfo.species unchanged
+					return sp;
 				}
 			}
 		}
@@ -366,8 +368,7 @@ struct CommandAddU : public Command
 	}
 	
 	void process(ParamList& pl, Everything& e)
-	{	e.eInfo.hasU = false;
-		string id;
+	{	string id;
 		pl.get(id, string(), "species", true);
 		SpeciesInfo::PlusU* plusUprev = 0;
 		while(id.length())
@@ -388,7 +389,6 @@ struct CommandAddU : public Command
 				pl.get(plusU.UminusJ, 0., "UminusJ", true);
 				//Add U descriptor to species:
 				sp->plusU.push_back(plusU);
-				e.eInfo.hasU = true;
 				//Prepare for a possible Vext:
 				plusUprev = &sp->plusU.back();
 				plusUprev->Vext.assign(sp->atpos.size(), 0.);

@@ -199,6 +199,12 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 		printFillings(globalLog);
 	}
 	else logPrintf("\n");
+
+	// Check whether +U is present for any species:
+	hasU = false;
+	for(const auto& sp: e->iInfo.species)
+		if(sp->plusU.size())
+			hasU = true;
 }
 
 void ElecInfo::printFillings(FILE* fp) const

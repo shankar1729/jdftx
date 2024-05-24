@@ -260,6 +260,7 @@ private:
 	friend class BGW;
 	friend class IonicMinimizer;
 	friend class IonInfo;
+	friend class ElecInfo;
 	friend class PCM;
 	friend class Phonon;
 	friend class VanDerWaalsD2;

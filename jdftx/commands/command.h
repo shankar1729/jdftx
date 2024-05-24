@@ -199,8 +199,9 @@ LinkDescription<Enum> linkDescription(const EnumStringMap<Enum>& nameMap, const 
 //! @brief Find species matching an id (and create it from a wildcard if necessary)
 //! @param id Psuedopotential species identifier string (typically chemical symbol)
 //! @param e Reference to Everything
+//! @param addSpecies Whether to add species from wildcards when trying to find id.
 //! @return Smart pointer to SpeciesInfo corresponding to id.
-std::shared_ptr<class SpeciesInfo> findSpecies(string id, Everything& e);
+std::shared_ptr<class SpeciesInfo> findSpecies(string id, Everything& e, bool addSpecies=false);
 
 //! @brief Check if file is readable in an MPI friendly way.
 //! This function must be called from all processes,

@@ -62,7 +62,7 @@ struct CommandIon : public Command
 	void process(ParamList& pl, Everything& e)
 	{	//Find species:
 		string id; pl.get(id, string(), "species-id", true);
-		auto sp = findSpecies(id, e);
+		auto sp = findSpecies(id, e, true);
 		if(!sp) throw string("Species "+id+" has not been defined");
 		//Read coordinates:
 		vector3<> pos;
