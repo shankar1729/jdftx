@@ -46,7 +46,7 @@ struct MinimizeParams
 	} linminMethod;
 
 	int nIterations; //!< Maximum number of iterations (default 100)
-	int nDim; //!< Dimension of optimization space; used only for knormThreshold (default 1)
+	size_t nDim; //!< Dimension of optimization space; used only for knormThreshold (default 1)
 	int history; //!< Number of past variables and residuals to store (BFGS only)
 	FILE* fpLog; //!< Stream to log iterations to
 	const char* linePrefix; //!< prefix for each output line of minimizer, useful for nested minimizations (default "CG\t")

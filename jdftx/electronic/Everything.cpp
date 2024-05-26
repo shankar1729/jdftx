@@ -155,7 +155,7 @@ void Everything::setup()
 	//Setup electronic minimization parameters:
 	elecMinParams.nDim = 0;
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-	{	elecMinParams.nDim += 2 * basis[q].nbasis * eInfo.nBands;
+	{	elecMinParams.nDim += 2 * basis[q].nbasis * size_t(eInfo.nBands);
 		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub)
 			elecMinParams.nDim += eInfo.nBands * eInfo.nBands;
 	}
