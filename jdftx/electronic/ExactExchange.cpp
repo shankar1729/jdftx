@@ -331,9 +331,11 @@ ExactExchangeEval::ExactExchangeEval(const Everything& e)
 		choices[ik] = Random::uniformInt(nChoices);
 		nSteps += 10*(nChoices-1);
 	}
-	//--- limit number of steps to keep cost in check
-	int nStepsMax = ceildiv(1000000000L, long(kmesh.size() * nSteps * mpiWorld->nProcesses()));
-	nSteps = std::min(nSteps, nStepsMax);
+	if(nSteps)
+	{	//Limit number of steps to keep cost in check
+		int nStepsMax = ceildiv(1000000000L, long(kmesh.size() * nSteps * mpiWorld->nProcesses()));
+		nSteps = std::min(nSteps, nStepsMax);
+	}
 	int stepInterval = std::max(1, int(round(nSteps/50.))); //interval for reporting progress
 	int score = kmesh.score(choices, transforms), bestScore = score;
 	for(int step=0; step<nSteps;)
