@@ -17,14 +17,14 @@ class PrefixedFormatter(argparse.HelpFormatter):
         return "\n\t".join(lines)
 
 parser = argparse.ArgumentParser(
-    description="Compute dielectric tensor (epsilon) from DFT outputs. Each of the 9 tensor components is written in a .dat file, where first, second and third columns are the frequency [eV], real(epsilon) and imag(epsilon) respectively.",
+    description="Compute dielectric tensor (epsilon) from DFT outputs. Each of the 9 tensor components is written in a dat file, where first, second and third columns are the frequency [eV], real(epsilon) and imag(epsilon) respectively.",
     formatter_class=PrefixedFormatter,
 )
-parser.add_argument("--omegaMin", type=float, help="Starting value of frequency [eV] for the energy grid", default=0.0)
-parser.add_argument("--omegaMax", type=float, help="Frequency cutoff [eV] for the energy grid", default=0.0)
-parser.add_argument("--n_omega", type=int, help="Size of energy grid", default=1)
-parser.add_argument("--gamma", type=float, help="Gaussian  broadening parameter [eV]", default=0.2)
-parser.add_argument("--prefix", type=str, help="Prefix of DFT outputs", default="totalE")
+parser.add_argument("--omegaMin", type=float, help="Starting frequency of the energy grid [eV]. Default=0.0", default=0.0)
+parser.add_argument("--omegaMax", type=float, help="Frequency cutoff for the energy grid [eV]. Default=0.0", default=0.0)
+parser.add_argument("--n_omega", type=int, help="Size of the energy grid. Default=1", default=1)
+parser.add_argument("--gamma", type=float, help="Gaussian  broadening parameter [eV]. Defualt=0.2", default=0.2)
+parser.add_argument("--prefix", type=str, help="Prefix of DFT outputs. Default=totalE", default="totalE")
 args = parser.parse_args()
 
 def main():
@@ -72,7 +72,7 @@ def read(prefix):
     R = np.zeros((3,3))
     refLine = -10
     Rdone = False
-    for i_line, line in enumerate(open(f"{prefix}.out")):
+    for i_line, line in enumerate(open(f"{prefix}.out", errors='ignore')):
         if 'Initializing the Grid' in line:
             refLine = i_line
         if not Rdone:
