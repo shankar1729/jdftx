@@ -54,7 +54,7 @@ var group__Algorithms =
       [ "maxCalculator", "structMinimizeParams.html#ac875b6e910325b717071cfa0f4c67107", null ],
       [ "maxThreshold", "structMinimizeParams.html#ab6f94ec77bbcc43e1f69f078c756b235", null ],
       [ "nAlphaAdjustMax", "structMinimizeParams.html#aa2a8ed43a9ab2bd24ba90f32bd98e8f9", null ],
-      [ "nDim", "structMinimizeParams.html#ae31b82a3b320ea2a57e2bab97d09fdce", null ],
+      [ "nDim", "structMinimizeParams.html#a7430723ab6a8a483fbdc6b779c8b78d8", null ],
       [ "nEnergyDiff", "structMinimizeParams.html#a91882e79b46377069e76239256aeaffc", null ],
       [ "nIterations", "structMinimizeParams.html#a576c4d66b3c94766f9b143f5a233d9e3", null ],
       [ "updateTestStepSize", "structMinimizeParams.html#ac5febbb8fab20fac6c7115b1d2b69a59", null ],

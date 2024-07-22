@@ -1,5 +1,12 @@
 var NAVTREEINDEX21 =
 {
+"structFluidMixture_1_1Outputs.html#ac728313b8a8bd74ac25e7566385a1456":[2,2,2,0,21,0,1],
+"structFluidSolver.html":[2,2,2,5],
+"structFluidSolver.html#a09868af916f73949d4334eaf78d4066f":[2,2,2,5,4],
+"structFluidSolver.html#a207e08943f0dce874691e508e26345e1":[2,2,2,5,13],
+"structFluidSolver.html#a31c19b3d3b6adb016723a65d1950cb85":[2,2,2,5,23],
+"structFluidSolver.html#a427c49935db7222e83d786e9910fb555":[2,2,2,5,17],
+"structFluidSolver.html#a4b3c25337d6be705fb9f57a145e408cb":[2,2,2,5,18],
 "structFluidSolver.html#a5041f512f6cacd47f4729e18058cf078":[2,2,2,5,5],
 "structFluidSolver.html#a58547292cb3652c78aed85557f25020d":[2,2,2,5,9],
 "structFluidSolver.html#a60612267227f6bd8f63067c0e890f8df":[2,2,2,5,25],
@@ -242,12 +249,5 @@ var NAVTREEINDEX21 =
 "structMinimizable.html#aa985abd93edde83bb038f0250ad992ba":[2,2,0,2,1,7],
 "structMinimizable.html#acaee3737b9681e45c32cab02f22c76fa":[2,2,0,2,1,0],
 "structMinimizable.html#af2b41d30267aad79202dc273afb661c4":[2,2,0,2,1,1],
-"structMinimizeParams.html":[2,2,0,2,4],
-"structMinimizeParams.html#a05d34ae3e3fa6f075d950002fb2cdb9e":[2,2,0,2,4,11],
-"structMinimizeParams.html#a0eefa69c93e3a8c077da0306df962adf":[2,2,0,2,4,8],
-"structMinimizeParams.html#a2a2950e037fa63f2ca8239f173cebc11":[2,2,0,2,4,2],
-"structMinimizeParams.html#a2a48ea762721fef16f9678af99834697":[2,2,0,2,4,0],
-"structMinimizeParams.html#a2a48ea762721fef16f9678af99834697a8aa488602cdb3759f90a7d55315b791b":[2,2,0,2,4,0,4],
-"structMinimizeParams.html#a2a48ea762721fef16f9678af99834697a981dfedd77ab1055fe7dc2b71c105430":[2,2,0,2,4,0,2],
-"structMinimizeParams.html#a2a48ea762721fef16f9678af99834697aca44f566d44e8b4f1fe89944430a8aff":[2,2,0,2,4,0,3]
+"structMinimizeParams.html":[2,2,0,2,4]
 };

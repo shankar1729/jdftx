@@ -1,8 +1,8 @@
 var searchData=
 [
-  ['c_3413',['C',['../classElecVars.html#a7c54b33f9d886ce9a4ba57af68a915c0',1,'ElecVars::C()'],['../structElecGradient.html#afa6a3913df126bd453666a03c81426a5',1,'ElecGradient::C()']]],
+  ['c_3413',['C',['../structElecGradient.html#afa6a3913df126bd453666a03c81426a5',1,'ElecGradient']]],
   ['c_3414',['c',['../classManagedMemoryBase.html#a7aba48af2ddbf8bf87f6c1d7f0ee861d',1,'ManagedMemoryBase']]],
-  ['c_3415',['C',['../structIncludeTXC.html#ad27100efaa404b8f86d44cbfedddcc25',1,'IncludeTXC']]],
+  ['c_3415',['C',['../structIncludeTXC.html#ad27100efaa404b8f86d44cbfedddcc25',1,'IncludeTXC::C()'],['../classElecVars.html#a7c54b33f9d886ce9a4ba57af68a915c0',1,'ElecVars::C()']]],
   ['c6_3416',['C6',['../structD3_1_1PairParams.html#a30ae732ad42ed910e3f36559d01e3186',1,'D3::PairParams']]],
   ['cacheprojectors_3417',['cacheProjectors',['../classControl.html#a03727053a798e8912d1fb25624a12b6d',1,'Control']]],
   ['category_3418',['category',['../classCommand.html#ab36d2185082e1d590019dd728f414599',1,'Command::category()'],['../classManagedMemoryBase.html#abc8a9b4cad2fa101eb1e3559a493b8f6',1,'ManagedMemoryBase::category()']]],

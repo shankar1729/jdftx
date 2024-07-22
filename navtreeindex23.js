@@ -1,5 +1,12 @@
 var NAVTREEINDEX23 =
 {
+"structScalarFieldTildeData.html#ac4be3ca97edf86eb9376ee5fa784ebd8":[2,2,0,0,35,4],
+"structSlabEpsilon.html":[2,2,1,4,12],
+"structSlabEpsilon.html#a2e877364d11f770882232cd9ece746a5":[2,2,1,4,12,0],
+"structSlabEpsilon.html#a4b61116099d5b96f1959dd6f73795d32":[2,2,1,4,12,3],
+"structSlabEpsilon.html#a8207aa5849a0aa31d3a3d63197e676d2":[2,2,1,4,12,1],
+"structSlabEpsilon.html#afa591d1f765f4f0bd31b0bcb27c7d808":[2,2,1,4,12,2],
+"structSolverParams.html":[2,2,0,2,7],
 "structSolverParams.html#a0f3a35524fb3ee406b2b47ca848d40f3":[2,2,0,2,7,4],
 "structSolverParams.html#a4afc7ad3963565d1a2731cb92cb82efa":[2,2,0,2,7,1],
 "structSolverParams.html#a56f5f2371fa6a9854640b20c29552eeb":[2,2,0,2,7,7],
@@ -240,9 +247,5 @@ var NAVTREEINDEX23 =
 "tensor3_8h.html":[2,5,0,1,29],
 "vector3_8h.html":[2,5,0,1,33],
 "xyzToIonpos.html":[1,2,0,2],
-"xyzToIonposOpt.html":[1,2,0,3],
-"":[2,3,0,1],
-"":[2,3,0,3],
-"":[2,3,0,13],
-"":[2,3,0,0]
+"xyzToIonposOpt.html":[1,2,0,3]
 };

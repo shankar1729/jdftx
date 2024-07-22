@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>JDFTx: File Members</title>
+<title>JDFTx: Dielectric Tensor</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -81,7 +81,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 </div>
 <script type="text/javascript">
 /* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
-$(document).ready(function(){initNavTree('globals_func_f.html',''); initResizable(); });
+$(document).ready(function(){initNavTree('DielectricTensor.html',''); initResizable(); });
 /* @license-end */
 </script>
 <div id="doc-content">
@@ -99,33 +99,50 @@ $(document).ready(function(){initNavTree('globals_func_f.html',''); initResizabl
 </iframe>
 </div>
 
+<div class="PageDoc"><div class="header">
+  <div class="headertitle">
+<div class="title">Dielectric Tensor </div>  </div>
+</div><!--header-->
 <div class="contents">
-&#160;
+<div class="textblock"><div class="image">
+<img src="epsilon.jpg" alt=""/>
+</div>
+<p>This tutorial illustrates how to calculate the dielectric tensor of a material. We will use the Silicon crystal as an example. We first run a self-consistent energy density calculation. Save the following in totalE.in </p><pre class="fragment">lattice face-centered Cubic 10.263
+ion-species SG15/$ID_ONCV_PBE.upf
+ion Si 0.00 0.00 0.00  0
+ion Si 0.25 0.25 0.25  0
 
-<h3><a id="index_f"></a>- f -</h3><ul>
-<li>fftSuitable()
-: <a class="el" href="group__Utilities.html#gaf675931d74e6a85b2e49ae05f93f9b76">Util.h</a>
-</li>
-<li>fileSize()
-: <a class="el" href="group__Utilities.html#ga4bdd2c094feec9f38973d6b3c66c48a3">Util.h</a>
-</li>
-<li>finalizeSystem()
-: <a class="el" href="group__Utilities.html#ga5fef61c606012425069c5b49e27b000e">Util.h</a>
-</li>
-<li>findSpecies()
-: <a class="el" href="group__Input.html#ga26e06941014a4be693f58ac78e17c960">command.h</a>
-</li>
-<li>floorMultiple()
-: <a class="el" href="group__DataStructures.html#ga05e53bb06490e63add7d08d3010df672">scalar.h</a>
-</li>
-<li>freadLE()
-: <a class="el" href="group__Utilities.html#ga079d868b41979eb85a669959a643ad33">Util.h</a>
-</li>
-<li>fwriteLE()
-: <a class="el" href="group__Utilities.html#gaf3003a7aeb4e5617361b355dc6efc25f">Util.h</a>
-</li>
-</ul>
-</div><!-- contents -->
+kpoint-folding 6 6 6
+elec-cutoff 20 100
+elec-n-bands 20
+electronic-SCF
+
+dump-name totalE.$VAR
+dump Init Symmetries Kpoints
+dump End  BandEigs Fillings Momenta
+</pre><p> and run it using: </p><pre class="fragment">mpirun -n 4 jdftx -i totalE.in | tee totalE.out
+</pre><p> This generates the kpoints (totalE.kPts and totalE.kMap), the symmetries (totalE.sym), the energies (totalE.eigenvals), the momentum matrix elements (totalE.momenta) and the occupations (totalE.fillings).</p>
+<p>Now you can use the post-processing script epsilon included in JDFTx to compute the dielectric tensor of Silicon.</p>
+<p>This script contains the following input flags: </p><pre class="fragment">--omegaMin OMEGAMIN  Starting frequency of the energy grid [eV]. Default=0.0
+--omegaMax OMEGAMAX  Frequency cutoff for the energy grid [eV]. Default=0.0
+--n_omega N_OMEGA    Size of the energy grid. Default=1
+--gamma GAMMA        Gaussian broadening parameter [eV]. Defualt=0.2
+--prefix PREFIX      Prefix of DFT outputs. Default=totalE
+</pre><p> To compute the dielectric tensor for Si, run the following: </p><pre class="fragment">epsilon --omegaMin 0.0 --omegaMax 30.0 --n_omega 500 --gamma 0.2
+</pre><p> This generates 9 dat files, each contains one of the dielectric tensor components. In each file, the first, second and third columns are the frequency [eV], real(epsilon) and imag(epsilon), respectively.</p>
+<p>We can plot the real and imaginary parts of epsilon using Python: </p><pre class="fragment">import numpy as np
+import matplotlib.pyplot as plt
+
+data = np.loadtxt("eps_xx.dat")
+plt.plot(data[:, 0], data[:, 1], label="real($\epsilon_{xx}$)", lw=2.)
+plt.plot(data[:, 0], data[:, 2], label="imag($\epsilon_{xx}$)", lw=2.)
+
+plt.xlim(0., 15.)
+plt.xlabel(r"$\hbar \omega$ [eV]")
+plt.legend()
+plt.savefig("epsilon.jpg", bbox_inches='tight')
+</pre> </div></div><!-- contents -->
+</div><!-- PageDoc -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->

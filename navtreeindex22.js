@@ -1,5 +1,12 @@
 var NAVTREEINDEX22 =
 {
+"structMinimizeParams.html#a05d34ae3e3fa6f075d950002fb2cdb9e":[2,2,0,2,4,11],
+"structMinimizeParams.html#a0eefa69c93e3a8c077da0306df962adf":[2,2,0,2,4,8],
+"structMinimizeParams.html#a2a2950e037fa63f2ca8239f173cebc11":[2,2,0,2,4,2],
+"structMinimizeParams.html#a2a48ea762721fef16f9678af99834697":[2,2,0,2,4,0],
+"structMinimizeParams.html#a2a48ea762721fef16f9678af99834697a8aa488602cdb3759f90a7d55315b791b":[2,2,0,2,4,0,4],
+"structMinimizeParams.html#a2a48ea762721fef16f9678af99834697a981dfedd77ab1055fe7dc2b71c105430":[2,2,0,2,4,0,2],
+"structMinimizeParams.html#a2a48ea762721fef16f9678af99834697aca44f566d44e8b4f1fe89944430a8aff":[2,2,0,2,4,0,3],
 "structMinimizeParams.html#a2a48ea762721fef16f9678af99834697aed9b1d8c59166be44cb75d7a8c1b30d7":[2,2,0,2,4,0,1],
 "structMinimizeParams.html#a2a48ea762721fef16f9678af99834697aedf55041469e44cb45c21b42fbd259c6":[2,2,0,2,4,0,0],
 "structMinimizeParams.html#a2e4ba9612c6c1faf639c632b38956846":[2,2,0,2,4,13],
@@ -7,6 +14,7 @@ var NAVTREEINDEX22 =
 "structMinimizeParams.html#a576c4d66b3c94766f9b143f5a233d9e3":[2,2,0,2,4,22],
 "structMinimizeParams.html#a57e75b046608feb84e1e152c0a3880e3":[2,2,0,2,4,6],
 "structMinimizeParams.html#a6ebb70616f03c7129f2fb58ce8a98c0d":[2,2,0,2,4,9],
+"structMinimizeParams.html#a7430723ab6a8a483fbdc6b779c8b78d8":[2,2,0,2,4,20],
 "structMinimizeParams.html#a766535712118aa36486d1229f22a5bfd":[2,2,0,2,4,3],
 "structMinimizeParams.html#a7b08a534183734884dc6d44a7cb5a03d":[2,2,0,2,4,1],
 "structMinimizeParams.html#a7b08a534183734884dc6d44a7cb5a03da088937150401c3b28a760553e5695cbf":[2,2,0,2,4,1,3],
@@ -24,7 +32,6 @@ var NAVTREEINDEX22 =
 "structMinimizeParams.html#ad3f3e3b2e06814c569eec5c8947f31de":[2,2,0,2,4,25],
 "structMinimizeParams.html#ada7577db97d4f6ba4bf5d2593817ddcb":[2,2,0,2,4,5],
 "structMinimizeParams.html#add3a6266d5c13410ea29ae38a7acfb97":[2,2,0,2,4,4],
-"structMinimizeParams.html#ae31b82a3b320ea2a57e2bab97d09fdce":[2,2,0,2,4,20],
 "structMinimizeParams.html#ae37a5c6511498eb6a0b7b6ca1edc9e90":[2,2,0,2,4,14],
 "structMinimizeParams.html#ae70afe521adde2c5b5201d36d2c6e175":[2,2,0,2,4,7],
 "structMinimizeParams.html#aeb1a34b795520bd9ce20a4e2d4d72f03":[2,2,0,2,4,12],
@@ -242,12 +249,5 @@ var NAVTREEINDEX22 =
 "structScalarFieldTildeData.html#a4cc25a74a5d32fa271580e4d7ec93f40":[2,2,0,0,35,0],
 "structScalarFieldTildeData.html#a4f8fff1ec898bd9ce7bbbabae00c4bc2":[2,2,0,0,35,1],
 "structScalarFieldTildeData.html#a5c0968b33641647e3dc39cdbebf4e619":[2,2,0,0,35,2],
-"structScalarFieldTildeData.html#a82b19542c2169b0ca6a86932a2321fc1":[2,2,0,0,35,3],
-"structScalarFieldTildeData.html#ac4be3ca97edf86eb9376ee5fa784ebd8":[2,2,0,0,35,4],
-"structSlabEpsilon.html":[2,2,1,4,12],
-"structSlabEpsilon.html#a2e877364d11f770882232cd9ece746a5":[2,2,1,4,12,0],
-"structSlabEpsilon.html#a4b61116099d5b96f1959dd6f73795d32":[2,2,1,4,12,3],
-"structSlabEpsilon.html#a8207aa5849a0aa31d3a3d63197e676d2":[2,2,1,4,12,1],
-"structSlabEpsilon.html#afa591d1f765f4f0bd31b0bcb27c7d808":[2,2,1,4,12,2],
-"structSolverParams.html":[2,2,0,2,7]
+"structScalarFieldTildeData.html#a82b19542c2169b0ca6a86932a2321fc1":[2,2,0,0,35,3]
 };

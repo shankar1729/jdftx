@@ -9,5 +9,6 @@ var SolidTutorials =
     [ "DFT + U", "DFTplusU.html", null ],
     [ "Spin-orbit coupling", "SpinOrbit.html", null ],
     [ "Dispersion (vdW) corrections", "Dispersion.html", null ],
-    [ "Circular Dichroism (CD)", "CircularDichroism.html", null ]
+    [ "Circular Dichroism (CD)", "CircularDichroism.html", null ],
+    [ "Dielectric Tensor", "DielectricTensor.html", null ]
 ];

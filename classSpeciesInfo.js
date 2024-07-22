@@ -59,6 +59,7 @@ var classSpeciesInfo =
     [ "CommandWavefunction", "classSpeciesInfo.html#afcd9e49d06beab6fbeabcfee73b0db16", null ],
     [ "DefectSupercell", "classSpeciesInfo.html#a7938058f5b37d1534df69cad04126ad1", null ],
     [ "Dump", "classSpeciesInfo.html#af407cb02ae09a76e770252d45bb622ac", null ],
+    [ "ElecInfo", "classSpeciesInfo.html#afa7c97323486eff52afcc807f5dba405", null ],
     [ "ElectronScattering", "classSpeciesInfo.html#ae16979df2e0958c27dea4c2f13828d27", null ],
     [ "FluidSolverParams", "classSpeciesInfo.html#ae96f26c1e932386b651c52b4bfece336", null ],
     [ "IonicMinimizer", "classSpeciesInfo.html#aa284d1958d699baca0e74be39fb39c36", null ],

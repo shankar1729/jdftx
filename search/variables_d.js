@@ -20,7 +20,7 @@ var searchData=
   ['nchargeball_3730',['nChargeball',['../classIonInfo.html#a970313db61e8c35d23e725cdc7de1b4b',1,'IonInfo']]],
   ['ncoeff_3731',['nCoeff',['../structRadialFunctionG.html#adbb4d1914f41594e50ea2fddf77e53c1',1,'RadialFunctionG']]],
   ['ncore_3732',['nCore',['../classIonInfo.html#a0e2ab1bebc837ec5506df215c285de83',1,'IonInfo']]],
-  ['ndim_3733',['nDim',['../structMinimizeParams.html#ae31b82a3b320ea2a57e2bab97d09fdce',1,'MinimizeParams']]],
+  ['ndim_3733',['nDim',['../structMinimizeParams.html#a7430723ab6a8a483fbdc6b779c8b78d8',1,'MinimizeParams']]],
   ['needstau_3734',['needsTau',['../classDumpSelfInteractionCorrection.html#a9ee3cc7a1a5b97c5873883dc2eb01d5c',1,'DumpSelfInteractionCorrection']]],
   ['needsuper_3735',['needSuper',['../classWannierMinimizer.html#a407445473ce08f912b677912f3e63119',1,'WannierMinimizer']]],
   ['neigs_3736',['nEigs',['../structPolarizability.html#a322d89fc6334c414aaf5864b8235ae80',1,'Polarizability']]],

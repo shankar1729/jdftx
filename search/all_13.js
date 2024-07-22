@@ -63,8 +63,8 @@ var searchData=
   ['transformvdagc_2032',['transformVdagC',['../classColumnBundleTransform.html#a6be3467426b7152e57e0ebdd49493826',1,'ColumnBundleTransform']]],
   ['translate_2033',['translate',['../group__DataStructures.html#ga1281b30e04ec70a4c9cd0fff1cc145be',1,'translate(const ColumnBundle &amp;, vector3&lt;&gt; dr):&#160;ColumnBundle.h'],['../group__DataStructures.html#gaa8ec8dabcaa967f5e4b9304d3a09ae40',1,'translate(ColumnBundle &amp;&amp;, vector3&lt;&gt; dr):&#160;ColumnBundle.h'],['../group__Operators.html#ga0240ec90278ef844b9c9fe8797b6f12f',1,'translate(complexScalarFieldTilde &amp;, const vector3&lt;&gt; &amp;r):&#160;Operators.h'],['../group__Operators.html#gadde3201543eec30a27334541262e8513',1,'translate(ScalarFieldTilde &amp;, const vector3&lt;&gt; &amp;r):&#160;Operators.h']]],
   ['translatecolumns_2034',['translateColumns',['../group__DataStructures.html#gad45659650b6bb083aabae792b10d2507',1,'ColumnBundle.h']]],
-  ['translationmode_2035',['translationMode',['../structFluidComponent.html#a1df9943100900ec50e874012932e1cfb',1,'FluidComponent']]],
-  ['translationmode_2036',['TranslationMode',['../structFluidComponent.html#a243a37824ef5ec00219e38cd300665d4',1,'FluidComponent']]],
+  ['translationmode_2035',['TranslationMode',['../structFluidComponent.html#a243a37824ef5ec00219e38cd300665d4',1,'FluidComponent']]],
+  ['translationmode_2036',['translationMode',['../structFluidComponent.html#a1df9943100900ec50e874012932e1cfb',1,'FluidComponent']]],
   ['translationoperator_2037',['TranslationOperator',['../classTranslationOperator.html',1,'']]],
   ['translationoperator_2eh_2038',['TranslationOperator.h',['../TranslationOperator_8h.html',1,'']]],
   ['translationoperatorfourier_2039',['TranslationOperatorFourier',['../classTranslationOperatorFourier.html',1,'']]],
@@ -78,6 +78,6 @@ var searchData=
   ['ts_2047',['TS',['../classEnergies.html#a93cbc9ce6ff54320c2b3e389245d39b3',1,'Energies']]],
   ['tutorials_2048',['Tutorials',['../Tutorials.html',1,'Using']]],
   ['two_2ddimensional_20materials_2049',['Two-dimensional materials',['../TwoDmaterials.html',1,'SurfaceTutorials']]],
-  ['type_2050',['type',['../structSpeciesInfo_1_1Constraint.html#a60fdd1b19cc0d8fb61ba1172d2087a7d',1,'SpeciesInfo::Constraint::type()'],['../structDOS_1_1Weight.html#a55140df1ea41ca1250393edf53e5c1ab',1,'DOS::Weight::type()']]],
-  ['type_2051',['Type',['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83',1,'DOS::Weight::Type()'],['../structFluidComponent.html#a9d36cf0662942eb3fbbac62d240dd9a9',1,'FluidComponent::Type()']]]
+  ['type_2050',['Type',['../structFluidComponent.html#a9d36cf0662942eb3fbbac62d240dd9a9',1,'FluidComponent::Type()'],['../structDOS_1_1Weight.html#ab10be721f887549ef25cb0ed107d8d83',1,'DOS::Weight::Type()']]],
+  ['type_2051',['type',['../structDOS_1_1Weight.html#a55140df1ea41ca1250393edf53e5c1ab',1,'DOS::Weight::type()'],['../structSpeciesInfo_1_1Constraint.html#a60fdd1b19cc0d8fb61ba1172d2087a7d',1,'SpeciesInfo::Constraint::type()']]]
 ];
