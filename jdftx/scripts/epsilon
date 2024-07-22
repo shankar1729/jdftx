@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#CATEGORY: Post-processing
+#CATEGORY: Visualization and post-processing
 #SYNOPSIS: Compute dielectric tensor (epsilon) from DFT outputs
 
 import numpy as np
