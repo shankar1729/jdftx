@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+#CATEGORY: Post-processing
+#SYNOPSIS: Compute dielectric tensor (epsilon) from DFT outputs
+
+import numpy as np
+import matplotlib.pyplot as plt
+import sys
+import argparse
+from scipy.special import expit
+
+
+class PrefixedFormatter(argparse.HelpFormatter):
+    def format_help(self):
+        lines = super().format_help().split("\n")
+        lines.insert(0, "")
+        lines.append("\n")
+        return "\n\t".join(lines)
+
+parser = argparse.ArgumentParser(
+    description="Compute dielectric tensor (epsilon) from DFT outputs. Each of the 9 tensor components is written in a dat file, where first, second and third columns are the frequency [eV], real(epsilon) and imag(epsilon) respectively.",
+    formatter_class=PrefixedFormatter,
+)
+parser.add_argument("--omegaMin", type=float, help="Starting frequency of the energy grid [eV]. Default=0.0", default=0.0)
+parser.add_argument("--omegaMax", type=float, help="Frequency cutoff for the energy grid [eV]. Default=0.0", default=0.0)
+parser.add_argument("--n_omega", type=int, help="Size of the energy grid. Default=1", default=1)
+parser.add_argument("--gamma", type=float, help="Gaussian  broadening parameter [eV]. Defualt=0.2", default=0.2)
+parser.add_argument("--prefix", type=str, help="Prefix of DFT outputs. Default=totalE", default="totalE")
+args = parser.parse_args()
+
+def main():
+
+    #Atomic unit definitions
+    eV = 1/27.21138505
+    
+    #Input params
+    omegaMin = args.omegaMin
+    omegaMax = args.omegaMax
+    n_omega = args.n_omega
+    gamma = args.gamma
+    prefix = args.prefix
+    print(f"{omegaMin = } eV")
+    print(f"{omegaMax = } eV")
+    print(f"{n_omega = }")
+    print(f"{gamma = } eV")
+    print(f"{prefix = }")
+    
+
+    freq_range, epsilon = calculate_epsilon(prefix, omegaMin, omegaMax, n_omega, gamma, eV)
+    write_epsilon(freq_range/eV, epsilon)
+
+def calculate_epsilon(prefix, omegaMin, omegaMax, n_omega, gamma, eV):
+    R, cellVolume, symCart, E, weight, fillings, P = read(prefix)
+    diffE = E[:, :, None] - E[:, None]
+    ones = np.where(np.abs(diffE) < 1.0e-6, 0.0, 1.0)  # not to sum over states with same energy
+    diffE = np.where(np.abs(diffE) < 1.0e-6, 1.0, diffE)  # to avoid /0 problem
+    freq_range = np.linspace(omegaMin, omegaMax, n_omega, endpoint=True)*eV
+    gamma = gamma * eV
+
+    print("Calculating epsilon")
+    epsilon = np.zeros((n_omega, 3, 3), dtype='complex128')
+    den = 4 * np.pi * ones / (
+        cellVolume * (diffE[None, :] * (
+            diffE[None, :]**2
+            - (freq_range**2 + 1.0j * gamma * freq_range)[:, None, None, None])))
+    den = den *weight[None, :, None, None]
+    epsilon = np.eye(3, dtype='complex128')[None, :] - np.einsum(
+        "kamn,kbnm,km,wkmn->wab", P, P, fillings, den)
+    epsilon = point_group_symmetrize(epsilon, symCart)
+    return freq_range, epsilon
+
+def read(prefix):
+    R = np.zeros((3,3))
+    refLine = -10
+    Rdone = False
+    for i_line, line in enumerate(open(f"{prefix}.out", errors='ignore')):
+        if 'Initializing the Grid' in line:
+            refLine = i_line
+        if not Rdone:
+            rowNum = i_line - (refLine+2)
+            if rowNum>=0 and rowNum<3:
+                R[rowNum,:] = np.array([ float(x) for x in line.split()[1:-1] ])
+            if rowNum==3:
+                Rdone = True
+        if Rdone:
+            break
+    cellVolume = np.abs(np.linalg.det(R))
+    print(f"{cellVolume = }")
+    
+    #Read symmetries
+    symData = np.loadtxt(f"{prefix}.sym").reshape((-1,4,3))
+    symTrans = symData[:,3] #translations in lattice coordinates
+    sym = symData[:,:3] #rotations in lattice coordinates
+    symCart = np.einsum('ab,sbc,cd->sad', R, sym, np.linalg.inv(R))
+
+    E = np.fromfile(f'{prefix}.eigenvals', dtype=np.float64)
+    weight = np.loadtxt(f"{prefix}.kPts", usecols=(6))
+    fillings = np.fromfile(f'{prefix}.fillings', dtype=np.float64)
+    P = np.fromfile(f'{prefix}.momenta', dtype=np.complex128)
+    print("Reading E, P, fillings and kpoints weight: Done!")
+    # Determine size:
+    n_bands = len(P) // (3 * len(E))
+    n_k = len(E) // n_bands
+    print(f"Number of bands = {n_bands}")
+    print(f"Number of kpoints = {n_k}")
+    # Reshape:
+    E = E.reshape(n_k, n_bands)  # k, b
+    fillings = fillings.reshape(n_k, n_bands)  # k, b
+    P = P.reshape(n_k, 3, n_bands, n_bands).swapaxes(2, 3)  # k, dir, b1, b2
+    return R, cellVolume, symCart, E, weight, fillings, P
+
+def point_group_symmetrize(M, symCart):
+    return np.einsum('aij,six,sjy->axy', M, symCart, symCart) * (1./len(symCart))
+
+def write_epsilon(freq_range, epsilon):
+    print("Writing epsilon")
+    symb = ['x', 'y', 'z']
+    for a, i in zip(symb, range(3)):
+        for b, j in zip(symb, range(3)):
+            with open(f"eps_{a}{b}.dat", 'w') as out:
+                for w in range(len(freq_range)):
+                    out.write(f"{freq_range[w]:.6f}  {epsilon[w, i, j].real:.6f}  {epsilon[w, i, j].imag:.6f} \n")
+    print("Done!")
+
+
+if __name__ == "__main__":
+    np.set_printoptions(linewidth=150, threshold=sys.maxsize)
+    main()
