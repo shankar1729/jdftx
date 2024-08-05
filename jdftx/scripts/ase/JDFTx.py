@@ -7,7 +7,7 @@
 from __future__ import print_function #For Python2 compatibility
 
 import os, scipy, subprocess, tempfile, re
-from ase.calculators.interface import Calculator
+from ase.calculators.calculator import Calculator
 from ase.units import Bohr, Hartree
 
 #Run shell command and return output as a string:
