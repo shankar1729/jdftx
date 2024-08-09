@@ -260,7 +260,7 @@ struct CommandFluidExCorr : public CommandElecExCorr
 	
 	void printStatus(Everything& e, int iRep)
 	{	const ExCorr& fluidExCorr = e.eVars.fluidParams.exCorr;
-		switch(fluidExCorr.exCorrType)
+		switch(fluidExCorr.kineticType)
 		{
 			#ifdef LIBXC_ENABLED
 			case KineticLibXC: logPrintf("%s ", xcMap_K.getString(fluidExCorr.xcKinetic)); break;
