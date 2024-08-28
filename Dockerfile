@@ -6,6 +6,7 @@ RUN apt-get -y update && apt-get -y --no-install-recommends install g++ cmake li
 	cd jdftx-master && mkdir build && cd build && \
 	cmake ../jdftx && make all && make install && \
         make test && \
+	apt-get -y purge g++ cmake wget unzip ca-certificates make && \
         cd /root && rm -rf /root/jdftx-master && \
         echo 'export PATH="$PATH:/usr/local/share/jdftx/scripts"' >> /root/.bashrc && mkdir /root/research
 
