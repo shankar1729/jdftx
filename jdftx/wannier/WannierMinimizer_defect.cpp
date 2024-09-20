@@ -21,9 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/WignerSeitz.h>
 
 //Shared helper for defect and phonon matrix element Wannierization routines:
-void WannierMinimizer::initializeCommensurate(const vector3<int>& sup, 
-	const std::vector<vector3<>>& xCenters, string suffix, int iSpin, int& prodSup,
-	std::vector<int>& ikArr, std::map<vector3<int>,matrix>& cellMap, std::vector<UniqueCell>& uniqueCells)
+void WannierMinimizer::initializeCommensurate(const vector3<int>& sup, int& prodSup, std::vector<int>& ikArr)
 {
 	//Generate list of commensurate k-points in order present in the unit cell calculation
 	prodSup = sup[0] * sup[1] * sup[2];
@@ -35,7 +33,12 @@ void WannierMinimizer::initializeCommensurate(const vector3<int>& sup,
 			ikArr.push_back(ik);
 	}
 	assert(int(ikArr.size()) == prodSup);
-	
+}
+
+void WannierMinimizer::initializeCellMaps(const vector3<int>& sup, 
+	const std::vector<vector3<>>& xCenters, string suffix, int iSpin,
+	std::map<vector3<int>,matrix>& cellMap, std::vector<UniqueCell>& uniqueCells)
+{
 	//Generate and write cell map:
 	cellMap = getCellMap(
 		e.gInfo.R, e.gInfo.R * Diag(sup),
@@ -53,7 +56,7 @@ void WannierMinimizer::initializeCommensurate(const vector3<int>& sup,
 		logPrintf("done.\n"); logFlush();
 	}
 	//--- Re-organize by unique cells in supercell:
-	uniqueCells.assign(prodSup, UniqueCell());
+	uniqueCells.assign(sup[0]*sup[1]*sup[2], UniqueCell());
 	vector3<int> stride(sup[1]*sup[2], sup[2], 1);
 	for(const auto& entry: cellMap)
 	{	//Compute unique index:
@@ -77,7 +80,8 @@ void WannierMinimizer::saveMLWF_defect(int iSpin, DefectSupercell& ds)
 	std::vector<int> ikArr;
 	std::map<vector3<int>,matrix> defectCellMap;
 	std::vector<UniqueCell> uniqueCells;
-	initializeCommensurate(ds.supOut, xCenter, "D_"+ds.name, iSpin, prodSup, ikArr, defectCellMap, uniqueCells);
+	initializeCommensurate(ds.supOut, prodSup, ikArr);
+	initializeCellMaps(ds.supOut, xCenter, "D_"+ds.name, iSpin, defectCellMap, uniqueCells);
 	
 	//Pairs of commensurate k-points in order they will be stored:
 	struct KpointPair { vector3<> k1, k2; int ik1, ik2; };

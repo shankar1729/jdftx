@@ -196,14 +196,15 @@ private:
 	void saveMLWF_phonon(int iSpin); //e-ph matrix elements and related
 	void saveMLWF_defect(int iSpin, DefectSupercell& ds); //defect matrix elements
 	
-	//! Helper function to initialize commensurate k-points and corresponding cell map for phonons and defects
+	//! Helper functions to initialize commensurate k-points and corresponding cell map for phonons and defects
 	struct UniqueCell
 	{	vector3<int> iR; //unique cell in supercell
 		std::vector<std::pair<vector3<int>,matrix>> cells; //equivalent ones with weights
 	};
-	void initializeCommensurate(const vector3<int>& sup,
-		const std::vector<vector3<>>& xCenters, string suffix, int iSpin, int& prodSup,
-		std::vector<int>& ikArr, std::map<vector3<int>,matrix>& cellMap, std::vector<UniqueCell>& uniqueCells);
+	void initializeCommensurate(const vector3<int>& sup, int& prodSup, std::vector<int>& ikArr);
+	void initializeCellMaps(const vector3<int>& sup,
+		const std::vector<vector3<>>& xCenters, string suffix, int iSpin,
+		std::map<vector3<int>,matrix>& cellMap, std::vector<UniqueCell>& uniqueCells);
 };
 
 
