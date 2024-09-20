@@ -201,8 +201,9 @@ private:
 	{	vector3<int> iR; //unique cell in supercell
 		std::vector<std::pair<vector3<int>,matrix>> cells; //equivalent ones with weights
 	};
-	void initializeCommensurate(const vector3<int>& sup, int& prodSup, std::vector<int>& ikArr);
-	void initializeCellMaps(const vector3<int>& sup,
+	void initializeCommensurate(const vector3<int>& sup, int& prodSup, std::vector<int>& ikArr, vector3<> offset = vector3<>());
+	void initializeCellMaps(
+		const matrix3<>& R, const vector3<int>& sup, const vector3<bool>& isTruncated,
 		const std::vector<vector3<>>& xCenters, string suffix, int iSpin,
 		std::map<vector3<int>,matrix>& cellMap, std::vector<UniqueCell>& uniqueCells);
 };

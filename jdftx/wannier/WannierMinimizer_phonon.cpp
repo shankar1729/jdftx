@@ -33,7 +33,7 @@ void WannierMinimizer::saveMLWF_phonon(int iSpin)
 	std::map<vector3<int>,matrix> ePhCellMap;
 	std::vector<UniqueCell> uniqueCells;
 	initializeCommensurate(wannier.phononSup, prodPhononSup, ikArr);
-	initializeCellMaps(wannier.phononSup, xAtoms, "Ph", iSpin, ePhCellMap, uniqueCells);
+	initializeCellMaps(e.gInfo.R, wannier.phononSup, e.coulombParams.isTruncated(), xAtoms, "Ph", iSpin, ePhCellMap, uniqueCells);
 	
 	//Generate pairs of commensurate k-points along with pointer to Wannier rotation
 	struct KpointPair { vector3<> k1, k2; int ik1, ik2; };
