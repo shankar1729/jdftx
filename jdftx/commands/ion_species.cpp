@@ -128,6 +128,8 @@ const std::vector<string>& getPseudopotentialPrefixes()
 		prefixes.push_back(JDFTX_BUILD_DIR "/pseudopotentials/"); //search paths relative to psp library in build next
 		if(strlen(JDFTX_INSTALL_DIR)) //search paths relative to psp library in install target, if any, last
 			prefixes.push_back(JDFTX_INSTALL_DIR "/share/jdftx/pseudopotentials/");
+		if(const char* envPrefix = getenv("JDFTX_PSEUDO_DIR"))
+			prefixes.push_back(string(envPrefix) + "/");
 	}
 	return prefixes;
 }
