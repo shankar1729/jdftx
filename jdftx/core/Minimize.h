@@ -193,13 +193,21 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 		}
 		forceGradDirection = false;
 		fprintf(p.fpLog, "\n"); fflush(p.fpLog);
+		int nConverged = 0;
+		ostringstream ossConverged;
 		if(fabs(knormValue) < p.knormThreshold)
-		{	fprintf(p.fpLog, "%sConverged (%s<%le).\n", p.linePrefix, knormName, p.knormThreshold);
-			fflush(p.fpLog); return E;
+		{	ossConverged << knormName << "<" << std::scientific << p.knormThreshold;
+			nConverged++;
 		}
 		if(ediffCheck.checkConvergence(E))
-		{	fprintf(p.fpLog, "%sConverged (|Delta %s|<%le for %d iters).\n",
-				p.linePrefix, p.energyLabel, p.energyDiffThreshold, p.nEnergyDiff);
+		{	if(nConverged) ossConverged << ", ";
+			ossConverged << "|Delta " << p.energyLabel << "|<"
+				<< std::scientific << p.energyDiffThreshold
+				<< " for " << p.nEnergyDiff << " iters";
+			nConverged++;
+		}
+		if(nConverged >= (p.convergeAll ? 2 : 1))
+		{	fprintf(p.fpLog, "%sConverged (%s).\n", p.linePrefix, ossConverged.str().c_str());
 			fflush(p.fpLog); return E;
 		}
 		if(!std::isfinite(gKNorm))
@@ -227,6 +235,9 @@ template<typename Vector> double Minimizable<Vector>::minimize(const MinimizePar
 				if(alphaT<p.alphaTmin) //bad step size
 					alphaT = p.alphaTstart; //make sure next test step size is not too bad
 			}
+		}
+		else if(p.abortOnFailedStep)
+		{	die("%s\tStep failed: aborting.\n\n", p.linePrefix);
 		}
 		else
 		{	//linmin failed:

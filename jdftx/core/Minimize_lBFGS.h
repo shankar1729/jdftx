@@ -73,13 +73,21 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		
 		//Check stopping conditions:
 		fprintf(p.fpLog, "\n"); fflush(p.fpLog);
-		if(knormValue < p.knormThreshold)
-		{	fprintf(p.fpLog, "%sConverged (%s<%le).\n", p.linePrefix, knormName, p.knormThreshold);
-			fflush(p.fpLog); return E;
+		int nConverged = 0;
+		ostringstream ossConverged;
+		if(fabs(knormValue) < p.knormThreshold)
+		{	ossConverged << knormName << "<" << std::scientific << p.knormThreshold;
+			nConverged++;
 		}
 		if(ediffCheck.checkConvergence(E))
-		{	fprintf(p.fpLog, "%sConverged (|Delta %s|<%le for %d iters).\n",
-				p.linePrefix, p.energyLabel, p.energyDiffThreshold, p.nEnergyDiff);
+		{	if(nConverged) ossConverged << ", ";
+			ossConverged << "|Delta " << p.energyLabel << "|<"
+				<< std::scientific << p.energyDiffThreshold
+				<< " for " << p.nEnergyDiff << " iters";
+			nConverged++;
+		}
+		if(nConverged >= (p.convergeAll ? 2 : 1))
+		{	fprintf(p.fpLog, "%sConverged (%s).\n", p.linePrefix, ossConverged.str().c_str());
 			fflush(p.fpLog); return E;
 		}
 		if(!std::isfinite(gKnorm))
@@ -117,7 +125,8 @@ template<typename Vector> double Minimizable<Vector>::lBFGS(const MinimizeParams
 		Vector y = clone(g); h->Ky = clone(Kg); //store previous gradients before linmin changes it (these will later be converted to y = g-gPrev)
 		double alphaT = std::min(p.alphaTstart, safeStepSize(d));
 		if(!linmin(*this, p, d, alphaT, alpha, E, g, Kg))
-		{	//linmin failed:
+		{	if(p.abortOnFailedStep) die("%s\tStep failed: aborting.\n\n", p.linePrefix);
+			//linmin failed:
 			fprintf(p.fpLog, "%s\tUndoing step.\n", p.linePrefix);
 			step(d, -alpha);
 			E = sync(compute(&g, &Kg));

@@ -44,6 +44,7 @@ enum MinimizeParamsMember
 	MPM_maxThreshold,
 	MPM_energyDiffThreshold,
 	MPM_nEnergyDiff,
+	MPM_convergeAll,
 	MPM_alphaTstart,
 	MPM_alphaTmin,
 	MPM_updateTestStepSize,
@@ -52,6 +53,7 @@ enum MinimizeParamsMember
 	MPM_nAlphaAdjustMax,
 	MPM_wolfeEnergy,
 	MPM_wolfeGradient,
+	MPM_abortOnFailedStep,
 	MPM_fdTest,
 	MPM_Delim //!< delimiter to detect end of input
 };
@@ -65,6 +67,7 @@ EnumStringMap<MinimizeParamsMember> mpmMap
 	MPM_maxThreshold, "maxThreshold",
 	MPM_energyDiffThreshold, "energyDiffThreshold",
 	MPM_nEnergyDiff, "nEnergyDiff",
+	MPM_convergeAll, "convergeAll",
 	MPM_alphaTstart, "alphaTstart",
 	MPM_alphaTmin, "alphaTmin",
 	MPM_updateTestStepSize, "updateTestStepSize",
@@ -73,6 +76,7 @@ EnumStringMap<MinimizeParamsMember> mpmMap
 	MPM_nAlphaAdjustMax, "nAlphaAdjustMax",
 	MPM_wolfeEnergy, "wolfeEnergy",
 	MPM_wolfeGradient, "wolfeGradient",
+	MPM_abortOnFailedStep, "abortOnFailedStep",
 	MPM_fdTest, "fdTest"
 );
 EnumStringMap<MinimizeParamsMember> mpmDescMap
@@ -84,6 +88,7 @@ EnumStringMap<MinimizeParamsMember> mpmDescMap
 	MPM_maxThreshold, boolMap.optionList() + ", whether max component should be used for knorm",
 	MPM_energyDiffThreshold, "convergence threshold for energy difference between successive iterations",
 	MPM_nEnergyDiff, "number of iteration pairs that must satisfy energyDiffThreshold",
+	MPM_convergeAll, boolMap.optionList() + ", whether all thresholds must be satisfied for convergence",
 	MPM_alphaTstart, "initial test step size (constant step-size factor for Relax linmin)",
 	MPM_alphaTmin, "minimum test step size",
 	MPM_updateTestStepSize, boolMap.optionList() + ", whether test step size is updated",
@@ -92,6 +97,7 @@ EnumStringMap<MinimizeParamsMember> mpmDescMap
 	MPM_nAlphaAdjustMax, "maximum step-size adjustments per linmin",
 	MPM_wolfeEnergy, "dimensionless energy threshold for Wolfe linmin stopping criterion",
 	MPM_wolfeGradient, "dimensionless gradient threshold for Wolfe linmin stopping criterion",
+	MPM_abortOnFailedStep, boolMap.optionList() + ", whether to abort when a step fails",
 	MPM_fdTest, boolMap.optionList() + ", whether to perform a finite difference test"
 );
 
@@ -119,6 +125,7 @@ void CommandMinimize::process(ParamList& pl, Everything& e)
 			case MPM_maxThreshold: pl.get(mp.maxThreshold, false, boolMap, "maxThreshold", true); break;
 			case MPM_energyDiffThreshold: pl.get(mp.energyDiffThreshold, 0., "energyDiffThreshold", true); break;
 			case MPM_nEnergyDiff: pl.get(mp.nEnergyDiff, 0, "nEnergyDiff", true); break;
+			case MPM_convergeAll: pl.get(mp.convergeAll, false, boolMap, "convergeAll", true); break;
 			case MPM_alphaTstart: pl.get(mp.alphaTstart, 0., "alphaTstart", true); break;
 			case MPM_alphaTmin: pl.get(mp.alphaTmin, 0., "alphaTmin", true); break;
 			case MPM_updateTestStepSize: pl.get(mp.updateTestStepSize, true, boolMap, "updateTestStepSize", true); break;
@@ -127,6 +134,7 @@ void CommandMinimize::process(ParamList& pl, Everything& e)
 			case MPM_nAlphaAdjustMax: pl.get(mp.nAlphaAdjustMax, 0, "nAlphaAdjustMax", true); break;
 			case MPM_wolfeEnergy: pl.get(mp.wolfeEnergy, 0., "wolfeEnergy", true); break;
 			case MPM_wolfeGradient: pl.get(mp.wolfeGradient, 0., "wolfeGradient", true); break;
+			case MPM_abortOnFailedStep: pl.get(mp.abortOnFailedStep, false, boolMap, "abortOnFailedStep", true); break;
 			case MPM_fdTest: pl.get(mp.fdTest, false, boolMap, "fdTest", true); break;
 			case MPM_Delim: return; //end of input
 		}
@@ -143,6 +151,7 @@ void CommandMinimize::printStatus(Everything& e, int iRep)
 	logPrintf(" \\\n\tmaxThreshold         %s", boolMap.getString(mp.maxThreshold));
 	logPrintf(" \\\n\tenergyDiffThreshold  %lg", mp.energyDiffThreshold);
 	logPrintf(" \\\n\tnEnergyDiff          %d", mp.nEnergyDiff);
+	logPrintf(" \\\n\tconvergeAll          %s", boolMap.getString(mp.convergeAll));
 	logPrintf(" \\\n\talphaTstart          %lg", mp.alphaTstart);
 	logPrintf(" \\\n\talphaTmin            %lg", mp.alphaTmin);
 	logPrintf(" \\\n\tupdateTestStepSize   %s", boolMap.getString(mp.updateTestStepSize));
@@ -151,6 +160,7 @@ void CommandMinimize::printStatus(Everything& e, int iRep)
 	logPrintf(" \\\n\tnAlphaAdjustMax      %d", mp.nAlphaAdjustMax);
 	logPrintf(" \\\n\twolfeEnergy          %lg", mp.wolfeEnergy);
 	logPrintf(" \\\n\twolfeGradient        %lg", mp.wolfeGradient);
+	logPrintf(" \\\n\tabortOnFailedStep    %s", boolMap.getString(mp.abortOnFailedStep));
 	logPrintf(" \\\n\tfdTest               %s", boolMap.getString(mp.fdTest));
 }
 
