@@ -174,6 +174,7 @@ private:
 	friend class Everything;
 	friend class Phonon;
 	friend class DefectSupercell;
+	friend class WannierMinimizer;
 	void kpointsFold(); //!< Fold k-points by kfold
 	void kpointsReduce(); //!< Reduce folded k-points under symmetries
 };

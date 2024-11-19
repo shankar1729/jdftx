@@ -57,6 +57,7 @@ struct MinimizeParams
 	double (*maxCalculator)(const void*); //!< function to calculate max component, needed if maxThreshold = True.
 	double energyDiffThreshold; //!< stop when energy change is below this for nEnergyDiff successive iterations (default: 0)
 	int nEnergyDiff; //!< number of successive iterations for energyDiffThreshold check (default: 2)
+	bool convergeAll; //!< require all thresholds to be satisfied for convergence (default false)
 
 	double alphaTstart; //!< initial value for the test-step size (default: 1.0)
 	double alphaTmin; //!< minimum value of the test-step size (algorithm gives up when difficulties cause alphaT to fall below this value) (default:1e-10)
@@ -68,6 +69,7 @@ struct MinimizeParams
 
 	double wolfeEnergy; //!< Wolfe criterion dimensionless threshold for energy
 	double wolfeGradient; //!< Wolfe criterion dimensionless threshold for gradient
+	bool abortOnFailedStep; //!< abort if a step fails (default false)
 	
 	bool fdTest; //!< whether to perform a finite difference test before each minimization (default false)
 
@@ -78,10 +80,10 @@ struct MinimizeParams
 		nIterations(100), nDim(1), history(15), fpLog(stdout),
 		linePrefix("CG\t"), energyLabel("E"), energyFormat("%22.15le"),
 		knormThreshold(0), maxThreshold(false), maxCalculator(NULL),
-		energyDiffThreshold(0), nEnergyDiff(2),
+		energyDiffThreshold(0), nEnergyDiff(2), convergeAll(false),
 		alphaTstart(1.0), alphaTmin(1e-10), updateTestStepSize(true),
 		alphaTreduceFactor(0.1), alphaTincreaseFactor(3.0), nAlphaAdjustMax(3),
-		wolfeEnergy(1e-4), wolfeGradient(0.9),
+		wolfeEnergy(1e-4), wolfeGradient(0.9), abortOnFailedStep(false),
 		fdTest(false) {}
 };
 

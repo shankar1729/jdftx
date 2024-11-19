@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/WignerSeitz.h>
 #include <core/ScalarFieldIO.h>
 #include <libgen.h>
+#include <numeric>
 
 void DefectSupercell::initialize(const Wannier* wannier)
 {	this->wannier = wannier;
@@ -196,7 +197,21 @@ void DefectSupercell::initialize(const Wannier* wannier)
 	{	PREPARE_dAtomic(dAtomic, e) //Prepare atomic potential for unit cell
 		PREPARE_dAtomic(dAtomicSup, eSup) //Prepare atomic potential for unit cell
 	}
-	int truncDir = e->coulombParams.geometry==CoulombParams::Slab ? e->coulombParams.iDir : -1;
+	//--- avoid WS boundary along truncated directions (align potential where we have bulk material)
+	std::set<int> avoidDirs;
+	if(e->coulombParams.geometry==CoulombParams::Slab) avoidDirs.insert(e->coulombParams.iDir);
+	if(e->coulombParams.geometry==CoulombParams::Wire)
+	{	avoidDirs.insert((e->coulombParams.iDir + 1) % 3);
+		avoidDirs.insert((e->coulombParams.iDir + 2) % 3);
+	}
+	//--- also avoid WS boundary in directions where supercell size is 1 (for line and plane defects)
+	for(int iDir=0; iDir<3; iDir++)
+		if(supIn[iDir] == 1)
+			avoidDirs.insert(iDir);
+	int nAvoidDirs = avoidDirs.size();
+	int avoidDir = (nAvoidDirs == 1) ? *avoidDirs.begin() : -1; //single direction to avoid (slab mode)
+	int keepDir = (nAvoidDirs == 2) ? (3 - std::accumulate(avoidDirs.begin(), avoidDirs.end(), 0)) : -1; //keep one direction
+	int LsupKeep = (keepDir >= 0) ? eSup->gInfo.R.column(keepDir).length() : 0.0;
 	double Valign = 0., wAlign = 0.;
 	for(int s=0; s<e->eInfo.nDensities; s++)
 	{	const vector3<int>& S = e->gInfo.S;
@@ -219,8 +234,17 @@ void DefectSupercell::initialize(const Wannier* wannier)
 					dSup[iSup] -= dUnit[i];
 				double dVatom = potentialSubtraction ? (dSup[iSup] * e->gInfo.dV) : 0.; //Note: does not change Vscloc, only Valign
 				//Contribution to alignment potential:
-				vector3<> xSup(ivSup[0]*SsupInv[0], ivSup[1]*SsupInv[1], ivSup[2]*SsupInv[2]); //supercell lattice coordinates
-				double bDist = wsSup->boundaryDistance(wsSup->reduce(xSup - xCenter), truncDir);
+				double bDist = 0.0;
+				if(keepDir >= 0)
+				{	double dxSupKeep = ivSup[keepDir]*SsupInv[keepDir] - xCenter[keepDir];
+					dxSupKeep -= floor(0.5 + dxSupKeep);
+					bDist = (0.5 - fabs(dxSupKeep)) * LsupKeep;
+				}
+				else
+				{	//All directions / slab cases:
+					vector3<> xSup(ivSup[0]*SsupInv[0], ivSup[1]*SsupInv[1], ivSup[2]*SsupInv[2]); //supercell lattice coords
+					bDist = wsSup->boundaryDistance(wsSup->reduce(xSup - xCenter), avoidDir);
+				}
 				double w = 0.5*erfc((bDist - alignWidth)/alignSmooth) * nUnit[i]; //weight for potential alignment
 				Valign -= w * (Vsup[iSup] - dVatom); //note: alignment correction is unit cell - supercell
 				wAlign += w;
