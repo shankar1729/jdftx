@@ -21,7 +21,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/WannierMinimizerFD.h>
 #include <wannier/WannierMinimizerRS.h>
 
-Wannier::Wannier() : needAtomicOrbitals(false), localizationMeasure(LM_FiniteDifference), precond(false),
+Wannier::Wannier() : needAtomicOrbitals(false), addAtomicOrbitals(false), ignoreSemiCore(true),
+	localizationMeasure(LM_FiniteDifference), precond(false),
 	bStart(0), outerWindow(false), innerWindow(false), nFrozen(0),
 	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false), saveSpin(false), saveRP(false),
 	zFieldMag(0.),
@@ -34,10 +35,66 @@ Wannier::Wannier() : needAtomicOrbitals(false), localizationMeasure(LM_FiniteDif
 void Wannier::setup(const Everything& everything)
 {	e = &everything;
 	logPrintf("\n---------- Initializing Wannier Function solver ----------\n");
+
 	//Initialize minimization parameters:
 	minParams.fpLog = globalLog;
 	minParams.linePrefix = "WannierMinimize: ";
 	minParams.energyLabel = "Omega";
+
+	//Add atomic orbitals automatically, if requested:
+	if(addAtomicOrbitals)
+	{	logPrintf("\nAdding atomic orbitals as trial orbitals (%s semicore orbitals):\n",
+			ignoreSemiCore ? "ignoring" : "including");
+		for(int iSp=0; iSp<int(e->iInfo.species.size()); iSp++)
+		{	const SpeciesInfo& sp = *(e->iInfo.species[iSp]);
+			//Prepare template of atomic orbitals for one atom:
+			DOS::Weight::OrbitalDesc od;
+			od.spinType = (e->eInfo.spinType == SpinNone)
+				? SpinNone
+				: (sp.isRelativistic() ? SpinOrbit : SpinZ);
+			std::vector<DOS::Weight::OrbitalDesc> orbitalDescs;
+			for(od.l=0; od.l<=sp.lMaxAtomicOrbitals(); od.l++)
+			{	int nMax = sp.nAtomicOrbitals(od.l) - 1; //max pseudo-principal quantum number
+				int nMin = (ignoreSemiCore ? std::max(nMax, 0) : 0);
+				for(od.n=nMin; int(od.n)<=nMax; od.n++)
+				{	switch(od.spinType)
+					{	case SpinNone:
+						case SpinZ:
+						{	int nSpins = (od.spinType == SpinNone) ? 1 : 2;
+							for(od.m=-od.l; od.m<=od.l; od.m++)
+								for(od.s=0; od.s<nSpins; od.s++)
+									orbitalDescs.push_back(od);
+							break;
+						}
+						case SpinOrbit:
+						{	for(od.s=1; od.s>=0; od.s--) //j=l-1/2 and j=l+1/2
+							{	int mStart = (od.s ? 1 : -1) - od.l;
+								for(od.m=mStart; od.m<=od.l; od.m++) //mj - 1/2
+									orbitalDescs.push_back(od);
+							}
+							break;
+						}
+						case SpinVector:; //Unused, but here to avoid compiler warning
+					}
+				}
+			}
+			//Add above template for each atom of species:
+			TrialOrbital trialOrbital;
+			trialOrbital.push_back(AtomicOrbital()); //single orbital projection
+			AtomicOrbital& ao = trialOrbital[0];
+			ao.sp = iSp;
+			for(ao.atom=0; ao.atom<int(sp.atpos.size()); ao.atom++)
+				for(DOS::Weight::OrbitalDesc od: orbitalDescs)
+				{	ao.orbitalDesc = od;
+					trialOrbitals.push_back(trialOrbital);
+				}
+			logPrintf("  Added %lu orbitals each for %lu %s atoms.\n",
+				orbitalDescs.size(), sp.atpos.size(), sp.name.c_str());
+		}
+		logPrintf("\n");
+		needAtomicOrbitals = true;
+	}
+
 	//Check window settings:
 	nCenters = trialOrbitals.size() + nFrozen;
 	if(nFrozen)

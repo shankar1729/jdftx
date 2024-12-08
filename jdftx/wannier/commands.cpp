@@ -22,7 +22,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 
 enum WannierMember
-{	WM_localizationMeasure,
+{	WM_addAtomicOrbitals,
+	WM_ignoreSemiCore,
+	WM_localizationMeasure,
 	WM_precond,
 	WM_bStart,
 	WM_outerWindow,
@@ -47,7 +49,9 @@ enum WannierMember
 };
 
 EnumStringMap<WannierMember> wannierMemberMap
-(	WM_localizationMeasure, "localizationMeasure",
+(	WM_addAtomicOrbitals, "addAtomicOrbitals",
+	WM_ignoreSemiCore, "ignoreSemiCore",
+	WM_localizationMeasure, "localizationMeasure",
 	WM_precond, "precondition",
 	WM_bStart, "bStart",
 	WM_outerWindow, "outerWindow",
@@ -90,6 +94,15 @@ struct CommandWannier : public Command
 		comments =
 			"%Control calculation and output of maximally-localized Wannier functions \\cite MLWF.\n"
 			"The possible <key>'s and their corresponding arguments are:\n"
+			"\n+ addAtomicOrbitals yes|no\n\n"
+			"   Whether to automatically add atomic orbitals for each atom.\n"
+			"   Typically, this should be used with no wannier-center commands,\n"
+			"   and is recommended when using projection based windows.\n"
+			"   Default: no.\n"
+			"\n+ ignoreSemiCore yes|no\n\n"
+			"   Whether to drop inner orbitals of each angular momentum when adding\n"
+			"   atomic orbitals automatically (no effect if addAtomicOrbitals = no).\n"
+			"   Default: yes.\n"
 			"\n+ localizationMeasure FiniteDifference | RealSpace\n\n"
 			"   Controls how the localization of the %Wannier functions is calculated.\n"
 			"   The finite-difference reciprocal space measure of Marzari and Vanderbilt\n"
@@ -200,7 +213,13 @@ struct CommandWannier : public Command
 		{	WannierMember key; pl.get(key, WM_delim, wannierMemberMap, "key");
 			if(key==WM_delim) break;
 			switch(key)
-			{	case WM_localizationMeasure:
+			{	case WM_addAtomicOrbitals:
+					pl.get(wannier.addAtomicOrbitals, false,  boolMap, "addAtomicOrbitals", true);
+					break;
+				case WM_ignoreSemiCore:
+					pl.get(wannier.ignoreSemiCore, true,  boolMap, "ignoreSemiCore", true);
+					break;
+				case WM_localizationMeasure:
 					pl.get(wannier.localizationMeasure, Wannier::LM_FiniteDifference,  localizationMeasureMap, "localizationMeasure", true);
 					break;
 				case WM_precond:
@@ -299,6 +318,8 @@ struct CommandWannier : public Command
 
 	void printStatus(Everything& e, int iRep)
 	{	const Wannier& wannier = ((const WannierEverything&)e).wannier;
+		logPrintf(" \\\n\taddAtomicOrbitals %s", boolMap.getString(wannier.addAtomicOrbitals));
+		logPrintf(" \\\n\tignoreSemiCore %s", boolMap.getString(wannier.ignoreSemiCore));
 		logPrintf(" \\\n\tlocalizationMeasure %s", localizationMeasureMap.getString(wannier.localizationMeasure));
 		logPrintf(" \\\n\tprecondition %s", boolMap.getString(wannier.precond));
 		logPrintf(" \\\n\tsaveWfns %s", boolMap.getString(wannier.saveWfns));

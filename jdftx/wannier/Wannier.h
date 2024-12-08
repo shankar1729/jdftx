@@ -54,6 +54,9 @@ public:
 	std::vector<TrialOrbital> trialOrbitals; //!< group of centers
 	bool needAtomicOrbitals;
 	
+	bool addAtomicOrbitals; //!< whether to automatically add atomic orbitals for all atoms
+	bool ignoreSemiCore; //!< whether to ignore semi-core orbitals when adding atomic orbitals
+	
 	enum LocalizationMeasure
 	{	LM_FiniteDifference,
 		LM_RealSpace
