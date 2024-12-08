@@ -31,6 +31,10 @@ inline double wExpand_calc(double G, double R)
 {	return (2./3)*(bessel_jl(0, G*R) + bessel_jl(2, G*R)); //corresponds to theta(R-r)/(2*pi*R^3)
 }
 
+inline double wTheta_calc(double G, double R, double mhalfSigmaSq)
+{	return (4*M_PI*std::pow(R, 3)/3) * (bessel_jl(0, G*R) + bessel_jl(2, G*R)) * exp(mhalfSigmaSq*G*G); //smoothed theta(R-r)
+}
+
 inline double wCavity_calc(double G, double d)
 {	return bessel_jl(0, G*d); //corresponds to delta(d-r)
 }
@@ -66,10 +70,11 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 	if(fsp.solvents.size() > 1) die("PCMs require exactly one solvent component - more than one specified.\n");
 	const auto& solvent = fsp.solvents[0];
 	const double dG = 0.02;
-	shape.resize(1); //single component shape by default (overridden for soft-sphere model below)
+	shape.resize(1); //single component shape by default (overridden for soft-sphere and CANON models below)
 	
 	//Shared information for most models:
-	if(!isPCM_SCCS(fsp.pcmVariant) && (fsp.pcmVariant!=PCM_SoftSphere) && (fsp.pcmVariant!=PCM_FixedCavity))
+	if(!isPCM_SCCS(fsp.pcmVariant) && (fsp.pcmVariant!=PCM_SoftSphere)
+		&& (fsp.pcmVariant!=PCM_FixedCavity) && (fsp.pcmVariant!=PCM_CANON))
 		logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 
 	//Add citations, initialization and print information unique to the model:
@@ -92,7 +97,21 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 					"K. A. Schwarz and R. Sundararaman, under preparation (2024)");
 			cavitationNL = true;
 			dispNLunified = true;
-			sigmaVdw = getSigmaVdw(fsp.Ztot, solvent->Rvdw, fsp.nc);
+			Rex[0] = solvent->Rvdw;
+			if(fsp.ionSpacing)
+			{	shape.resize(2); //separate ionic cavity
+				Rex[1] = solvent->Rvdw + fsp.ionSpacing;
+			}
+			for(size_t iShape=0; iShape<shape.size(); iShape++)
+			{	double mhalfSigmaSq = -0.5 * std::pow(1.1, 2);
+				nbar_c[iShape] = 0.031 * log(Rex[iShape] / 0.96);
+				wExpand[iShape].init(0, dG, e.gInfo.GmaxGrid, wTheta_calc, Rex[iShape], mhalfSigmaSq);
+				logPrintf(
+					"   %s cavity set by nc = %lg determined from %s = %lg bohrs",
+					iShape ? "Ionic" : "Solvent", nbar_c[iShape],
+					iShape ? "Rvdw + ionSpacing" : "Rvdw", Rex[iShape]
+				);
+			}
 			logPrintf("   Extent of nonlocality of response based on radius Res = %lg\n", fsp.Res);
 			logPrintf("   Charge asymmetry of nonlocal response based on Zcenter = %lg\n", fsp.Zcenter);
 			break;
@@ -320,6 +339,10 @@ void PCM::updateCavity()
 	}
 	else if(isPCM_SCCS(fsp.pcmVariant))
 		ShapeFunctionSCCS::compute(nCavity, shape[0], fsp.rhoMin, fsp.rhoMax, epsBulk);
+	else if(fsp.pcmVariant == PCM_CANON)
+	{	for(size_t iShape=0; iShape<shape.size(); iShape++)
+			ShapeFunction::compute(I(wExpand[iShape] * J(nCavity)), shape[iShape], nbar_c[iShape], fsp.sigma);
+	}
 	else //Compute directly from nCavity (which is a density product for SaLSA and CANON):
 		ShapeFunction::compute(nCavity, shape[0], fsp.nc, fsp.sigma);
 	
@@ -506,7 +529,19 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		ShapeFunctionSCCS::propagateGradient(nCavity+(0.5*fsp.rhoDelta), -A_shapeMinus, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
 		ShapeFunctionSCCS::propagateGradient(nCavity-(0.5*fsp.rhoDelta),  A_shapeMinus, A_nCavity, fsp.rhoMin, fsp.rhoMax, epsBulk);
 	}
-	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA and CANON)
+	else if(fsp.pcmVariant == PCM_CANON)
+	{	nullToZero(A_nCavity, gInfo);
+		for(size_t iShape=0; iShape<shape.size(); iShape++)
+		{	ScalarField A_shape_i = iShape ? A_shape[iShape] : (A_shape[iShape] + Acavity_shape);
+			ScalarFieldTilde nCavityTilde = J(nCavity);
+			ScalarField nBar = I(wExpand[iShape] * nCavityTilde), A_nBar;
+			ShapeFunction::propagateGradient(nBar, A_shape_i, A_nBar, nbar_c[iShape], fsp.sigma);
+			ScalarFieldTilde A_nBarTilde = J(A_nBar);
+			A_nCavity += I(wExpand[iShape] * A_nBarTilde);
+			if(Adiel_RRT) *Adiel_RRT += convolveStress(wExpand[iShape], A_nBarTilde, nCavityTilde);
+		}
+	}
+	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
 	{	ShapeFunction::propagateGradient(nCavity, A_shape[0] + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
 		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
 	}

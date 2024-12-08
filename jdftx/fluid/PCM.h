@@ -62,7 +62,8 @@ private:
 	matrix3<> Acavity_RRT; //!< Cached gradients of cavitation (and dispersion) energies w.r.t lattice vectors
 	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity, A_cavityScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
-	RadialFunctionG wExpand[2]; //!< weight function for cavity expansion (SGA13 only)
+	double nbar_c[2]; //!< thresholds for solvent and optionally ionic cavity (CANON only)
+	RadialFunctionG wExpand[2]; //!< weight functions for cavity expansion in SGA13, and for nonlocal cavity determination in CANON
 	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy
 	std::vector<vector3<>> atposAll; //!< all solute atomic positions (SoftSphere only)
 	std::vector<vector3<int>> latticeReps; //!< lattice repetitions needed to treat periodic boundaries correctly for SoftSphere

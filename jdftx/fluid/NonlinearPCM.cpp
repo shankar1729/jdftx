@@ -119,7 +119,7 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 		{	double GR = (i*dG) * fsp.Res;
 			double j0 = bessel_jl(0, GR);
 			double j1_by_x_3 = j0 + bessel_jl(2, GR);  //3 j1(x)/x = j0(x) + j2(x)
-			Nw0_samples[i] = solvent->Nbulk * fsp.Zcenter * (1.0 - j0);
+			Nw0_samples[i] = solvent->Nbulk * (-fsp.Zcenter) * (1.0 - j0); //Zcenter is in expt charge convention
 			w1_samples[i] = j1_by_x_3;
 		}
 		Nw0.init(0, Nw0_samples, dG);
@@ -221,8 +221,7 @@ void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const 
 	A0 = 0.5 * dot(rhoExplicitTilde, O(coulomb(rhoExplicitTilde)));
 	
 	//Update cavity:
-	nCavityNetTilde = nCavityTilde + getFullCore();
-	nCavity = I(isNonlocal ? fsp.Ztot*(Sf[0]*nCavityNetTilde) : nCavityNetTilde);
+	nCavity = I(nCavityTilde + getFullCore());
 	updateCavity();
 	
 	//Built-in charge for CANON:
@@ -282,9 +281,7 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 	Adiel_rhoExplicitTilde = phiTot - phiExplicitTilde;
 	ScalarField Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
-	ScalarFieldTilde Adiel_nCavityTildeLocal = J(Adiel_nCavity);
-	Adiel_nCavityTilde = isNonlocal ? fsp.Ztot*(Sf[0]*Adiel_nCavityTildeLocal) : Adiel_nCavityTildeLocal;
-	if(Adiel_RRT and isNonlocal) *Adiel_RRT += convolveStress(Sf[0], Adiel_nCavityTildeLocal, nCavityNetTilde);
+	Adiel_nCavityTilde = J(Adiel_nCavity);
 	
 	accumExtraForces(extraForces, Adiel_nCavityTilde);
 	return Adiel;
