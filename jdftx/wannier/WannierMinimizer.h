@@ -159,8 +159,8 @@ protected:
 	//! If provided, use the cached projections instead of recomputing them.
 	matrix overlap(const ColumnBundle& C1, const ColumnBundle& C2, const std::vector<matrix>* VdagC1ptr=0, const std::vector<matrix>* VdagC2ptr=0) const;
 	
-	//! Preconditioner for Wannier optimization: identity by default, override in derived class to change
-	virtual WannierGradient precondition(const WannierGradient& grad);
+	//! Preconditioner for Wannier optimization: identity, but enforce unitarity constraints
+	WannierGradient precondition(const WannierGradient& grad);
 
 	//! Return an exactly unitary version of U (orthogonalize columns)
 	//! If isSingular is provided, function will set it to true and return rather than stack-tracing in singular cases.

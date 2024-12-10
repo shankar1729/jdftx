@@ -34,7 +34,6 @@ public:
 	void initialize(int iSpin);
 	double getOmega(bool grad);
 	double getOmegaI(bool grad);
-	WannierGradient precondition(const WannierGradient& grad);
 	
 	//!An edge of the k-mesh involved in the finite difference formula
 	struct Edge
@@ -46,7 +45,6 @@ public:
 	};
 	std::vector< std::vector<Edge> > edges; //!< unidirectional edges on full k-mesh
 	std::vector< std::vector<Edge> > edges_bi; //!< bidirectional edges for full k-mesh (only initialized if saveRP)
-	matrix kHelmholtzInv; //!< inverse Helmholtz preconditioner
 };
 
 //! @}

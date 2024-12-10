@@ -25,7 +25,6 @@ enum WannierMember
 {	WM_addAtomicOrbitals,
 	WM_ignoreSemiCore,
 	WM_localizationMeasure,
-	WM_precond,
 	WM_bStart,
 	WM_outerWindow,
 	WM_innerWindow,
@@ -52,7 +51,6 @@ EnumStringMap<WannierMember> wannierMemberMap
 (	WM_addAtomicOrbitals, "addAtomicOrbitals",
 	WM_ignoreSemiCore, "ignoreSemiCore",
 	WM_localizationMeasure, "localizationMeasure",
-	WM_precond, "precondition",
 	WM_bStart, "bStart",
 	WM_outerWindow, "outerWindow",
 	WM_innerWindow, "innerWindow",
@@ -111,9 +109,6 @@ struct CommandWannier : public Command
 			"   and is preferable for quantitative applications. Note that the real-space version\n"
 			"   is not translationally invariant and wraps on a superlattice Wigner-Seitz cell\n"
 			"   centered at the origin.\n"
-			"\n+ precondition yes|no\n\n"
-			"   Whether to use an inverse-Hemholtz preconditioner for the minimization.\n"
-			"   Affects only the FiniteDifference localizationMeasure. (default: no)\n"
 			"\n+ bStart <band>\n\n"
 			"   For fixed band calculations, 0-based index of lowest band used.\n"
 			"   The number of bands equals the number of wannier-centers specified.\n"
@@ -222,9 +217,6 @@ struct CommandWannier : public Command
 				case WM_localizationMeasure:
 					pl.get(wannier.localizationMeasure, Wannier::LM_FiniteDifference,  localizationMeasureMap, "localizationMeasure", true);
 					break;
-				case WM_precond:
-					pl.get(wannier.precond, false, boolMap, "precondition", true);
-					break;
 				case WM_bStart:
 					pl.get(wannier.bStart, 0, "band", true);
 					break;
@@ -321,7 +313,6 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\taddAtomicOrbitals %s", boolMap.getString(wannier.addAtomicOrbitals));
 		logPrintf(" \\\n\tignoreSemiCore %s", boolMap.getString(wannier.ignoreSemiCore));
 		logPrintf(" \\\n\tlocalizationMeasure %s", localizationMeasureMap.getString(wannier.localizationMeasure));
-		logPrintf(" \\\n\tprecondition %s", boolMap.getString(wannier.precond));
 		logPrintf(" \\\n\tsaveWfns %s", boolMap.getString(wannier.saveWfns));
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
 		logPrintf(" \\\n\tsaveMomenta %s", boolMap.getString(wannier.saveMomenta));

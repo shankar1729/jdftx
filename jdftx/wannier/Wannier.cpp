@@ -22,7 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/WannierMinimizerRS.h>
 
 Wannier::Wannier() : needAtomicOrbitals(false), addAtomicOrbitals(false), ignoreSemiCore(true),
-	localizationMeasure(LM_FiniteDifference), precond(false),
+	localizationMeasure(LM_FiniteDifference),
 	bStart(0), outerWindow(false), innerWindow(false), nFrozen(0),
 	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false), saveSpin(false), saveRP(false),
 	zFieldMag(0.),

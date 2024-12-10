@@ -214,27 +214,6 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 			ranks.insert(ranks.end(), ranksNeeded[i].begin(), ranksNeeded[i].end());
 			kMesh[i].mpi = std::make_shared<MPIUtil>(mpiWorld, ranks);
 		}
-	
-	//Initialize preconditioner:
-	if(wannier.precond)
-	{	logPrintf("Initializing preconditioner ... "); logFlush();
-		double kappa = M_PI * pow(e.gInfo.detR, 1./3); //inverse screening length (in k-space) set by cell size
-		matrix helmholtz = zeroes(kMesh.size(), kMesh.size());
-		complex* helmholtzData = helmholtz.data();
-		for(size_t ik=ikStart; ik<ikStop; ik++)
-		{	double wSum = 0.;
-			const double wk = kMesh[ik].point.weight;
-			for(const Edge& edge: edges[ik])
-			{	wSum += 2*edge.wb;
-				helmholtzData[helmholtz.index(ik,edge.ik)] -= wk * edge.wb;
-				helmholtzData[helmholtz.index(edge.ik,ik)] -= wk * edge.wb;
-			}
-			helmholtzData[helmholtz.index(ik,ik)] += wk * (wSum + kappa*kappa);
-		}
-		mpiWorld->allReduceData(helmholtz, MPIUtil::ReduceSum);
-		kHelmholtzInv = dagger_symmetrize(inv(helmholtz))(ikStart,ikStop, 0,kMesh.size()); //invert and split over MPI
-		logPrintf("done.\n"); logFlush();
-	}
 }
 
 void WannierMinimizerFD::initialize(int iSpin)
@@ -411,53 +390,4 @@ double WannierMinimizerFD::getOmegaI(bool grad)
 	mpiWorld->allReduce(OmegaI, MPIUtil::ReduceSum);
 	watch.stop();
 	return OmegaI;
-}
-
-WannierGradient WannierMinimizerFD::precondition(const WannierGradient& grad)
-{	static StopWatch watch("WannierMinimizerFD::precond"); watch.start();
-	assert(grad.wmin == this);
-	WannierGradient Kgrad = grad;
-	constrain(Kgrad);
-	if(!kHelmholtzInv) //helmholtz preconditioning is disabled
-		return Kgrad;
-	//Determine range of free bands:
-	int nInMax = 0, nFixedMin = nCenters;
-	for(size_t ik=ikStart; ik<ikStop; ik++)
-	{	nInMax = std::max(nInMax, kMesh[ik].nIn);
-		nFixedMin = std::min(nFixedMin, kMesh[ik].nFixed);
-	}
-	mpiWorld->allReduce(nInMax, MPIUtil::ReduceMax);
-	mpiWorld->allReduce(nFixedMin, MPIUtil::ReduceMin);
-	int nEntries1 = (nCenters-nFixedMin) * (nInMax-nCenters); //max for B1
-	int nEntries2 = (nCenters-nFrozen) * (nCenters-nFrozen); //constant for B2
-	int nEntries = nEntries1 + nEntries2;
-	//Copy each matrix of gradient into a column of a giant matrix:
-	matrix gradMat = zeroes(nEntries, ikStop-ikStart);
-    for(size_t ik=ikStart; ik<ikStop; ik++)
-	{	const KmeshEntry& ki = kMesh[ik];
-		complex* colPtr = gradMat.dataPref() + gradMat.index(0,ik-ikStart);
-		if(nCenters > ki.nFixed)
-		{	matrix B1 = zeroes(nCenters-nFixedMin, nInMax-nCenters);
-			B1.set(ki.nFixed-nFixedMin,nCenters-nFixedMin, 0,ki.nIn-nCenters, Kgrad.B1[ik]);
-			callPref(eblas_copy)(colPtr, B1.dataPref(), B1.nData());
-		}
-		callPref(eblas_copy)(colPtr+nEntries1, Kgrad.B2[ik].dataPref(), nEntries2);
-	}
-	//Apply preconditioner:
-	matrix KgradMat = gradMat * kHelmholtzInv;
-	mpiWorld->allReduceData(KgradMat, MPIUtil::ReduceSum); //Note: KgradMat has all k, while gradMat had subset
-	//Copy result from each column to a small matrix per k-point:
-    for(size_t ik=ikStart; ik<ikStop; ik++)
-	{	const KmeshEntry& ki = kMesh[ik];
-		const complex* colPtr = KgradMat.dataPref() + KgradMat.index(0,ik);
-		if(nCenters > ki.nFixed)
-		{	matrix B1 = zeroes(nCenters-nFixedMin, nInMax-nCenters);
-			callPref(eblas_copy)(B1.dataPref(), colPtr, B1.nData());
-			Kgrad.B1[ik] = B1(ki.nFixed-nFixedMin,nCenters-nFixedMin, 0,ki.nIn-nCenters);
-		}
-		callPref(eblas_copy)(Kgrad.B2[ik].dataPref(), colPtr+nEntries1, nEntries2);
-	}
-	constrain(Kgrad);
-	watch.stop();
-	return Kgrad;
 }
