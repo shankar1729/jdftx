@@ -310,69 +310,81 @@ void WannierMinimizer::initRotations(int iSpin)
 			kOss << " at k = [ " << ke.point.k[0] << ' ' << ke.point.k[1] << ' ' << ke.point.k[2] << " ]\n";
 			kString = kOss.str();
 		}
-		//Band ranges:
-		int bStart=0, bStop=0, bFixedStart=0, bFixedStop=0;
+		
+		//Identify whether each band contributes fully, partially or is excluded completely
+		std::vector<int> bFull, bPartial, bExcluded;
 		const std::vector<double>& eigs = e.eVars.Hsub_eigs[ke.point.iReduced + iSpin*qCount];
 		if(wannier.outerWindow)
-		{	bStart = 0;
-			while(bStart<nBands && eigs[bStart]<wannier.eOuterMin)
-				bStart++;
-			bStop = bStart;
-			while(bStop<nBands && eigs[bStop]<=wannier.eOuterMax)
-				bStop++;
-			if(bStop-bStart < nCenters)
-			{	ossErr << "Number of bands within outer window = " << bStop-bStart
-					<< " less than nCenters = " << nCenters << kString;
-				break;
-			}
-			//Optionally range for inner window:
-			if(wannier.innerWindow)
-			{	bFixedStart = bStart;
-				while(bFixedStart<bStop && eigs[bFixedStart]<wannier.eInnerMin)
-					bFixedStart++;
-				bFixedStop = bFixedStart;
-				while(bFixedStop<bStop && eigs[bFixedStop]<=wannier.eInnerMax)
-					bFixedStop++;
-				if(bFixedStop-bFixedStart > nCenters)
-				{	ossErr << "Number of bands within inner window = " << bFixedStop-bFixedStart
-						<< " exceeds nCenters = " << nCenters << kString;
-					break;
+		{	for(int b=0; b<nBands; b++)
+			{	const double& Eb = eigs[b];
+				if((wannier.eOuterMin <= Eb) and (Eb <= wannier.eOuterMax))
+				{	if((wannier.eInnerMin <= Eb) and (Eb <= wannier.eInnerMax))
+						bFull.push_back(b); //within inner window
+					else
+						bPartial.push_back(b); //within outer, but not inner window
 				}
+				else bExcluded.push_back(b);
 			}
-			else bFixedStart = bFixedStop = bStart; //fixed interval is empty
 		}
-		else //fixed bands
-		{	bFixedStart = bStart = wannier.bStart;
-			bFixedStop  = bStop  = wannier.bStart + nCenters;
+		else
+		{	//Fixed set of bands:
+			int bStart = wannier.bStart;
+			int bStop = bStart + nCenters;
+			for(int b=0; b<nBands; b++)
+			{	if((bStart <= b) and (b < bStop))
+					bFull.push_back(b);
+				else
+					bExcluded.push_back(b);
+			}
 		}
+		
+		//Check band counts within inner and outer window
+		ke.nFixed = bFull.size();
+		ke.nIn = ke.nFixed + bPartial.size();
+		if(ke.nFixed > nCenters)
+		{	ossErr << "Number of bands within inner window = " << ke.nFixed
+				<< " exceeds nCenters = " << nCenters << kString;
+			break;
+		}
+		if(ke.nIn < nCenters)
+		{	ossErr << "Number of bands within outer window = " << ke.nIn
+				<< " less than nCenters = " << nCenters << kString;
+			break;
+		}
+		int nFree = nCenters - ke.nFixed;
+		if(nFree == 0) ke.nIn = nCenters; //partial contributions irrelevant, since all bands fixed by full contributions
+		
+		//Create permutation to sort bands by contribution: full, partial and then excluded
+		matrix permute = zeroes(nBands, nBands);
+		int iBandOut = 0;
+		for(int b: bFull) permute.set(b, iBandOut++, 1.0);
+		for(int b: bPartial) permute.set(b, iBandOut++, 1.0);
+		for(int b: bExcluded) permute.set(b, iBandOut++, 1.0);
 		
 		//Check compatibility of frozen window with band range:
 		if(nFrozen)
-		{	const double tol = 1e-6 * nFrozen;
-			if( (bFixedStart>0 && nrm2(Ufrozen[ik](0,bFixedStart, 0,nFrozen)) > tol)
-			 || (bFixedStop<nBands && nrm2(Ufrozen[ik](bFixedStop,nBands, 0,nFrozen)) > tol) )
+		{	if(ke.nFixed < nFrozen)
+			{	ossErr << "Number of bands within " << (wannier.innerWindow ? "inner window" : "fixed band range")
+					<< " = " << ke.nFixed << " less than nFrozen = " << nFrozen << kString;
+				break;
+			}
+			const double tol = 1e-6 * nFrozen;
+			Ufrozen[ik] = dagger(permute) * Ufrozen[ik]; //apply permutation
+			if(bExcluded.size() && nrm2(Ufrozen[ik](ke.nIn,nBands, 0,nFrozen)) > tol)
 			{	ossErr << "Frozen rotations are incompatible with current outer window" << kString;
 				break;
 			}
 		}
 		
-		//Initial rotation of bands to get to Wannier subspace:
-		ke.nFixed = bFixedStop - bFixedStart;
-		int nFree = nCenters - ke.nFixed;
-		ke.nIn = (nFree>0) ? (bStop-bStart) : nCenters; //number of bands contributing to Wannier subspace
+		//Initial rotation of bands (after permutation) to get to Wannier subspace:
 		const double tol = 1e-6 * nCenters; //tolerance for checking unitarity etc.
 		//--- Create fixed part of U1 (if any):
 		ke.U1 = zeroes(nBands, ke.nIn);
 		if(ke.nFixed > 0)
 		{	matrix U1fixed = eye(ke.nFixed);
 			if(nFrozen)
-			{	if(ke.nFixed < nFrozen)
-				{	ossErr << "Number of bands within " << (wannier.innerWindow ? "inner window" : "fixed band range")
-						<< " = " << bStop-bStart << " less than nFrozen = " << nFrozen << kString;
-					break;
-				}
-				//Rotate the fixed subspace so that the frozen centers come first:
-				matrix UfrozenNZ = Ufrozen[ik](bFixedStart,bFixedStop, 0,nFrozen); //drop the zero rows (should be zero, else SVD check below will fail)
+			{	//Rotate the fixed subspace so that the frozen centers come first:
+				matrix UfrozenNZ = Ufrozen[ik](0,ke.nFixed, 0,nFrozen); //drop the zero rows (should be zero, else SVD check below will fail)
 				U1fixed.set(0,ke.nFixed, 0,nFrozen, UfrozenNZ);
 				//fill in the null space of UfrozenNZ using an SVD
 				matrix U, Vdag; diagMatrix S;
@@ -384,10 +396,11 @@ void WannierMinimizer::initRotations(int iSpin)
 				if(nFrozen<ke.nFixed)
 					U1fixed.set(0,ke.nFixed, nFrozen,ke.nFixed, U(0,ke.nFixed, nFrozen,ke.nFixed));
 			}
-			ke.U1.set(bFixedStart,bFixedStop, 0,ke.nFixed, U1fixed);
+			ke.U1.set(0,ke.nFixed, 0,ke.nFixed, U1fixed);
 		}
 		if(rotationsLoaded)
 		{	//Factorize U (nBands x nCenters) into U1 (nBands x nIn) and U2 (nIn x nIn):
+			ke.U = dagger(permute) * ke.U; //work with permuted bands (sorted by full, partial, excluded)
 			//--- check unitarity:
 			if(nrm2(dagger(ke.U) * ke.U - eye(nCenters)) > tol)
 			{	ossErr << "Initial rotations U are not unitary" << kString;
@@ -400,10 +413,10 @@ void WannierMinimizer::initRotations(int iSpin)
 			}
 			//--- determine the free columns of U1:
 			if(nFree > 0)
-			{	matrix U1free = ke.U(bStart,bStop, 0,nCenters);
+			{	matrix U1free = ke.U(0,ke.nIn, 0,nCenters);
 				//project out the fixed columns (if any):
 				if(ke.nFixed > 0)
-				{	matrix U1fixed = ke.U1(bStart,bStop, 0,ke.nFixed);
+				{	matrix U1fixed = ke.U1(0,ke.nIn, 0,ke.nFixed);
 					U1free -= U1fixed*(dagger(U1fixed) * U1free);
 					//SVD to find the remaining non-null columns:
 					matrix U, Vdag; diagMatrix S;
@@ -414,15 +427,14 @@ void WannierMinimizer::initRotations(int iSpin)
 					}
 					U1free = U(0,ke.nIn, 0,nFree); //discard null subspace
 				}
-				ke.U1.set(bStart,bStop, ke.nFixed,nCenters, U1free);
+				ke.U1.set(0,ke.nIn, ke.nFixed,nCenters, U1free);
 			}
 			//--- check U1:
 			if(nrm2((dagger(ke.U1) * ke.U1)(0,nCenters, 0,nCenters) - eye(nCenters)) > tol)
 			{	ossErr << "Initial rotations U1 are not unitary" << kString;
 				break;
 			}
-			if( (bStart>0 && nrm2(ke.U1(0,bStart, 0,nCenters))>tol) 
-				|| (bStop<nBands && nrm2(ke.U1(bStop,nBands, 0,nCenters))>tol) )
+			if(bExcluded.size() && nrm2(ke.U1(ke.nIn,nBands, 0,nCenters))>tol)
 			{	ossErr << "Initial rotations are incompatible with current outer window / band selection" << kString;
 				break;
 			}
@@ -437,13 +449,14 @@ void WannierMinimizer::initRotations(int iSpin)
 			//--- Compute extra linearly indep columns of U1 (if necessary):
 			if(ke.nIn > nCenters)
 			{	matrix U, Vdag; diagMatrix S;
-				matrix(ke.U1(bStart,bStop, 0,ke.nIn)).svd(U, S, Vdag);
-				ke.U1.set(bStart,bStop, 0,ke.nIn, U*Vdag);
+				matrix(ke.U1(0,ke.nIn, 0,ke.nIn)).svd(U, S, Vdag);
+				ke.U1.set(0,ke.nIn, 0,ke.nIn, U*Vdag);
 			}
 		}
 		else
 		{	//Determine from trial orbitals:
 			matrix CdagG = getWfns(ke.point, iSpin) ^ O(trialWfns(ke.point));
+			CdagG = dagger(permute) * CdagG;
 			int nNew = nCenters - nFrozen; //number of new centers
 			//--- Pick up best linear combination of remaining bands (if any)
 			if(nFree > 0)
@@ -452,25 +465,23 @@ void WannierMinimizer::initRotations(int iSpin)
 				if(ke.nFixed > 0)
 				{	//SVD the fixed band contribution to the trial space:
 					matrix U, Vdag; diagMatrix S;
-					matrix(CdagG(bFixedStart,bFixedStop, 0,nNew)).svd(U, S, Vdag);
+					matrix(CdagG(0,ke.nFixed, 0,nNew)).svd(U, S, Vdag);
 					//Project out the fixed bands (use only the zero singular values)
 					CdagGFree = CdagG * dagger(Vdag(nNew-nFree,nNew, 0,nNew));
 				}
 				else CdagGFree = CdagG;
 				//Truncate to non-zero rows:
-				int nLo = bFixedStart-bStart;
-				int nHi = bStop-bFixedStop;
-				int nOuter = nLo+nHi;
-				matrix CdagGFreeNZ = zeroes(nOuter, nOuter);
-				if(nLo>0) CdagGFreeNZ.set(0,nLo, 0,nFree, CdagGFree(bStart,bFixedStart, 0,nFree));
-				if(nHi>0) CdagGFreeNZ.set(nLo,nOuter, 0,nFree, CdagGFree(bFixedStop,bStop, 0,nFree));
+				int nPartial = ke.nIn - ke.nFixed;
+				matrix CdagGFreeNZ = zeroes(nPartial, nPartial);
+				if(nPartial > 0)
+					CdagGFreeNZ.set(0,nPartial, 0,nFree, CdagGFree(ke.nFixed,ke.nIn, 0,nFree));
 				//SVD to get best linear combinations first:
 				matrix U, Vdag; diagMatrix S;
 				CdagGFreeNZ.svd(U, S, Vdag);
 				//Convert left space from non-zero to all bands:
-				matrix Upad = zeroes(nBands, nOuter);
-				if(nLo>0) Upad.set(bStart,bFixedStart, 0,nOuter, U(0,nLo, 0,nOuter));
-				if(nHi>0) Upad.set(bFixedStop,bStop, 0,nOuter, U(nLo,nOuter, 0,nOuter));
+				matrix Upad = zeroes(nBands, nPartial);
+				if(nPartial > 0)
+					Upad.set(ke.nFixed,ke.nIn, 0,nPartial, U);
 				//Include this combination in U1:
 				ke.U1.set(0,nBands, ke.nFixed,ke.nIn, Upad * Vdag);
 			}
@@ -485,6 +496,10 @@ void WannierMinimizer::initRotations(int iSpin)
 				break;
 			}
 		}
+		
+		//Restore permutation, so that U1 starts from original band order:
+		ke.U1 = permute * ke.U1;
+		
 		//Make initial rotations exactly unitary:
 		bool isSingular = false;
 		ke.U1 = fixUnitary(ke.U1, &isSingular);
