@@ -66,7 +66,9 @@ public:
 	int bStart; //index of lowest band included in Wannier determination (used only when no energy windows)
 	double eOuterMin, eOuterMax; //!< outer energy window (outside which bands do not contribute)
 	double eInnerMin, eInnerMax; //!< inner energy window (within which all bands used)
-	bool outerWindow, innerWindow; //!< denotes which windows are available
+	double projectionOuter; //!< projection threshold for inclusion in outer window
+	double projectionInner; //!< projection threshold for inclusion in inner window
+	bool outerWindow, innerWindow, useProjectionThresholds; //!< denotes which windows are available
 	
 	int nFrozen; string frozenUfilename; //!< number of frozen centers, and the filename to read their rotations from
 	int nCenters; //!< total number of centers, those being optimized and frozen

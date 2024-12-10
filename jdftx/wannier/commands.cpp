@@ -28,6 +28,7 @@ enum WannierMember
 	WM_bStart,
 	WM_outerWindow,
 	WM_innerWindow,
+	WM_projectionThresholds,
 	WM_frozenCenters,
 	WM_saveWfns,
 	WM_saveWfnsRealSpace,
@@ -54,6 +55,7 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_bStart, "bStart",
 	WM_outerWindow, "outerWindow",
 	WM_innerWindow, "innerWindow",
+	WM_projectionThresholds, "projectionThresholds",
 	WM_frozenCenters, "frozenCenters",
 	WM_saveWfns, "saveWfns",
 	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
@@ -119,6 +121,11 @@ struct CommandWannier : public Command
 			"\n+ innerWindow <eMin> <eMax>\n\n"
 			"   Inner energy window within which bands are used exactly \\cite MLWFmetal.\n"
 			"   Requires outerWindow, and innerWindow must be its subset.\n"
+			"\n+ projectionThresholds <pOuter> <pInner>\n\n"
+			"   Bands with higher projection than <pOuter> will be included in outer window.\n"
+			"   Bands with higher projection than <pInner> will be included in inner window.\n"
+			"   <pOuter> must be smaller than <pInner>. If energy windows are also specified,\n"
+			"   the effective windows are unions of the energy and projection-based selections.\n"
 			"\n+ frozenCenters <nFrozen> <filename>\n\n"
 			"   Include frozen %Wannier centers imported as unitary rotations from <filename>\n"
 			"   (.mlwfU output from another wannier run on the same jdftx state), and force\n"
@@ -230,6 +237,11 @@ struct CommandWannier : public Command
 					pl.get(wannier.eInnerMax, 0., "eMax", true);
 					wannier.innerWindow = true;
 					break;
+				case WM_projectionThresholds:
+					pl.get(wannier.projectionOuter, 0., "pOuter", true);
+					pl.get(wannier.projectionInner, 1., "pInner", true);
+					wannier.useProjectionThresholds = true;
+					break;
 				case WM_frozenCenters:
 					pl.get(wannier.nFrozen, 0, "nFrozen", true);
 					pl.get(wannier.frozenUfilename, string(), "filename", true);
@@ -325,14 +337,17 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\tloadRotations %s", boolMap.getString(wannier.loadRotations));
 		if(wannier.eigsFilename.length())
 			logPrintf(" \\\n\teigsFilename %s", wannier.eigsFilename.c_str());
+		
 		if(wannier.outerWindow)
 		{	logPrintf(" \\\n\touterWindow %lg %lg", wannier.eOuterMin, wannier.eOuterMax);
 			if(wannier.innerWindow)
 				logPrintf(" \\\n\tinnerWindow %lg %lg", wannier.eInnerMin, wannier.eInnerMax);
 		}
-		else
-		{	logPrintf(" \\\n\tbStart %d", wannier.bStart);
-		}
+		if(wannier.useProjectionThresholds)
+			logPrintf(" \\\n\tprojectionThresholds %lg %lg", wannier.projectionOuter, wannier.projectionInner);
+		if(not (wannier.outerWindow or wannier.useProjectionThresholds))
+			logPrintf(" \\\n\tbStart %d", wannier.bStart);
+		
 		if(wannier.nFrozen)
 			logPrintf(" \\\n\tfrozenCenters %d %s", wannier.nFrozen, wannier.frozenUfilename.c_str());
 		if(wannier.numericalOrbitalsFilename.length())

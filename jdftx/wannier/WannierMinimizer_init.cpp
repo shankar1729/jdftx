@@ -311,17 +311,37 @@ void WannierMinimizer::initRotations(int iSpin)
 			kString = kOss.str();
 		}
 		
+		//Compute projections if needed:
+		matrix CdagG, CdagGortho;
+		if(wannier.useProjectionThresholds or (not rotationsLoaded))
+		{	ColumnBundle trial = trialWfns(ke.point);
+			CdagG = getWfns(ke.point, iSpin) ^ O(trial);
+			if(wannier.useProjectionThresholds)
+				CdagGortho = CdagG * orthoMatrix(trial ^ O(trial)); //orthonormalized version of projections
+		}
+		std::vector<double> pTot(nBands);
+		if(wannier.useProjectionThresholds)
+			for(int b=0; b<nBands; b++)
+			{	for(int iCenter=0; iCenter<nCenters; iCenter++)
+					pTot[b] += CdagGortho(b, iCenter).norm();
+			}
+		
 		//Identify whether each band contributes fully, partially or is excluded completely
 		std::vector<int> bFull, bPartial, bExcluded;
 		const std::vector<double>& eigs = e.eVars.Hsub_eigs[ke.point.iReduced + iSpin*qCount];
-		if(wannier.outerWindow)
+		if(wannier.outerWindow or wannier.useProjectionThresholds)
 		{	for(int b=0; b<nBands; b++)
 			{	const double& Eb = eigs[b];
-				if((wannier.eOuterMin <= Eb) and (Eb <= wannier.eOuterMax))
-				{	if((wannier.eInnerMin <= Eb) and (Eb <= wannier.eInnerMax))
-						bFull.push_back(b); //within inner window
-					else
-						bPartial.push_back(b); //within outer, but not inner window
+				bool withinOuter = true, withinInner = false;
+				if(wannier.outerWindow) withinOuter = (wannier.eOuterMin <= Eb) and (Eb <= wannier.eOuterMax);
+				if(wannier.innerWindow) withinInner = (wannier.eInnerMin <= Eb) and (Eb <= wannier.eInnerMax);
+				if(wannier.useProjectionThresholds)
+				{	withinOuter = withinOuter or (pTot[b] > wannier.projectionOuter);
+					withinInner = withinInner or (pTot[b] > wannier.projectionInner);
+				}
+				if(withinOuter)
+				{	if(withinInner) bFull.push_back(b);
+					else bPartial.push_back(b);
 				}
 				else bExcluded.push_back(b);
 			}
@@ -455,7 +475,6 @@ void WannierMinimizer::initRotations(int iSpin)
 		}
 		else
 		{	//Determine from trial orbitals:
-			matrix CdagG = getWfns(ke.point, iSpin) ^ O(trialWfns(ke.point));
 			CdagG = dagger(permute) * CdagG;
 			int nNew = nCenters - nFrozen; //number of new centers
 			//--- Pick up best linear combination of remaining bands (if any)

@@ -23,8 +23,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 Wannier::Wannier() : needAtomicOrbitals(false), addAtomicOrbitals(false), ignoreSemiCore(true),
 	localizationMeasure(LM_FiniteDifference),
-	bStart(0), eOuterMin(-DBL_MAX), eOuterMax(+DBL_MAX), eInnerMin(-DBL_MAX), eInnerMax(+DBL_MAX),
-	outerWindow(false), innerWindow(false), nFrozen(0),
+	bStart(0), eOuterMin(0.), eOuterMax(0.), eInnerMin(0.), eInnerMax(0.),
+	projectionOuter(0.0), projectionInner(1.0), outerWindow(false), innerWindow(false),
+	useProjectionThresholds(false), nFrozen(0),
 	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false), saveSpin(false), saveRP(false),
 	zFieldMag(0.),
 	z0(0.), zH(0.), zSigma(0.),
