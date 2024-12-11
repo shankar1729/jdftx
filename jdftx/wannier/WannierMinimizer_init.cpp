@@ -330,7 +330,9 @@ void WannierMinimizer::initRotations(int iSpin)
 		std::vector<int> bFull, bPartial, bExcluded;
 		const std::vector<double>& eigs = e.eVars.Hsub_eigs[ke.point.iReduced + iSpin*qCount];
 		if(wannier.outerWindow or wannier.useProjectionThresholds)
-		{	for(int b=0; b<nBands; b++)
+		{	for(int b=0; b<wannier.nBandsSemiCore; b++)
+				bExcluded.push_back(b); //exclude semi-core bands entirely if ignoreSemicore is set
+			for(int b=wannier.nBandsSemiCore; b<nBands; b++)
 			{	const double& Eb = eigs[b];
 				bool withinOuter = true, withinInner = false;
 				if(wannier.outerWindow) withinOuter = (wannier.eOuterMin <= Eb) and (Eb <= wannier.eOuterMax);
@@ -348,7 +350,7 @@ void WannierMinimizer::initRotations(int iSpin)
 		}
 		else
 		{	//Fixed set of bands:
-			int bStart = wannier.bStart;
+			int bStart = wannier.bStart + wannier.nBandsSemiCore;
 			int bStop = bStart + nCenters;
 			for(int b=0; b<nBands; b++)
 			{	if((bStart <= b) and (b < bStop))

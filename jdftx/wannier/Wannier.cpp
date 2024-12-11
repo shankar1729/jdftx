@@ -21,7 +21,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/WannierMinimizerFD.h>
 #include <wannier/WannierMinimizerRS.h>
 
-Wannier::Wannier() : needAtomicOrbitals(false), addAtomicOrbitals(false), ignoreSemiCore(true),
+Wannier::Wannier() : needAtomicOrbitals(false),
+	addAtomicOrbitals(false), pinAtomicOrbitals(false), ignoreSemiCore(true),
 	localizationMeasure(LM_FiniteDifference),
 	bStart(0), eOuterMin(0.), eOuterMax(0.), eInnerMin(0.), eInnerMax(0.),
 	projectionOuter(0.0), projectionInner(1.0), outerWindow(false), innerWindow(false),
@@ -44,6 +45,7 @@ void Wannier::setup(const Everything& everything)
 	minParams.energyLabel = "Omega";
 
 	//Add atomic orbitals automatically, if requested:
+	nBandsSemiCore = 0;
 	if(addAtomicOrbitals)
 	{	logPrintf("\nAdding atomic orbitals as trial orbitals (%s semicore orbitals):\n",
 			ignoreSemiCore ? "ignoring" : "including");
@@ -54,16 +56,17 @@ void Wannier::setup(const Everything& everything)
 			od.spinType = (e->eInfo.spinType == SpinNone)
 				? SpinNone
 				: (sp.isRelativistic() ? SpinOrbit : SpinZ);
+			int nSpins = (od.spinType == SpinNone) ? 1 : 2;
 			std::vector<DOS::Weight::OrbitalDesc> orbitalDescs;
 			for(od.l=0; od.l<=sp.lMaxAtomicOrbitals(); od.l++)
 			{	int nMax = sp.nAtomicOrbitals(od.l) - 1; //max pseudo-principal quantum number
 				int nMin = (ignoreSemiCore ? std::max(nMax, 0) : 0);
+				nBandsSemiCore += nMin * (2*od.l+1) * nSpins;
 				for(od.n=nMin; int(od.n)<=nMax; od.n++)
 				{	switch(od.spinType)
 					{	case SpinNone:
 						case SpinZ:
-						{	int nSpins = (od.spinType == SpinNone) ? 1 : 2;
-							for(od.m=-od.l; od.m<=od.l; od.m++)
+						{	for(od.m=-od.l; od.m<=od.l; od.m++)
 								for(od.s=0; od.s<nSpins; od.s++)
 									orbitalDescs.push_back(od);
 							break;
@@ -82,6 +85,7 @@ void Wannier::setup(const Everything& everything)
 			}
 			//Add above template for each atom of species:
 			TrialOrbital trialOrbital;
+			trialOrbital.pinned = pinAtomicOrbitals;
 			trialOrbital.push_back(AtomicOrbital()); //single orbital projection
 			AtomicOrbital& ao = trialOrbital[0];
 			ao.sp = iSp;

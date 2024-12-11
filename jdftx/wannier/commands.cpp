@@ -23,6 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 enum WannierMember
 {	WM_addAtomicOrbitals,
+	WM_pinAtomicOrbitals,
 	WM_ignoreSemiCore,
 	WM_localizationMeasure,
 	WM_bStart,
@@ -50,6 +51,7 @@ enum WannierMember
 
 EnumStringMap<WannierMember> wannierMemberMap
 (	WM_addAtomicOrbitals, "addAtomicOrbitals",
+	WM_pinAtomicOrbitals, "pinAtomicOrbitals",
 	WM_ignoreSemiCore, "ignoreSemiCore",
 	WM_localizationMeasure, "localizationMeasure",
 	WM_bStart, "bStart",
@@ -99,6 +101,9 @@ struct CommandWannier : public Command
 			"   Typically, this should be used with no wannier-center commands,\n"
 			"   and is recommended when using projection based windows.\n"
 			"   Default: no.\n"
+			"\n+ pinAtomicOrbitals yes|no\n\n"
+			"   Whether to pin the atomic orbitals during minimization,\n"
+			"   as in wannier-center-pinned. Default: no.\n"
 			"\n+ ignoreSemiCore yes|no\n\n"
 			"   Whether to drop inner orbitals of each angular momentum when adding\n"
 			"   atomic orbitals automatically (no effect if addAtomicOrbitals = no).\n"
@@ -113,6 +118,8 @@ struct CommandWannier : public Command
 			"   centered at the origin.\n"
 			"\n+ bStart <band>\n\n"
 			"   For fixed band calculations, 0-based index of lowest band used.\n"
+			"   If atomic orbitals have been added with semi-core ignored,\n"
+			"   this index excludes the ignored semi-core orbitals.\n"
 			"   The number of bands equals the number of wannier-centers specified.\n"
 			"   Default: 0. Use in insulator calculations to ignore semi-core orbitals.\n"
 			"\n+ outerWindow <eMin> <eMax>\n\n"
@@ -217,6 +224,9 @@ struct CommandWannier : public Command
 			switch(key)
 			{	case WM_addAtomicOrbitals:
 					pl.get(wannier.addAtomicOrbitals, false,  boolMap, "addAtomicOrbitals", true);
+					break;
+				case WM_pinAtomicOrbitals:
+					pl.get(wannier.pinAtomicOrbitals, false,  boolMap, "pinAtomicOrbitals", true);
 					break;
 				case WM_ignoreSemiCore:
 					pl.get(wannier.ignoreSemiCore, true,  boolMap, "ignoreSemiCore", true);
@@ -323,6 +333,7 @@ struct CommandWannier : public Command
 	void printStatus(Everything& e, int iRep)
 	{	const Wannier& wannier = ((const WannierEverything&)e).wannier;
 		logPrintf(" \\\n\taddAtomicOrbitals %s", boolMap.getString(wannier.addAtomicOrbitals));
+		logPrintf(" \\\n\tpinAtomicOrbitals %s", boolMap.getString(wannier.pinAtomicOrbitals));
 		logPrintf(" \\\n\tignoreSemiCore %s", boolMap.getString(wannier.ignoreSemiCore));
 		logPrintf(" \\\n\tlocalizationMeasure %s", localizationMeasureMap.getString(wannier.localizationMeasure));
 		logPrintf(" \\\n\tsaveWfns %s", boolMap.getString(wannier.saveWfns));

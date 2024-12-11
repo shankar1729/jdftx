@@ -55,6 +55,7 @@ public:
 	bool needAtomicOrbitals;
 	
 	bool addAtomicOrbitals; //!< whether to automatically add atomic orbitals for all atoms
+	bool pinAtomicOrbitals; //!< whether to pin centers of automatically-added atomic orbitals
 	bool ignoreSemiCore; //!< whether to ignore semi-core orbitals when adding atomic orbitals
 	
 	enum LocalizationMeasure
@@ -119,6 +120,7 @@ private:
 	const Everything* e;
 	MinimizeParams minParams;
 	std::shared_ptr<class WannierMinimizer> wmin; //!< opaque struct to minimizer
+	int nBandsSemiCore;
 	friend class WannierMinimizer;
 	friend class DefectSupercell;
 	friend struct CommandWannierMinimize;
