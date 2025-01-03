@@ -702,3 +702,18 @@ void dumpProjections(const Everything& e, const char* filename, bool ortho, bool
 	}
 	if(mpiWorld->isHead()) fclose(fp);
 }
+
+void dumpProjectionOverlap(const Everything& e, const char* filename)
+{	const IonInfo& iInfo = e.iInfo;
+	// Calculate overlap at arbitrary k-point:
+	matrix overlap; 
+	ColumnBundle psi = iInfo.getAtomicOrbitals(0, false);
+	overlap = psi ^ O(psi);
+	complex* overlapData = overlap.data();
+	//Write overlaps to binary file:
+	MPIUtil::File fp; mpiWorld->fopenWrite(fp, filename);
+	mpiWorld->fseek(fp, 0, SEEK_SET);
+	int nOrbitals = iInfo.nAtomicOrbitals();
+	mpiWorld->fwrite(overlapData, sizeof(complex), nOrbitals*nOrbitals, fp);
+	mpiWorld->fclose(fp);
+}
