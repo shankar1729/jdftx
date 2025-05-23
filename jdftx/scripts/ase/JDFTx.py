@@ -235,8 +235,11 @@ class JDFTx(Calculator):
         structure = AseAtomsAdaptor.get_structure(atoms)
         # TODO: This can be expanded to support FixedLine and FixedPlane constraints
         if len(atoms.constraints):
-            fixed_atom_inds = atoms.constraints[0].get_indices()
-            structure.site_properties["selective_dynamics"] = [0 if i in fixed_atom_inds else 1 for i in range(len(atoms))]
+            fixed_atom_idcs = []
+            for constraint in atoms.constraints:
+                fixed_atom_idcs += list(constraint.get_indices())
+            #fixed_atom_inds = atoms.constraints[0].get_indices()
+            structure.site_properties["selective_dynamics"] = [0 if i in fixed_atom_idcs else 1 for i in range(len(atoms))]
         infile = JDFTXInfile.from_structure(structure)
         infile += self.infile
         if not "ion-species" in infile:
