@@ -107,14 +107,6 @@ std::vector<QuantumNumber> Symmetries::reduceKmesh(const std::vector<QuantumNumb
 				else
 				{	if(invert>0) isSymKmesh[iSym] = false;
 				}
-				
-				//HACK
-				size_t iSrc2; int invert2, iSym2;
-				unsigned long long mapped = kmapPack(iSrc, invert, iSym);
-				kmapUnpack(mapped, iSrc2, invert2, iSym2);
-				if((iSrc != iSrc2) || (invert != invert2) || (iSym != iSym2))
-					die("ERROR (%lu, %d, %d) -> (%llX) -> (%lu, %d, %d)\n\n", 
-						iSrc, invert, iSym, mapped, iSrc2, invert2, iSym2);
 			}
 	//Sync map across processes
 	mpiWorld->allReduceData(kmap, MPIUtil::ReduceMin);
