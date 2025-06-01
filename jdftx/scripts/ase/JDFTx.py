@@ -263,7 +263,6 @@ class JDFTx(Calculator):
                 self.log_func("Ignoring state files and trying again.")
                 self.constructInput(self.atoms, ignore_state=True)
                 self.run_jdftx(ran_before=True)
-            raise RuntimeError("JDFTx calculation failed.")
 
     def _read_results(self, properties, atoms: Atoms):
         outputs = JDFTXOutputs.from_calc_dir(
