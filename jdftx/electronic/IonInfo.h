@@ -24,6 +24,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/SpeciesInfo.h>
 #include <electronic/IonicMinimizer.h>
 #include <electronic/IonicGaussianPotential.h>
+#include <electronic/Metadynamics.h>
 #include <core/matrix.h>
 #include <core/ScalarField.h>
 #include <core/Thread.h>
@@ -65,6 +66,7 @@ public:
 	double vdWscale; //!< If non-zero, override the default scale parameter
 	double ljOverride; //!< If non-zero, replace electronic DFT with LJ pair potential with rCut=ljOverride (for testing geometry optimization and dynamics algorithms only)
 	std::vector<IonicGaussianPotential> ionicGaussianPotentials; //!< External Gaussian potentials and forces on atoms
+	std::shared_ptr<MetadynamicsBond> metadynamicsBond; //!< Optional metadynamics on a bond degree of freedom
 	
 	IonicGradient forces; //!< forces at current atomic positions in latice coordinates
 	matrix3<> stress; //!< stresses at current lattice geometry in Eh/a0^3 (only calculated if optimizing lattice or dumping stress)

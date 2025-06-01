@@ -95,6 +95,8 @@ void IonInfo::setup(const Everything &everything)
 			die("\nStress calculation not supported with external electric fields.\n\n");
 		//Additional checks in ElecVars for electronic contributions
 	}
+	
+	if(metadynamicsBond) metadynamicsBond->initialize();
 }
 
 void IonInfo::printPositions(FILE* fp) const
@@ -637,6 +639,9 @@ void IonInfo::pairPotentialsAndGrad(Energies* ener, IonicGradient* forces, matri
 	double EextIonic = 0.;
 	for(const IonicGaussianPotential& igp: ionicGaussianPotentials)
 		EextIonic += igp.energyAndGrad(e->gInfo, atoms, E_RRT);
+	//Compue optional metadynamics terms (treated as an external potential):
+	if(metadynamicsBond)
+		EextIonic += metadynamicsBond->energyAndGrad(e->gInfo, atoms);
 	//Store energies and/or forces if requested:
 	if(ener)
 	{	ener->E["Eewald"] = Eewald;
