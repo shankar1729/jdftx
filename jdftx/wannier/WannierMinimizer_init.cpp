@@ -338,7 +338,7 @@ void WannierMinimizer::initRotations(int iSpin)
 				if(wannier.outerWindow) withinOuter = (wannier.eOuterMin <= Eb) and (Eb <= wannier.eOuterMax);
 				if(wannier.innerWindow) withinInner = (wannier.eInnerMin <= Eb) and (Eb <= wannier.eInnerMax);
 				if(wannier.useProjectionThresholds)
-				{	withinOuter = withinOuter or (pTot[b] > wannier.projectionOuter);
+				{	withinOuter = withinOuter and (pTot[b] > wannier.projectionOuter);
 					withinInner = withinInner or (pTot[b] > wannier.projectionInner);
 				}
 				if(withinOuter)
