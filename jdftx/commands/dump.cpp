@@ -142,7 +142,7 @@ EnumStringMap<DumpVariable> varMap
 	DumpDn, "Dn",
 	DumpDVext, "DVext",
 	DumpDVscloc, "DVscloc",
-	DumpHCxx, "HCxx"
+	DumpHC, "HC"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpNone,           "Dump nothing",
@@ -206,7 +206,7 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpDn, 			"First order change in electronic density",
 	DumpDVext, 			"External perturbation",
 	DumpDVscloc, 		"First order change in local self-consistent potential",
-	DumpHCxx,			"Exact-exchange Hamiltonian applied on wavefunctions (for non self-consistent forces)"
+	DumpHC,				"Hamiltonian applied on wavefunctions for non self-consistent forces"
 );
 
 struct CommandDump : public Command

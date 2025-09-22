@@ -406,23 +406,18 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		double omega = e->exCorr.exxRange();
 		assert(e->exx);
 		ener.E["EXX"] = (*e->exx)(aXX, omega, F, C, need_Hsub ? &HC : 0);
-		
-		if(need_Hsub and e->dump.count(std::make_pair(DumpFreq_End, DumpHCxx)))
-		{	//Note: relies on HC only containing XX contributions here
-			string fname = e->dump.getFilename("HCxx");
-			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
-			e->eInfo.write(HC, fname.c_str());
-			logPrintf("done\n"); logFlush();
-		}
 	}
 	
 	//Do the single-particle contributions one state at a time to save memory (and for better cache warmth):
 	ener.E["KE"] = 0.;
 	ener.E["Enl"] = 0.;
+	bool saveHC = need_Hsub and e->dump.count(std::make_pair(DumpFreq_End, DumpHC));
+	std::vector<ColumnBundle> HCsave(eInfo.nStates); //saved copy for HC output (if needed)
 	for(int q=eInfo.qStart; q<e->eInfo.qStop; q++)
 	{	double KEq = applyHamiltonian(q, F[q], HC[q], ener, need_Hsub);
 		if(grad) //Calculate wavefunction gradients:
 		{	const QuantumNumber& qnum = eInfo.qnums[q];
+			if(saveHC) HCsave[q] = HC[q]; //stash HC[q] before modifying it below
 			HC[q] -= O(C[q]) * Hsub[q]; //Include orthonormality contribution
 			grad->C[q] = HC[q] * (F[q]*qnum.weight);
 			if(Kgrad)
@@ -433,6 +428,7 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 			}
 		}
 	}
+	if(not grad) std::swap(HCsave, HC);
 	mpiWorld->allReduce(ener.E["KE"], MPIUtil::ReduceSum);
 	mpiWorld->allReduce(ener.E["Enl"], MPIUtil::ReduceSum);
 	
@@ -478,6 +474,14 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 			if(Kgrad) //Drop the fermiPrime factors in preconditioned gradient:
 				Kgrad->Haux[q] = (-e->cntrl.subspaceRotationFactor) * gradF0;
 		}
+	}
+	
+	//Output HC (for calculating gradients of non self-consistent functionals in post-processing):
+	if(saveHC)
+	{	string fname = e->dump.getFilename("HC");
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		e->eInfo.write(HCsave, fname.c_str());
+		logPrintf("done\n"); logFlush();
 	}
 	
 	return relevantFreeEnergy(*e);
