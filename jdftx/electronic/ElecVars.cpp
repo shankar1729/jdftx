@@ -406,6 +406,14 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		double omega = e->exCorr.exxRange();
 		assert(e->exx);
 		ener.E["EXX"] = (*e->exx)(aXX, omega, F, C, need_Hsub ? &HC : 0);
+		
+		if(need_Hsub and e->dump.count(std::make_pair(DumpFreq_End, DumpHCxx)))
+		{	//Note: relies on HC only containing XX contributions here
+			string fname = e->dump.getFilename("HCxx");
+			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+			e->eInfo.write(HC, fname.c_str());
+			logPrintf("done\n"); logFlush();
+		}
 	}
 	
 	//Do the single-particle contributions one state at a time to save memory (and for better cache warmth):

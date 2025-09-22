@@ -49,11 +49,11 @@ enum DumpVariable { DumpNone, DumpState, //None or exactly those required to res
 	DumpVcavity, DumpVfluidTot, //cavity potential of fluid, net electron potential due to fluid (electrostatic+cavity)
 	DumpVlocps, DumpVscloc, DumpBandEigs, DumpBandProjections, DumpEigStats, DumpFillings, DumpRhoAtom, DumpBandUnfold,
 	DumpEcomponents, DumpExcCompare,
- 	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpOcean, DumpBGW, DumpRealSpaceWfns, DumpFluidDebug, DumpSlabEpsilon, DumpBulkEpsilon, DumpChargedDefect,
+	DumpBoundCharge, DumpSolvationRadii, DumpQMC, DumpOcean, DumpBGW, DumpRealSpaceWfns, DumpFluidDebug, DumpSlabEpsilon, DumpBulkEpsilon, DumpChargedDefect,
 	DumpDOS, DumpPolarizability, DumpElectronScattering, DumpSIC, DumpDipole, DumpStress, DumpExcitations, DumpFCI, DumpSpin,
 	DumpMomenta, DumpVelocities, DumpFermiVelocity, DumpR, DumpL, DumpQ, DumpBerry,
 	DumpSymmetries, DumpKpoints, DumpGvectors, DumpOrbitalDep, DumpXCanalysis, DumpEresolvedDensity, DumpFermiDensity,
-	DumpDWfns, DumpDn, DumpDVext, DumpDVscloc,
+	DumpDWfns, DumpDn, DumpDVext, DumpDVscloc, DumpHCxx,
 	DumpDelim //special value used as a delimiter during command processing
 };
 
