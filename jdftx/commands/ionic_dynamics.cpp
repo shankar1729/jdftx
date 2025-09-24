@@ -283,8 +283,8 @@ struct CommandIonicGaussianPotential : public Command
 
 	void printStatus(Everything& e, int iRep)
 	{	const IonicGaussianPotential& igp = e.iInfo.ionicGaussianPotentials[iRep];
-		logPrintf("%s %lg %lg %s", e.iInfo.species[igp.iSpecies]->name.c_str(),
-			igp.U0, igp.sigma, igpGeometryMap.getString(igp.geometry));
+		logPrintf("%s %lg %lg %s origin %19.15lf %19.15lf %19.15lf", e.iInfo.species[igp.iSpecies]->name.c_str(),
+			igp.U0, igp.sigma, igpGeometryMap.getString(igp.geometry), igp.origin[0], igp.origin[1], igp.origin[2]);
 	}
 }
 commandIonicGaussianPotential;
