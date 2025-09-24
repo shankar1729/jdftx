@@ -256,6 +256,15 @@ struct CommandIonicGaussianPotential : public Command
 		pl.get(igp.U0, 0.0, "U0", true);
 		pl.get(igp.sigma, 0.0, "sigma", true);
 		pl.get(igp.geometry, IonicGaussianPotential::Planar, igpGeometryMap, "geometry", true);
+		vector3<> origin(0.0, 0.0, 0.0);
+		string key;
+		pl.get(key, string(), "origin", false);
+		if(key == "origin")
+		{	pl.get(origin[0], 0.0, "x", true);
+			pl.get(origin[1], 0.0, "y", true);
+			pl.get(origin[2], 0.0, "z", true);
+		}
+		igp.origin = origin;
 		e.iInfo.ionicGaussianPotentials.push_back(igp);
 	}
 
