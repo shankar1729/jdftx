@@ -163,6 +163,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		iInfo.printPositions(fp);  //needs to be called from all processes (for magnetic moment computation)
 		if(mpiWorld->isHead())fclose(fp);
 		EndDump
+		if(iInfo.metadynamicsBond) iInfo.metadynamicsBond->save();
 	}
 	if(ShouldDump(Forces))
 	{	StartDump("force")

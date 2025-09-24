@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/IonicDynamicsParams.h>
 #include <electronic/IonicGaussianPotential.h>
+#include <electronic/Metadynamics.h>
 #include <core/Units.h>
 
 
@@ -221,6 +222,28 @@ EnumStringMap<IonicGaussianPotential::Geometry> igpGeometryMap
 	IonicGaussianPotential::Planar, "Planar"
 );
 
+inline int getSpecies(ParamList& pl, const Everything& e, string argumentName="species")
+{	string spName;
+	pl.get(spName, string(), argumentName, true);
+	for(int iSp=0; iSp<int(e.iInfo.species.size()); iSp++)
+		if(e.iInfo.species[iSp]->name == spName)
+			return iSp;
+	throw argumentName + " must match one of the atom-type names in the calculation";
+}
+
+inline int getAtomIndex(ParamList& pl, const Everything& e, int iSp, string argumentName="at")
+{	int iAt;
+	pl.get(iAt, 0, argumentName, true);
+	//Validate 1-based index:
+	int nAtoms = e.iInfo.species[iSp]->atpos.size();
+	if((iAt < 1) or (iAt > nAtoms))
+	{	ostringstream oss;
+		oss << argumentName << " must be a valid 1-based index between 1 and " << nAtoms;
+		throw oss.str();
+	}
+	return iAt - 1; //return 0-based index
+}
+
 struct CommandIonicGaussianPotential : public Command
 {
 	CommandIonicGaussianPotential() : Command("ionic-gaussian-potential", "jdftx/Ionic/Optimization")
@@ -242,17 +265,7 @@ struct CommandIonicGaussianPotential : public Command
 
 	void process(ParamList& pl, Everything& e)
 	{	IonicGaussianPotential igp;
-		//Identify species:
-		string spName;
-		pl.get(spName, string(), "species", true);
-		for(int iSpecies=0; iSpecies<int(e.iInfo.species.size()); iSpecies++)
-			if(e.iInfo.species[iSpecies]->name == spName)
-			{	igp.iSpecies = iSpecies;
-				break;
-			}
-		if(igp.iSpecies < 0) //defaults to -1 in IonicGaussianPotential()
-			throw string("<species> must match one of the atom-type names in the calculation");
-		//Potential parameters:
+		igp.iSpecies = getSpecies(pl, e);
 		pl.get(igp.U0, 0.0, "U0", true);
 		pl.get(igp.sigma, 0.0, "sigma", true);
 		pl.get(igp.geometry, IonicGaussianPotential::Planar, igpGeometryMap, "geometry", true);
@@ -275,3 +288,43 @@ struct CommandIonicGaussianPotential : public Command
 	}
 }
 commandIonicGaussianPotential;
+
+
+struct CommandMetadynamicsBond : public Command
+{
+	CommandMetadynamicsBond() : Command("metadynamics-bond", "jdftx/Ionic/Optimization")
+	{	format = "<species1> <atom1> <species2> <atom2> <resolution> <energy-per-step> [<state-file>]";
+		comments = "Perform metadynamics along bond between two atoms.\n"
+			"+ <species1> <atom1>: First atom selection by species name and 1-based index.\n"
+			"+ <species2> <atom2>: Second atom selection by species name and 1-based index.\n"
+			"+ <resolution>: Spatial resolution of bias potential in bohrs.\n"
+			"+ <energy-per-step>: Energy integral in Hartree-bohrs added to bias potential at each step.\n"
+			"+ <state-file>: Filename to load/save bias potential, if specified.\n"
+			"\n"
+			"Note that the resolution controls both the grid spacing for the potential\n"
+			"as well as the Gaussian smoothing of the energy kernel added at each step.\n";
+		require("ion");
+		require("ionic-dynamics");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	std::shared_ptr<MetadynamicsBond> mb = std::make_shared<MetadynamicsBond>();
+		mb->iSp1 = getSpecies(pl, e, "species1");
+		mb->at1 = getAtomIndex(pl, e, mb->iSp1, "at1");
+		mb->iSp2 = getSpecies(pl, e, "species2");
+		mb->at2 = getAtomIndex(pl, e, mb->iSp2, "at2");
+		pl.get(mb->resolution, 0.0, "resolution", true);
+		pl.get(mb->energy_per_step, 0.0, "energy_per_step", true);
+		pl.get(mb->state_filename, string(), "state_filename");
+		e.iInfo.metadynamicsBond = mb;
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const MetadynamicsBond& mb = *e.iInfo.metadynamicsBond;
+		logPrintf("%s %d %s %d %lg %lg %s",
+			e.iInfo.species[mb.iSp1]->name.c_str(), mb.at1 + 1,
+			e.iInfo.species[mb.iSp2]->name.c_str(), mb.at2 + 1,
+			mb.resolution, mb.energy_per_step, mb.state_filename.c_str());
+	}
+}
+commandMetadynamicsBond;
