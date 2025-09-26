@@ -30,9 +30,10 @@ struct IonicGaussianPotential
 	double U0; //!< peak amplitude in Hartrees
 	double sigma; //!< width (standard deviation) in bohrs
 	enum Geometry {Spherical, Cylindrical, Planar} geometry;
-	
-	IonicGaussianPotential() : iSpecies(-1), U0(0.), sigma(0.), geometry(Spherical) {}
-	
+	vector3<> center; //!< center of the Gaussian potential in reduced coordinates (0.5,0.5,0.5) is center of cell
+
+	IonicGaussianPotential() : iSpecies(-1), U0(0.), sigma(0.), geometry(Spherical), center(0.0, 0.0, 0.0) {}
+
 	//Compute energy and accumulate forces, and optionally stresses, due to external potential:
 	double energyAndGrad(const GridInfo& gInfo, std::vector<Atom>& atoms, matrix3<>* E_RRTptr) const;
 };

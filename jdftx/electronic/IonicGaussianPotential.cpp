@@ -8,7 +8,7 @@ double IonicGaussianPotential::energyAndGrad(const GridInfo& gInfo, std::vector<
 		if(atom.sp == iSpecies)
 		{
 			//Compute wrapped Cartesian position:
-			vector3<> posWrapped = atom.pos;
+			vector3<> posWrapped = atom.pos - center; //shift to origin of Gaussian
 			for(int iDir=0; iDir<3; iDir++)
 				posWrapped[iDir] -= floor(0.5 + posWrapped[iDir]); //to [-0.5, 0.5)
 			vector3<> r = gInfo.R * posWrapped;
