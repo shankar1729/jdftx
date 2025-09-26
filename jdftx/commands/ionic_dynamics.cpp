@@ -261,6 +261,9 @@ struct CommandIonicGaussianPotential : public Command
 			"This command is intended primarily for applying perturbations in ionic dynamics.";
 		allowMultiple = true;
 		require("ion");
+		//Dependencies to ensure 'center' is interpreted in correct coordinate system:
+		require("latt-scale");
+		require("coords-type");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -269,22 +272,28 @@ struct CommandIonicGaussianPotential : public Command
 		pl.get(igp.U0, 0.0, "U0", true);
 		pl.get(igp.sigma, 0.0, "sigma", true);
 		pl.get(igp.geometry, IonicGaussianPotential::Planar, igpGeometryMap, "geometry", true);
-		vector3<> origin(0.0, 0.0, 0.0);
+		vector3<> center(0.0, 0.0, 0.0);
 		string key;
-		pl.get(key, string(), "origin", false);
-		if(key == "origin")
-		{	pl.get(origin[0], 0.0, "x", true);
-			pl.get(origin[1], 0.0, "y", true);
-			pl.get(origin[2], 0.0, "z", true);
+		pl.get(key, string(), "center", false);
+		if(key == "center")
+		{	pl.get(center[0], 0.0, "x", true);
+			pl.get(center[1], 0.0, "y", true);
+			pl.get(center[2], 0.0, "z", true);
 		}
-		igp.origin = origin;
+		//Transform coordinates if necessary
+		if(e.iInfo.coordsType == CoordsCartesian)
+			center = inv(e.gInfo.R) * center;
+		igp.center = center;
 		e.iInfo.ionicGaussianPotentials.push_back(igp);
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const IonicGaussianPotential& igp = e.iInfo.ionicGaussianPotentials[iRep];
-		logPrintf("%s %lg %lg %s origin %19.15lf %19.15lf %19.15lf", e.iInfo.species[igp.iSpecies]->name.c_str(),
-			igp.U0, igp.sigma, igpGeometryMap.getString(igp.geometry), igp.origin[0], igp.origin[1], igp.origin[2]);
+		vector3<> center = igp.center;
+		if(e.iInfo.coordsType == CoordsCartesian)
+			center = e.gInfo.R * center; //report cartesian positions
+		logPrintf("%s %lg %lg %s center %19.15lf %19.15lf %19.15lf", e.iInfo.species[igp.iSpecies]->name.c_str(),
+			igp.U0, igp.sigma, igpGeometryMap.getString(igp.geometry), center[0], center[1], center[2]);
 	}
 }
 commandIonicGaussianPotential;
