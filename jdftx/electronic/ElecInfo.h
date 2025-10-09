@@ -156,11 +156,13 @@ private:
 	
 	//Initial fillings:
 	int nBandsOld; //!<number of bands in file being read
+	double nBandsMultiplier; //!< multiplier on default number of bands (>= 1)
 	double Qinitial, Minitial; //!< net excess electrons and initial magnetization
 	friend struct CommandElecInitialFillings;
 	friend struct CommandElecInitialCharge;
 	friend struct CommandElecInitialMagnetization;
 	friend struct CommandInitialState;
+	friend struct CommandElecNbands;
 	friend class ElecVars;
 	friend struct LCAOminimizer;
 	friend void dumpFCI(const Everything& e, const char* filename);
