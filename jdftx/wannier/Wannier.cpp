@@ -61,7 +61,7 @@ void Wannier::setup(const Everything& everything)
 			for(od.l=0; od.l<=sp.lMaxAtomicOrbitals(); od.l++)
 			{	int nMax = sp.nAtomicOrbitals(od.l) - 1; //max pseudo-principal quantum number
 				int nMin = (ignoreSemiCore ? std::max(nMax, 0) : 0);
-				nBandsSemiCore += nMin * (2*od.l+1) * nSpins;
+				nBandsSemiCore += nMin * (2*od.l+1) * nSpins * sp.atpos.size();
 				for(od.n=nMin; int(od.n)<=nMax; od.n++)
 				{	switch(od.spinType)
 					{	case SpinNone:
@@ -97,7 +97,7 @@ void Wannier::setup(const Everything& everything)
 			logPrintf("  Added %lu orbitals each for %lu %s atoms.\n",
 				orbitalDescs.size(), sp.atpos.size(), sp.name.c_str());
 		}
-		logPrintf("\n");
+		logPrintf("  Ignored %d semicore bands overall.\n\n", nBandsSemiCore);
 		needAtomicOrbitals = true;
 	}
 

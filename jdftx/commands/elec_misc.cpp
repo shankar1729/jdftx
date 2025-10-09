@@ -76,19 +76,26 @@ struct CommandElecNbands : public Command
 {
 	CommandElecNbands() : Command("elec-n-bands", "jdftx/Electronic/Parameters")
 	{
-		format = "<n>";
+		format = "<n> [<multiplier>=1.0]";
 		comments = "Manually specify the number of bands.\n\n"
-			"(Default: set nBands assuming insulator, or in calculations with\n"
-			"fermi-fillings, set equal to total number of atomic orbitals.)";
+			"Default: set nBands assuming insulator, or in calculations with\n"
+			"fermi-fillings, set equal to total number of atomic orbitals.\n\n"
+			"Optionally, scale the default number of bands by a <multiplier>\n"
+			"that is >= 1. This only takes effect when <n> is set to zero,\n"
+			"i.e., requesting the default number of bands.";
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	pl.get(e.eInfo.nBands, 0, "n", true);
-		if(e.eInfo.nBands<=0) throw string("<n> must be positive.\n");
+		pl.get(e.eInfo.nBandsMultiplier, 1.0, "multiplier");
+		if(e.eInfo.nBands < 0)
+			throw string("<n> must be >= 0.\n");
+		if(e.eInfo.nBandsMultiplier < 1.0)
+			throw string("<multiplier> must be >= 1.0.\n");
 	}
 
 	void printStatus(Everything& e, int iRep)
-	{	logPrintf("%d", e.eInfo.nBands);
+	{	logPrintf("%d %lg", e.eInfo.nBands, e.eInfo.nBandsMultiplier);
 	}
 }
 commandElecNbands;
