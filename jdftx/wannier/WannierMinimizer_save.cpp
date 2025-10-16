@@ -181,7 +181,7 @@ void WannierMinimizer::saveMLWF(int iSpin)
 	saveMLWF_H(iSpin, phase); //Hamiltonian
 	if(wannier.saveMomenta) saveMLWF_P(iSpin, phase); //Momenta
 	if(wannier.saveSpin) saveMLWF_S(iSpin, phase); //Spins
-	if(wannier.saveRP) saveMLWF_RP(iSpin, phase); //R*P matrix elements
+	if(wannier.saveR or wannier.saveRP) saveMLWF_RP(iSpin, phase); //R and/or R*P matrix elements
 	if(wannier.zVfilename.length()) saveMLWF_Z(iSpin, phase); //z position
 	if(wannier.zH) saveMLWF_W(iSpin, phase); //Slab weights
 	saveMLWF_ImSigma_ee(iSpin, phase);
@@ -383,12 +383,13 @@ void WannierMinimizer::saveMLWF_S(int iSpin, const matrix& phase)
 	dumpWannierized(SwannierTilde, phase, "mlwfS", realPartOnly, iSpin);
 }
 
-//Save R*P matrix elements:
+//Save R and/or R*P matrix elements:
 void WannierMinimizer::saveMLWF_RP(int iSpin, const matrix& phase)
-{	assert(wannier.saveRP);
+{	assert(wannier.saveR or wannier.saveRP);
 
-	//Compute r*p matrix elements from dC/dk on Wannier mesh:
-	logPrintf("Computing <du/dk|[r,H]|u> on Wannier mesh ... "); logFlush();
+	//Compute r and/or r*p matrix elements from dC/dk on Wannier mesh:
+	logPrintf("Computing <du/dk|...|u> on Wannier mesh ... "); logFlush();
+	std::vector<vector3<matrix>> rMesh(kMesh.size());
 	std::vector<matrix3<matrix>> rrHmesh(kMesh.size());
 	assert(wannier.localizationMeasure == Wannier::LM_FiniteDifference);
 	const WannierMinimizerFD& wmin_fd = *((const WannierMinimizerFD*)this);
@@ -415,14 +416,21 @@ void WannierMinimizer::saveMLWF_RP(int iSpin, const matrix& phase)
 					Cj.qnum = Ci.qnum; //effectively transport coefficients kj -> ki
 					//Compute Cj ^ [r,H] Ci:
 					int qi = ki.point.iReduced + qCount*iSpin;
-					matrix Cj_H_Ci = (Cj ^ O(Ci)) * (dagger(ki.U) * e.eVars.Hsub_eigs[qi] * ki.U);
-					vector3<matrix> Cj_rHcomm_Ci = e.iInfo.rHcommutator(Cj, Ci, Cj_H_Ci);
-					//Collect contributions to (i dC/dk) ^ [r,H] C
+					matrix Cj_O_Ci = Cj ^ O(Ci);
+					vector3<matrix> Cj_rHcomm_Ci;
+					if(wannier.saveRP)
+					{	matrix Cj_H_Ci = Cj_O_Ci * (dagger(ki.U) * e.eVars.Hsub_eigs[qi] * ki.U);
+						Cj_rHcomm_Ci = e.iInfo.rHcommutator(Cj, Ci, Cj_H_Ci);
+					}
+					//Collect contributions to (i dC/dk) ^ C  and/or (i dC/dk) ^ [r,H] C
 					for(int mu=0; mu<3; mu++) //d/dk i.e. r direction
 						if(edge.b[mu])
 						{	complex w_mu(0, -0.5 * edge.wb * edge.b[mu]);
-							for(int nu=0; nu<3; nu++) //[r,H] i.e. p direction
-								rrHmesh[i](mu, nu) += w_mu * Cj_rHcomm_Ci[nu];
+							if(wannier.saveR)
+								rMesh[i][mu] += w_mu * Cj_O_Ci;
+							if(wannier.saveRP)
+								for(int nu=0; nu<3; nu++) //[r,H] i.e. p direction
+									rrHmesh[i](mu, nu) += w_mu * Cj_rHcomm_Ci[nu];
 						}
 				}
 		}
@@ -435,21 +443,39 @@ void WannierMinimizer::saveMLWF_RP(int iSpin, const matrix& phase)
 	}
 	Cother.clear();
 	logPrintf("done.\n"); logFlush();
-
-	//Collect local contributions in contiguous form:
-	int nCentersSq = nCenters * nCenters;
-	matrix RPwannierTilde = zeroes(nCentersSq*3*3, phase.nRows());
-	complex* RPdata = RPwannierTilde.dataPref();
-	for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
-	{	for(int iDir=0; iDir<3; iDir++)
-			for(int jDir=0; jDir<3; jDir++)
-			{	callPref(eblas_copy)(RPdata, rrHmesh[i](iDir, jDir).dataPref(), nCentersSq);
-				RPdata += nCentersSq;
+	
+	if(wannier.saveR)
+	{	//Collect local contributions in contiguous form:
+		int nCentersSq = nCenters * nCenters;
+		matrix RwannierTilde = zeroes(nCentersSq*3, phase.nRows());
+		complex* Rdata = RwannierTilde.dataPref();
+		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+		{	for(int iDir=0; iDir<3; iDir++)
+			{	callPref(eblas_copy)(Rdata, rMesh[i][iDir].dataPref(), nCentersSq);
+				Rdata += nCentersSq;
 			}
+		}
+		
+		//Fourier transform to Wannier space and save:
+		dumpWannierized(RwannierTilde, phase, "mlwfR", realPartOnly, iSpin);
 	}
 	
-	//Fourier transform to Wannier space and save:
-	dumpWannierized(RPwannierTilde, phase, "mlwfRP", realPartOnly, iSpin);
+	if(wannier.saveRP)
+	{	//Collect local contributions in contiguous form:
+		int nCentersSq = nCenters * nCenters;
+		matrix RPwannierTilde = zeroes(nCentersSq*3*3, phase.nRows());
+		complex* RPdata = RPwannierTilde.dataPref();
+		for(unsigned i=0; i<kMesh.size(); i++) if(isMine_q(i,iSpin))
+		{	for(int iDir=0; iDir<3; iDir++)
+				for(int jDir=0; jDir<3; jDir++)
+				{	callPref(eblas_copy)(RPdata, rrHmesh[i](iDir, jDir).dataPref(), nCentersSq);
+					RPdata += nCentersSq;
+				}
+		}
+		
+		//Fourier transform to Wannier space and save:
+		dumpWannierized(RPwannierTilde, phase, "mlwfRP", realPartOnly, iSpin);
+	}
 }
 
 

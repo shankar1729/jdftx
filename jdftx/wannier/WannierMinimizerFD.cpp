@@ -182,8 +182,8 @@ WannierMinimizerFD::WannierMinimizerFD(const Everything& e, const Wannier& wanni
 		}
 	}
 	
-	//Find bidirectional edges for R*P output:
-	if(wannier.saveRP)
+	//Find bidirectional edges for R and R*P output:
+	if(wannier.saveR or wannier.saveRP)
 	{	edges_bi = edges; //copy over edges initialized above
 		for(size_t i=0; i<kMesh.size(); i++)
 		{	//Add the reverse edges:
