@@ -247,7 +247,7 @@ inline int getAtomIndex(ParamList& pl, const Everything& e, int iSp, string argu
 struct CommandIonicGaussianPotential : public Command
 {
 	CommandIonicGaussianPotential() : Command("ionic-gaussian-potential", "jdftx/Ionic/Optimization")
-	{	format = "<species> <U0> <sigma> <geometry> <center x <x> y <y> z <z>>";
+	{	format = "<species> <U0> <sigma> <geometry> [center <x> <y> <z>]";
 		comments = "Apply external potential and forces to ions of specified <species>.\n"
 			"The potential is Gaussian with peak value <U0> Hartrees and standard\n"
 			"deviation <sigma> bohrs, and is centered at the origin by default. The symmetry\n"
@@ -256,7 +256,7 @@ struct CommandIonicGaussianPotential : public Command
 			"+ Cylindrical: The potential is 1-D and extends along the z-direction.\n"
 			"+ Planar: The potential is 2-D and extends in the xy-plane.\n"
 			"Optionally, the center of the potential may be shifted by specifying\n"
-			"center x <x> y <y> z <z>, where the format of <x>, <y>, and <z> are specified\n"
+			"center <x> <y> <z>, where the format of <x>, <y>, and <z> are specified\n"
 			"by the coords-type."
 			"\n"
 			"Note that the coordinates of the atoms are taken in minimum-image convention\n"
