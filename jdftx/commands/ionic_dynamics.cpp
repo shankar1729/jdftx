@@ -247,20 +247,26 @@ inline int getAtomIndex(ParamList& pl, const Everything& e, int iSp, string argu
 struct CommandIonicGaussianPotential : public Command
 {
 	CommandIonicGaussianPotential() : Command("ionic-gaussian-potential", "jdftx/Ionic/Optimization")
-	{	format = "<species> <U0> <sigma> <geometry>";
+	{	format = "<species> <U0> <sigma> <geometry> [center <x> <y> <z>]";
 		comments = "Apply external potential and forces to ions of specified <species>.\n"
 			"The potential is Gaussian with peak value <U0> Hartrees and standard\n"
-			"deviation <sigma> bohrs, and is always centered at the origin. The symmetry\n"
+			"deviation <sigma> bohrs, and is centered at the origin by default. The symmetry\n"
 			"of the potential is specified by <geometry>, which may be one of:\n"
 			"+ Spherical: The potential is 0-D and confined near the origin.\n"
 			"+ Cylindrical: The potential is 1-D and extends along the z-direction.\n"
 			"+ Planar: The potential is 2-D and extends in the xy-plane.\n"
+			"Optionally, the center of the potential may be shifted by specifying\n"
+			"center <x> <y> <z>, where the format of <x>, <y>, and <z> are specified\n"
+			"by the coords-type."
 			"\n"
 			"Note that the coordinates of the atoms are taken in minimum-image convention\n"
 			"for the unit cell centered at the origin for the potential and force calculation.\n"
 			"This command is intended primarily for applying perturbations in ionic dynamics.";
 		allowMultiple = true;
 		require("ion");
+		//Dependencies to ensure 'center' is interpreted in correct coordinate system:
+		require("latt-scale");
+		require("coords-type");
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -269,13 +275,28 @@ struct CommandIonicGaussianPotential : public Command
 		pl.get(igp.U0, 0.0, "U0", true);
 		pl.get(igp.sigma, 0.0, "sigma", true);
 		pl.get(igp.geometry, IonicGaussianPotential::Planar, igpGeometryMap, "geometry", true);
+		vector3<> center(0.0, 0.0, 0.0);
+		string key;
+		pl.get(key, string(), "center", false);
+		if(key == "center")
+		{	pl.get(center[0], 0.0, "x", true);
+			pl.get(center[1], 0.0, "y", true);
+			pl.get(center[2], 0.0, "z", true);
+		}
+		//Transform coordinates if necessary
+		if(e.iInfo.coordsType == CoordsCartesian)
+			center = inv(e.gInfo.R) * center;
+		igp.center = center;
 		e.iInfo.ionicGaussianPotentials.push_back(igp);
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const IonicGaussianPotential& igp = e.iInfo.ionicGaussianPotentials[iRep];
-		logPrintf("%s %lg %lg %s", e.iInfo.species[igp.iSpecies]->name.c_str(),
-			igp.U0, igp.sigma, igpGeometryMap.getString(igp.geometry));
+		vector3<> center = igp.center;
+		if(e.iInfo.coordsType == CoordsCartesian)
+			center = e.gInfo.R * center; //report cartesian positions
+		logPrintf("%s %lg %lg %s center %19.15lf %19.15lf %19.15lf", e.iInfo.species[igp.iSpecies]->name.c_str(),
+			igp.U0, igp.sigma, igpGeometryMap.getString(igp.geometry), center[0], center[1], center[2]);
 	}
 }
 commandIonicGaussianPotential;
