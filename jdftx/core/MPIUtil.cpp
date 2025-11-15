@@ -46,12 +46,14 @@ MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
 	{	//Split parent communicator in procDivision using iGroup:
 		MPI_Comm_split(procDivision.mpiUtil->comm, procDivision.iGroup,
 			procDivision.mpiUtil->iProcess(), &comm);
+		own_comm = true;
 	}
 	else
 	{	//Initialize MPI (use COMM_WORLD)
 		int rc = MPI_Init(&argc, &argv);
 		if(rc != MPI_SUCCESS) { printf("Error starting MPI program. Terminating.\n"); MPI_Abort(MPI_COMM_WORLD, rc); }
 		comm = MPI_COMM_WORLD;
+		own_comm = false;
 	}
 
 	MPI_Comm_size(comm, &nProcs);
@@ -79,6 +81,7 @@ MPIUtil::MPIUtil(const MPIUtil* mpiUtil, std::vector<int> ranks)
 	MPI_Comm_create_group(mpiUtil->comm, subset, 0, &comm);
 	MPI_Group_free(&subset);
 	MPI_Group_free(&parent);
+	own_comm = true;
 	//Get rank and count within it:
 	MPI_Comm_size(comm, &nProcs);
 	MPI_Comm_rank(comm, &iProc);
@@ -89,6 +92,15 @@ MPIUtil::MPIUtil(const MPIUtil* mpiUtil, std::vector<int> ranks)
 	iProc = 0;
 	#endif
 }
+
+#ifdef MPI_ENABLED
+MPIUtil::MPIUtil(MPI_Comm comm) : comm(comm)
+{	own_comm = false;
+	MPI_Comm_size(comm, &nProcs);
+	MPI_Comm_rank(comm, &iProc);
+	Random::seed(iProc); //Reproducible random seed per process in main comm
+}
+#endif
 
 MPIUtil::~MPIUtil()
 {
@@ -104,7 +116,7 @@ MPIUtil::~MPIUtil()
 		#else
 		MPI_Finalize();
 		#endif
-	else
+	else if(own_comm)
 		MPI_Comm_free(&comm);
 	#endif
 }

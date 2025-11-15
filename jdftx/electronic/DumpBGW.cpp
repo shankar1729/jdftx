@@ -283,7 +283,9 @@ hid_t BGW::openHDF5(string fname) const
 {	logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 	//Create MPI file access across all processes:
 	hid_t plid = H5Pcreate(H5P_FILE_ACCESS);
-	H5Pset_fapl_mpio(plid, MPI_COMM_WORLD, MPI_INFO_NULL);
+	#ifdef MPI_ENABLED
+	H5Pset_fapl_mpio(plid, mpiWorld->communicator(), MPI_INFO_NULL);
+	#endif
 	//Open file with MPI access:
 	hid_t fid = H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plid);
 	if(fid<0) die("Could not open/create output HDF5 file '%s'\n", fname.c_str());
