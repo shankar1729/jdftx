@@ -34,8 +34,9 @@ namespace pybind11 { namespace detail {
   };
 }}
 
-void initialize(mpi4pyComm comm, string logFilename, bool appendLog=true)
+void initialize(mpi4pyComm comm, mpi4pyComm commAll, string logFilename, bool appendLog)
 {	mpiWorld = new MPIUtil(comm);
+	mpiWorldFull = new MPIUtil(commAll);
 	globalLog = fopen(logFilename.c_str(), appendLog ? "a" : "w");
 	if(!globalLog)
 	{	globalLog = stdout;
@@ -54,9 +55,25 @@ PYBIND11_MODULE(pyjdftx, m)
 {	if (import_mpi4py() < 0) {
 		throw std::runtime_error("Could not load mpi4py API.");
 	}
-	m.doc() = "pybind11 example plugin"; // optional module docstring
-	m.def("initialize", &initialize, "Initialize hardware resources including MPI and GPUs (if any)");
+	m.doc() = "Python wrapper to JDFTx";
+	m.def(
+		"initialize", &initialize,
+		"initialize(comm: MPI.Comm, commAll: MPI.Comm, logFilename:str, appendLog: bool)\n"
+		"Initialize hardware resources including MPI and GPUs (if any).\n"
+		"Here, `comm` is the communicator to use during the run,\n"
+		"while `commAll` is the overall communicator over which initialize\n"
+		"is being called simultaneously in order to divide cores/GPUs correctly.\n\n"
+		"If commAll is set to comm during a split run, it is the responsibility\n"
+		"of the calling script to set the correct number of CPU threads to use\n"
+		"in SLURM_CPUS_PER_TASK, and to modify CUDA_VISIBLE_DEVICES to select\n"
+		"the GPU that each process should use (or all that the current comm\n"
+		"should have access to, in order to avoid overcommitting resources."
+	);
 	
 	py::class_<JDFTxWrapper>(m, "JDFTxWrapper")
-        .def(py::init<std::vector<std::pair<string, string>>>());
+        .def(
+			py::init<std::vector<std::pair<string, string>>, bool>(),
+			"__init__(self, inputs: list[tuple[str, str]], variableCell: bool)\n"
+			"Setup calculation from jdftx command/value pairs in inputs."
+		);
 }
