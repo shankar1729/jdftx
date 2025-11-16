@@ -35,8 +35,8 @@ namespace pybind11 { namespace detail {
 }}
 
 void initialize(mpi4pyComm comm, mpi4pyComm commAll, string logFilename, bool appendLog)
-{	mpiWorld = new MPIUtil(comm);
-	mpiWorldFull = new MPIUtil(commAll);
+{	mpiWorldFull = new MPIUtil(commAll);
+	mpiWorld = new MPIUtil(comm); //done later, so that iProc from here fixes random seed
 	globalLog = fopen(logFilename.c_str(), appendLog ? "a" : "w");
 	if(!globalLog)
 	{	globalLog = stdout;
@@ -46,6 +46,7 @@ void initialize(mpi4pyComm comm, mpi4pyComm commAll, string logFilename, bool ap
 	char* argv[] = {(char*)JDFTX_LIBRARY};  //reported in log and stack traces
 	initSystem(argc, argv);
 }
+
 
 #ifdef GPU_ENABLED
 PYBIND11_MODULE(pyjdftx_gpu, m) 
@@ -68,6 +69,12 @@ PYBIND11_MODULE(pyjdftx, m)
 		"in SLURM_CPUS_PER_TASK, and to modify CUDA_VISIBLE_DEVICES to select\n"
 		"the GPU that each process should use (or all that the current comm\n"
 		"should have access to, in order to avoid overcommitting resources."
+	);
+	
+	m.def(
+		"finalize", &finalizeSystem,
+		"finalize(success: bool)\n"
+		"Report resource usage and clean up MPI, logs etc."
 	);
 	
 	py::class_<JDFTxWrapper>(m, "JDFTxWrapper")

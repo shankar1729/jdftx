@@ -440,6 +440,7 @@ void finalizeSystem(bool successful)
 	delete mpiGroupHead;
 	delete mpiGroup;
 	delete mpiWorld;
+	delete mpiWorldFull;
 }
 
 
