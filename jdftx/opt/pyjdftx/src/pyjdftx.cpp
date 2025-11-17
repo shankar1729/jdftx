@@ -106,7 +106,10 @@ PYBIND11_MODULE(pyjdftx, m)
 			 "Move ions and/or lattice by specified amounts.\n"
 			 "Note that `delta_positions` is in fractional coordinates,\n"
 			 "and `delta_R` is change of lattice vectors (in columns)."
-		);
+		)
+		.def("getEnergy", &JDFTxWrapper::getEnergy, "Get current energy in Eh")
+		.def("getForces", &JDFTxWrapper::getForces, "Get current forces in Eh/a0 (Cartesian)")
+		.def("getStress", &JDFTxWrapper::getStress, "Get current stress in Eh/a0^3 (Cartesian)");
 	
 	py::class_<NDarray>(m, "NDarray", py::buffer_protocol())
 		.def_buffer(
@@ -117,7 +120,8 @@ PYBIND11_MODULE(pyjdftx, m)
 				std::vector<py::ssize_t> shape, byte_strides;
 				for(size_t shape_i: arr.shape) shape.push_back(shape_i);
 				for(size_t stride: arr.strides) byte_strides.push_back(sizeof(double) * stride);
-				return py::buffer_info(arr.data, sizeof(double), format, n_dims, shape, byte_strides);
+				return py::buffer_info((double*)arr.data, //cast to non-const pointer
+					sizeof(double), format, n_dims, shape, byte_strides, true); //but marked read-only
 			}
 		);
 }

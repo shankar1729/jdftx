@@ -23,22 +23,21 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <vector>
 #include <core/string.h>
+#include <core/vector3.h>
 
 //! Data structure to receive N-D buffers from Python (e.g. numpy.ndarray or torch.Tensor)
 //! Keeping this double-precision real only for now; can template this later if needed.
 struct NDarray
-{	double* data;
+{	const double* data;
 	std::vector<size_t> shape;
 	std::vector<size_t> strides;
 	
-	inline size_t getOffset(const std::vector<size_t>& index) const
+	inline const double& operator[](const std::vector<size_t>& index) const
 	{	size_t offset = 0;
 		for(size_t dim=0; dim<shape.size(); dim++)
 			offset += index[dim] * strides[dim];
-		return offset;
+		return data[offset];
 	}
-	inline double& operator[](const std::vector<size_t>& index) {return data[getOffset(index)];}
-	inline const double& operator[](const std::vector<size_t>& index) const {return data[getOffset(index)];}
 };
 
 
@@ -49,11 +48,15 @@ public:
 	JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell);
 	void minimize();
 	void move(NDarray delta_positions, NDarray delta_R);
+	double getEnergy() const;
+	NDarray getForces() const;
+	NDarray getStress() const;
 private:
 	bool variableCell;
 	std::shared_ptr<class Everything> e;
 	std::shared_ptr<class IonicMinimizer> imin;
 	std::shared_ptr<class LatticeMinimizer> lmin;
+	std::vector<vector3<>> forces; //flat array of Cartesian forces (converted from SpeciesInfo::forces)
 };
 
 #endif //JDFTX_ELECTRONIC_JDFTX_WRAPPER_H

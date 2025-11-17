@@ -10,6 +10,7 @@ JDFTxWrapper::JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool v
 {	e = std::make_shared<Everything>();
 	parse(inputs, *e, true);
 	e->setup();
+	if(variableCell) e->iInfo.computeStress = true;
 	e->dump(DumpFreq_Init, 0);
 	Citations::print();
 	logPrintf("Initialization completed successfully at t[s]: %9.2lf\n\n", clock_sec());
@@ -86,4 +87,31 @@ void JDFTxWrapper::move(NDarray delta_positions, NDarray delta_R)
 		imin->compute(&grad.ionic, NULL);
 		imin->report(-1);
 	}
+	
+	//Save forces in flat array:
+	forces.clear();
+	for(const std::vector<vector3<>>& grad_sp: grad.ionic)
+		for(const vector3<>& grad_sp_a: grad_sp)
+			forces.push_back(-grad_sp_a); //force is negative gradient (grad is already Cartesian)
 }
+
+double JDFTxWrapper::getEnergy() const
+{	return relevantFreeEnergy(*e);
+}
+
+NDarray JDFTxWrapper::getForces() const
+{	NDarray result;
+	result.data = &forces[0][0];
+	result.shape = std::vector<size_t>({forces.size(), 3});
+	result.strides = std::vector<size_t>({3, 1});
+	return result;
+}
+
+NDarray JDFTxWrapper::getStress() const
+{	NDarray result;
+	result.data = &e->iInfo.stress(0, 0);
+	result.shape = std::vector<size_t>({3, 3});
+	result.strides = std::vector<size_t>({3, 1});
+	return result;
+}
+
