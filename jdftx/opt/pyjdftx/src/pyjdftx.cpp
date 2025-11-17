@@ -19,7 +19,7 @@ struct mpi4pyComm
 
 // Register wrapper with pybind11
 namespace pybind11 { namespace detail {
-	template <> struct type_caster<mpi4pyComm>
+	template<> struct type_caster<mpi4pyComm>
 	{	PYBIND11_TYPE_CASTER(mpi4pyComm, _("mpi4pyComm"));
 		bool load(handle src, bool) 
 		{	PyObject *py_src = src.ptr();
@@ -31,8 +31,20 @@ namespace pybind11 { namespace detail {
 		static handle cast(mpi4pyComm src, return_value_policy, handle)
 		{	return PyMPIComm_New(src.comm);
 		}
-  };
+	};
 }}
+
+//Convert python buffers to equivalent NDarray object (to isolate libjdftx from python dependency)
+NDarray convert(py::buffer b)
+{	py::buffer_info info = b.request();
+	if(not (info.format == py::format_descriptor<double>::value))
+		throw std::runtime_error("Incompatible buffer: need float64 (double) type");
+	NDarray arr;
+	arr.data = static_cast<double*>(info.ptr);
+	for(size_t shape_i: info.shape) arr.shape.push_back(shape_i);
+	for(size_t stride: info.strides) arr.strides.push_back(stride / sizeof(double));
+	return arr;
+}
 
 void initialize(mpi4pyComm comm, mpi4pyComm commAll, string logFilename, bool appendLog)
 {	mpiWorldFull = new MPIUtil(commAll);
@@ -78,12 +90,34 @@ PYBIND11_MODULE(pyjdftx, m)
 	);
 	
 	py::class_<JDFTxWrapper>(m, "JDFTxWrapper")
-        .def(
+		.def(
 			py::init<std::vector<std::pair<string, string>>, bool>(),
 			"__init__(self, inputs: list[tuple[str, str]], variableCell: bool)\n"
 			"Setup calculation from jdftx command/value pairs in inputs."
 		)
 		.def("minimize", &JDFTxWrapper::minimize,
 			 "Relax ions and/or lattice with parameters specified in commands."
-		 );
+		)
+		.def("move", 
+			 [](JDFTxWrapper& jw, py::buffer delta_positions, py::buffer delta_R)
+			 {	jw.move(convert(delta_positions), convert(delta_R));
+			 },
+			 "move(self, delta_positions: np.ndarray, delta_R: np.ndarray)\n"
+			 "Move ions and/or lattice by specified amounts.\n"
+			 "Note that `delta_positions` is in fractional coordinates,\n"
+			 "and `delta_R` is change of lattice vectors (in columns)."
+		);
+	
+	py::class_<NDarray>(m, "NDarray", py::buffer_protocol())
+		.def_buffer(
+			[](NDarray& arr) -> py::buffer_info 
+			{
+				std::string format = py::format_descriptor<double>::format();
+				size_t n_dims = arr.shape.size();
+				std::vector<py::ssize_t> shape, byte_strides;
+				for(size_t shape_i: arr.shape) shape.push_back(shape_i);
+				for(size_t stride: arr.strides) byte_strides.push_back(sizeof(double) * stride);
+				return py::buffer_info(arr.data, sizeof(double), format, n_dims, shape, byte_strides);
+			}
+		);
 }
