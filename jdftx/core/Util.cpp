@@ -439,8 +439,8 @@ void finalizeSystem(bool successful)
 		fclose(globalLog);
 	delete mpiGroupHead;
 	delete mpiGroup;
+	if(mpiWorldFull != mpiWorld) delete mpiWorldFull; else mpiWorldFull = NULL;
 	delete mpiWorld;
-	delete mpiWorldFull;
 }
 
 

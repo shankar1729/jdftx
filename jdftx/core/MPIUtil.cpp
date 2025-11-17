@@ -46,16 +46,15 @@ MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
 	{	//Split parent communicator in procDivision using iGroup:
 		MPI_Comm_split(procDivision.mpiUtil->comm, procDivision.iGroup,
 			procDivision.mpiUtil->iProcess(), &comm);
-		own_comm = true;
 	}
 	else
 	{	//Initialize MPI (use COMM_WORLD)
 		int rc = MPI_Init(&argc, &argv);
 		if(rc != MPI_SUCCESS) { printf("Error starting MPI program. Terminating.\n"); MPI_Abort(MPI_COMM_WORLD, rc); }
 		comm = MPI_COMM_WORLD;
-		own_comm = false;
 	}
-
+	
+	own_comm = true;
 	MPI_Comm_size(comm, &nProcs);
 	MPI_Comm_rank(comm, &iProc);
 
@@ -110,14 +109,16 @@ MPIUtil::~MPIUtil()
 	MPI_Finalized(&finalized);
 	if(finalized) return; //to prevent double-free type errors
 	//Finalize communicators or MPI as appropriate:
-	if(comm == MPI_COMM_WORLD)
-		#ifdef DONT_FINALIZE_MPI
-		; //Leave MPI unfinalized (needed to avoid crash on cleanup in cray-libsci)
-		#else
-		MPI_Finalize();
-		#endif
-	else if(own_comm)
-		MPI_Comm_free(&comm);
+	if(own_comm)
+	{	if(comm == MPI_COMM_WORLD)
+			#ifdef DONT_FINALIZE_MPI
+			; //Leave MPI unfinalized (needed to avoid crash on cleanup in cray-libsci)
+			#else
+			MPI_Finalize();
+			#endif
+		else
+			MPI_Comm_free(&comm);
+	}
 	#endif
 }
 
