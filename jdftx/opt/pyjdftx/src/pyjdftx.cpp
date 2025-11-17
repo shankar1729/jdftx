@@ -82,5 +82,8 @@ PYBIND11_MODULE(pyjdftx, m)
 			py::init<std::vector<std::pair<string, string>>, bool>(),
 			"__init__(self, inputs: list[tuple[str, str]], variableCell: bool)\n"
 			"Setup calculation from jdftx command/value pairs in inputs."
-		);
+		)
+		.def("minimize", &JDFTxWrapper::minimize,
+			 "Relax ions and/or lattice with parameters specified in commands."
+		 );
 }

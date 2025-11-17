@@ -6,6 +6,7 @@
 
 
 JDFTxWrapper::JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell)
+: variableCell(variableCell)
 {	e = std::make_shared<Everything>();
 	parse(inputs, *e, true);
 	e->setup();
@@ -24,4 +25,11 @@ JDFTxWrapper::JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool v
 		imin = std::make_shared<IonicMinimizer>(*e);
 		imin->compute(&grad, NULL);
 	}
+}
+
+void JDFTxWrapper::minimize()
+{	if(variableCell)
+		lmin->minimize(e->latticeMinParams);
+	else
+		imin->minimize(e->ionicMinParams);
 }

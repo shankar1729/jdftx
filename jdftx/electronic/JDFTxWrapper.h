@@ -29,7 +29,9 @@ class JDFTxWrapper
 {
 public:
 	JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell);
+	void minimize();
 private:
+	bool variableCell;
 	std::shared_ptr<class Everything> e;
 	std::shared_ptr<class IonicMinimizer> imin;
 	std::shared_ptr<class LatticeMinimizer> lmin;
