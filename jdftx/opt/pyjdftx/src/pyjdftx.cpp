@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 #include <mpi.h>
 #include <mpi4py/mpi4py.h>
@@ -34,8 +35,8 @@ namespace pybind11 { namespace detail {
 	};
 }}
 
-//Convert python buffers to equivalent NDarray object (to isolate libjdftx from python dependency)
-NDarray convert(py::buffer b)
+//View numpy arrays as equivalent NDarray object (to isolate libjdftx from python dependency)
+NDarray viewFromPy(py::array_t<double> b)
 {	py::buffer_info info = b.request();
 	if(not (info.format == py::format_descriptor<double>::value))
 		throw std::runtime_error("Incompatible buffer: need float64 (double) type");
@@ -45,6 +46,19 @@ NDarray convert(py::buffer b)
 	for(size_t stride: info.strides) arr.strides.push_back(stride / sizeof(double));
 	return arr;
 }
+
+//Reverse of above
+py::array_t<double> viewToPy(const NDarray& arr)
+{	std::string format = py::format_descriptor<double>::format();
+	size_t n_dims = arr.shape.size();
+	std::vector<py::ssize_t> shape, byte_strides;
+	for(size_t shape_i: arr.shape) shape.push_back(shape_i);
+	for(size_t stride: arr.strides) byte_strides.push_back(sizeof(double) * stride);
+	py::buffer_info buffer_info((double*)arr.data, //cast to non-const pointer
+		sizeof(double), format, n_dims, shape, byte_strides, true); //but marked read-only
+	return py::array_t<double>(buffer_info);
+}
+
 
 void initialize(mpi4pyComm comm, mpi4pyComm commAll, string logFilename, bool appendLog)
 {	mpiWorldFull = new MPIUtil(commAll);
@@ -99,8 +113,8 @@ PYBIND11_MODULE(pyjdftx, m)
 			 "Relax ions and/or lattice with parameters specified in commands."
 		)
 		.def("move", 
-			 [](JDFTxWrapper& jw, py::buffer delta_positions, py::buffer delta_R)
-			 {	jw.move(convert(delta_positions), convert(delta_R));
+			 [](JDFTxWrapper& jw, py::array_t<double> delta_positions, py::array_t<double> delta_R)
+			 {	jw.move(viewFromPy(delta_positions), viewFromPy(delta_R));
 			 },
 			 "move(self, delta_positions: np.ndarray, delta_R: np.ndarray)\n"
 			 "Move ions and/or lattice by specified amounts.\n"
@@ -108,20 +122,12 @@ PYBIND11_MODULE(pyjdftx, m)
 			 "and `delta_R` is change of lattice vectors (in columns)."
 		)
 		.def("getEnergy", &JDFTxWrapper::getEnergy, "Get current energy in Eh")
-		.def("getForces", &JDFTxWrapper::getForces, "Get current forces in Eh/a0 (Cartesian)")
-		.def("getStress", &JDFTxWrapper::getStress, "Get current stress in Eh/a0^3 (Cartesian)");
-	
-	py::class_<NDarray>(m, "NDarray", py::buffer_protocol())
-		.def_buffer(
-			[](NDarray& arr) -> py::buffer_info 
-			{
-				std::string format = py::format_descriptor<double>::format();
-				size_t n_dims = arr.shape.size();
-				std::vector<py::ssize_t> shape, byte_strides;
-				for(size_t shape_i: arr.shape) shape.push_back(shape_i);
-				for(size_t stride: arr.strides) byte_strides.push_back(sizeof(double) * stride);
-				return py::buffer_info((double*)arr.data, //cast to non-const pointer
-					sizeof(double), format, n_dims, shape, byte_strides, true); //but marked read-only
-			}
+		.def("getForces",
+			[](const JDFTxWrapper& jw) {return viewToPy(jw.getForces());}, 
+			"Get current forces (Natoms x 3 array) in Eh/a0 (Cartesian)"
+		)
+		.def("getStress",
+			[](const JDFTxWrapper& jw) {return viewToPy(jw.getStress());},
+			"Get current stress (3 x 3 array) in Eh/a0^3 (Cartesian)"
 		);
 }
