@@ -390,6 +390,15 @@ void Vibrations::calculate()
 	logPrintf("\tAvib:  %15.6lf\n", Avib);
 	
 	logPrintf("\n");
+	// Dump Hessian if requested
+	if(dumpK)
+	{	string fname = e->dump.getFilename("K");
+		logPrintf("\nWriting force matrix K to '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "wb");
+		if(!fp) die("Error opening file for writing.\n");
+		K.write(fp);
+		fclose(fp);
+	}
 }
 
 vector3<> Vibrations::getSplit() const

@@ -39,6 +39,7 @@ public:
 	double omegaMin; //!< frequency cutoff for free energy calculation and detailed mode print out
 	double T; //!< ionic temperature used for entropy and free energy estimation
 	double omegaResolution; //!< frequency resolution used for identifying and reporting degeneracies
+	bool dumpK; //!< whether to dump the Hessian
 	
 	Vibrations();
 	void setup(Everything* e);
