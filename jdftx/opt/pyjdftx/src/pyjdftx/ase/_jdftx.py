@@ -28,7 +28,9 @@ class JDFTx(Calculator):
             self.jdftx_wrapper.move(fractional - fractional_prev, (R - R_prev) / Bohr)
             self.atoms_calculated = self.atoms.copy()
         
-        self.results["energy"] = self.jdftx_wrapper.getEnergy()
+        self.results["energy"] = self.jdftx_wrapper.getEnergy() * Hartree
+        self.results["forces"] = self.jdftx_wrapper.getForces() * (Hartree/Bohr)
+        self.results["stress"] = self.jdftx_wrapper.getStress() * (Hartree/Bohr**3)
 
     def initialize(self, atoms: Atoms) -> None:
         # Prepare geometry commands:
