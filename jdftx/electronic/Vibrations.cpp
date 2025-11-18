@@ -393,7 +393,7 @@ void Vibrations::calculate()
 	// Dump Hessian if requested
 	if(dumpK)
 	{	string fname = e->dump.getFilename("K");
-		logPrintf("\nWriting force matrix K to '%s' ... ", fname.c_str()); logFlush();
+		logPrintf("\nWriting force matrix K to '%s' ... \n", fname.c_str()); logFlush();
 		FILE* fp = fopen(fname.c_str(), "wb");
 		if(!fp) die("Error opening file for writing.\n");
 		K.write(fp);
