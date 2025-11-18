@@ -2,12 +2,14 @@
 #include <electronic/Everything.h>
 #include <electronic/IonicMinimizer.h>
 #include <electronic/LatticeMinimizer.h>
+#include <commands/command.h>
 #include <commands/parser.h>
 
 
 JDFTxWrapper::JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell)
 : variableCell(variableCell)
-{	e = std::make_shared<Everything>();
+{	logPrintf("\n------------------------ Initializing JDFTxWrapper -----------------------\n");
+	e = std::make_shared<Everything>();
 	parse(inputs, *e, true);
 	e->setup();
 	if(variableCell) e->iInfo.computeStress = true;
@@ -115,3 +117,9 @@ NDarray JDFTxWrapper::getStress() const
 	return result;
 }
 
+std::vector<string> JDFTxWrapper::getCommands()
+{	std::vector<string> commands;
+	for(const auto& mapEntry: getCommandMap())
+		commands.push_back(mapEntry.first);
+	return commands;
+}
