@@ -7,7 +7,8 @@
 
 JDFTxWrapper::JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell)
 : variableCell(variableCell)
-{	e = std::make_shared<Everything>();
+{	logPrintf("\n------------------------ Initializing JDFTxWrapper -----------------------\n");
+	e = std::make_shared<Everything>();
 	parse(inputs, *e, true);
 	e->setup();
 	if(variableCell) e->iInfo.computeStress = true;
