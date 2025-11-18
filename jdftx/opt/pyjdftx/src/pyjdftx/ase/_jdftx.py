@@ -5,7 +5,7 @@ from ase import Atoms
 from ase.units import Bohr, Hartree
 from ase.calculators.calculator import Calculator, all_changes
 
-from .. import pyjdftx
+from .. import JDFTxWrapper
 
 
 class JDFTx(Calculator):
@@ -47,7 +47,7 @@ class JDFTx(Calculator):
             commands.append(("ion", f"{name} {x:.15f} {y:.15f} {z:.15f} 1"))
         commands.extend(self.parameters["commands"])
         
-        self.jdftx_wrapper = pyjdftx.JDFTxWrapper(commands, True)
+        self.jdftx_wrapper = JDFTxWrapper(commands, True)
         self.atoms_calculated = atoms.copy()  # atoms for which results are current
 
         

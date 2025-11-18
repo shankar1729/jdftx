@@ -75,9 +75,9 @@ void initialize(mpi4pyComm comm, mpi4pyComm commAll, string logFilename, bool ap
 
 
 #ifdef GPU_ENABLED
-PYBIND11_MODULE(pyjdftx_gpu, m) 
+PYBIND11_MODULE(_pyjdftx_gpu, m) 
 #else
-PYBIND11_MODULE(pyjdftx, m) 
+PYBIND11_MODULE(_pyjdftx, m) 
 #endif
 {	if (import_mpi4py() < 0) {
 		throw std::runtime_error("Could not load mpi4py API.");
