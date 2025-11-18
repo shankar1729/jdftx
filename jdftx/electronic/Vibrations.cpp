@@ -293,10 +293,7 @@ void Vibrations::calculate()
 	{	projector = projector(0,nModes, 0,nProjectors); //discard empty columns
 		projector = projector * invsqrt(dagger(projector)*projector); //orthonormalize
 		matrix ppDag = projector * dagger(projector);
-		matrix IminPpdag = -ppDag;
-		complex* IminPpdagData = IminPpdag.data();
-		for(int i=0; i<nModes; i++)
-			IminPpdagData[IminPpdag.index(i,i)] += 1.;
+		matrix IminPpdag = eye(nModes) - ppDag;
 		K = IminPpdag * K * IminPpdag;
 		//dP -= ppDag * dP;
 		logPrintf("Projected out %d rotation+translation modes\n", nProjectors);
