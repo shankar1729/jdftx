@@ -51,6 +51,7 @@ public:
 	double getEnergy() const;
 	NDarray getForces() const;
 	NDarray getStress() const;
+	static std::vector<string> getCommands();
 private:
 	bool variableCell;
 	std::shared_ptr<class Everything> e;

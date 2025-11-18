@@ -2,6 +2,7 @@
 #include <electronic/Everything.h>
 #include <electronic/IonicMinimizer.h>
 #include <electronic/LatticeMinimizer.h>
+#include <commands/command.h>
 #include <commands/parser.h>
 
 
@@ -116,3 +117,9 @@ NDarray JDFTxWrapper::getStress() const
 	return result;
 }
 
+std::vector<string> JDFTxWrapper::getCommands()
+{	std::vector<string> commands;
+	for(const auto& mapEntry: getCommandMap())
+		commands.push_back(mapEntry.first);
+	return commands;
+}

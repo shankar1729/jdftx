@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from ase import Atoms
@@ -12,8 +12,26 @@ class JDFTx(Calculator):
     """Calculator using JDFTx (https://jdftx.org) through libjdftx."""
     implemented_properties = ["energy", "forces", "stress"]
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
+    def __init__(
+        self,
+        *,
+        commands: Union[None, dict[str, str], list[tuple[str, str]]] = None,
+        **kwargs
+    ) -> None:
+        # Validate extra commands specified:
+        if commands is None:
+            commands = []
+        if isinstance(commands, dict):
+            commands = commands.items()
+        if not isinstance(commands, list):
+            raise ValueError("commands should be a dict or list of command-argument pairs")
+        commands_in = set(cmd.lower() for cmd, _ in commands)
+        valid_commands = set(cmd.lower() for cmd in JDFTxWrapper.getCommands())
+        invalid_commands = commands_in.difference(valid_commands)
+        if invalid_commands:
+            raise KeyError(f"Invalid JDFTx command(s): {', '.join(invalid_commands)}")
+    
+        super().__init__(commands=commands, **kwargs)
 
     def calculate(self, atoms=None, properties=["energy"], system_changes=all_changes):
         Calculator.calculate(self, atoms, properties, system_changes)

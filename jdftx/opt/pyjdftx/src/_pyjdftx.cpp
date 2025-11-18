@@ -129,5 +129,6 @@ PYBIND11_MODULE(_pyjdftx, m)
 		.def("getStress",
 			[](const JDFTxWrapper& jw) {return viewToPy(jw.getStress());},
 			"Get current stress (3 x 3 array) in Eh/a0^3 (Cartesian)"
-		);
+		)
+		.def_static("getCommands", &JDFTxWrapper::getCommands, "Get list of supported commands");
 }
