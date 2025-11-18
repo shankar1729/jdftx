@@ -149,6 +149,7 @@ int nProcessGroups = 0;
 MPIUtil* mpiWorld = 0;
 MPIUtil* mpiGroup = 0;
 MPIUtil* mpiGroupHead = 0;
+MPIUtil* mpiWorldFull = 0;
 bool mpiDebugLog = false;
 bool manualThreadCount = false;
 size_t mempoolSize = 0;
@@ -228,7 +229,6 @@ void initSystem(int argc, char** argv, const InitParams* ip)
 	int hostsum = abs(int(crc32(hostname))); //ensure positive for MPI_split below
 	//---- create MPI group for each host:
 	MPIUtil mpiHost(0,0, MPIUtil::ProcDivision(mpiWorld, 0, hostsum));
-	MPIUtil mpiHostGpu(0,0, MPIUtil::ProcDivision(mpiWorld, 0, isGpuEnabled() ? hostsum : 0)); //for grouping processes with GPUs
 	MPIUtil mpiHostHead(0,0, MPIUtil::ProcDivision(mpiWorld, 0, mpiHost.iProcess())); //communicator between similar rank within each host
 	printProcessDistribution("Running on hosts", hostname, &mpiHost, &mpiHostHead);
 	
@@ -240,7 +240,10 @@ void initSystem(int argc, char** argv, const InitParams* ip)
 		printProcessDistribution("Divided in process groups", oss.str(), mpiGroup, mpiGroupHead);
 	}
 	
+	//Divide-up and initialize GPUs
 	double nGPUs = 0.;
+	if(not mpiWorldFull) mpiWorldFull = mpiWorld; //use full world (if different) for resource division
+	MPIUtil mpiHostGpu(0,0, MPIUtil::ProcDivision(mpiWorldFull, 0, isGpuEnabled() ? hostsum : 0)); //processes with GPUs
 	#ifdef GPU_ENABLED
 	if(!gpuInit(globalLog, &mpiHostGpu, &nGPUs)) die_alone("gpuInit() failed\n\n")
 	#endif
@@ -259,6 +262,12 @@ void initSystem(int argc, char** argv, const InitParams* ip)
 	if(!manualThreadCount) //skip if number of cores per process has been set with -c
 	{	int nSiblings = mpiHost.nProcesses();
 		int iSibling = mpiHost.iProcess();
+		if(mpiWorldFull != mpiWorld)
+		{	//Evaluate siblings based on full world to avoid overcommitting cores:
+			MPIUtil mpiHost(0,0, MPIUtil::ProcDivision(mpiWorldFull, 0, hostsum));
+			nSiblings = mpiHost.nProcesses();
+			iSibling = mpiHost.iProcess();
+		}
 		nProcsAvailable = std::max(1, (nProcsAvailable * (iSibling+1))/nSiblings - (nProcsAvailable*iSibling)/nSiblings);
 	}
 	
@@ -430,6 +439,7 @@ void finalizeSystem(bool successful)
 		fclose(globalLog);
 	delete mpiGroupHead;
 	delete mpiGroup;
+	if(mpiWorldFull != mpiWorld) delete mpiWorldFull; else mpiWorldFull = NULL;
 	delete mpiWorld;
 }
 

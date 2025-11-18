@@ -38,7 +38,7 @@ ElecInfo::ElecInfo()
 fillingsUpdate(FillingsConst), scalarFillings(true),
 smearingType(SmearingFermi), smearingWidth(1e-3),
 mu(NAN), Bz(NAN), muLoop(false),
-hasU(false), nBandsOld(0),
+hasU(false), nBandsOld(0), nBandsMultiplier(1.0),
 Qinitial(0.), Minitial(0.)
 {
 }
@@ -92,10 +92,11 @@ void ElecInfo::setup(const Everything &everything, std::vector<diagMatrix>& F, E
 	{	double nsElectronsMax = *std::max_element(nsElectrons.begin(), nsElectrons.end());
 		int nBandsMin = std::max(1, (int)ceil(nsElectronsMax*wInv));
 		if(fillingsUpdate == FillingsConst) //pick nBands to just accommodate spin channel with most electrons
-		{	nBands = nBandsMin;
+		{	nBands = std::max(nBandsMin, (int)round(nBandsMin * nBandsMultiplier));
 		}
 		else //set to number of atomic orbitals (which will ensure that complete bands are included)
-			nBands = std::max(nBandsMin+1, e->iInfo.nAtomicOrbitals()); //this estimate is usually on the high side, but it leads to better convergence than a stingier value
+			nBands = std::max(nBandsMin+1, (int)round(e->iInfo.nAtomicOrbitals() * nBandsMultiplier)); 
+			//above estimate is usually on the high side, but it leads to better convergence than a stingier value
 	}
 	
 	//--- No initial fillings, fill the lowest orbitals in each spin channel:

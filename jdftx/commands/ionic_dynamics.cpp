@@ -22,6 +22,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/Everything.h>
 #include <electronic/IonicDynamicsParams.h>
 #include <electronic/IonicGaussianPotential.h>
+#include <electronic/Metadynamics.h>
 #include <core/Units.h>
 
 
@@ -221,48 +222,121 @@ EnumStringMap<IonicGaussianPotential::Geometry> igpGeometryMap
 	IonicGaussianPotential::Planar, "Planar"
 );
 
+inline int getSpecies(ParamList& pl, const Everything& e, string argumentName="species")
+{	string spName;
+	pl.get(spName, string(), argumentName, true);
+	for(int iSp=0; iSp<int(e.iInfo.species.size()); iSp++)
+		if(e.iInfo.species[iSp]->name == spName)
+			return iSp;
+	throw argumentName + " must match one of the atom-type names in the calculation";
+}
+
+inline int getAtomIndex(ParamList& pl, const Everything& e, int iSp, string argumentName="at")
+{	int iAt;
+	pl.get(iAt, 0, argumentName, true);
+	//Validate 1-based index:
+	int nAtoms = e.iInfo.species[iSp]->atpos.size();
+	if((iAt < 1) or (iAt > nAtoms))
+	{	ostringstream oss;
+		oss << argumentName << " must be a valid 1-based index between 1 and " << nAtoms;
+		throw oss.str();
+	}
+	return iAt - 1; //return 0-based index
+}
+
 struct CommandIonicGaussianPotential : public Command
 {
 	CommandIonicGaussianPotential() : Command("ionic-gaussian-potential", "jdftx/Ionic/Optimization")
-	{	format = "<species> <U0> <sigma> <geometry>";
+	{	format = "<species> <U0> <sigma> <geometry> [center <x> <y> <z>]";
 		comments = "Apply external potential and forces to ions of specified <species>.\n"
 			"The potential is Gaussian with peak value <U0> Hartrees and standard\n"
-			"deviation <sigma> bohrs, and is always centered at the origin. The symmetry\n"
+			"deviation <sigma> bohrs, and is centered at the origin by default. The symmetry\n"
 			"of the potential is specified by <geometry>, which may be one of:\n"
 			"+ Spherical: The potential is 0-D and confined near the origin.\n"
 			"+ Cylindrical: The potential is 1-D and extends along the z-direction.\n"
 			"+ Planar: The potential is 2-D and extends in the xy-plane.\n"
+			"Optionally, the center of the potential may be shifted by specifying\n"
+			"center <x> <y> <z>, where the format of <x>, <y>, and <z> are specified\n"
+			"by the coords-type."
 			"\n"
 			"Note that the coordinates of the atoms are taken in minimum-image convention\n"
 			"for the unit cell centered at the origin for the potential and force calculation.\n"
 			"This command is intended primarily for applying perturbations in ionic dynamics.";
 		allowMultiple = true;
 		require("ion");
+		//Dependencies to ensure 'center' is interpreted in correct coordinate system:
+		require("latt-scale");
+		require("coords-type");
 	}
 
 	void process(ParamList& pl, Everything& e)
 	{	IonicGaussianPotential igp;
-		//Identify species:
-		string spName;
-		pl.get(spName, string(), "species", true);
-		for(int iSpecies=0; iSpecies<int(e.iInfo.species.size()); iSpecies++)
-			if(e.iInfo.species[iSpecies]->name == spName)
-			{	igp.iSpecies = iSpecies;
-				break;
-			}
-		if(igp.iSpecies < 0) //defaults to -1 in IonicGaussianPotential()
-			throw string("<species> must match one of the atom-type names in the calculation");
-		//Potential parameters:
+		igp.iSpecies = getSpecies(pl, e);
 		pl.get(igp.U0, 0.0, "U0", true);
 		pl.get(igp.sigma, 0.0, "sigma", true);
 		pl.get(igp.geometry, IonicGaussianPotential::Planar, igpGeometryMap, "geometry", true);
+		vector3<> center(0.0, 0.0, 0.0);
+		string key;
+		pl.get(key, string(), "center", false);
+		if(key == "center")
+		{	pl.get(center[0], 0.0, "x", true);
+			pl.get(center[1], 0.0, "y", true);
+			pl.get(center[2], 0.0, "z", true);
+		}
+		//Transform coordinates if necessary
+		if(e.iInfo.coordsType == CoordsCartesian)
+			center = inv(e.gInfo.R) * center;
+		igp.center = center;
 		e.iInfo.ionicGaussianPotentials.push_back(igp);
 	}
 
 	void printStatus(Everything& e, int iRep)
 	{	const IonicGaussianPotential& igp = e.iInfo.ionicGaussianPotentials[iRep];
-		logPrintf("%s %lg %lg %s", e.iInfo.species[igp.iSpecies]->name.c_str(),
-			igp.U0, igp.sigma, igpGeometryMap.getString(igp.geometry));
+		vector3<> center = igp.center;
+		if(e.iInfo.coordsType == CoordsCartesian)
+			center = e.gInfo.R * center; //report cartesian positions
+		logPrintf("%s %lg %lg %s center %19.15lf %19.15lf %19.15lf", e.iInfo.species[igp.iSpecies]->name.c_str(),
+			igp.U0, igp.sigma, igpGeometryMap.getString(igp.geometry), center[0], center[1], center[2]);
 	}
 }
 commandIonicGaussianPotential;
+
+
+struct CommandMetadynamicsBond : public Command
+{
+	CommandMetadynamicsBond() : Command("metadynamics-bond", "jdftx/Ionic/Optimization")
+	{	format = "<species1> <atom1> <species2> <atom2> <resolution> <energy-per-step> [<state-file>]";
+		comments = "Perform metadynamics along bond between two atoms.\n"
+			"+ <species1> <atom1>: First atom selection by species name and 1-based index.\n"
+			"+ <species2> <atom2>: Second atom selection by species name and 1-based index.\n"
+			"+ <resolution>: Spatial resolution of bias potential in bohrs.\n"
+			"+ <energy-per-step>: Energy integral in Hartree-bohrs added to bias potential at each step.\n"
+			"+ <state-file>: Filename to load/save bias potential, if specified.\n"
+			"\n"
+			"Note that the resolution controls both the grid spacing for the potential\n"
+			"as well as the Gaussian smoothing of the energy kernel added at each step.\n";
+		require("ion");
+		require("ionic-dynamics");
+	}
+
+	void process(ParamList& pl, Everything& e)
+	{	std::shared_ptr<MetadynamicsBond> mb = std::make_shared<MetadynamicsBond>();
+		mb->iSp1 = getSpecies(pl, e, "species1");
+		mb->at1 = getAtomIndex(pl, e, mb->iSp1, "at1");
+		mb->iSp2 = getSpecies(pl, e, "species2");
+		mb->at2 = getAtomIndex(pl, e, mb->iSp2, "at2");
+		pl.get(mb->resolution, 0.0, "resolution", true);
+		pl.get(mb->energy_per_step, 0.0, "energy_per_step", true);
+		pl.get(mb->state_filename, string(), "state_filename");
+		e.iInfo.metadynamicsBond = mb;
+	}
+
+	void printStatus(Everything& e, int iRep)
+	{	const MetadynamicsBond& mb = *e.iInfo.metadynamicsBond;
+		logPrintf("%s %d %s %d %lg %lg %s",
+			e.iInfo.species[mb.iSp1]->name.c_str(), mb.at1 + 1,
+			e.iInfo.species[mb.iSp2]->name.c_str(), mb.at2 + 1,
+			mb.resolution, mb.energy_per_step, mb.state_filename.c_str());
+	}
+}
+commandMetadynamicsBond;

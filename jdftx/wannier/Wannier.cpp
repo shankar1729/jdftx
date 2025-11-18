@@ -27,7 +27,7 @@ Wannier::Wannier() : needAtomicOrbitals(false),
 	bStart(0), eOuterMin(0.), eOuterMax(0.), eInnerMin(0.), eInnerMax(0.),
 	projectionOuter(0.0), projectionInner(1.0), outerWindow(false), innerWindow(false),
 	useProjectionThresholds(false), nFrozen(0),
-	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false), saveSpin(false), saveRP(false),
+	saveWfns(false), saveWfnsRealSpace(false), saveMomenta(false), saveSpin(false), saveR(false), saveRP(false),
 	zFieldMag(0.),
 	z0(0.), zH(0.), zSigma(0.),
 	loadRotations(false), numericalOrbitalsOffset(0.5,0.5,0.5), rSmooth(1.),
@@ -61,7 +61,7 @@ void Wannier::setup(const Everything& everything)
 			for(od.l=0; od.l<=sp.lMaxAtomicOrbitals(); od.l++)
 			{	int nMax = sp.nAtomicOrbitals(od.l) - 1; //max pseudo-principal quantum number
 				int nMin = (ignoreSemiCore ? std::max(nMax, 0) : 0);
-				nBandsSemiCore += nMin * (2*od.l+1) * nSpins;
+				nBandsSemiCore += nMin * (2*od.l+1) * nSpins * sp.atpos.size();
 				for(od.n=nMin; int(od.n)<=nMax; od.n++)
 				{	switch(od.spinType)
 					{	case SpinNone:
@@ -97,7 +97,7 @@ void Wannier::setup(const Everything& everything)
 			logPrintf("  Added %lu orbitals each for %lu %s atoms.\n",
 				orbitalDescs.size(), sp.atpos.size(), sp.name.c_str());
 		}
-		logPrintf("\n");
+		logPrintf("  Ignored %d semicore bands overall.\n\n", nBandsSemiCore);
 		needAtomicOrbitals = true;
 	}
 

@@ -35,6 +35,7 @@ enum WannierMember
 	WM_saveWfnsRealSpace,
 	WM_saveMomenta,
 	WM_saveSpin,
+	WM_saveR,
 	WM_saveRP,
 	WM_saveZ,
 	WM_slabWeight,
@@ -63,6 +64,7 @@ EnumStringMap<WannierMember> wannierMemberMap
 	WM_saveWfnsRealSpace, "saveWfnsRealSpace",
 	WM_saveMomenta, "saveMomenta",
 	WM_saveSpin, "saveSpin",
+	WM_saveR, "saveR",
 	WM_saveRP, "saveRP",
 	WM_saveZ, "saveZ",
 	WM_slabWeight, "slabWeight",
@@ -156,10 +158,15 @@ struct CommandWannier : public Command
 			"\n+ saveSpin yes|no\n\n"
 			"   Whether to write spin matrix elements (for non-collinear calculations only).\n"
 			"   Default: no.\n"
+			"\n+ saveR yes|no\n\n"
+			"   Whether to write R matrix elements. Note that the position R here is only\n"
+			"   the short-ranged part; longer-ranged contributions from the derivative\n"
+			"   of the Wannier rotations need to be added after Wannier interpolation.\n"
+			"   Default: no.\n"
 			"\n+ saveRP yes|no\n\n"
 			"   Whether to write R*P matrix elements for calculation of angular momentum and\n"
 			"   electric quadrupole matrix elements in post-processing. Note that the position\n"
-			"   R here is the only short-ranged part; longer-ranged contributions from\n"
+			"   R here is only the short-ranged part; longer-ranged contributions from\n"
 			"   derivative of Wannier rotations need to be added after Wannier interpolation.\n"
 			"   The output drops a factor of (-i) to make it real when possible, i.e.\n"
 			"   it actually corresponds to R*[R,H] instead of R*P.\n"
@@ -271,6 +278,9 @@ struct CommandWannier : public Command
 					if(wannier.saveSpin and not e.eInfo.isNoncollinear())
 						throw string("saveSpin requires noncollinear spin mode");
 					break;
+				case WM_saveR:
+					pl.get(wannier.saveR, false, boolMap, "saveR", true);
+					break;
 				case WM_saveRP:
 					pl.get(wannier.saveRP, false, boolMap, "saveRP", true);
 					break;
@@ -340,6 +350,7 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
 		logPrintf(" \\\n\tsaveMomenta %s", boolMap.getString(wannier.saveMomenta));
 		logPrintf(" \\\n\tsaveSpin %s", boolMap.getString(wannier.saveSpin));
+		logPrintf(" \\\n\tsaveR %s", boolMap.getString(wannier.saveR));
 		logPrintf(" \\\n\tsaveRP %s", boolMap.getString(wannier.saveRP));
 		if(wannier.zVfilename.length())
 			logPrintf(" \\\n\tsaveZ %s %lg", wannier.zVfilename.c_str(), wannier.zFieldMag);

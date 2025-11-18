@@ -63,7 +63,11 @@ void Symmetries::setupMesh()
 }
 
 //Pack and unpack kpoint map entry to a single 64-bit integer
-inline unsigned long long kmapPack(size_t iSrc, int invert, int iSym) { return (((unsigned long long)iSrc)<<32) | ((invert<0 ? 1 : 0)<<31) | iSym; }
+inline unsigned long long kmapPack(size_t iSrc, int invert, int iSym)
+{	return (((unsigned long long)iSrc) << 32)
+		| ((invert<0 ? 1ULL : 0ULL) << 31)
+		| iSym;
+}
 inline void kmapUnpack(unsigned long long kmap, size_t& iSrc, int& invert, int& iSym)
 {	iSrc = size_t(kmap >> 32);
 	invert = (0x80000000 & kmap) ? -1 : +1;

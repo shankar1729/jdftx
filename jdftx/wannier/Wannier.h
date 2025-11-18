@@ -78,6 +78,7 @@ public:
 	bool saveWfnsRealSpace; //!< whether to output Wannier functions band-by-band in real-space
 	bool saveMomenta; //!< whether to output momentum matrix elements
 	bool saveSpin; //!< whether to output spin matrix elements (non-collinear only)
+	bool saveR; //!< whether to output position matrix elements R (short-range Wannier-rotation-matched part)
 	bool saveRP; //!< whether to output R*P matrix elements for Wannierized angular momentum / electric quadrupole evaluation
 	
 	string zVfilename; //!< filename for reading Vscloc with an applied electric field for z matrix element output

@@ -53,7 +53,8 @@ MPIUtil::MPIUtil(int argc, char** argv, ProcDivision procDivision)
 		if(rc != MPI_SUCCESS) { printf("Error starting MPI program. Terminating.\n"); MPI_Abort(MPI_COMM_WORLD, rc); }
 		comm = MPI_COMM_WORLD;
 	}
-
+	
+	own_comm = true;
 	MPI_Comm_size(comm, &nProcs);
 	MPI_Comm_rank(comm, &iProc);
 
@@ -79,6 +80,7 @@ MPIUtil::MPIUtil(const MPIUtil* mpiUtil, std::vector<int> ranks)
 	MPI_Comm_create_group(mpiUtil->comm, subset, 0, &comm);
 	MPI_Group_free(&subset);
 	MPI_Group_free(&parent);
+	own_comm = true;
 	//Get rank and count within it:
 	MPI_Comm_size(comm, &nProcs);
 	MPI_Comm_rank(comm, &iProc);
@@ -90,6 +92,15 @@ MPIUtil::MPIUtil(const MPIUtil* mpiUtil, std::vector<int> ranks)
 	#endif
 }
 
+#ifdef MPI_ENABLED
+MPIUtil::MPIUtil(MPI_Comm comm) : comm(comm)
+{	own_comm = false;
+	MPI_Comm_size(comm, &nProcs);
+	MPI_Comm_rank(comm, &iProc);
+	Random::seed(iProc); //Reproducible random seed per process in main comm
+}
+#endif
+
 MPIUtil::~MPIUtil()
 {
 	#ifdef MPI_ENABLED
@@ -98,14 +109,16 @@ MPIUtil::~MPIUtil()
 	MPI_Finalized(&finalized);
 	if(finalized) return; //to prevent double-free type errors
 	//Finalize communicators or MPI as appropriate:
-	if(comm == MPI_COMM_WORLD)
-		#ifdef DONT_FINALIZE_MPI
-		; //Leave MPI unfinalized (needed to avoid crash on cleanup in cray-libsci)
-		#else
-		MPI_Finalize();
-		#endif
-	else
-		MPI_Comm_free(&comm);
+	if(own_comm)
+	{	if(comm == MPI_COMM_WORLD)
+			#ifdef DONT_FINALIZE_MPI
+			; //Leave MPI unfinalized (needed to avoid crash on cleanup in cray-libsci)
+			#else
+			MPI_Finalize();
+			#endif
+		else
+			MPI_Comm_free(&comm);
+	}
 	#endif
 }
 

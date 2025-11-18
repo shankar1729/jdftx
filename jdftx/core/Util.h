@@ -40,9 +40,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 extern string inputBasename; //!< Basename of input file or "stdin" that can be used as a default run-name
 extern bool killFlag; //!< Flag set by signal handlers - all compute loops should quit cleanly when this is set
-extern MPIUtil* mpiWorld; //!< MPI across all processes
+extern MPIUtil* mpiWorld; //!< MPI across all processes used in run (could be < MPI_COMM_WORLD in library mode)
 extern MPIUtil* mpiGroup; //!< MPI within current group of processes
 extern MPIUtil* mpiGroupHead; //!< MPI across equal ranks in each group
+extern MPIUtil* mpiWorldFull; //!< Actual MPI_COMM_WORLD used for smart resource division (relevant in library mode)
 extern bool mpiDebugLog; //!< If true, all processes output to seperate debug log files, otherwise only head process outputs (set before calling initSystem())
 extern size_t mempoolSize; //!< If non-zero, size of memory pool managed internally by JDFTx
 

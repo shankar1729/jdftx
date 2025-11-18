@@ -44,6 +44,7 @@ class MPIUtil
 	int nProcs, iProc;
 	#ifdef MPI_ENABLED
 	MPI_Comm comm;
+	bool own_comm; //!< whether comm was created by this object (and hence should be freed later)
 	#endif
 public:
 	int iProcess() const { return iProc; } //!< rank of current process
@@ -68,6 +69,9 @@ public:
 
 	MPIUtil(int argc, char** argv, ProcDivision procDivision=ProcDivision());
 	MPIUtil(const MPIUtil* mpiUtil, std::vector<int> ranks); //!< create a sub-communicator from listed ranks in parent communicator
+	#ifdef MPI_ENABLED
+	MPIUtil(MPI_Comm comm);  //!< create from a specified communicator
+	#endif
 	~MPIUtil();
 	void exit(int errCode) const; //!< global exit (kill other MPI processes as well)
 
