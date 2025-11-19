@@ -4,7 +4,7 @@ from functools import cache
 import numpy as np
 from ase import Atoms
 from ase.units import Bohr, Hartree, eV
-from ase.calculators.calculator import Calculator, all_changes
+from ase.calculators.calculator import Calculator, all_changes, kptdensity2monkhorstpack
 
 from .. import JDFTxWrapper
 
@@ -21,6 +21,9 @@ def valid_commands() -> set[str]:
 reserved_commands: dict[str, str] = {
     "ion-species": "pseudopotentials",
     "elec-ex-corr": "xc",
+    "elec-smearing": "smearing",
+    "kpoint-folding": "kpts",
+    "kpoint": "kpts",
 }  #: unallowed jdftx input-file commands and the ASE parameters that replace them
 
 pseudopotential_sets: dict[str, str] = {
@@ -53,6 +56,7 @@ class JDFTx(Calculator):
     
     default_parameters = dict(
         xc="PBE",
+        kpts=3.5,
         smearing=None,
         pseudopotentials="GBRV",
         commands=None,
@@ -65,7 +69,11 @@ class JDFTx(Calculator):
         
         xc
             Exchange-correlation functional, using either the ASE standard
-            options LDA and PBE, or any combination 
+            options LDA and PBE, or any combination supported by JDFTx.
+        kpts
+            Specify as a tuple of 3 integers for a Monkhorst-Pack grid,
+            with an additional key 'gamma' to force Gamma-centered mesh.
+            Alternately, specify a single k-point density in Angstroms.
         smearing
             Specify as None or (type, width_in_eV), where type may be Fermi-Dirac,
             Gaussian, Methfessel-Paxton or Cold. Note that the width refers
@@ -132,6 +140,21 @@ class JDFTx(Calculator):
             xc = xc_map[xc]
         commands.append(("elec-ex-corr", xc))
 
+        # K-point mesh:
+        kpts = self.parameters.kpts
+        force_gamma = False
+        if isinstance(kpts, (float, int)):
+            folding = kptdensity2monkhorstpack(atoms, kpts)
+        elif isinstance(kpts, tuple):
+            folding = kpts[:3]
+            if len(kpts) == 4 and kpts[3] == "gamma":
+                force_gamma = True
+        else:
+            raise ValueError("kpts must be a density, grid size (+ optional 'gamma')")
+        offsets = [(0 if (force_gamma or (fold % 2)) else 0.5) for fold in folding]
+        commands.append(("kpoint", f"{offsets[0]} {offsets[1]} {offsets[2]} 1"))
+        commands.append(("kpoint-folding", f"{folding[0]} {folding[1]} {folding[2]}"))
+
         # Smearing:
         smearing = self.parameters.smearing
         if smearing is not None:
@@ -163,7 +186,7 @@ class JDFTx(Calculator):
         extra_commands = self.parameters.commands
         if extra_commands is None:
             extra_commands = []
-        if isinstance(commands, dict):
+        if isinstance(extra_commands, dict):
             extra_commands = extra_commands.items()
         if not isinstance(commands, list):
             raise ValueError("commands should be a dict or list of command-argument pairs")
