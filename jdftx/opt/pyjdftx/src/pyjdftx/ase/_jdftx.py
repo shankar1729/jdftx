@@ -3,7 +3,7 @@ from functools import cache
 
 import numpy as np
 from ase import Atoms
-from ase.units import Bohr, Hartree
+from ase.units import Bohr, Hartree, eV
 from ase.calculators.calculator import Calculator, all_changes
 
 from .. import JDFTxWrapper
@@ -53,6 +53,7 @@ class JDFTx(Calculator):
     
     default_parameters = dict(
         xc="PBE",
+        smearing=None,
         pseudopotentials="GBRV",
         commands=None,
     )
@@ -65,6 +66,12 @@ class JDFTx(Calculator):
         xc
             Exchange-correlation functional, using either the ASE standard
             options LDA and PBE, or any combination 
+        smearing
+            Specify as None or (type, width_in_eV), where type may be Fermi-Dirac,
+            Gaussian, Methfessel-Paxton or Cold. Note that the width refers
+            to the kT for Fermi-Dirac and the Gaussian sigma for all others.
+            (This differs from JDFTx input, where sigma = 2 kT for the others.)
+            Methfessel-Paxton has an extra argument for order, which must be 1.
         pseudopotentials
             Either the name of a recognized pseudopotential set, including
             SG15, GBRV, GBRV-pbe, GBRV-pbesol, GBRV-lda, or a single string
@@ -73,6 +80,8 @@ class JDFTx(Calculator):
             because these may cause issues with atom ordering. If not using
             these sets, create a directory with the relevant pseudopotentials
             or links to them, so that you can use the wildcard syntax.)
+            Recommended cutoffs are automatically set for the recognized
+            sets; specify elec-cutoff explicitly in `commands` for others.
         commands
             Recognized JDFTx commands and corresponding arguments specified
             as a dictionary or a list of pairs of command names and arguments
@@ -80,6 +89,7 @@ class JDFTx(Calculator):
             listed above that are supported using keyword arguments directly
             to Calculator (following the ASE standard interface) must be
             specified there, and cannot be set within commands.
+            See `valid_commands` and `reserved_commands` for more info.
         """
         # Note that all parameters are processed by Calculator
         # and merged with default_parameters specified above.
@@ -122,11 +132,32 @@ class JDFTx(Calculator):
             xc = xc_map[xc]
         commands.append(("elec-ex-corr", xc))
 
+        # Smearing:
+        smearing = self.parameters.smearing
+        if smearing is not None:
+            smear_key = smearing[0].lower()
+            smear_map = {
+                "fermi-dirac": "Fermi",
+                "gaussian": "Gaussian",
+                "methfessel-paxton": "MP1",
+                "cold": "Cold",
+            }
+            if smear_key not in smear_map:
+                raise KeyError(
+                    f"Unrecognized smearing {smear_key}; "
+                    f"must be one of {', '.join(smear_map.keys())}"
+                )
+            smear_type = smear_map[smear_key]
+            if smear_type == "MP1":
+                assert smearing[2] == 1  # only first-order M-P smearing supported
+            kT = smearing[1] * (1.0 if smear_type == "Fermi" else 0.5) * eV/Hartree
+            commands.append(("elec-smearing", f"{smear_type} {kT}"))
+
         # Pseudopotentials:
         pseudopotentials = self.parameters.pseudopotentials
         if pseudopotentials in pseudopotential_sets:
             pseudopotentials = pseudopotential_sets[pseudopotentials]
-        commands.append(("ion-species", pseudopotentials))        
+        commands.append(("ion-species", pseudopotentials))
 
         # Validate extra commands specified in JDFTx form:
         extra_commands = self.parameters.commands
