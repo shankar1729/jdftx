@@ -24,6 +24,8 @@ reserved_commands: dict[str, str] = {
     "elec-smearing": "smearing",
     "kpoint-folding": "kpts",
     "kpoint": "kpts",
+    "elec-initial-charge": "charge",
+    "elec-n-bands": "nbands",
 }  #: unallowed jdftx input-file commands and the ASE parameters that replace them
 
 pseudopotential_sets: dict[str, str] = {
@@ -58,6 +60,8 @@ class JDFTx(Calculator):
         xc="PBE",
         kpts=3.5,
         smearing=None,
+        charge=0,
+        nbands=0,
         pseudopotentials="GBRV",
         commands=None,
     )
@@ -80,6 +84,14 @@ class JDFTx(Calculator):
             to the kT for Fermi-Dirac and the Gaussian sigma for all others.
             (This differs from JDFTx input, where sigma = 2 kT for the others.)
             Methfessel-Paxton has an extra argument for order, which must be 1.
+        charge
+            Total (initial) charge in system. Note that positive implies removing
+            electrons, opposite to the JDFTx electron-is-positive convention.
+        nbands
+            Number of electron bands, with default zero requesting minimum number
+            of bands to accommodate the electrons (including margin for smearing
+            if present). Can be of the form '0 1.1' to request 1.1x the default
+            number of bands, exactly as in elec-n-bands.
         pseudopotentials
             Either the name of a recognized pseudopotential set, including
             SG15, GBRV, GBRV-pbe, GBRV-pbesol, GBRV-lda, or a single string
@@ -175,6 +187,10 @@ class JDFTx(Calculator):
                 assert smearing[2] == 1  # only first-order M-P smearing supported
             kT = smearing[1] * (1.0 if smear_type == "Fermi" else 0.5) * eV/Hartree
             commands.append(("elec-smearing", f"{smear_type} {kT}"))
+
+        # Settings that translate (nearly) verbatim:
+        commands.append(("elec-initial-charge", f"{-self.parameters.charge}"))
+        commands.append(("elec-n-bands", f"{self.parameters.nbands}"))
 
         # Pseudopotentials:
         pseudopotentials = self.parameters.pseudopotentials
