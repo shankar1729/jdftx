@@ -610,6 +610,7 @@ enum VibrationsMember
 	VM_omegaMin,
 	VM_T,
 	VM_omegaResolution,
+	VM_dumpK,
 	VM_Delim
 };
 
@@ -621,7 +622,8 @@ EnumStringMap<VibrationsMember> vibMap
 	VM_rotationSym, "rotationSym",
 	VM_omegaMin, "omegaMin",
 	VM_T, "T",
-	VM_omegaResolution, "omegaResolution"
+	VM_omegaResolution, "omegaResolution",
+	VM_dumpK, "dumpK"
 );
 
 struct CommandVibrations : public Command
@@ -648,6 +650,8 @@ struct CommandVibrations : public Command
 			"+ T <T>: temperature (in Kelvin) for free energy calculation (default: 298)\n"
 			"+ omegaResolution <omegaResolution>: resolution for detecting and reporting degeneracies\n"
 			"   in modes (default: 1e-4). Does not affect free energies and all modes are still printed.\n"
+			"+ dumpK yes|no: dump the Hessian matrix at the end of vibrational analysis. (default no).\n"
+			"   Includes subspace projections performed according to translationSym and rotationSym.\n"
 			"\n"
 			"Note that for a periodic system with k-points, wave functions may be incompatible\n"
 			"with and without the vibrations command due to symmetry-breaking by the perturbations.\n"
@@ -672,6 +676,7 @@ struct CommandVibrations : public Command
 				case VM_omegaMin: pl.get(e.vibrations->omegaMin, 2e-4, "omegaMin", true); break;
 				case VM_T: pl.get(e.vibrations->T, 298., "T", true); e.vibrations->T *= Kelvin; break;
 				case VM_omegaResolution: pl.get(e.vibrations->omegaResolution, 1e-4, "omegaResolution", true); break;
+				case VM_dumpK: pl.get(e.vibrations->dumpK, false, boolMap, "dumpK", true); break;
 				case VM_Delim: return; //end of input
 			}
 		}
@@ -687,6 +692,7 @@ struct CommandVibrations : public Command
 		logPrintf("\\\n\tomegaMin %g", e.vibrations->omegaMin);
 		logPrintf("\\\n\tT %g", e.vibrations->T/Kelvin);
 		logPrintf("\\\n\tomegaResolution %g", e.vibrations->omegaResolution);
+		logPrintf("\\\n\tdumpK %s", boolMap.getString(e.vibrations->dumpK));
 	}
 }
 commandVibrations;
