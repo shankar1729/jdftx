@@ -52,6 +52,7 @@ public:
 	NDarray getForces() const;
 	NDarray getStress() const;
 	static std::vector<string> getCommands();
+	static string getCommandDoc(string name);
 private:
 	bool variableCell;
 	void compute();

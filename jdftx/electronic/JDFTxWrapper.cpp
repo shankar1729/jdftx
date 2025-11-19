@@ -106,6 +106,11 @@ std::vector<string> JDFTxWrapper::getCommands()
 	return commands;
 }
 
+string JDFTxWrapper::getCommandDoc(string name)
+{	const Command& c = *getCommandMap()[name];
+	return c.name + ' ' + c.format + '\n' + c.comments + '\n';
+}
+
 void JDFTxWrapper::compute()
 {	LatticeGradient grad; grad.init(e->iInfo);
 	if(variableCell)

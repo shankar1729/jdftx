@@ -11,9 +11,9 @@ from .. import JDFTxWrapper
 
 @cache
 def valid_commands() -> set[str]:
-    """Commands that can be specified in the jdftx input-file form 
-    while initializing the JDFTx calculator. This excludes `reserved_commands`
-    that should be specified using the ASE standard syntax instead of JDFTx."""
+    """Commands that can be specified in the jdftx input-file format while
+    initializing the JDFTx calculator. This excludes `reserved_commands`
+    that should be specified using the ASE standard syntax instead."""
     result = set(cmd.lower() for cmd in JDFTxWrapper.getCommands())
     return result.difference(reserved_commands.keys())
 
@@ -221,5 +221,17 @@ class JDFTx(Calculator):
 
         self.jdftx_wrapper = JDFTxWrapper(commands, True)
         self.atoms_calculated = atoms.copy()  # atoms for which results are current
-
-        
+    
+    @staticmethod
+    def help(command: str) -> None:
+        """Retrieve documentation of JDFTx commands."""
+        reserved = (command in reserved_commands)
+        valid = (command in valid_commands())
+        if reserved or valid:
+            print(JDFTxWrapper.getCommandDoc(command))
+        if reserved:
+            parameter = reserved_commands[command]
+            print(
+                f"Note: {command} is valid in JDFTx input files, but it isn't allowed\n"
+                f"in the JDFTx calculator. Use parameter {parameter} instead.\n"
+            )

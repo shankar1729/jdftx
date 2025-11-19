@@ -79,9 +79,7 @@ PYBIND11_MODULE(_pyjdftx_gpu, m)
 #else
 PYBIND11_MODULE(_pyjdftx, m) 
 #endif
-{	if (import_mpi4py() < 0) {
-		throw std::runtime_error("Could not load mpi4py API.");
-	}
+{	if(import_mpi4py() < 0) throw std::runtime_error("Could not load mpi4py API.");
 	m.doc() = "Python wrapper to JDFTx";
 	m.def(
 		"initialize", &initialize,
@@ -130,5 +128,6 @@ PYBIND11_MODULE(_pyjdftx, m)
 			[](const JDFTxWrapper& jw) {return viewToPy(jw.getStress());},
 			"Get current stress (3 x 3 array) in Eh/a0^3 (Cartesian)"
 		)
-		.def_static("getCommands", &JDFTxWrapper::getCommands, "Get list of supported commands");
+		.def_static("getCommands", &JDFTxWrapper::getCommands, "Get list of supported commands")
+		.def_static("getCommandDoc", &JDFTxWrapper::getCommandDoc, "Get documentation of specified command");
 }
