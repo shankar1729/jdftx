@@ -31,6 +31,15 @@ pseudopotential_sets: dict[str, str] = {
     "GBRV-pbesol": "GBRV/$ID_pbesol.uspp",
 }  #: mapping of recognized pseudopotential sets to filenames
 
+def default_cutoff(pseudopotentials: str) -> str:
+    """Default plane-wave cutoff(s) for recognized pseudopotential sets."""
+    if pseudopotentials.startswith("GBRV"):
+        return "20 100"
+    elif pseudopotentials.startswith("SG15"):
+        return "30"
+    else:
+        return "20"  # default in JDFTx
+
 xc_map: dict[str, str]  = {
     "LDA": "lda",
     "PBE": "gga-PBE",
@@ -106,7 +115,7 @@ class JDFTx(Calculator):
         names = atoms.get_chemical_symbols()
         for name, (x, y, z) in zip(names, positions):
             commands.append(("ion", f"{name} {x:.15f} {y:.15f} {z:.15f} 1"))
-        
+
         # Exchange-correlation:
         xc = self.parameters.xc
         if xc in xc_map:
@@ -117,8 +126,8 @@ class JDFTx(Calculator):
         pseudopotentials = self.parameters.pseudopotentials
         if pseudopotentials in pseudopotential_sets:
             pseudopotentials = pseudopotential_sets[pseudopotentials]
-        commands.append(("ion-species", pseudopotentials))
-        
+        commands.append(("ion-species", pseudopotentials))        
+
         # Validate extra commands specified in JDFTx form:
         extra_commands = self.parameters.commands
         if extra_commands is None:
@@ -135,7 +144,11 @@ class JDFTx(Calculator):
                 message += f" Use parameter {reserved_commands[cmd]} instead of {cmd}."
             raise KeyError(message)
         commands.extend(extra_commands)
-        
+
+        # Pseudopotential-set-dependent cutoff:
+        if "elec-cutoff" not in commands_in:
+            commands.append(("elec-cutoff", default_cutoff(pseudopotentials)))
+
         self.jdftx_wrapper = JDFTxWrapper(commands, True)
         self.atoms_calculated = atoms.copy()  # atoms for which results are current
 
