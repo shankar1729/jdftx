@@ -28,6 +28,7 @@ reserved_commands: dict[str, str] = {
     "elec-n-bands": "nbands",
     "coulomb-interaction": "pbc",
     "coulomb-truncation-embed": "center",
+    "dump-name": "directory/label",
 }  #: unallowed jdftx input-file commands and the ASE parameters that replace them
 
 pseudopotential_sets: dict[str, str] = {
@@ -67,6 +68,7 @@ class JDFTx(Calculator):
         center="auto",
         variable_cell=False,
         pseudopotentials="GBRV",
+        write_state=False,
         commands=None,
     )
 
@@ -121,6 +123,14 @@ class JDFTx(Calculator):
             or links to them, so that you can use the wildcard syntax.)
             Recommended cutoffs are automatically set for the recognized
             sets; specify elec-cutoff explicitly in `commands` for others.
+        write_state
+            If True and a label is set, write the electronic state including
+            wavefunctions and fillings (if smearing) at each geometry step.
+            Whenever a label is set, the geometry, energy, forces and stress
+            (if variable cell) are written out at each geometry step.
+            Additional outputs at every geometry step can be introduced
+            by adding a dump command with Ionic frequency to commands.
+            No files are written in the absence of a label.
         commands
             Recognized JDFTx commands and corresponding arguments specified
             as a dictionary or a list of pairs of command names and arguments
@@ -241,6 +251,20 @@ class JDFTx(Calculator):
         if pseudopotentials in pseudopotential_sets:
             pseudopotentials = pseudopotential_sets[pseudopotentials]
         commands.append(("ion-species", pseudopotentials))
+
+        # Checkpoint:
+        dump_name = None
+        if self.label is not None:
+            dump_name = f"{self.label}.$VAR"
+            dump_ionic = "Ionic IonicPositions Lattice Ecomponents Forces"
+            if self.parameters.variable_cell:
+                dump_ionic += " Stress"
+            if self.parameters.write_state:
+                dump_ionic += " State"
+            commands.append(("dump-name", dump_name))
+            commands.append(("dump", dump_ionic))
+        else:
+            commands.append(("dump", "End None"))  # to avoid unrequested State output
 
         # Validate extra commands specified in JDFTx form:
         extra_commands = self.parameters.commands
