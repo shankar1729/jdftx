@@ -54,6 +54,7 @@ public:
 	static std::vector<string> getCommands();
 private:
 	bool variableCell;
+	void compute();
 	std::shared_ptr<class Everything> e;
 	std::shared_ptr<class IonicMinimizer> imin;
 	std::shared_ptr<class LatticeMinimizer> lmin;

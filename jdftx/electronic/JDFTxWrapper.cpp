@@ -19,17 +19,10 @@ JDFTxWrapper::JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool v
 	logFlush();
 	
 	if(variableCell)
-	{	LatticeGradient grad; grad.init(e->iInfo);
 		lmin = std::make_shared<LatticeMinimizer>(*e);
-		lmin->compute(&grad, NULL);
-		lmin->report(-1);
-	}
 	else
-	{	IonicGradient grad; grad.init(e->iInfo);
 		imin = std::make_shared<IonicMinimizer>(*e);
-		imin->compute(&grad, NULL);
-		imin->report(-1);
-	}
+	compute();
 }
 
 void JDFTxWrapper::minimize()
@@ -70,31 +63,20 @@ void convertArray(const NDarray& arr, matrix3<>& m, std::string name)
 }
 
 void JDFTxWrapper::move(NDarray delta_positions, NDarray delta_R)
-{	LatticeGradient delta, grad;
-	delta.init(e->iInfo);
-	grad.init(e->iInfo);
+{	LatticeGradient delta; delta.init(e->iInfo);
 	convertArray(delta_positions, delta.ionic, "delta_positions");
 	convertArray(delta_R, delta.lattice, "delta_R");
 	delta.ionic = e->gInfo.R * delta.ionic; //input fractional, step expects Cartesian
 	if(variableCell)
 	{	delta.lattice = delta.lattice * e->gInfo.invR; //convert delta(R) to relative Cartesian strain
 		lmin->step(delta, 1.0);
-		lmin->compute(&grad, NULL);
-		lmin->report(-1);
 	}
 	else
 	{	if(nrm2(delta.lattice) > 1E-12)
 			throw std::invalid_argument("Cell change not allowed (variableCell = false)");
 		imin->step(delta.ionic, 1.0);
-		imin->compute(&grad.ionic, NULL);
-		imin->report(-1);
 	}
-	
-	//Save forces in flat array:
-	forces.clear();
-	for(const std::vector<vector3<>>& grad_sp: grad.ionic)
-		for(const vector3<>& grad_sp_a: grad_sp)
-			forces.push_back(-grad_sp_a); //force is negative gradient (grad is already Cartesian)
+	compute();
 }
 
 double JDFTxWrapper::getEnergy() const
@@ -122,4 +104,22 @@ std::vector<string> JDFTxWrapper::getCommands()
 	for(const auto& mapEntry: getCommandMap())
 		commands.push_back(mapEntry.first);
 	return commands;
+}
+
+void JDFTxWrapper::compute()
+{	LatticeGradient grad; grad.init(e->iInfo);
+	if(variableCell)
+	{	lmin->compute(&grad, NULL);
+		lmin->report(-1);
+	}
+	else
+	{	imin->compute(&grad.ionic, NULL);
+		imin->report(-1);
+	}
+	
+	//Save forces in flat array:
+	forces.clear();
+	for(const std::vector<vector3<>>& grad_sp: grad.ionic)
+		for(const vector3<>& grad_sp_a: grad_sp)
+			forces.push_back(-grad_sp_a); //force is negative gradient (grad is already Cartesian)
 }
