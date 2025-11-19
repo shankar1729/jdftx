@@ -26,6 +26,8 @@ reserved_commands: dict[str, str] = {
     "kpoint": "kpts",
     "elec-initial-charge": "charge",
     "elec-n-bands": "nbands",
+    "coulomb-interaction": "pbc",
+    "coulomb-truncation-embed": "center",
 }  #: unallowed jdftx input-file commands and the ASE parameters that replace them
 
 pseudopotential_sets: dict[str, str] = {
@@ -62,6 +64,8 @@ class JDFTx(Calculator):
         smearing=None,
         charge=0,
         nbands=0,
+        center="auto",
+        variable_cell=False,
         pseudopotentials="GBRV",
         commands=None,
     )
@@ -92,6 +96,21 @@ class JDFTx(Calculator):
             of bands to accommodate the electrons (including margin for smearing
             if present). Can be of the form '0 1.1' to request 1.1x the default
             number of bands, exactly as in elec-n-bands.
+        center
+            When one or more directions are not periodic, center controls
+            how the periodicity is broken. If center is None, periodicity
+            is preserved and a non-embedded truncation scheme is used.
+            If center is "auto" (default), the center is determined from
+            the geometric center of the atomic coordinates, which will need
+            to be contiguous with each other without wrapping.
+            If center is a sequence of three numbers, explicitly set the
+            embedding center to these fractional coordinates.
+        variable_cell
+            Whether to prepare for variable cell (lattice optimization)
+            calculations (default False). Changing the cell with this
+            set to False will force a reinitialization of JDFTx, while
+            with it True, the cell will be strained within the same JDFTx
+            instance (as would happen in a lattice-minimize calculation).
         pseudopotentials
             Either the name of a recognized pseudopotential set, including
             SG15, GBRV, GBRV-pbe, GBRV-pbesol, GBRV-lda, or a single string
@@ -118,16 +137,19 @@ class JDFTx(Calculator):
 
     def calculate(self, atoms=None, properties=["energy"], system_changes=all_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
-        if {"numbers", "pbc"}.intersection(system_changes):
+        need_reset = {"numbers", "pbc"}
+        need_move = {"positions"}
+        (need_move if self.parameters.variable_cell else need_reset).add("cell")
+        if need_reset.intersection(system_changes):
             self.initialize(self.atoms)
-        elif {"cell", "positions"}.intersection(system_changes):
+        elif need_move.intersection(system_changes):
             R = self.atoms.cell[:].T  # current lattice vectors
             R_prev = self.atoms_calculated.cell[:].T  # previous lattice vectors
             fractional = self.atoms.get_positions() @ np.linalg.inv(R.T)
             fractional_prev = self.atoms_calculated.get_positions() @ np.linalg.inv(R_prev.T)
             self.jdftx_wrapper.move(fractional - fractional_prev, (R - R_prev) / Bohr)
             self.atoms_calculated = self.atoms.copy()
-        
+
         self.results["energy"] = self.jdftx_wrapper.getEnergy() * Hartree
         self.results["forces"] = self.jdftx_wrapper.getForces() * (Hartree/Bohr)
         self.results["stress"] = self.jdftx_wrapper.getStress() * (Hartree/Bohr**3)
@@ -145,6 +167,28 @@ class JDFTx(Calculator):
         names = atoms.get_chemical_symbols()
         for name, (x, y, z) in zip(names, positions):
             commands.append(("ion", f"{name} {x:.15f} {y:.15f} {z:.15f} 1"))
+
+        # Truncation:
+        is_periodic = np.where(atoms.pbc, 1, 0)
+        n_periodic = is_periodic.sum()
+        geometry_flag = ("Isolated", "Wire", "Slab", "Periodic")[n_periodic]
+        if n_periodic == 1:
+            geometry_flag += (" 100", " 010", " 001")[is_periodic.argmax()]
+        if n_periodic == 2:
+            geometry_flag += (" 100", " 010", " 001")[is_periodic.argmin()]
+        commands.append(("coulomb-interaction", geometry_flag))
+        center = self.parameters.center
+        if n_periodic < 3 and (center is not None):
+            if center == "auto":
+                center_cart = positions.mean(axis=0)  # in Cartesian bohrs
+            else:
+                if len(center) != 3:
+                    raise ValueError(
+                        "center must be None, auto, or a sequence of 3 numbers"
+                    )
+                center_cart = np.array(center) @ RT  # in Cartesian bohrs
+            center_str = f"{center_cart[0]} {center_cart[1]} {center_cart[2]}"
+            commands.append(("coulomb-truncation-embed", center_str))
 
         # Exchange-correlation:
         xc = self.parameters.xc
@@ -219,7 +263,7 @@ class JDFTx(Calculator):
         if "elec-cutoff" not in commands_in:
             commands.append(("elec-cutoff", default_cutoff(pseudopotentials)))
 
-        self.jdftx_wrapper = JDFTxWrapper(commands, True)
+        self.jdftx_wrapper = JDFTxWrapper(commands, self.parameters.variable_cell)
         self.atoms_calculated = atoms.copy()  # atoms for which results are current
     
     @staticmethod
