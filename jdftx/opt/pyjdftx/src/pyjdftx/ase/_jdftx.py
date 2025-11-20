@@ -324,6 +324,18 @@ class JDFTx(Calculator):
             self.results["stress"] = np.zeros((3, 3))
         self.atoms_calculated = self.atoms.copy()  # previous atoms for which we now have results
 
+    def dump_end(self) -> None:
+        """Process final outputs at the end of the calculation.
+        Required outputs should be set up using the 'dump End ...' command
+        within the commands parameter, exactly as in a JDFTx input file.
+        Note that 'dump Init' is processed every time the JDFTx wrapper is
+        initialized and 'dump Ionic' is processed every time the geometry changes,
+        while 'dump End' needs to be called explicitly here when needed.
+        (ASE calculators don't know when the calculation is actually done.)"""
+        if self.jdftx_wrapper is None:
+            self.initialize(self.atoms)
+        self.jdftx_wrapper.dumpEnd()
+
     @staticmethod
     def help(command: str) -> None:
         """Retrieve documentation of JDFTx commands."""

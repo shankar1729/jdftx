@@ -119,6 +119,7 @@ PYBIND11_MODULE(_pyjdftx, m)
 			 "Note that `delta_positions` is in fractional coordinates,\n"
 			 "and `delta_R` is change of lattice vectors (in columns)."
 		)
+		.def("dumpEnd", &JDFTxWrapper::dumpEnd, "Dump final outputs at end of calculation")
 		.def("getEnergy", &JDFTxWrapper::getEnergy, "Get current energy in Eh")
 		.def("getForces",
 			[](const JDFTxWrapper& jw) {return viewToPy(jw.getForces());}, 

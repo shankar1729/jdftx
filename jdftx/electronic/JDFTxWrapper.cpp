@@ -79,6 +79,10 @@ void JDFTxWrapper::move(NDarray delta_positions, NDarray delta_R)
 	compute();
 }
 
+void JDFTxWrapper::dumpEnd() const
+{	e->dump(DumpFreq_End, 0);
+}
+
 double JDFTxWrapper::getEnergy() const
 {	return relevantFreeEnergy(*e);
 }

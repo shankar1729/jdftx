@@ -48,6 +48,7 @@ public:
 	JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell);
 	void minimize();
 	void move(NDarray delta_positions, NDarray delta_R);
+	void dumpEnd() const;
 	double getEnergy() const;
 	NDarray getForces() const;
 	NDarray getStress() const;
