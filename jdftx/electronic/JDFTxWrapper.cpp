@@ -127,4 +127,16 @@ void JDFTxWrapper::compute()
 	for(const std::vector<vector3<>>& grad_sp: grad.ionic)
 		for(const vector3<>& grad_sp_a: grad_sp)
 			forces.push_back(-grad_sp_a); //force is negative gradient (grad is already Cartesian)
+	
+	//Write periodicity (needed for recreating geometry in restart):
+	if(e->dump.count(std::make_pair(DumpFreq_Ionic, DumpIonicPositions)) and mpiWorld->isHead())
+	{	string fname = e->dump.getFilename("pbc");
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		auto isTruncated = e->coulombParams.isTruncated();
+		for(int i_dir=0; i_dir<3; i_dir++)
+			fprintf(fp, "%d ", isTruncated[i_dir] ? 0 : 1);
+		fclose(fp);
+		logPrintf("done\n"); logFlush();
+	}
 }

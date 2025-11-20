@@ -4,7 +4,9 @@ from functools import cache
 import numpy as np
 from ase import Atoms
 from ase.units import Bohr, Hartree, eV
-from ase.calculators.calculator import Calculator, all_changes, kptdensity2monkhorstpack
+from ase.calculators.calculator import (
+    Calculator, all_changes, kptdensity2monkhorstpack, ReadError
+)
 
 from .. import JDFTxWrapper
 
@@ -139,18 +141,24 @@ class JDFTx(Calculator):
             to Calculator (following the ASE standard interface) must be
             specified there, and cannot be set within commands.
             See `valid_commands` and `reserved_commands` for more info.
+        
+        If a restart is specified using directory or label, the geometry,
+        energy, forces, stress, wavefunctions etc., will be read from the
+        previous outputs wherever available. However, the above parameters
+        are not written to or read from files, and must be specified again.
         """
         # Note that all parameters are processed by Calculator
         # and merged with default_parameters specified above.
         # The parameters are all handled then in initialize() below.
         super().__init__(**kwargs)
+        self.jdftx_wrapper = None
 
     def calculate(self, atoms=None, properties=["energy"], system_changes=all_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
         need_reset = {"numbers", "pbc"}
         need_move = {"positions"}
         (need_move if self.parameters.variable_cell else need_reset).add("cell")
-        if need_reset.intersection(system_changes):
+        if need_reset.intersection(system_changes) or (self.jdftx_wrapper is None):
             self.initialize(self.atoms)
         elif need_move.intersection(system_changes):
             R = self.atoms.cell[:].T  # current lattice vectors
@@ -261,6 +269,7 @@ class JDFTx(Calculator):
                 dump_ionic += " Stress"
             if self.parameters.write_state:
                 dump_ionic += " State"
+            commands.append(("initial-state", dump_name))  # same label used for restart
             commands.append(("dump-name", dump_name))
             commands.append(("dump", dump_ionic))
         else:
@@ -290,6 +299,31 @@ class JDFTx(Calculator):
         self.jdftx_wrapper = JDFTxWrapper(commands, self.parameters.variable_cell)
         self.atoms_calculated = atoms.copy()  # atoms for which results are current
     
+    def read(self, label):
+        Calculator.read(self, label)
+        R = np.loadtxt(f"{label}.lattice", skiprows=1, usecols=(0, 1, 2))
+        positions = np.loadtxt(f"{label}.ionpos", usecols=(2, 3, 4))
+        names = np.genfromtxt(f"{label}.ionpos", usecols=(1,), dtype="U")
+        pbc = np.loadtxt(f"{label}.pbc")
+        self.atoms = Atoms(
+            symbols=names,
+            positions=(positions * Bohr),
+            cell=(R.T * Bohr),
+            pbc=pbc,
+        )
+        # Read results:
+        for line in open(f"{label}.Ecomponents"):
+            tokens = line.split()
+            if len(tokens) == 3:
+                E = float(tokens[-1])
+        self.results["energy"] = E * Hartree
+        self.results["forces"] = np.loadtxt(f"{label}.force", usecols=(2, 3, 4)) * (Hartree/Bohr)
+        try:
+            self.results["stress"] = np.loadtxt(f"{label}.stress") * (Hartree/Bohr**3)
+        except FileNotFoundError:
+            self.results["stress"] = np.zeros((3, 3))
+        self.atoms_calculated = self.atoms.copy()  # previous atoms for which we now have results
+
     @staticmethod
     def help(command: str) -> None:
         """Retrieve documentation of JDFTx commands."""
