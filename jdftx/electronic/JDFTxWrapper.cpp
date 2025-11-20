@@ -4,6 +4,7 @@
 #include <electronic/LatticeMinimizer.h>
 #include <commands/command.h>
 #include <commands/parser.h>
+#include <core/LatticeUtils.h>
 
 
 JDFTxWrapper::JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell)
@@ -67,13 +68,35 @@ void JDFTxWrapper::move(NDarray delta_positions, NDarray delta_R)
 	convertArray(delta_positions, delta.ionic, "delta_positions");
 	convertArray(delta_R, delta.lattice, "delta_R");
 	delta.ionic = e->gInfo.R * delta.ionic; //input fractional, step expects Cartesian
-	if(variableCell)
-	{	delta.lattice = delta.lattice * e->gInfo.invR; //convert delta(R) to relative Cartesian strain
-		lmin->step(delta, 1.0);
+	delta.lattice = delta.lattice * e->gInfo.invR; //convert delta(R) to relative Cartesian strain
+	
+	//Check symmetries of the new lattice:
+	matrix3<> Rnew = e->gInfo.R + delta.lattice * e->gInfo.R;
+	matrix3<> metric = (~Rnew) * Rnew;
+	for(const SpaceGroupOp& op: e->symm.getMatrices())
+		if(nrm2(metric - (~op.rot) * metric * op.rot) > symmThreshold * nrm2(metric))
+		{	logPrintf("\nNew lattice breaks previous symmetries\n");
+			throw std::invalid_argument("Symmetry change");
+		}
+	
+	//Check symmetries of the change in positions:
+	IonicGradient delta_ionic_err = clone(delta.ionic);
+	IonicGradient force_dir = e->gInfo.RT * delta.ionic; //convert to contravariant lattice coords (force-like)
+	e->symm.symmetrize(force_dir); //... becasue symmetrize expects forces in lattice coords
+	delta.ionic = e->gInfo.invRT * force_dir; //save symmetrized version back in Cartesian coords
+	delta_ionic_err -= delta.ionic;
+	if(dot(delta_ionic_err, delta_ionic_err) > symmThresholdSq)
+	{	logPrintf("\nNew positions break previous symmetries\n");
+		throw std::invalid_argument("Symmetry change");
 	}
+	//Step to new lattice/positions:
+	if(variableCell)
+		lmin->step(delta, 1.0);
 	else
 	{	if(nrm2(delta.lattice) > 1E-12)
+		{	logPrintf("\nCell change not allowed (variableCell = false)\n");
 			throw std::invalid_argument("Cell change not allowed (variableCell = false)");
+		}
 		imin->step(delta.ionic, 1.0);
 	}
 	compute();

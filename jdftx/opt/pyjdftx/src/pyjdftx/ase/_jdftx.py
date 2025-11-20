@@ -165,8 +165,14 @@ class JDFTx(Calculator):
             R_prev = self.atoms_calculated.cell[:].T  # previous lattice vectors
             fractional = self.atoms.get_positions() @ np.linalg.inv(R.T)
             fractional_prev = self.atoms_calculated.get_positions() @ np.linalg.inv(R_prev.T)
-            self.jdftx_wrapper.move(fractional - fractional_prev, (R - R_prev) / Bohr)
-            self.atoms_calculated = self.atoms.copy()
+            try:
+                self.jdftx_wrapper.move(fractional - fractional_prev, (R - R_prev) / Bohr)
+                self.atoms_calculated = self.atoms.copy()
+            except ValueError as ve:
+                if ve.args[0] == "Symmetry change":
+                    self.initialize(self.atoms)
+                else:
+                    raise ve
 
         self.results["energy"] = self.jdftx_wrapper.getEnergy() * Hartree
         self.results["forces"] = self.jdftx_wrapper.getForces() * (Hartree/Bohr)
