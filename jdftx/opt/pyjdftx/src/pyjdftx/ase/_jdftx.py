@@ -135,7 +135,8 @@ class JDFTx(Calculator):
             No files are written in the absence of a label.
         commands
             Recognized JDFTx commands and corresponding arguments specified
-            as a dictionary or a list of pairs of command names and arguments
+            as a single string in the JDFTx input file format, or a
+            dictionary or a list of pairs of command names and arguments
             (all arguments together as a single string). Note that the settings
             listed above that are supported using keyword arguments directly
             to Calculator (following the ASE standard interface) must be
@@ -285,6 +286,17 @@ class JDFTx(Calculator):
         extra_commands = self.parameters.commands
         if extra_commands is None:
             extra_commands = []
+        if isinstance(extra_commands, str):
+            lines = extra_commands.replace("\\\n", " ").splitlines()
+            extra_commands = []
+            for line in lines:
+                line = line.strip()
+                if line:
+                    tokens = line.split(maxsplit=1)
+                    if len(tokens) == 1:
+                        tokens.append("")
+                    extra_commands.append(tuple(tokens))
+
         if isinstance(extra_commands, dict):
             extra_commands = extra_commands.items()
         if not isinstance(commands, list):
