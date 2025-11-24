@@ -27,10 +27,10 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //Program entry point
 int main(int argc, char** argv)
 {	//Parse command line, initialize system and logs:
-	Phonon phonon;
-	InitParams ip("Compute phonon band-structures and e-ph matrix elements.", &phonon.e);
+	InitParams ip("Compute phonon band-structures and e-ph matrix elements.");
 	initSystemCmdline(argc, argv, ip);
-
+	
+	Phonon phonon;
 	phonon.input = readInputFile(ip.inputFilename);
 	phonon.dryRun = ip.dryRun;
 	

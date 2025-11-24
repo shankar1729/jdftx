@@ -442,8 +442,9 @@ inline string describeSyntax()
 		"   'set xxx VALUE' and occurences of ${xxx} in the input file do matter.\n";
 }
 
-void printDefaultTemplate(Everything& everything)
+void printDefaultTemplate()
 {	ProcessedCommandMap cmap;
+	Everything everything;
 	processDefaults(everything, cmap);
 	//Now print the comments and status of all commands in map (alphabetical) order:
 	for(ProcessedCommandMap::iterator i=cmap.begin(); i!=cmap.end(); i++)
@@ -535,8 +536,9 @@ inline void printHTMLformatted(string s)
 {	fputs(htmlAddLinks(htmlEscapeCharacters(s)).c_str(), globalLog);
 }
 
-void writeCommandManual(Everything& everything, string section)
+void writeCommandManual(string section)
 {	ProcessedCommandMap cmap;
+	Everything everything;
 	processDefaults(everything, cmap);
 	//Print a doxygen page for all commands:
 	logPrintf("//Auto-generated using writeCommandManual(everything, \"%s\")\n", section.c_str());

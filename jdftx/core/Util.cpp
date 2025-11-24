@@ -34,8 +34,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h> //This file is generated during build based on Git hash etc.
 
-InitParams::InitParams(const char* description, class Everything* e)
-: description(description), e(e), packageName(0), versionString(0), versionHash(0)
+InitParams::InitParams(const char* description)
+: description(description), packageName(0), versionString(0), versionHash(0)
 {
 }
 
@@ -339,7 +339,7 @@ void initSystemCmdline(int argc, char** argv, InitParams& ip)
 			case 'i': ip.inputFilename.assign(optarg); break;
 			case 'o': logFilename.assign(optarg); break;
 			case 'd': appendOutput=false; break;
-			case 't': RUN_HEAD( if(ip.e) printDefaultTemplate(*ip.e); ) exit(0);
+			case 't': RUN_HEAD( printDefaultTemplate(); ) exit(0);
 			case 'm': mpiDebugLog=true; break;
 			case 'n': ip.dryRun=true; break;
 			case 'c':
@@ -361,7 +361,7 @@ void initSystemCmdline(int argc, char** argv, InitParams& ip)
 				break;
 			}
 			case 's': ip.printDefaults=false; break;
-			case 'w': RUN_HEAD( if(ip.e) writeCommandManual(*ip.e, optarg); ) exit(0);
+			case 'w': RUN_HEAD( writeCommandManual(optarg); ) exit(0);
 			default: RUN_HEAD( printUsage(argv[0], ip); ) exit(1);
 		}
 		#undef RUN_HEAD

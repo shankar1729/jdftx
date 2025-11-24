@@ -5,6 +5,7 @@
 #include <mpi4py/mpi4py.h>
 #undef assert
 #include <core/Util.h>
+#include <electronic/run.h>
 #include <electronic/JDFTxWrapper.h>
 
 
@@ -99,6 +100,11 @@ PYBIND11_MODULE(_pyjdftx, m)
 		"finalize", &finalizeSystem,
 		"finalize(success: bool)\n"
 		"Report resource usage and clean up MPI, logs etc."
+	);
+	
+	m.def(
+		"run", &run, py::arg("inputFilename"), py::arg("dryRun")=false, py::arg("printDefaults")=true,
+		"Run a JDFTx calculation from an inputfile (just as the main executable would)."
 	);
 	
 	py::class_<JDFTxWrapper>(m, "JDFTxWrapper")
