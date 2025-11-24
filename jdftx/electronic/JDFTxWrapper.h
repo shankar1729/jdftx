@@ -48,12 +48,15 @@ public:
 	JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell);
 	void minimize();
 	void move(NDarray delta_positions, NDarray delta_R);
+	void dumpEnd() const;
 	double getEnergy() const;
 	NDarray getForces() const;
 	NDarray getStress() const;
 	static std::vector<string> getCommands();
+	static string getCommandDoc(string name);
 private:
 	bool variableCell;
+	void compute();
 	std::shared_ptr<class Everything> e;
 	std::shared_ptr<class IonicMinimizer> imin;
 	std::shared_ptr<class LatticeMinimizer> lmin;

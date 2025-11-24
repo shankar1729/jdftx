@@ -4,6 +4,7 @@
 #include <electronic/LatticeMinimizer.h>
 #include <commands/command.h>
 #include <commands/parser.h>
+#include <core/LatticeUtils.h>
 
 
 JDFTxWrapper::JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell)
@@ -19,17 +20,10 @@ JDFTxWrapper::JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool v
 	logFlush();
 	
 	if(variableCell)
-	{	LatticeGradient grad; grad.init(e->iInfo);
 		lmin = std::make_shared<LatticeMinimizer>(*e);
-		lmin->compute(&grad, NULL);
-		lmin->report(-1);
-	}
 	else
-	{	IonicGradient grad; grad.init(e->iInfo);
 		imin = std::make_shared<IonicMinimizer>(*e);
-		imin->compute(&grad, NULL);
-		imin->report(-1);
-	}
+	compute();
 }
 
 void JDFTxWrapper::minimize()
@@ -70,31 +64,46 @@ void convertArray(const NDarray& arr, matrix3<>& m, std::string name)
 }
 
 void JDFTxWrapper::move(NDarray delta_positions, NDarray delta_R)
-{	LatticeGradient delta, grad;
-	delta.init(e->iInfo);
-	grad.init(e->iInfo);
+{	LatticeGradient delta; delta.init(e->iInfo);
 	convertArray(delta_positions, delta.ionic, "delta_positions");
 	convertArray(delta_R, delta.lattice, "delta_R");
 	delta.ionic = e->gInfo.R * delta.ionic; //input fractional, step expects Cartesian
-	if(variableCell)
-	{	delta.lattice = delta.lattice * e->gInfo.invR; //convert delta(R) to relative Cartesian strain
-		lmin->step(delta, 1.0);
-		lmin->compute(&grad, NULL);
-		lmin->report(-1);
+	delta.lattice = delta.lattice * e->gInfo.invR; //convert delta(R) to relative Cartesian strain
+	
+	//Check symmetries of the new lattice:
+	matrix3<> Rnew = e->gInfo.R + delta.lattice * e->gInfo.R;
+	matrix3<> metric = (~Rnew) * Rnew;
+	for(const SpaceGroupOp& op: e->symm.getMatrices())
+		if(nrm2(metric - (~op.rot) * metric * op.rot) > symmThreshold * nrm2(metric))
+		{	logPrintf("\nNew lattice breaks previous symmetries\n");
+			throw std::invalid_argument("Symmetry change");
+		}
+	
+	//Check symmetries of the change in positions:
+	IonicGradient delta_ionic_err = clone(delta.ionic);
+	IonicGradient force_dir = e->gInfo.RT * delta.ionic; //convert to contravariant lattice coords (force-like)
+	e->symm.symmetrize(force_dir); //... becasue symmetrize expects forces in lattice coords
+	delta.ionic = e->gInfo.invRT * force_dir; //save symmetrized version back in Cartesian coords
+	delta_ionic_err -= delta.ionic;
+	if(dot(delta_ionic_err, delta_ionic_err) > symmThresholdSq)
+	{	logPrintf("\nNew positions break previous symmetries\n");
+		throw std::invalid_argument("Symmetry change");
 	}
+	//Step to new lattice/positions:
+	if(variableCell)
+		lmin->step(delta, 1.0);
 	else
 	{	if(nrm2(delta.lattice) > 1E-12)
+		{	logPrintf("\nCell change not allowed (variableCell = false)\n");
 			throw std::invalid_argument("Cell change not allowed (variableCell = false)");
+		}
 		imin->step(delta.ionic, 1.0);
-		imin->compute(&grad.ionic, NULL);
-		imin->report(-1);
 	}
-	
-	//Save forces in flat array:
-	forces.clear();
-	for(const std::vector<vector3<>>& grad_sp: grad.ionic)
-		for(const vector3<>& grad_sp_a: grad_sp)
-			forces.push_back(-grad_sp_a); //force is negative gradient (grad is already Cartesian)
+	compute();
+}
+
+void JDFTxWrapper::dumpEnd() const
+{	e->dump(DumpFreq_End, 0);
 }
 
 double JDFTxWrapper::getEnergy() const
@@ -122,4 +131,39 @@ std::vector<string> JDFTxWrapper::getCommands()
 	for(const auto& mapEntry: getCommandMap())
 		commands.push_back(mapEntry.first);
 	return commands;
+}
+
+string JDFTxWrapper::getCommandDoc(string name)
+{	const Command& c = *getCommandMap()[name];
+	return c.name + ' ' + c.format + '\n' + c.comments + '\n';
+}
+
+void JDFTxWrapper::compute()
+{	LatticeGradient grad; grad.init(e->iInfo);
+	if(variableCell)
+	{	lmin->compute(&grad, NULL);
+		lmin->report(-1);
+	}
+	else
+	{	imin->compute(&grad.ionic, NULL);
+		imin->report(-1);
+	}
+	
+	//Save forces in flat array:
+	forces.clear();
+	for(const std::vector<vector3<>>& grad_sp: grad.ionic)
+		for(const vector3<>& grad_sp_a: grad_sp)
+			forces.push_back(-grad_sp_a); //force is negative gradient (grad is already Cartesian)
+	
+	//Write periodicity (needed for recreating geometry in restart):
+	if(e->dump.count(std::make_pair(DumpFreq_Ionic, DumpIonicPositions)) and mpiWorld->isHead())
+	{	string fname = e->dump.getFilename("pbc");
+		logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "w");
+		auto isTruncated = e->coulombParams.isTruncated();
+		for(int i_dir=0; i_dir<3; i_dir++)
+			fprintf(fp, "%d ", isTruncated[i_dir] ? 0 : 1);
+		fclose(fp);
+		logPrintf("done\n"); logFlush();
+	}
 }

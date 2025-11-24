@@ -5,6 +5,7 @@
 #include <mpi4py/mpi4py.h>
 #undef assert
 #include <core/Util.h>
+#include <electronic/run.h>
 #include <electronic/JDFTxWrapper.h>
 
 
@@ -79,9 +80,7 @@ PYBIND11_MODULE(_pyjdftx_gpu, m)
 #else
 PYBIND11_MODULE(_pyjdftx, m) 
 #endif
-{	if (import_mpi4py() < 0) {
-		throw std::runtime_error("Could not load mpi4py API.");
-	}
+{	if(import_mpi4py() < 0) throw std::runtime_error("Could not load mpi4py API.");
 	m.doc() = "Python wrapper to JDFTx";
 	m.def(
 		"initialize", &initialize,
@@ -103,6 +102,11 @@ PYBIND11_MODULE(_pyjdftx, m)
 		"Report resource usage and clean up MPI, logs etc."
 	);
 	
+	m.def(
+		"run", &run, py::arg("inputFilename"), py::arg("dryRun")=false, py::arg("printDefaults")=true,
+		"Run a JDFTx calculation from an inputfile (just as the main executable would)."
+	);
+	
 	py::class_<JDFTxWrapper>(m, "JDFTxWrapper")
 		.def(
 			py::init<std::vector<std::pair<string, string>>, bool>(),
@@ -121,6 +125,7 @@ PYBIND11_MODULE(_pyjdftx, m)
 			 "Note that `delta_positions` is in fractional coordinates,\n"
 			 "and `delta_R` is change of lattice vectors (in columns)."
 		)
+		.def("dumpEnd", &JDFTxWrapper::dumpEnd, "Dump final outputs at end of calculation")
 		.def("getEnergy", &JDFTxWrapper::getEnergy, "Get current energy in Eh")
 		.def("getForces",
 			[](const JDFTxWrapper& jw) {return viewToPy(jw.getForces());}, 
@@ -130,5 +135,6 @@ PYBIND11_MODULE(_pyjdftx, m)
 			[](const JDFTxWrapper& jw) {return viewToPy(jw.getStress());},
 			"Get current stress (3 x 3 array) in Eh/a0^3 (Cartesian)"
 		)
-		.def_static("getCommands", &JDFTxWrapper::getCommands, "Get list of supported commands");
+		.def_static("getCommands", &JDFTxWrapper::getCommands, "Get list of supported commands")
+		.def_static("getCommandDoc", &JDFTxWrapper::getCommandDoc, "Get documentation of specified command");
 }

@@ -44,13 +44,11 @@ void parse(std::vector< std::pair<string,string> > input, Everything &everything
 
 //! @brief Output command documentation in the form of an input file template.
 //! This will output the comments for all the commands, along with the default command line, if any.
-//! @param e A reference to Everything
-void printDefaultTemplate(Everything &e);
+void printDefaultTemplate();
 
 //! @brief Output command docuemntation in Doxygen format which gets converted to the HTML and LaTeX manuals
-//! @param e A reference to Everything
 //! @param section Which executable to generate documentation for i.e. only include commands whose section matches this
-void writeCommandManual(Everything& e, string section);
+void writeCommandManual(string section);
 
 //! @}
 #endif // JDFTX_PARSER_H

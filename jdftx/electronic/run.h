@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2011 Ravishankar Sundararaman, Kendra Letchworth Weaver
+Copyright 2025 Ravishankar Sundararaman
 
 This file is part of JDFTx.
 
@@ -17,13 +17,13 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/run.h>
-#include <core/Util.h>
+#ifndef JDFTX_ELECTRONIC_RUN_H
+#define JDFTX_ELECTRONIC_RUN_H
 
-int main(int argc, char** argv)
-{	InitParams ip("Performs Joint Density Functional Theory calculations.");
-	initSystemCmdline(argc, argv, ip);
-	run(ip.inputFilename, ip.dryRun, ip.printDefaults);
-	finalizeSystem();
-	return 0;
-}
+#include <core/string.h>
+
+//Perform the actions of the main jdftx executable
+//(except for the commandline/resource init and cleanup)
+void run(string inputFilename, bool dryRun, bool printDefaults);
+
+#endif //JDFTX_ELECTRONIC_RUN_H
