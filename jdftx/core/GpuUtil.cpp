@@ -17,6 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
+int selectedDevice = -1;
+
 #ifdef GPU_ENABLED
 #include <core/GpuUtil.h>
 #include <core/MPIUtil.h>
@@ -43,7 +45,8 @@ bool gpuInit(FILE* fpLog, const MPIUtil* mpiHostGpu, double* nGPUs)
 	pthread_setspecific(gpuOwnerKey, (const void*)1); //this will show up as 1 only on current thread
 
 	//Find compatible GPUs and select the one with maximum memory
-	int nDevices, selectedDevice=-1; unsigned long maxGlobalMem=0;
+	int nDevices; unsigned long maxGlobalMem=0;
+	selectedDevice = -1;
 	std::vector<int> compatibleDevices;
 	cudaGetDeviceCount(&nDevices);
 	for(int device=0; device<nDevices; device++)

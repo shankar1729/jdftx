@@ -55,6 +55,7 @@ void JDFTxWrapper::minimize()
 void convertArray(NDarray arr, IonicGradient& grad, std::string name)
 {	if(arr.shape.size() != 2) throw std::invalid_argument(name + " must be 2D");
 	if(arr.shape[1] != 3) throw std::invalid_argument(name + ".shape[1] must be 3");
+	assert(not arr.onGpu);
 	std::vector<size_t> index({0, 0});
 	size_t& i_atom = index[0];
 	size_t& i_dir = index[1];
@@ -74,6 +75,7 @@ void convertArray(NDarray arr, matrix3<>& m, std::string name)
 {	if(arr.shape.size() != 2) throw std::invalid_argument(name + " must be 2D");
 	if(arr.shape[0] != 3) throw std::invalid_argument(name + ".shape[0] must be 3");
 	if(arr.shape[1] != 3) throw std::invalid_argument(name + ".shape[1] must be 3");
+	assert(not arr.onGpu);
 	std::vector<size_t> index({0, 0});
 	size_t& i_row = index[0];
 	size_t& i_col = index[1];
@@ -133,7 +135,7 @@ NDarray JDFTxWrapper::getForces() const
 {	NDarray result;
 	result.data = (double*)&forces[0][0];
 	result.shape = std::vector<size_t>({forces.size(), 3});
-	result.strides = std::vector<size_t>({3, 1});
+	result.onGpu = false;
 	return result;
 }
 
@@ -141,7 +143,7 @@ NDarray JDFTxWrapper::getStress() const
 {	NDarray result;
 	result.data = (double*)&e->iInfo.stress(0, 0);
 	result.shape = std::vector<size_t>({3, 3});
-	result.strides = std::vector<size_t>({3, 1});
+	result.onGpu = false;
 	return result;
 }
 
@@ -190,24 +192,22 @@ void JDFTxWrapper::compute()
 void CavityFunctionWrapper::operator()(const ScalarField& n, ScalarFieldArray& shape)
 {	vector3<size_t> S(n->gInfo.S);
 	nullToZero(shape, n->gInfo);
-	std::vector<size_t> size({S[0], S[1], S[2]});
-	std::vector<size_t> strides({S[1]*S[2], S[2], 1});
-	NDarray n_arr({n->data(), size, strides});
+	std::vector<size_t> size({S[0], S[1], S[2]}), strides; //strides empty => contiguous
+	NDarray n_arr({n->dataPref(), size, strides, isGpuEnabled()});
 	std::vector<NDarray> shape_arr;
 	for(ScalarField& shape_i: shape)
-		shape_arr.push_back(NDarray({shape_i->data(), size, strides}));
+		shape_arr.push_back(NDarray({shape_i->dataPref(), size, strides, isGpuEnabled()}));
 	setCavity(n_arr, shape_arr);
 }
 
 void CavityFunctionGradWrapper::operator()(const ScalarFieldArray& A_shape, ScalarField& A_n)
 {	vector3<size_t> S(A_shape[0]->gInfo.S);
 	nullToZero(A_n, A_shape[0]->gInfo);
-	std::vector<size_t> size({S[0], S[1], S[2]});
-	std::vector<size_t> strides({S[1]*S[2], S[2], 1});
-	NDarray A_n_arr({A_n->data(), size, strides});
+	std::vector<size_t> size({S[0], S[1], S[2]}), strides;  //strides empty => contiguous
+	NDarray A_n_arr({A_n->dataPref(), size, strides, isGpuEnabled()});
 	std::vector<NDarray> A_shape_arr;
 	for(const ScalarField& A_shape_i: A_shape)
-		A_shape_arr.push_back(NDarray({A_shape_i->data(), size, strides}));
+		A_shape_arr.push_back(NDarray({A_shape_i->dataPref(), size, strides, isGpuEnabled()}));
 	setCavityGrad(A_n_arr, A_shape_arr);
 }
 

@@ -31,7 +31,8 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 struct NDarray
 {	double* data;
 	std::vector<size_t> shape;
-	std::vector<size_t> strides;
+	std::vector<size_t> strides; //empty if contiguous
+	bool onGpu;
 	
 	inline double& operator[](const std::vector<size_t>& index)
 	{	size_t offset = 0;
