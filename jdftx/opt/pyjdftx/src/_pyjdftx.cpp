@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/functional.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 #include <mpi.h>
@@ -55,10 +56,23 @@ py::array_t<double> viewToPy(const NDarray& arr)
 	std::vector<py::ssize_t> shape, byte_strides;
 	for(size_t shape_i: arr.shape) shape.push_back(shape_i);
 	for(size_t stride: arr.strides) byte_strides.push_back(sizeof(double) * stride);
-	py::buffer_info buffer_info((double*)arr.data, //cast to non-const pointer
-		sizeof(double), format, n_dims, shape, byte_strides, true); //but marked read-only
-	return py::array_t<double>(buffer_info);
+	//py::buffer_info buffer_info(arr.data, sizeof(double), format, n_dims, shape, byte_strides);
+	//return py::array_t<double>(buffer_info);
+	return py::array_t<double>(shape, byte_strides, arr.data, py::cast(arr));
 }
+
+typedef std::function<void(py::array_t<double>, std::vector<py::array_t<double>>)> pySetCavity_t;
+
+//Wrap unary function calls from py::array to NDarray (to hide NDarray from python code)
+struct SetCavityWrapper
+{	pySetCavity_t func;
+	SetCavityWrapper(pySetCavity_t func): func(func) {}
+	void operator()(NDarray scalar, std::vector<NDarray> vec)
+	{	std::vector<py::array_t<double>> pyVec;
+		for(NDarray vec_i: vec) pyVec.push_back(viewToPy(vec_i));
+		return func(viewToPy(scalar), pyVec);
+	}
+};
 
 
 void initialize(mpi4pyComm comm, mpi4pyComm commAll, string logFilename, bool appendLog)
@@ -107,9 +121,24 @@ PYBIND11_MODULE(_pyjdftx, m)
 		"Run a JDFTx calculation from an inputfile (just as the main executable would)."
 	);
 	
+	py::class_<NDarray>(m, "NDarray");
+	
 	py::class_<JDFTxWrapper>(m, "JDFTxWrapper")
 		.def(
-			py::init<std::vector<std::pair<string, string>>, bool>(),
+			py::init(
+				[](std::vector<std::pair<string, string>> inputs, bool variableCell,
+					std::pair<pySetCavity_t, pySetCavity_t> setCavity)
+				{
+					setCavity_t setCavityFuncs[2] = {setCavity_t(), setCavity_t()};
+					if(setCavity.first)
+					{	setCavityFuncs[0] = SetCavityWrapper(setCavity.first);
+						setCavityFuncs[1] = SetCavityWrapper(setCavity.second);
+					}
+					return new JDFTxWrapper(inputs, variableCell, setCavityFuncs);
+				}
+			),
+			py::arg("inputs"), py::arg("variableCell")=false,
+			py::arg("setCavity")=std::make_pair(pySetCavity_t(), pySetCavity_t()),
 			"__init__(self, inputs: list[tuple[str, str]], variableCell: bool)\n"
 			"Setup calculation from jdftx command/value pairs in inputs."
 		)

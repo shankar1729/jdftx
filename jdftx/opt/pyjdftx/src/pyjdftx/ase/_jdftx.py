@@ -71,6 +71,7 @@ class JDFTx(Calculator):
         variable_cell=False,
         pseudopotentials="GBRV",
         write_state=False,
+        cavity_callback=None,
         commands=None,
     )
 
@@ -133,6 +134,10 @@ class JDFTx(Calculator):
             Additional outputs at every geometry step can be introduced
             by adding a dump command with Ionic frequency to commands.
             No files are written in the absence of a label.
+        cavity_callback
+            Specify a pair of callables for computing the fluid cavity from
+            the electron density and the corresponding gradient propagation
+            to override the cavity determination in a PCM fluid model.
         commands
             Recognized JDFTx commands and corresponding arguments specified
             as a single string in the JDFTx input file format, or a
@@ -314,7 +319,14 @@ class JDFTx(Calculator):
         if "elec-cutoff" not in commands_in:
             commands.append(("elec-cutoff", default_cutoff(pseudopotentials)))
 
-        self.jdftx_wrapper = JDFTxWrapper(commands, self.parameters.variable_cell)
+        # Optional cavity callback:
+        optional_args = {}
+        if self.parameters.cavity_callback is not None:
+            optional_args["setCavity"] = self.parameters.cavity_callback
+
+        self.jdftx_wrapper = JDFTxWrapper(
+            commands, self.parameters.variable_cell, **optional_args
+        )
         self.atoms_calculated = atoms.copy()  # atoms for which results are current
     
     def read(self, label):

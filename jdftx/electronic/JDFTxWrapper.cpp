@@ -5,13 +5,32 @@
 #include <commands/command.h>
 #include <commands/parser.h>
 #include <core/LatticeUtils.h>
+#include <fluid/PCM.h>
+
+//Wrap cavity function to provide ScalarField and ScalarFieldArray to NDarray conversions:
+struct CavityFunctionWrapper
+{	setCavity_t setCavity;
+	CavityFunctionWrapper(setCavity_t setCavity) : setCavity(setCavity) {}
+	void operator()(const ScalarField& n, ScalarFieldArray& shape); //implemented below
+};
+struct CavityFunctionGradWrapper
+{	setCavity_t setCavityGrad;
+	CavityFunctionGradWrapper(setCavity_t setCavityGrad) : setCavityGrad(setCavityGrad) {}
+	void operator()(const ScalarFieldArray& A_shape, ScalarField& A_n); //implemented below
+};
 
 
-JDFTxWrapper::JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell)
+JDFTxWrapper::JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell, setCavity_t setCavity[2])
 : variableCell(variableCell)
 {	logPrintf("\n------------------------ Initializing JDFTxWrapper -----------------------\n");
 	e = std::make_shared<Everything>();
 	parse(inputs, *e, true);
+	if(setCavity[0])
+	{	//Set cavity functions if any:
+		FluidSolverParams& fsp = e->eVars.fluidParams;
+		fsp.cavityFunction = CavityFunctionWrapper(setCavity[0]);
+		fsp.cavityFunctionGrad = CavityFunctionGradWrapper(setCavity[1]);
+	}
 	e->setup();
 	if(variableCell) e->iInfo.computeStress = true;
 	e->dump(DumpFreq_Init, 0);
@@ -33,7 +52,7 @@ void JDFTxWrapper::minimize()
 		imin->minimize(e->ionicMinParams);
 }
 
-void convertArray(const NDarray& arr, IonicGradient& grad, std::string name)
+void convertArray(NDarray arr, IonicGradient& grad, std::string name)
 {	if(arr.shape.size() != 2) throw std::invalid_argument(name + " must be 2D");
 	if(arr.shape[1] != 3) throw std::invalid_argument(name + ".shape[1] must be 3");
 	std::vector<size_t> index({0, 0});
@@ -51,7 +70,7 @@ void convertArray(const NDarray& arr, IonicGradient& grad, std::string name)
 	}
 }
 
-void convertArray(const NDarray& arr, matrix3<>& m, std::string name)
+void convertArray(NDarray arr, matrix3<>& m, std::string name)
 {	if(arr.shape.size() != 2) throw std::invalid_argument(name + " must be 2D");
 	if(arr.shape[0] != 3) throw std::invalid_argument(name + ".shape[0] must be 3");
 	if(arr.shape[1] != 3) throw std::invalid_argument(name + ".shape[1] must be 3");
@@ -112,7 +131,7 @@ double JDFTxWrapper::getEnergy() const
 
 NDarray JDFTxWrapper::getForces() const
 {	NDarray result;
-	result.data = &forces[0][0];
+	result.data = (double*)&forces[0][0];
 	result.shape = std::vector<size_t>({forces.size(), 3});
 	result.strides = std::vector<size_t>({3, 1});
 	return result;
@@ -120,7 +139,7 @@ NDarray JDFTxWrapper::getForces() const
 
 NDarray JDFTxWrapper::getStress() const
 {	NDarray result;
-	result.data = &e->iInfo.stress(0, 0);
+	result.data = (double*)&e->iInfo.stress(0, 0);
 	result.shape = std::vector<size_t>({3, 3});
 	result.strides = std::vector<size_t>({3, 1});
 	return result;
@@ -167,3 +186,28 @@ void JDFTxWrapper::compute()
 		logPrintf("done\n"); logFlush();
 	}
 }
+
+void CavityFunctionWrapper::operator()(const ScalarField& n, ScalarFieldArray& shape)
+{	vector3<size_t> S(n->gInfo.S);
+	nullToZero(shape, n->gInfo);
+	std::vector<size_t> size({S[0], S[1], S[2]});
+	std::vector<size_t> strides({S[1]*S[2], S[2], 1});
+	NDarray n_arr({n->data(), size, strides});
+	std::vector<NDarray> shape_arr;
+	for(ScalarField& shape_i: shape)
+		shape_arr.push_back(NDarray({shape_i->data(), size, strides}));
+	setCavity(n_arr, shape_arr);
+}
+
+void CavityFunctionGradWrapper::operator()(const ScalarFieldArray& A_shape, ScalarField& A_n)
+{	vector3<size_t> S(A_shape[0]->gInfo.S);
+	nullToZero(A_n, A_shape[0]->gInfo);
+	std::vector<size_t> size({S[0], S[1], S[2]});
+	std::vector<size_t> strides({S[1]*S[2], S[2], 1});
+	NDarray A_n_arr({A_n->data(), size, strides});
+	std::vector<NDarray> A_shape_arr;
+	for(const ScalarField& A_shape_i: A_shape)
+		A_shape_arr.push_back(NDarray({A_shape_i->data(), size, strides}));
+	setCavityGrad(A_n_arr, A_shape_arr);
+}
+

@@ -22,17 +22,18 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <memory>
 #include <vector>
+#include <functional>
 #include <core/string.h>
 #include <core/vector3.h>
 
 //! Data structure to receive N-D buffers from Python (e.g. numpy.ndarray or torch.Tensor)
 //! Keeping this double-precision real only for now; can template this later if needed.
 struct NDarray
-{	const double* data;
+{	double* data;
 	std::vector<size_t> shape;
 	std::vector<size_t> strides;
 	
-	inline const double& operator[](const std::vector<size_t>& index) const
+	inline double& operator[](const std::vector<size_t>& index)
 	{	size_t offset = 0;
 		for(size_t dim=0; dim<shape.size(); dim++)
 			offset += index[dim] * strides[dim];
@@ -40,12 +41,14 @@ struct NDarray
 	}
 };
 
+typedef std::function<void(NDarray, std::vector<NDarray>)> setCavity_t;
+
 
 //! Wrapper that maximally isolates JDFTx internals from the python interface
 class JDFTxWrapper
 {
 public:
-	JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell);
+	JDFTxWrapper(std::vector<std::pair<string, string>> inputs, bool variableCell, setCavity_t setCavity[2]);
 	void minimize();
 	void move(NDarray delta_positions, NDarray delta_R);
 	void dumpEnd() const;
