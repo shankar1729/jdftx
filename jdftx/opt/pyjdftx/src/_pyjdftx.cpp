@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/functional.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 #include <mpi.h>
@@ -10,6 +11,8 @@
 
 
 namespace py = pybind11;
+
+extern int selectedDevice; //selected GPU number from core/GpuUtil.cpp (-1 if no GPU)
 
 // Wrapper to convert between MPI_Comm and mpi4pyComm
 struct mpi4pyComm
@@ -45,6 +48,7 @@ NDarray viewFromPy(py::array_t<double> b)
 	arr.data = static_cast<double*>(info.ptr);
 	for(size_t shape_i: info.shape) arr.shape.push_back(shape_i);
 	for(size_t stride: info.strides) arr.strides.push_back(stride / sizeof(double));
+	arr.onGpu = false;
 	return arr;
 }
 
@@ -52,14 +56,34 @@ NDarray viewFromPy(py::array_t<double> b)
 py::array_t<double> viewToPy(const NDarray& arr)
 {	std::string format = py::format_descriptor<double>::format();
 	size_t n_dims = arr.shape.size();
-	std::vector<py::ssize_t> shape, byte_strides;
+	assert(not arr.onGpu);
+	std::vector<py::ssize_t> shape;
 	for(size_t shape_i: arr.shape) shape.push_back(shape_i);
-	for(size_t stride: arr.strides) byte_strides.push_back(sizeof(double) * stride);
-	py::buffer_info buffer_info((double*)arr.data, //cast to non-const pointer
-		sizeof(double), format, n_dims, shape, byte_strides, true); //but marked read-only
-	return py::array_t<double>(buffer_info);
+	if(arr.strides.size())
+	{	std::vector<py::ssize_t> byte_strides;
+		for(size_t stride: arr.strides) byte_strides.push_back(sizeof(double) * stride);
+		return py::array_t<double>(shape, byte_strides, arr.data, py::cast(arr)); //strided
+	}
+	else return py::array_t<double>(shape, arr.data, py::cast(arr)); //contiguous
 }
 
+#ifdef GPU_ENABLED
+//Directly expose NDarray with __cuda_array_interface__ in binding for GPU code
+typedef setCavity_t pySetCavity_t;
+setCavity_t SetCavityWrapper(pySetCavity_t func) {return func;}
+#else
+//Wrap cavity callback from py::array to NDarray (to use np.ndarray in python CPU code)
+typedef std::function<void(py::array_t<double>, std::vector<py::array_t<double>>)> pySetCavity_t;
+struct SetCavityWrapper
+{	pySetCavity_t func;
+	SetCavityWrapper(pySetCavity_t func): func(func) {}
+	void operator()(NDarray scalar, std::vector<NDarray> vec)
+	{	std::vector<py::array_t<double>> pyVec;
+		for(NDarray vec_i: vec) pyVec.push_back(viewToPy(vec_i));
+		return func(viewToPy(scalar), pyVec);
+	}
+};
+#endif
 
 void initialize(mpi4pyComm comm, mpi4pyComm commAll, string logFilename, bool appendLog)
 {	mpiWorldFull = new MPIUtil(commAll);
@@ -107,9 +131,41 @@ PYBIND11_MODULE(_pyjdftx, m)
 		"Run a JDFTx calculation from an inputfile (just as the main executable would)."
 	);
 	
+	m.def("selectedGPU", [](){return selectedDevice;}, "Selected GPU number, or -1 if CPU.");
+	
+	py::class_<NDarray>(m, "NDarray")
+	#ifdef GPU_ENABLED
+		.def_property_readonly("__cuda_array_interface__",
+			[](NDarray& arr)
+			{	assert(arr.onGpu);
+				assert(not arr.strides.size()); //require contiguous for now
+				py::dict result;		
+				result["shape"] = py::tuple(py::cast(arr.shape));
+				result["typestr"] = py::str(py::format_descriptor<double>::format());
+				result["data"] = py::make_tuple(py::int_{reinterpret_cast<uintptr_t>(arr.data)}, false);
+				result["version"] = 2;
+				return result;
+			}
+		)
+	#endif
+	;
+	
 	py::class_<JDFTxWrapper>(m, "JDFTxWrapper")
 		.def(
-			py::init<std::vector<std::pair<string, string>>, bool>(),
+			py::init(
+				[](std::vector<std::pair<string, string>> inputs, bool variableCell,
+					std::pair<pySetCavity_t, pySetCavity_t> setCavity)
+				{
+					setCavity_t setCavityFuncs[2] = {setCavity_t(), setCavity_t()};
+					if(setCavity.first)
+					{	setCavityFuncs[0] = SetCavityWrapper(setCavity.first);
+						setCavityFuncs[1] = SetCavityWrapper(setCavity.second);
+					}
+					return new JDFTxWrapper(inputs, variableCell, setCavityFuncs);
+				}
+			),
+			py::arg("inputs"), py::arg("variableCell")=false,
+			py::arg("setCavity")=std::make_pair(pySetCavity_t(), pySetCavity_t()),
 			"__init__(self, inputs: list[tuple[str, str]], variableCell: bool)\n"
 			"Setup calculation from jdftx command/value pairs in inputs."
 		)

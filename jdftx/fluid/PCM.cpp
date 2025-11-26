@@ -291,6 +291,14 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 		)
 	}
 	nShape = shape.size(); //will be 2 when separate ionic cavity is used, 1 otherwise
+	
+	if(fsp.cavityFunction)
+	{	logPrintf("   Cavity overridden by callback function.\n");
+		if(not fsp.cavityFunctionGrad)
+			throw std::invalid_argument("cavityFunctionGrad callback must be specified along with cavityFunction.");
+		if(isPCM_SCCS(fsp.pcmVariant))
+			throw std::invalid_argument("cavityFunction callback not supported for SCCS types.");
+	}
 }
 
 PCM::~PCM()
@@ -303,9 +311,12 @@ void PCM::updateCavity()
 {
 	bool cavityChanged = true; //keep track of whether cavity is updated in code below (usually yes, except for SS)
 	
-	//Cavities from expanded densities for SGA13 variant:
-	if(fsp.pcmVariant == PCM_SGA13)
-	{	ScalarField* shapeEx[2] = { &shape[0], &shapeVdw };
+	if(fsp.cavityFunction)
+	{	fsp.cavityFunction(nCavity, shape);
+	}
+	else if(fsp.pcmVariant == PCM_SGA13)
+	{	//Cavities from expanded densities for SGA13 variant:
+		ScalarField* shapeEx[2] = { &shape[0], &shapeVdw };
 		for(int i=0; i<2; i++)
 		{	ShapeFunctionSGA13::expandDensity(wExpand[i], Rex[i], nCavity, nCavityEx[i]);
 			ShapeFunction::compute(nCavityEx[i], *(shapeEx[i]), fsp.nc, fsp.sigma);
@@ -369,7 +380,7 @@ void PCM::updateCavity()
 		case PCM_CANDLE:
 		case PCM_SGA13:
 		{	//Select relevant shape function:
-			bool useShape0 = (fsp.pcmVariant==PCM_SaLSA) or (fsp.pcmVariant==PCM_CANON);
+			bool useShape0 = (fsp.pcmVariant==PCM_SaLSA) or (fsp.pcmVariant==PCM_CANON) or (fsp.cavityFunction);
 			const ScalarFieldTilde sTilde = J(useShape0 ? shape[0] : shapeVdw);
 			ScalarFieldTilde A_sTilde;
 			//Cavitation:
@@ -465,7 +476,12 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 					(ScalarField&)A_shape[iMask] *= zMask[iMask];
 	}
 	
-	if(fsp.pcmVariant == PCM_SGA13)
+	if(fsp.cavityFunction)
+	{	ScalarFieldArray Atot_shape = A_shape;
+		Atot_shape[0] += Acavity_shape;
+		fsp.cavityFunctionGrad(Atot_shape, A_nCavity);
+	}
+	else if(fsp.pcmVariant == PCM_SGA13)
 	{	//Propagate gradient w.r.t expanded cavities to nCavity:
 		((PCM*)this)->A_nc = 0;
 		const ScalarField* A_shapeEx[2] = { &A_shape[0], &Acavity_shapeVdw };

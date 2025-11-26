@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-__all__ = ["JDFTxWrapper", "initialize", "finalize",  "run", "ase"]
+__all__ = ["JDFTxWrapper", "initialize", "finalize",  "run", "selectedGPU", "NDarray", "ase"]
 
 # Dispatch between CPU and GPU versions:
 import os
 if os.environ.get("CUDA_VISIBLE_DEVICES", ""):
-    from ._pyjdftx_gpu import JDFTxWrapper, initialize, finalize, run
+    from ._pyjdftx_gpu import JDFTxWrapper, initialize, finalize, run, selectedGPU, NDarray
 else:
-    from ._pyjdftx import JDFTxWrapper, initialize, finalize, run
+    from ._pyjdftx import JDFTxWrapper, initialize, finalize, run, selectedGPU, NDarray
 
 from . import ase
 
