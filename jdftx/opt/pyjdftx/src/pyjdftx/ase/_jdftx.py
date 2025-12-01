@@ -65,7 +65,7 @@ class JDFTx(Calculator):
         xc="PBE",
         kpts=3.5,
         smearing=None,
-        charge=0,
+        charge=None,
         nbands=0,
         center="auto",
         variable_cell=False,
@@ -263,7 +263,8 @@ class JDFTx(Calculator):
             commands.append(("elec-smearing", f"{smear_type} {kT}"))
 
         # Settings that translate (nearly) verbatim:
-        commands.append(("elec-initial-charge", f"{-self.parameters.charge}"))
+        if self.parameters.charge is not None:
+            commands.append(("elec-initial-charge", f"{-self.parameters.charge}"))
         commands.append(("elec-n-bands", f"{self.parameters.nbands}"))
 
         # Pseudopotentials:
