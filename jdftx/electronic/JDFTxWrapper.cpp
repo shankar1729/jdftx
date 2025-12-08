@@ -159,6 +159,14 @@ string JDFTxWrapper::getCommandDoc(string name)
 	return c.name + ' ' + c.format + '\n' + c.comments + '\n';
 }
 
+extern struct CommandPcmParams commandPcmParams;
+
+void JDFTxWrapper::setPcmParams(string params)
+{	ParamList pl(params + " ");
+	try { ((Command*)(&commandPcmParams))->process(pl, *e); }
+	catch(string s) { throw std::invalid_argument(s.c_str()); }
+}
+
 void JDFTxWrapper::compute()
 {	LatticeGradient grad; grad.init(e->iInfo);
 	if(variableCell)
@@ -210,4 +218,5 @@ void CavityFunctionGradWrapper::operator()(const ScalarFieldArray& A_shape, Scal
 		A_shape_arr.push_back(NDarray({A_shape_i->dataPref(), size, strides, isGpuEnabled()}));
 	setCavityGrad(A_n_arr, A_shape_arr);
 }
+
 

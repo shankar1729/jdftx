@@ -58,6 +58,7 @@ public:
 	NDarray getStress() const;
 	static std::vector<string> getCommands();
 	static string getCommandDoc(string name);
+	void setPcmParams(string params);
 private:
 	bool variableCell;
 	void compute();

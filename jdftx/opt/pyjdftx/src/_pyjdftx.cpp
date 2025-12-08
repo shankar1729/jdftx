@@ -134,6 +134,7 @@ PYBIND11_MODULE(_pyjdftx, m)
 	m.def("selectedGPU", [](){return selectedDevice;}, "Selected GPU number, or -1 if CPU.");
 	
 	py::class_<NDarray>(m, "NDarray")
+		.def_readonly("shape", &NDarray::shape)
 	#ifdef GPU_ENABLED
 		.def_property_readonly("__cuda_array_interface__",
 			[](NDarray& arr)
@@ -192,5 +193,6 @@ PYBIND11_MODULE(_pyjdftx, m)
 			"Get current stress (3 x 3 array) in Eh/a0^3 (Cartesian)"
 		)
 		.def_static("getCommands", &JDFTxWrapper::getCommands, "Get list of supported commands")
-		.def_static("getCommandDoc", &JDFTxWrapper::getCommandDoc, "Get documentation of specified command");
+		.def_static("getCommandDoc", &JDFTxWrapper::getCommandDoc, "Get documentation of specified command")
+		.def("setPcmParams", &JDFTxWrapper::setPcmParams, "Invoke pcm-params command to update parameters");
 }

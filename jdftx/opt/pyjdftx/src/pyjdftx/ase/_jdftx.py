@@ -332,10 +332,10 @@ class JDFTx(Calculator):
     
     def read(self, label):
         Calculator.read(self, label)
-        R = np.loadtxt(f"{label}.lattice", skiprows=1, usecols=(0, 1, 2))
-        positions = np.loadtxt(f"{label}.ionpos", usecols=(2, 3, 4))
-        names = np.genfromtxt(f"{label}.ionpos", usecols=(1,), dtype="U")
-        pbc = np.loadtxt(f"{label}.pbc")
+        R = np.loadtxt(f"{self.label}.lattice", skiprows=1, usecols=(0, 1, 2))
+        positions = np.loadtxt(f"{self.label}.ionpos", usecols=(2, 3, 4)).reshape(-1, 3)
+        names = np.loadtxt(f"{self.label}.ionpos", usecols=(1,), dtype=str).reshape(-1)
+        pbc = np.loadtxt(f"{self.label}.pbc")
         self.atoms = Atoms(
             symbols=names,
             positions=(positions * Bohr),
@@ -343,14 +343,14 @@ class JDFTx(Calculator):
             pbc=pbc,
         )
         # Read results:
-        for line in open(f"{label}.Ecomponents"):
+        for line in open(f"{self.label}.Ecomponents"):
             tokens = line.split()
             if len(tokens) == 3:
                 E = float(tokens[-1])
         self.results["energy"] = E * Hartree
-        self.results["forces"] = np.loadtxt(f"{label}.force", usecols=(2, 3, 4)) * (Hartree/Bohr)
+        self.results["forces"] = np.loadtxt(f"{self.label}.force", usecols=(2, 3, 4)) * (Hartree/Bohr)
         try:
-            self.results["stress"] = np.loadtxt(f"{label}.stress") * (Hartree/Bohr**3)
+            self.results["stress"] = np.loadtxt(f"{self.label}.stress") * (Hartree/Bohr**3)
         except FileNotFoundError:
             self.results["stress"] = np.zeros((3, 3))
         self.atoms_calculated = self.atoms.copy()  # previous atoms for which we now have results
