@@ -111,20 +111,7 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 	
 	//Initialize convolution kernels for nonlocal version, CANON
 	isNonlocal = (fsp.pcmVariant == PCM_CANON);
-	if(isNonlocal)
-	{	const double dG = gInfo.dGradial, Gmax = gInfo.GmaxGrid;
-		unsigned nGradial = unsigned(ceil(Gmax/dG))+5;
-		std::vector<double> Nw0_samples(nGradial), w1_samples(nGradial);
-		for(unsigned i=0; i<nGradial; i++)
-		{	double GR = (i*dG) * fsp.Res;
-			double j0 = bessel_jl(0, GR);
-			double j1_by_x_3 = j0 + bessel_jl(2, GR);  //3 j1(x)/x = j0(x) + j2(x)
-			Nw0_samples[i] = solvent->Nbulk * (-fsp.Zcenter) * (1.0 - j0); //Zcenter is in expt charge convention
-			w1_samples[i] = j1_by_x_3;
-		}
-		Nw0.init(0, Nw0_samples, dG);
-		w1.init(0, w1_samples, dG);
-	}
+	if(isNonlocal) updateNonlocal();
 	
 	//Initialize preconditioner:
 	preconditioner = std::make_shared<RealKernel>(gInfo);
@@ -143,6 +130,24 @@ NonlinearPCM::~NonlinearPCM()
 		w1.free();
 	}
 }
+
+void NonlinearPCM::updateNonlocal()
+{	Zcenter = fsp.Zcenter;
+	Res = fsp.Res;
+	const double dG = gInfo.dGradial, Gmax = gInfo.GmaxGrid;
+	unsigned nGradial = unsigned(ceil(Gmax/dG))+5;
+	std::vector<double> Nw0_samples(nGradial), w1_samples(nGradial);
+	for(unsigned i=0; i<nGradial; i++)
+	{	double GR = (i*dG) * fsp.Res;
+		double j0 = bessel_jl(0, GR);
+		double j1_by_x_3 = j0 + bessel_jl(2, GR);  //3 j1(x)/x = j0(x) + j2(x)
+		Nw0_samples[i] = fsp.solvents[0]->Nbulk * (-fsp.Zcenter) * (1.0 - j0); //Zcenter is in expt charge convention
+		w1_samples[i] = j1_by_x_3;
+	}
+	Nw0.init(0, Nw0_samples, dG);
+	w1.init(0, w1_samples, dG);
+}
+
 
 void NonlinearPCM::loadState(const char* filename)
 {	ScalarField Iphi(ScalarFieldData::alloc(gInfo));
@@ -226,7 +231,9 @@ void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const 
 	
 	//Built-in charge for CANON:
 	if(isNonlocal)
+	{	if(not ((Zcenter == fsp.Zcenter) and (Res == fsp.Res))) updateNonlocal();
 		rhoLiquidTilde0 = Nw0 * J(shape[0]);
+	}
 	
 	//Initialize the state if it hasn't been loaded:
 	if(!phiTot) nullToZero(phiTot, gInfo);
@@ -310,3 +317,25 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 		FLUID_DUMP(-A_phi, "RhoIon");
 	}
 }
+
+void NonlinearPCM::printDebug(FILE* fp) const
+{	if(isNonlocal)
+	{	//Compute derivative w.r.t CANON nonlocal kernel parameter Zcenter:
+		ScalarFieldTilde phiLiquid0 = coulomb(rhoLiquidTilde0);
+		ScalarFieldTilde Adiel_rhoLiquidTilde0 = phiTot - phiLiquid0;
+		double E_zCenter = dot(rhoLiquidTilde0, O(Adiel_rhoLiquidTilde0)) / Zcenter;
+		fprintf(fp, "   E_Zcenter = %.15lg\n", E_zCenter);
+		
+		//Compute derivative w.r.t CANON nonlocal kernel parameter Res:
+		ScalarField F, F_shape0; nullToZero(F, gInfo);
+		VectorField Dphi = I(gradient(w1*phiTot)), F_Dphi;
+		nullToZero(F_Dphi, gInfo);
+		(*dielectricEval)(dielEnergyLookup, shape[0], Dphi, F, F_Dphi, F_shape0);
+		VectorFieldTilde A_DphiTilde = -J(F_Dphi), DphiTilde = gradient(phiTot);
+		double E_Res = -trace(convolveStress(Nw0, Adiel_rhoLiquidTilde0, J(shape[0]))) / Res;
+		for(int iDir=0; iDir<3; iDir++)
+			E_Res -= trace(convolveStress(w1, A_DphiTilde[iDir], DphiTilde[iDir])) / Res;
+		fprintf(fp, "   E_Res = %.15lg\n", E_Res);		
+	}
+}
+
