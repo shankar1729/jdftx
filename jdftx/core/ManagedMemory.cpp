@@ -217,7 +217,18 @@ namespace MemPool
 	};
 	
 	//---- MemSpace classes for each memory space ----
-	#if defined(GPU_ENABLED) && defined(PINNED_HOST_MEMORY)
+	#if defined(GPU_ENABLED) && defined(CUDA_MANAGED_MEMORY)
+	struct MemSpaceCPU
+	{	static void* alloc(size_t size)
+		{	void* ptr;
+			cudaError_t ret = cudaMallocManaged(&ptr, size);
+			cudaDeviceSynchronize();
+			return (ret==cudaSuccess) ? ptr : 0;
+		}
+		static void free(void* ptr) { cudaFree(ptr); }
+		static void outOfMemory() die_alone("Managed memory allocation failed (out of memory)\n");
+	};
+	#elif defined(GPU_ENABLED) && defined(PINNED_HOST_MEMORY)
 	struct MemSpaceCPU
 	{	static void* alloc(size_t size)
 		{	void* ptr;
@@ -239,14 +250,22 @@ namespace MemPool
 	{	static void* alloc(size_t size)
 		{	assert(isGpuMine());
 			void* ptr;
+			#ifdef CUDA_MANAGED_MEMORY
+			cudaError_t ret = cudaMallocManaged(&ptr, size);
+			#else
 			cudaError_t ret = cudaMalloc(&ptr, size);
+			#endif
 			return (ret==cudaSuccess) ? ptr : 0;
 		}
 		static void free(void* ptr)
 		{	assert(isGpuMine());
 			cudaFree(ptr);
 		}
+		#ifdef CUDA_MANAGED_MEMORY
+		static void outOfMemory() die_alone("Managed memory allocation failed (out of memory)\n");
+		#else
 		static void outOfMemory() die_alone("GPU memory allocation failed (out of memory)\n");
+		#endif
 	};
 	#endif
 	
@@ -316,10 +335,14 @@ void ManagedMemoryBase::toCpu() const
 #ifdef GPU_ENABLED
 	assert(isGpuMine());
 	ManagedMemoryBase& me = *((ManagedMemoryBase*)this);
+	#ifdef CUDA_MANAGED_MEMORY
+	cudaDeviceSynchronize(); //finish pending computes, but no explicit data move
+	#else
 	void* cCpu = MemPool::CPU().alloc(nBytes);
 	cudaMemcpy(cCpu, me.c, nBytes, cudaMemcpyDeviceToHost);
 	MemPool::GPU().free(me.c); //Free GPU mem
 	me.c = cCpu; //Make c a cpu pointer
+	#endif
 	me.onGpu = false;
 #endif
 }
@@ -330,10 +353,12 @@ void ManagedMemoryBase::toGpu() const
 #ifdef GPU_ENABLED
 	assert(isGpuMine());
 	ManagedMemoryBase& me = *((ManagedMemoryBase*)this);
+	#ifndef CUDA_MANAGED_MEMORY //no explicit data move needed if memory is managed
 	void* cGpu = MemPool::GPU().alloc(nBytes);
 	cudaMemcpy(cGpu, me.c, nBytes, cudaMemcpyHostToDevice);
 	MemPool::CPU().free(me.c); //Free CPU mem
 	me.c = cGpu; //Make c a gpu pointer
+	#endif
 	me.onGpu = true;
 #else
 	assert(!"toGpu() called without GPU_ENABLED");
