@@ -24,6 +24,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <map>
 #include <set>
 
+#ifdef GPU_ENABLED
+extern bool prefetchSupported; //defined in GpuUtil.cpp
+extern int memLocDevice, memLocHost; //defined in GpuUtil.cpp
+#endif
+
 //-------- Memory usage profiler ---------
 
 namespace MemUsageReport
@@ -160,17 +165,17 @@ namespace MemPool
 		}
 	public:
 		MemPool() : pool(0)
-		{	if(mempoolSize)
-			{	pool = (uint8_t*)MemSpace::alloc(mempoolSize);
+		{	if(MemSpace::poolSize())
+			{	pool = (uint8_t*)MemSpace::alloc(MemSpace::poolSize());
 				if(!pool) MemSpace::outOfMemory();
-				addHole(0, mempoolSize);
+				addHole(0, MemSpace::poolSize());
 			}
 		}
 		~MemPool()
 		{	if(pool) MemSpace::free(pool);
 		}
 		void* alloc(size_t sizeRequested)
-		{	if(!mempoolSize) return MemSpace::alloc(sizeRequested); //pool not in use
+		{	if(!pool) return MemSpace::alloc(sizeRequested); //pool not in use
 			lock.lock();
 			//Find size adjusted to chunk size:
 			const size_t chunkSize = 4096; //typical page size
@@ -197,7 +202,7 @@ namespace MemPool
 			}
 		}
 		void free(void* ptr)
-		{	if(!mempoolSize) return MemSpace::free(ptr); //pool not in use
+		{	if(!pool) return MemSpace::free(ptr); //pool not in use
 			lock.lock();
 			//Find in used map:
 			size_t start = ((uint8_t*)ptr) - pool;
@@ -219,10 +224,13 @@ namespace MemPool
 	//---- MemSpace classes for each memory space ----
 	#if defined(GPU_ENABLED) && defined(CUDA_MANAGED_MEMORY)
 	struct MemSpaceCPU
-	{	static void* alloc(size_t size)
+	{	static size_t poolSize() { return 0; } //Disable separate CPU pool
+		static void* alloc(size_t size)
 		{	void* ptr;
 			cudaError_t ret = cudaMallocManaged(&ptr, size);
 			cudaDeviceSynchronize();
+			if(prefetchSupported) cudaMemPrefetchAsync(ptr, size, memLocHost);
+			gpuErrorCheck();
 			return (ret==cudaSuccess) ? ptr : 0;
 		}
 		static void free(void* ptr) { cudaFree(ptr); }
@@ -230,7 +238,8 @@ namespace MemPool
 	};
 	#elif defined(GPU_ENABLED) && defined(PINNED_HOST_MEMORY)
 	struct MemSpaceCPU
-	{	static void* alloc(size_t size)
+	{	static size_t poolSize() { return mempoolSize; }
+		static void* alloc(size_t size)
 		{	void* ptr;
 			cudaError_t ret = cudaMallocHost(&ptr, size);
 			return (ret==cudaSuccess) ? ptr : 0;
@@ -240,18 +249,22 @@ namespace MemPool
 	};
 	#else
 	struct MemSpaceCPU
-	{	static void* alloc(size_t size) { return fftw_malloc(size); }
+	{	static size_t poolSize() { return 0; } //No need to cache plain CPU allocations
+		static void* alloc(size_t size) { return fftw_malloc(size); }
 		static void free(void* ptr) { fftw_free(ptr); }
 		static void outOfMemory() die_alone("Memory allocation failed (out of memory)\n");
 	};
 	#endif
 	#ifdef GPU_ENABLED
 	struct MemSpaceGPU
-	{	static void* alloc(size_t size)
+	{	static size_t poolSize() { return mempoolSize; }
+		static void* alloc(size_t size)
 		{	assert(isGpuMine());
 			void* ptr;
 			#ifdef CUDA_MANAGED_MEMORY
 			cudaError_t ret = cudaMallocManaged(&ptr, size);
+			if(prefetchSupported) cudaMemPrefetchAsync(ptr, size, memLocDevice);
+			gpuErrorCheck();
 			#else
 			cudaError_t ret = cudaMalloc(&ptr, size);
 			#endif
@@ -337,6 +350,8 @@ void ManagedMemoryBase::toCpu() const
 	ManagedMemoryBase& me = *((ManagedMemoryBase*)this);
 	#ifdef CUDA_MANAGED_MEMORY
 	cudaDeviceSynchronize(); //finish pending computes, but no explicit data move
+	if(prefetchSupported) cudaMemPrefetchAsync(c, nBytes, memLocHost);
+	gpuErrorCheck();
 	#else
 	void* cCpu = MemPool::CPU().alloc(nBytes);
 	cudaMemcpy(cCpu, me.c, nBytes, cudaMemcpyDeviceToHost);
@@ -353,7 +368,10 @@ void ManagedMemoryBase::toGpu() const
 #ifdef GPU_ENABLED
 	assert(isGpuMine());
 	ManagedMemoryBase& me = *((ManagedMemoryBase*)this);
-	#ifndef CUDA_MANAGED_MEMORY //no explicit data move needed if memory is managed
+	#ifdef CUDA_MANAGED_MEMORY
+	if(prefetchSupported) cudaMemPrefetchAsync(c, nBytes, memLocDevice);
+	gpuErrorCheck();
+	#else
 	void* cGpu = MemPool::GPU().alloc(nBytes);
 	cudaMemcpy(cGpu, me.c, nBytes, cudaMemcpyHostToDevice);
 	MemPool::CPU().free(me.c); //Free CPU mem
