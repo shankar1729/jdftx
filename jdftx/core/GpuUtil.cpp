@@ -82,7 +82,9 @@ bool gpuInit(FILE* fpLog, const MPIUtil* mpiHostGpu, double* nGPUs)
 	}
 	
 	//Initialize memory locations for prefetching:
-	prefetchSupported = (cudaDevProps.concurrentManagedAccess != 0);
+	int concurrentManagedAccess;
+	cudaError_t err = cudaDeviceGetAttribute(&concurrentManagedAccess, cudaDevAttrConcurrentManagedAccess, selectedDevice);
+	prefetchSupported = (err == cudaSuccess) and (concurrentManagedAccess != 0);
 	memLocDevice = selectedDevice;
 	memLocHost = cudaCpuDeviceId;
 	

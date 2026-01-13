@@ -105,10 +105,12 @@ namespace MemUsageReport
 namespace MemPool
 {
 	//Pool memory allocations in a memory space abstracted by MemSpace
-	//MemSpace is a tag class with static functions:
-	// void* alloc(size_t);  //returns 0 when out of memory
-	// void free(void*);     //assumed to not fail
-	// void outOfMemory();   //exit with appropriate out of memory error
+	//MemSpace is a tag class with static members:
+	// const bool shouldCache;    //whether to cache allocations for this type
+	// size_t poolSize();         //appropriate pool size for this memory type
+	// void* alloc(size_t, bool); //returns 0 when out of memory (bool selects GPU/CPU for unified case)
+	// void free(void*);          //assumed to not fail
+	// void outOfMemory();        //exit with appropriate out of memory error
 	template<typename MemSpace> class MemPool
 	{	uint8_t* pool; //pointer to entire pool of memory (allocated once)
 		std::mutex lock; //for thread safety
@@ -163,19 +165,78 @@ namespace MemPool
 			//Uncomment following to debug:
 			//logPrintf("Deleted (%lu,%lu)\t", start,start+size); printHoles();
 		}
+		
+		//Cache pointers (with/without pool):
+		std::map<void*, size_t> allocated;
+		std::multimap<size_t, void*> cache;
+		void cachedFree(void* ptr)
+		{	if(not MemSpace::shouldCache) {	MemSpace::free(ptr); return; }
+			//Move ptr from allocated to cache (for future allocs)
+			lock.lock();
+			auto iter = allocated.find(ptr);
+			assert(iter != allocated.end());
+			size_t size = iter->second;
+			cache.insert(std::make_pair(size, ptr));
+			allocated.erase(iter);
+			lock.unlock();
+		}
+		void* cachedAlloc(size_t size, bool onGpu)
+		{	if(not MemSpace::shouldCache) return MemSpace::alloc(size, onGpu);
+			lock.lock();
+			//Search cache for suitable allocations first:
+			{	auto iter = cache.lower_bound(size); //smallest allocation >= required
+				if(iter != cache.end())
+				{	size_t sizeCached = iter->first;
+					void* ptrCached = iter->second;
+					if(sizeCached < 2 * size) //ignore if too big (avoid wasting memory)
+					{	allocated.insert(std::make_pair(ptrCached, sizeCached));
+						cache.erase(iter);
+						lock.unlock();
+						return ptrCached;
+					}
+				}
+				lock.unlock();
+			}
+			//Allocate from underlying memory space:
+			void* ptr = MemSpace::alloc(size, onGpu);
+			if(ptr)
+			{	allocated.insert(std::make_pair(ptr, size));
+				lock.unlock();
+				return ptr;
+			}
+			//Deallocate (unsuitable) cached entries till allocation succeeds:
+			for(auto iter=cache.begin(); iter!=cache.end();)
+			{	MemSpace::free(iter->second);
+				iter = cache.erase(iter);
+				void* ptr = MemSpace::alloc(size, onGpu);
+				if(ptr)
+				{	allocated.insert(std::make_pair(ptr, size));
+					lock.unlock();
+					return ptr;
+				}
+			}
+			//Allocation unsuccessful: out of memory even after emptying cache:
+			lock.unlock();
+			MemSpace::outOfMemory();
+			return NULL;
+		}
+		
 	public:
 		MemPool() : pool(0)
 		{	if(MemSpace::poolSize())
-			{	pool = (uint8_t*)MemSpace::alloc(MemSpace::poolSize());
-				if(!pool) MemSpace::outOfMemory();
+			{	pool = (uint8_t*)cachedAlloc(MemSpace::poolSize(), true); //default pool to GPU
 				addHole(0, MemSpace::poolSize());
 			}
 		}
 		~MemPool()
-		{	if(pool) MemSpace::free(pool);
+		{	if(pool) cachedFree(pool);
+			for(auto entry: allocated) MemSpace::free(entry.first);
+			for(auto entry: cache) MemSpace::free(entry.second);
+			allocated.clear();
+			cache.clear();
 		}
-		void* alloc(size_t sizeRequested)
-		{	if(!pool) return MemSpace::alloc(sizeRequested); //pool not in use
+		void* alloc(size_t sizeRequested, bool onGpu)
+		{	if(!pool) return cachedAlloc(sizeRequested, onGpu); //pool not in use
 			lock.lock();
 			//Find size adjusted to chunk size:
 			const size_t chunkSize = 4096; //typical page size
@@ -186,9 +247,7 @@ namespace MemPool
 			if(ubound == holesBySize.end())
 			{	//No hole big enough left, so allocate externally:
 				lock.unlock();
-				void* ptr = MemSpace::alloc(sizeRequested);
-				if(!ptr) MemSpace::outOfMemory();
-				return ptr;
+				return cachedAlloc(sizeRequested, onGpu);
 			}
 			else
 			{	//Hole found, so allocate from it:
@@ -202,14 +261,14 @@ namespace MemPool
 			}
 		}
 		void free(void* ptr)
-		{	if(!pool) return MemSpace::free(ptr); //pool not in use
+		{	if(!pool) return cachedFree(ptr); //pool not in use
 			lock.lock();
 			//Find in used map:
 			size_t start = ((uint8_t*)ptr) - pool;
 			MapIter usedIter = used.find(start);
 			if(usedIter == used.end())
 			{	//Not found in used => allocated externally
-				MemSpace::free(ptr); //free externally
+				cachedFree(ptr); //free externally
 			}
 			else
 			{	//Found in used => allocated in pool
@@ -223,23 +282,27 @@ namespace MemPool
 	
 	//---- MemSpace classes for each memory space ----
 	#if defined(GPU_ENABLED) && defined(CUDA_MANAGED_MEMORY)
-	struct MemSpaceCPU
-	{	static size_t poolSize() { return 0; } //Disable separate CPU pool
-		static void* alloc(size_t size)
+	struct MemSpaceUnified
+	{	static const bool shouldCache = true;
+		static size_t poolSize() { return mempoolSize; } //Unified pool size
+		static void* alloc(size_t size, bool onGpu)
 		{	void* ptr;
 			cudaError_t ret = cudaMallocManaged(&ptr, size);
-			cudaDeviceSynchronize();
-			if(prefetchSupported) cudaMemPrefetchAsync(ptr, size, memLocHost);
+			if(not onGpu) cudaDeviceSynchronize();
+			if(prefetchSupported) cudaMemPrefetchAsync(ptr, size, onGpu ? memLocDevice : memLocHost);
 			gpuErrorCheck();
 			return (ret==cudaSuccess) ? ptr : 0;
 		}
 		static void free(void* ptr) { cudaFree(ptr); }
 		static void outOfMemory() die_alone("Managed memory allocation failed (out of memory)\n");
 	};
+	typedef MemSpaceUnified MemSpaceCPU;
+	typedef MemSpaceUnified MemSpaceGPU;
 	#elif defined(GPU_ENABLED) && defined(PINNED_HOST_MEMORY)
 	struct MemSpaceCPU
-	{	static size_t poolSize() { return mempoolSize; }
-		static void* alloc(size_t size)
+	{	static const bool shouldCache = true;
+		static size_t poolSize() { return mempoolSize; }
+		static void* alloc(size_t size, bool onGpu)
 		{	void* ptr;
 			cudaError_t ret = cudaMallocHost(&ptr, size);
 			return (ret==cudaSuccess) ? ptr : 0;
@@ -249,43 +312,39 @@ namespace MemPool
 	};
 	#else
 	struct MemSpaceCPU
-	{	static size_t poolSize() { return 0; } //No need to cache plain CPU allocations
-		static void* alloc(size_t size) { return fftw_malloc(size); }
+	{	static const bool shouldCache = false;
+		static size_t poolSize() { return 0; } //No need to cache plain CPU allocations
+		static void* alloc(size_t size, bool onGpu) { return fftw_malloc(size); }
 		static void free(void* ptr) { fftw_free(ptr); }
 		static void outOfMemory() die_alone("Memory allocation failed (out of memory)\n");
 	};
 	#endif
-	#ifdef GPU_ENABLED
+	#if defined(GPU_ENABLED) && (!defined(CUDA_MANAGED_MEMORY))
 	struct MemSpaceGPU
-	{	static size_t poolSize() { return mempoolSize; }
-		static void* alloc(size_t size)
+	{	static const bool shouldCache = true;
+		static size_t poolSize() { return mempoolSize; }
+		static void* alloc(size_t size, bool onGpu)
 		{	assert(isGpuMine());
 			void* ptr;
-			#ifdef CUDA_MANAGED_MEMORY
-			cudaError_t ret = cudaMallocManaged(&ptr, size);
-			if(prefetchSupported) cudaMemPrefetchAsync(ptr, size, memLocDevice);
-			gpuErrorCheck();
-			#else
 			cudaError_t ret = cudaMalloc(&ptr, size);
-			#endif
 			return (ret==cudaSuccess) ? ptr : 0;
 		}
 		static void free(void* ptr)
 		{	assert(isGpuMine());
 			cudaFree(ptr);
 		}
-		#ifdef CUDA_MANAGED_MEMORY
-		static void outOfMemory() die_alone("Managed memory allocation failed (out of memory)\n");
-		#else
 		static void outOfMemory() die_alone("GPU memory allocation failed (out of memory)\n");
-		#endif
 	};
 	#endif
 	
 	//Pool accessor functions (to avoid file-level static variables):
 	MemPool<MemSpaceCPU>& CPU() { static MemPool<MemSpaceCPU> pool; return pool; }
 	#ifdef GPU_ENABLED
+	#ifdef CUDA_MANAGED_MEMORY
+	MemPool<MemSpaceGPU>& GPU() { return CPU(); } //use single pool
+	#else
 	MemPool<MemSpaceGPU>& GPU() { static MemPool<MemSpaceGPU> pool; return pool; }
+	#endif
 	#endif
 }
 
@@ -325,12 +384,17 @@ void ManagedMemoryBase::memInit(string category, size_t nBytes, bool onGpu)
 	if(onGpu)
 	{
 		#ifdef GPU_ENABLED
-		c = MemPool::GPU().alloc(nBytes);
+		c = MemPool::GPU().alloc(nBytes, true);
 		#else
 		assert(!"onGpu=true without GPU_ENABLED");
 		#endif
 	}
-	else c = MemPool::CPU().alloc(nBytes);
+	else
+	{	c = MemPool::CPU().alloc(nBytes, false);
+		#if defined(GPU_ENABLED) && defined(CUDA_MANAGED_MEMORY)
+		cudaDeviceSynchronize();
+		#endif
+	}
 	MemUsageReport::manager(MemUsageReport::Add, category, nBytes);
 }
 
@@ -353,7 +417,7 @@ void ManagedMemoryBase::toCpu() const
 	if(prefetchSupported) cudaMemPrefetchAsync(c, nBytes, memLocHost);
 	gpuErrorCheck();
 	#else
-	void* cCpu = MemPool::CPU().alloc(nBytes);
+	void* cCpu = MemPool::CPU().alloc(nBytes, false);
 	cudaMemcpy(cCpu, me.c, nBytes, cudaMemcpyDeviceToHost);
 	MemPool::GPU().free(me.c); //Free GPU mem
 	me.c = cCpu; //Make c a cpu pointer
@@ -372,7 +436,7 @@ void ManagedMemoryBase::toGpu() const
 	if(prefetchSupported) cudaMemPrefetchAsync(c, nBytes, memLocDevice);
 	gpuErrorCheck();
 	#else
-	void* cGpu = MemPool::GPU().alloc(nBytes);
+	void* cGpu = MemPool::GPU().alloc(nBytes, true);
 	cudaMemcpy(cGpu, me.c, nBytes, cudaMemcpyHostToDevice);
 	MemPool::CPU().free(me.c); //Free CPU mem
 	me.c = cGpu; //Make c a gpu pointer
