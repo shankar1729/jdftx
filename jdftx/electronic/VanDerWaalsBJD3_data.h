@@ -100,7 +100,7 @@ namespace D3
 		XC_MPW1B95, "hyb-MPW1B95", XC_MPWB1K, "hyb-MPW1BK", XC_BMK, "hyb-BMK",
 		XC_LC_WPBE, "hyb-LC-PBE", XC_M05, "hyb-M05", XC_M05_2X, "hyb-M05-2X",
 		XC_M06, "hyb-M06", XC_M06_2X, "hyb-M06-2X", XC_M06_HF, "hyb-M06-HF",
-        X_R2SCAN, "mgga-r2scan", X_RSCAN, "mgga-rscan");
+        X_R2SCAN, "mgga-r2scan", X_RSCAN, "mgga-rscan"); // Only guessing right now that xcName will return "mgga-x-r2scan" for R2SCAN, etc. - need to check this and update if needed.
 
 	//Replace first occurence of target in s with replacement
 	inline void string_replace(string& s, string target, string replacement)
