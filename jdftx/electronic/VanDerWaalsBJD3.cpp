@@ -123,7 +123,7 @@ VanDerWaalsD3::VanDerWaalsD3(const Everything& e) : VanDerWaals(e)
 			pairParams[iSp1][iSp2] = D3::getPairParams(atomParams[iSp1], atomParams[iSp2]);
 	}
 
-	Citations::add("DFT-D3 dispersion correction", "S. Grimme, J. Antony, S. Ehrlich and H. Krieg, J. Chem. Phys. 132, 154104 (2010)");
+    Citations::add("Grimme, S., Ehrlich, S. and Goerigk, L,  J. Comput. Chem., 32: 1456-1465 (2011)")
 }
 
 
