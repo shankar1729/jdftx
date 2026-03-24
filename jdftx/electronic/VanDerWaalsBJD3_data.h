@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#ifndef JDFTX_ELECTRONIC_VANDERWAALSD3_DATA_H
-#define JDFTX_ELECTRONIC_VANDERWAALSD3_DATA_H
+#ifndef JDFTX_ELECTRONIC_VANDERWAALSBJD3_DATA_H
+#define JDFTX_ELECTRONIC_VANDERWAALSBJD3_DATA_H
 
 #include <core/Util.h>
 
@@ -28,11 +28,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 // All parameters are extracted from the dft-d3 reference code by Grimme et al.
 namespace D3
 {
-	#include <electronic/VanDerWaalsD3_data_C6.h>
+	#include <electronic/VanDerWaalsD3_data_C6.h> // Same for BJD3 and D3, so included in common data file
 
 	const int Zmax = 94; //!< maximum parameterized atomic number
-	const int alpha6 = 14; //!< exponent in damping function of r^-6 term
-	const int alpha8 = 16; //!< exponent in damping function of r^-8 term
+	// const int alpha6 = 14; //!< exponent in damping function of r^-6 term
+	// const int alpha8 = 16; //!< exponent in damping function of r^-8 term
 	const double k1 = 16.; //!< damping factor in coordination number calculation
 	const double k2 = 4./3.; //!< covalent radius scale factor in coordination number calculation
 	const double k3 = 4.; //!< exponential factor in coordination number interpolation of C6
@@ -86,7 +86,7 @@ namespace D3
 		XC_TPSS, XC_M06_L, XC_HF, XC_PBE0, XC_PBE38, XC_HSE06,
 		XC_B3PW91, XC_B3LYP, XC_CAM_B3LYP, XC_PW6B95, XC_TPSS0,
 		XC_TPSSH, XC_PWB6K, XC_MPW1B95, XC_MPWB1K, XC_BMK, XC_LC_WPBE,
-		XC_M05, XC_M05_2X, XC_M06, XC_M06_2X, XC_M06_HF};
+		XC_M05, XC_M05_2X, XC_M06, XC_M06_2X, XC_M06_HF, X_R2SCAN, X_RSCAN};
 		
 	//! Map XC onto shortened names:
 	EnumStringMap<XC> xcMap(
@@ -99,7 +99,8 @@ namespace D3
 		XC_TPSS0, "hyb-TPSS0", XC_TPSSH, "hyb-TPSSH", XC_PWB6K, "hyb-PWB6K",
 		XC_MPW1B95, "hyb-MPW1B95", XC_MPWB1K, "hyb-MPW1BK", XC_BMK, "hyb-BMK",
 		XC_LC_WPBE, "hyb-LC-PBE", XC_M05, "hyb-M05", XC_M05_2X, "hyb-M05-2X",
-		XC_M06, "hyb-M06", XC_M06_2X, "hyb-M06-2X", XC_M06_HF, "hyb-M06-HF");
+		XC_M06, "hyb-M06", XC_M06_2X, "hyb-M06-2X", XC_M06_HF, "hyb-M06-HF",
+        X_R2SCAN, "mgga-r2scan", X_RSCAN, "mgga-rscan");
 
 	//Replace first occurence of target in s with replacement
 	inline void string_replace(string& s, string target, string replacement)
@@ -110,7 +111,7 @@ namespace D3
 	
 	//! Set scale parameters s6, s8 and damping parameters sr6, sr8 for r^-6, r^-8 terms by name of XC functional xcName.
 	//! Note that xcName is canonicalized upon return, especially for LibXC functionals, to unify internal and LibXC names.
-	void setXCscale(string& xcName, double& s6, double& sr6, double& s8, double& sr8)
+	void setXCscale(string& xcName, double& s6, double& s8, double& a1, double& a2)
 	{	//Canonicalize name:
 		if(xcName.substr(0, 3) == "lda") xcName = "lda"; //remove LDA suffixes
 		#ifdef LIBXC_ENABLED
@@ -133,40 +134,43 @@ namespace D3
 		if(not xcMap.getEnum(xcName.c_str(), xc))
 			die("\nDFT-D3 parameterization not available for %s functional.\n\n", xcName.c_str());
 		//Set parameters:
-		s6 = 1.;
-		sr8 = 1.;
+		s6 = 0.5;
+        // TODO: Implement the rest fitted in the 2011 paper
 		switch(xc)
-		{	case XC_LDA: { sr6 =0.999; s8 =-1.957; sr8=0.697; break; }
-			//GGAs:
-			case XC_PBE: { sr6=1.217; s8=0.722; break; }
-			case XC_PBESOL: { sr6=1.345; s8=0.612; break; }
-			case XC_RPBE: { sr6=0.872; s8=0.514; break; }
-			case XC_SSB: { sr6=1.215; s8=0.663; break; }
-			case XC_HCTH_120: { sr6=1.221; s8=1.206; break; }
-			//mGGAs:
-			case XC_TPSS: { sr6=1.166; s8=1.105; break; }
-			//Hybrids:
-			case XC_HF: { sr6=1.158; s8=1.746; break; }
-			case XC_PBE0: { sr6=1.287; s8=0.928; break; }
-			case XC_PBE38: { sr6=1.333; s8=0.998; break; }
-			case XC_HSE06: { sr6=1.129; s8=0.109; break; }
-			case XC_B3PW91: { sr6=1.176; s8=1.775; break; }
-			case XC_B3LYP: { sr6=1.261; s8=1.703; break; }
-			case XC_PW6B95: { sr6=1.532; s8=0.862; break; }
-			case XC_TPSS0: { sr6=1.252; s8=1.242; break; }
-			case XC_TPSSH: { sr6=1.223; s8=1.219; break; }
-			case XC_PWB6K: { sr6=1.660; s8=0.550; break; }
-			case XC_MPW1B95: { sr6=1.605; s8=1.118; break; }
-			case XC_MPWB1K: { sr6=1.671; s8=1.061; break; }
-			case XC_BMK: { sr6=1.931; s8=2.168; break; }
-			case XC_CAM_B3LYP: { sr6=1.378; s8=1.217; break; }
-			case XC_LC_WPBE: { sr6=1.355; s8=1.279; break; }
-			case XC_M05: { sr6=1.373; s8=0.595; break; }
-			case XC_M05_2X: { sr6=1.417; s8=0.000; break; }
-			case XC_M06_L: { sr6=1.581; s8=0.000; break; }
-			case XC_M06: { sr6=1.325; s8=0.000; break; }
-			case XC_M06_2X: { sr6=1.619; s8=0.000; break; }
-			case XC_M06_HF: { sr6=1.446; s8=0.000; break; }
+		{	
+            // case XC_LDA: { sr6 =0.999; s8 =-1.957; sr8=0.697; break; }
+			// GGAs:
+			case XC_PBE: { s8=3.2822; a1=0.3946; a2 = 4.8516; break; }
+			// case XC_PBESOL: { sr6=1.345; s8=0.612; break; }
+			// case XC_RPBE: { sr6=0.872; s8=0.514; break; }
+			// case XC_SSB: { sr6=1.215; s8=0.663; break; }
+			// case XC_HCTH_120: { sr6=1.221; s8=1.206; break; }
+			// //mGGAs:
+			case XC_TPSS: { s8=1.9435; a1=0.4535; a2=4.4752; break; }
+            case X_R2SCAN: { s8=0.7898; a1=0.4948; a2=5.7308; break; }
+            case X_RSCAN: { s8=1.0886; a1=0.4702; a2=5.7341; break; }
+			// //Hybrids:
+			// case XC_HF: { sr6=1.158; s8=1.746; break; }
+			case XC_PBE0: { s8=1.2177 ; a1=0.4145; a2=4.8593; break; }
+			// case XC_PBE38: { sr6=1.333; s8=0.998; break; }
+			// case XC_HSE06: { sr6=1.129; s8=0.109; break; }
+			// case XC_B3PW91: { sr6=1.176; s8=1.775; break; }
+			// case XC_B3LYP: { sr6=1.261; s8=1.703; break; }
+			// case XC_PW6B95: { sr6=1.532; s8=0.862; break; }
+			// case XC_TPSS0: { sr6=1.252; s8=1.242; break; }
+			// case XC_TPSSH: { sr6=1.223; s8=1.219; break; }
+			// case XC_PWB6K: { sr6=1.660; s8=0.550; break; }
+			// case XC_MPW1B95: { sr6=1.605; s8=1.118; break; }
+			// case XC_MPWB1K: { sr6=1.671; s8=1.061; break; }
+			// case XC_BMK: { sr6=1.931; s8=2.168; break; }
+			// case XC_CAM_B3LYP: { sr6=1.378; s8=1.217; break; }
+			// case XC_LC_WPBE: { sr6=1.355; s8=1.279; break; }
+			// case XC_M05: { sr6=1.373; s8=0.595; break; }
+			// case XC_M05_2X: { sr6=1.417; s8=0.000; break; }
+			// case XC_M06_L: { sr6=1.581; s8=0.000; break; }
+			// case XC_M06: { sr6=1.325; s8=0.000; break; }
+			// case XC_M06_2X: { sr6=1.619; s8=0.000; break; }
+			// case XC_M06_HF: { sr6=1.446; s8=0.000; break; }
 		}
 	}
 

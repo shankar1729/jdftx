@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
-#include <electronic/VanDerWaalsD3.h>
-#include <electronic/VanDerWaalsD3_data.h>
+#include <electronic/VanDerWaalsBJD3.h>
+#include <electronic/VanDerWaalsBJD3_data.h>
 #include <electronic/Everything.h>
 
 namespace D3
@@ -97,10 +97,10 @@ VanDerWaalsD3::VanDerWaalsD3(const Everything& e) : VanDerWaals(e)
 	
 	//Get parameters for exchange-correlation functional
 	string xcName = e.exCorr.getName();
-	D3::setXCscale(xcName, s6, sr6, s8, sr8);
+	D3::setXCscale(xcName, s6, s8, a1, a2);
 	logPrintf("\tParameters set for %s functional\n", xcName.c_str());
-	logPrintf("\ts6: %6.3lf  s_r6: %6.3lf\n", s6, sr6);
-	logPrintf("\ts8: %6.3lf  s_r8: %6.3lf\n", s8, sr8);
+	logPrintf("\ts6: %6.3lf  s8: %6.3lf\n", s6, s8);
+	logPrintf("\ta1: %6.3lf  a2: %6.3lf\n", a1, a2);
 
 	//Get per-atom parameters:
 	logPrintf("\tPer-atom parameters loaded for:\n");
@@ -133,7 +133,6 @@ double VanDerWaalsD3::getScaleFactor(string exCorrName, double scaleOverride) co
 
 
 //! Return r^-n pair-potential energy and set its derivative E_r.
-//! The potential is damped at length scale R0 and exponent alpha_n.
 template<int n> double vdWpotential(double r, double R0, double a1, double a2, double& E_r)
 {	//Main r^-n potential (and r derivative):
     double subcdamp = a1*R0 + a2; // eqn 6 of Grimme 2011
@@ -177,8 +176,9 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 			double C6 = trace(transpose(L1) * pp.C6 * L2).real();
 			double C8 = C6 * ratio8by6;
             double R0 = sqrt(C8/C6); // eqn 7 of Grimme 2011
+            // Note - this reduces the geometric mean of tabulated <r^4>/<r^2> expectation values, 
+            // so this might be inefficient wrt getting tabulated R0 values.
 			if(c1 == c2) diagC6[c1] = C6; //only for reporting
-			
 			//Sum energy, force and stress contributions over periodic images:
 			double E12_C6 = 0., E12_C8 = 0.; //energy contributions upto C6 and C8 prefactors
 			THREAD_halfGspaceLoop(

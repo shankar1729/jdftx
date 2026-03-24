@@ -303,6 +303,10 @@ struct CommandVanDerWaals : public Command
 		{	e.iInfo.vdWstyle = VDW_D3;
 			e.iInfo.vdWscale = 0.; //not used for D3
 		}
+		if(key == "D3BJ")
+		{	e.iInfo.vdWstyle = VDW_D3BJ;
+			e.iInfo.vdWscale = 0.; //not used for D3BJ
+		}
 		else
 		{	e.iInfo.vdWstyle = VDW_D2;
 			pl.rewind(); //so that scale can be read instead of key above
