@@ -39,6 +39,10 @@ pthread_key_t gpuOwnerKey; //thread-local storage to identify thread that owns g
 //Using pthreads mechanism here, assuming that pthreads underly the c++0x threads
 //This may not be true on Windows or for non-gcc compilers!
 
+bool prefetchSupported = false; //whether prefetch is supported
+int memLocDevice = 0, memLocHost = 0; //memory locations for prefetching
+
+
 bool gpuInit(FILE* fpLog, const MPIUtil* mpiHostGpu, double* nGPUs)
 {	//Thread local storage to identify GPU owner thread
 	pthread_key_create(&gpuOwnerKey, 0);
@@ -76,6 +80,13 @@ bool gpuInit(FILE* fpLog, const MPIUtil* mpiHostGpu, double* nGPUs)
 	{	selectedDevice = mpiHostGpu->iProcess() % int(compatibleDevices.size()); //round-robin selection of GPU
 		if(nGPUs) *nGPUs = std::min(1., compatibleDevices.size()*1./mpiHostGpu->nProcesses());
 	}
+	
+	//Initialize memory locations for prefetching:
+	int concurrentManagedAccess;
+	cudaError_t err = cudaDeviceGetAttribute(&concurrentManagedAccess, cudaDevAttrConcurrentManagedAccess, selectedDevice);
+	prefetchSupported = (err == cudaSuccess) and (concurrentManagedAccess != 0);
+	memLocDevice = selectedDevice;
+	memLocHost = cudaCpuDeviceId;
 	
 	//Print selected devices:
 	fprintf(fpLog, "gpuInit: Selected device %d\n", selectedDevice);

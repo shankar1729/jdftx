@@ -296,6 +296,9 @@ void initSystem(int argc, char** argv, const InitParams* ip)
 		if(sscanf(mempoolSizeStr, "%d", &mempoolSizeMB)==1 && mempoolSizeMB>=0)
 		{	mempoolSize = ((size_t)mempoolSizeMB) << 20; //convert to bytes
 			logPrintf("Memory pool size: %d MB (per process)\n", mempoolSizeMB);
+			#ifdef CUDA_MANAGED_MEMORY
+			logPrintf("WARNING: memory pool should not be used with CUDA managed memory.\n");
+			#endif
 		}
 		else
 			logPrintf("Could not determine memory pool size from JDFTX_MEMPOOL_SIZE=\"%s\".\n", mempoolSizeStr);
