@@ -303,7 +303,7 @@ struct CommandVanDerWaals : public Command
 		{	e.iInfo.vdWstyle = VDW_D3;
 			e.iInfo.vdWscale = 0.; //not used for D3
 		}
-		if(key == "D3BJ")
+		else if(key == "D3BJ")
 		{	e.iInfo.vdWstyle = VDW_D3BJ;
 			e.iInfo.vdWscale = 0.; //not used for D3BJ
 		}
@@ -317,6 +317,8 @@ struct CommandVanDerWaals : public Command
 	void printStatus(Everything& e, int iRep)
 	{	if(e.iInfo.vdWstyle == VDW_D3)
 			logPrintf("D3");
+		else if(e.iInfo.vdWstyle == VDW_D3BJ)
+			logPrintf("D3BJ");
 		else if(e.iInfo.vdWscale)
 			logPrintf("%lg", e.iInfo.vdWscale);
 	}
