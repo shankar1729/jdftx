@@ -94,14 +94,26 @@ namespace D3
 VanDerWaalsD3::VanDerWaalsD3(const Everything& e)
 	: VanDerWaals(e), useBJDamping(e.iInfo.vdWstyle == VDW_D3BJ)
 {
-	logPrintf("\nInitializing DFT-D3 calculator:\n");
+	if (useBJDamping)
+	{
+		logPrintf("\nInitializing DFT-D3(BJ) calculator:\n");
+	}
+	else {
+		logPrintf("\nInitializing DFT-D3 calculator:\n");
+	}
 	
 	//Get parameters for exchange-correlation functional
 	string xcName = e.exCorr.getName();
 	D3::setXCscale(xcName, useBJDamping, s6, sr6, s8, sr8);
 	logPrintf("\tParameters set for %s functional\n", xcName.c_str());
-	logPrintf("\ts6: %6.3lf  s_r6: %6.3lf\n", s6, sr6);
-	logPrintf("\ts8: %6.3lf  s_r8: %6.3lf\n", s8, sr8);
+	if (useBJDamping)
+	{
+		logPrintf("\ts6: %6.3lf  s8: %6.3lf\n", s6, s8);
+		logPrintf("\ta1: %6.3lf  a2: %6.3lf\n", sr6, sr8);
+	} else {
+		logPrintf("\ts6: %6.3lf  s_r6: %6.3lf\n", s6, sr6);
+		logPrintf("\ts8: %6.3lf  s_r8: %6.3lf\n", s8, sr8);
+	}
 
 	//Get per-atom parameters:
 	logPrintf("\tPer-atom parameters loaded for:\n");
@@ -124,7 +136,11 @@ VanDerWaalsD3::VanDerWaalsD3(const Everything& e)
 			pairParams[iSp1][iSp2] = D3::getPairParams(atomParams[iSp1], atomParams[iSp2]);
 	}
 
-	Citations::add("DFT-D3 dispersion correction", "S. Grimme, J. Antony, S. Ehrlich and H. Krieg, J. Chem. Phys. 132, 154104 (2010)");
+	if (useBJDamping) {
+		Citations::add("DFT-D3(BJ) dispersion correction", "S. Grimme, S. Ehrlich and L. Goerigk, J. Comp. Chem. 32, 1456 (2011)");
+	} else {
+		Citations::add("DFT-D3 dispersion correction", "S. Grimme, J. Antony, S. Ehrlich and H. Krieg, J. Chem. Phys. 132, 154104 (2010)");
+	}
 }
 
 
