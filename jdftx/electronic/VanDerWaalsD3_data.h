@@ -86,7 +86,7 @@ namespace D3
 		XC_TPSS, XC_M06_L, XC_HF, XC_PBE0, XC_PBE38, XC_HSE06,
 		XC_B3PW91, XC_B3LYP, XC_CAM_B3LYP, XC_PW6B95, XC_TPSS0,
 		XC_TPSSH, XC_PWB6K, XC_MPW1B95, XC_MPWB1K, XC_BMK, XC_LC_WPBE,
-		XC_M05, XC_M05_2X, XC_M06, XC_M06_2X, XC_M06_HF, 
+		XC_M05, XC_M05_2X, XC_M06, XC_M06_2X, XC_M06_HF
 		// X_R2SCAN, X_RSCAN
 	};
 		
@@ -105,7 +105,7 @@ namespace D3
 		
 	//! Map XC onto shortened names:
 	EnumStringMap<XC> BJxcMap(
-		XC_PBE, "gga-PBE", XC_TPSS, "mgga-TPSS", XC_PBE0, "hyb-PBE0",
+		XC_PBE, "gga-PBE", XC_TPSS, "mgga-TPSS", XC_PBE0, "hyb-PBE0"
 		// X_R2SCAN, "mgga-r2scan", X_RSCAN, "mgga-rscan",
 	);
 
