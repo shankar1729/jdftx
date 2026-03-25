@@ -135,7 +135,7 @@ double VanDerWaalsD3::getScaleFactor(string exCorrName, double scaleOverride) co
 
 //! Return r^-n pair-potential energy and set its derivative E_r.
 //! The potential is damped at length scale R0 and exponent alpha_n.
-template<int n, int alpha_n> double vdWpotential(double invr, double R0, double& E_r)
+template<int n, int alpha_n> double vdWpotential(double invr, double R0, double& E, double& E_r)
 {	//Main r^-n potential (and r derivative):
 	double pot = std::pow(invr, n); 
 	double pot_r = (-n) * pot * invr;
@@ -146,19 +146,20 @@ template<int n, int alpha_n> double vdWpotential(double invr, double R0, double&
 	double damp = 1./(1. + damp_term);
 	double damp_r = -damp_term_r * damp * damp;
 	//Combine to get final energy and derivative:
+	E = pot * damp;
 	E_r = pot_r * damp + pot * damp_r;
-	return pot * damp;
+	// return pot * damp;
 }
 
 //! Return r^-n pair-potential energy and set its derivative E_r for the BJ-damping form.
-template<int n> double vdWpotentialBJ(double r, double R0, double a1, double a2, double& E_r)
+template<int n> double vdWpotentialBJ(double r, double R0, double a1, double a2, double& E, double& E_r)
 {	//Main r^-n potential (and r derivative):
     double subcdamp = a1*R0 + a2; // eqn 6 of Grimme 2011
     double cdamp = pow(subcdamp, n); // raised to n (constant wrt r)
     double rn = pow(r, n);
-    double E = 1 / (rn + cdamp);
+    E = 1 / (rn + cdamp);
     E_r = -n * pow(r, n-1) * E * E;
-	return E;
+	// return E;
 }
 
 
@@ -213,12 +214,12 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 					// double term8_r; double term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r));
 					double term6_r; double term6; double term8_r; double term8;
 					if(useBJDamping) {	
-						double term6_r; double term6 = (vdWpotentialBJ<6>(r, R0, sr6, sr8, term6_r));
-						double term8_r; double term8 = (vdWpotentialBJ<8>(r, R0, sr6, sr8, term8_r));
+						double term6_r; double term6; (vdWpotentialBJ<6>(r, R0, sr6, sr8, term6, term6_r));
+						double term8_r; double term8; (vdWpotentialBJ<8>(r, R0, sr6, sr8, term8, term8_r));
 					} else {	
 						double invr = 1./r;
-						double term6_r; double term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r));
-						double term8_r; double term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r));
+						double term6_r; double term6; (vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6, term6_r));
+						double term8_r; double term8; (vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8, term8_r));
 					}
 					E12_C6 -= cellWeight * s6 * term6;
 					E12_C8 -= cellWeight * s8 * term8;
