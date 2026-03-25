@@ -149,6 +149,18 @@ template<int n, int alpha_n> double vdWpotential(double invr, double R0, double&
 	return pot * damp;
 }
 
+//! Return r^-n pair-potential energy and set its derivative E_r for the BJ-damping form.
+template<int n> double vdWpotentialBJ(double r, double R0, double a1, double a2, double& E_r)
+{	//Main r^-n potential (and r derivative):
+    double subcdamp = a1*R0 + a2; // eqn 6 of Grimme 2011
+    double cdamp = pow(subcdamp, n); // raised to n (constant wrt r)
+    double rn = pow(r, n);
+    double E = 1 / (rn + cdamp);
+    E_r = -n * pow(r, n-1) * E * E;
+	return E;
+}
+
+
 
 double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr) const
 {	static StopWatch watch("VanDerWaalsD3::energyAndGrad"); watch.start();
@@ -181,6 +193,9 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 			double ratio8by6 = 3. * ap1.sqrtQ * ap2.sqrtQ;
 			double C6 = trace(transpose(L1) * pp.C6 * L2).real();
 			double C8 = C6 * ratio8by6;
+			double R0 = pp.R0;
+			if(iInfo.vdWstyle == VDW_D3BJ)
+				R0 = sqrt(C8/C6); //BJ damping uses C8/C6 to get R0
 			if(c1 == c2) diagC6[c1] = C6; //only for reporting
 			
 			//Sum energy, force and stress contributions over periodic images:
@@ -193,8 +208,19 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 				{	double r = sqrt(rSq);
 					double invr = 1./r;
 					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
-					double term6_r; double term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * pp.R0, term6_r));
-					double term8_r; double term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * pp.R0, term8_r));
+					double term6_r; double term6;
+					double term8_r; double term8;
+					switch(iInfo.vdWstyle)
+					{	case VDW_D3BJ:
+							term6 = vdWpotentialBJ<6>(r, R0, sr6, sr8, term6_r);
+							term8 = vdWpotentialBJ<8>(r, R0, sr6, sr8, term8_r);
+							break;
+						case VDW_D3:
+						default:
+							term6 = vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r);
+							term8 = vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r);
+							break;
+					}
 					E12_C6 -= cellWeight * s6 * term6;
 					E12_C8 -= cellWeight * s8 * term8;
 					//Colect forces and/or stresses:
@@ -238,6 +264,8 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 	watch.stop();
 	return E6 + E8;
 }
+
+
 
 
 //Compute local coordination number

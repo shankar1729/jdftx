@@ -86,7 +86,7 @@ namespace D3
 		XC_TPSS, XC_M06_L, XC_HF, XC_PBE0, XC_PBE38, XC_HSE06,
 		XC_B3PW91, XC_B3LYP, XC_CAM_B3LYP, XC_PW6B95, XC_TPSS0,
 		XC_TPSSH, XC_PWB6K, XC_MPW1B95, XC_MPWB1K, XC_BMK, XC_LC_WPBE,
-		XC_M05, XC_M05_2X, XC_M06, XC_M06_2X, XC_M06_HF};
+		XC_M05, XC_M05_2X, XC_M06, XC_M06_2X, XC_M06_HF, X_R2SCAN, X_RSCAN};
 		
 	//! Map XC onto shortened names:
 	EnumStringMap<XC> xcMap(
@@ -100,6 +100,11 @@ namespace D3
 		XC_MPW1B95, "hyb-MPW1B95", XC_MPWB1K, "hyb-MPW1BK", XC_BMK, "hyb-BMK",
 		XC_LC_WPBE, "hyb-LC-PBE", XC_M05, "hyb-M05", XC_M05_2X, "hyb-M05-2X",
 		XC_M06, "hyb-M06", XC_M06_2X, "hyb-M06-2X", XC_M06_HF, "hyb-M06-HF");
+		
+	//! Map XC onto shortened names:
+	EnumStringMap<XC> BJxcMap(
+		XC_PBE, "gga-PBE", XC_TPSS, "mgga-TPSS", X_R2SCAN, "mgga-r2scan", X_RSCAN, "mgga-rscan", XC_PBE0, "hyb-PBE0",
+	);
 
 	//Replace first occurence of target in s with replacement
 	inline void string_replace(string& s, string target, string replacement)
@@ -130,44 +135,69 @@ namespace D3
 		#endif
 		//Find XC functional in supported list:
 		XC xc;
-		if(not xcMap.getEnum(xcName.c_str(), xc))
-			die("\nDFT-D3 parameterization not available for %s functional.\n\n", xcName.c_str());
-		//Set parameters:
-		s6 = 1.;
-		sr8 = 1.;
-		switch(xc)
-		{	case XC_LDA: { sr6 =0.999; s8 =-1.957; sr8=0.697; break; }
-			//GGAs:
-			case XC_PBE: { sr6=1.217; s8=0.722; break; }
-			case XC_PBESOL: { sr6=1.345; s8=0.612; break; }
-			case XC_RPBE: { sr6=0.872; s8=0.514; break; }
-			case XC_SSB: { sr6=1.215; s8=0.663; break; }
-			case XC_HCTH_120: { sr6=1.221; s8=1.206; break; }
-			//mGGAs:
-			case XC_TPSS: { sr6=1.166; s8=1.105; break; }
-			//Hybrids:
-			case XC_HF: { sr6=1.158; s8=1.746; break; }
-			case XC_PBE0: { sr6=1.287; s8=0.928; break; }
-			case XC_PBE38: { sr6=1.333; s8=0.998; break; }
-			case XC_HSE06: { sr6=1.129; s8=0.109; break; }
-			case XC_B3PW91: { sr6=1.176; s8=1.775; break; }
-			case XC_B3LYP: { sr6=1.261; s8=1.703; break; }
-			case XC_PW6B95: { sr6=1.532; s8=0.862; break; }
-			case XC_TPSS0: { sr6=1.252; s8=1.242; break; }
-			case XC_TPSSH: { sr6=1.223; s8=1.219; break; }
-			case XC_PWB6K: { sr6=1.660; s8=0.550; break; }
-			case XC_MPW1B95: { sr6=1.605; s8=1.118; break; }
-			case XC_MPWB1K: { sr6=1.671; s8=1.061; break; }
-			case XC_BMK: { sr6=1.931; s8=2.168; break; }
-			case XC_CAM_B3LYP: { sr6=1.378; s8=1.217; break; }
-			case XC_LC_WPBE: { sr6=1.355; s8=1.279; break; }
-			case XC_M05: { sr6=1.373; s8=0.595; break; }
-			case XC_M05_2X: { sr6=1.417; s8=0.000; break; }
-			case XC_M06_L: { sr6=1.581; s8=0.000; break; }
-			case XC_M06: { sr6=1.325; s8=0.000; break; }
-			case XC_M06_2X: { sr6=1.619; s8=0.000; break; }
-			case XC_M06_HF: { sr6=1.446; s8=0.000; break; }
+		switch(iInfo.vdWstyle)
+		{	case VDW_D3BJ:
+				if(not BJxcMap.getEnum(xcName.c_str(), xc))
+					die("\nDFT-D3(BJ) parameterization not available for %s functional.\n\n", xcName.c_str());
+				break;
+			default:
+				if(not xcMap.getEnum(xcName.c_str(), xc))
+					die("\nDFT-D3 parameterization not available for %s functional.\n\n", xcName.c_str());
 		}
+		//Set parameters:
+		switch(iInfo.vdWstyle)
+		{	case VDW_D3BJ:
+				s6 = 0.5;
+				switch(xc)
+				{	
+					case XC_PBE: { s8=3.2822; sr6=0.3946; sr8=4.8516; break; }
+					// //mGGAs:
+					case XC_TPSS: { s8=1.9435; sr6=0.4535; sr8=4.4752; break; }
+					case X_R2SCAN: { s8=0.7898; sr6=0.4948; sr8=5.7308; break; }
+					case X_RSCAN: { s8=1.0886; sr6=0.4702; sr8=5.7341; break; }
+					// //Hybrids:
+					case XC_PBE0: { s8=1.2177 ; sr6=0.4145; sr8=4.8593; break; }
+					default:
+						die("\nDFT-D3(BJ) parameterization not available for %s functional.\n\n", xcName.c_str());
+				}
+				break;
+			default:
+				s6 = 1.;
+				sr8 = 1.;
+				switch(xc)
+				{	case XC_LDA: { sr6 =0.999; s8 =-1.957; sr8=0.697; break; }
+					//GGAs:
+					case XC_PBE: { sr6=1.217; s8=0.722; break; }
+					case XC_PBESOL: { sr6=1.345; s8=0.612; break; }
+					case XC_RPBE: { sr6=0.872; s8=0.514; break; }
+					case XC_SSB: { sr6=1.215; s8=0.663; break; }
+					case XC_HCTH_120: { sr6=1.221; s8=1.206; break; }
+					//mGGAs:
+					case XC_TPSS: { sr6=1.166; s8=1.105; break; }
+					//Hybrids:
+					case XC_HF: { sr6=1.158; s8=1.746; break; }
+					case XC_PBE0: { sr6=1.287; s8=0.928; break; }
+					case XC_PBE38: { sr6=1.333; s8=0.998; break; }
+					case XC_HSE06: { sr6=1.129; s8=0.109; break; }
+					case XC_B3PW91: { sr6=1.176; s8=1.775; break; }
+					case XC_B3LYP: { sr6=1.261; s8=1.703; break; }
+					case XC_PW6B95: { sr6=1.532; s8=0.862; break; }
+					case XC_TPSS0: { sr6=1.252; s8=1.242; break; }
+					case XC_TPSSH: { sr6=1.223; s8=1.219; break; }
+					case XC_PWB6K: { sr6=1.660; s8=0.550; break; }
+					case XC_MPW1B95: { sr6=1.605; s8=1.118; break; }
+					case XC_MPWB1K: { sr6=1.671; s8=1.061; break; }
+					case XC_BMK: { sr6=1.931; s8=2.168; break; }
+					case XC_CAM_B3LYP: { sr6=1.378; s8=1.217; break; }
+					case XC_LC_WPBE: { sr6=1.355; s8=1.279; break; }
+					case XC_M05: { sr6=1.373; s8=0.595; break; }
+					case XC_M05_2X: { sr6=1.417; s8=0.000; break; }
+					case XC_M06_L: { sr6=1.581; s8=0.000; break; }
+					case XC_M06: { sr6=1.325; s8=0.000; break; }
+					case XC_M06_2X: { sr6=1.619; s8=0.000; break; }
+					case XC_M06_HF: { sr6=1.446; s8=0.000; break; }
+				}
+				break;
 	}
 
 	//! R0_A + R0_B for each pair of elements in Angstroms
