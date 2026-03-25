@@ -103,7 +103,7 @@ namespace D3
 		
 	//! Map XC onto shortened names:
 	EnumStringMap<XC> BJxcMap(
-		XC_PBE, "gga-PBE", XC_TPSS, "mgga-TPSS", X_R2SCAN, "mgga-r2scan", X_RSCAN, "mgga-rscan", XC_PBE0, "hyb-PBE0",
+		XC_PBE, "gga-PBE", XC_TPSS, "mgga-TPSS", X_R2SCAN, "mgga-r2scan", X_RSCAN, "mgga-rscan", XC_PBE0, "hyb-PBE0"
 	);
 
 	//Replace first occurence of target in s with replacement
