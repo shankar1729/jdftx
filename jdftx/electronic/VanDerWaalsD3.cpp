@@ -209,16 +209,16 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 				{	double r = sqrt(rSq);
 					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
 					double invr = 1./r;
-					double term6_r; double term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r));
-					double term8_r; double term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r));
-					// if(useBJDamping) {	
-					// 	double term6_r; double term6; = vdWpotentialBJ<6>(r, R0, sr6, sr8, term6_r);
-					// 	double term8_r; double term8; = vdWpotentialBJ<8>(r, R0, sr6, sr8, term8_r);
-					// } else {	
-					// 	double invr = 1./r;
-					// 	double term6_r; double term6; = vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r);
-					// 	double term8_r; double term8; = vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r);
-					// }
+					// double term6_r; double term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r));
+					// double term8_r; double term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r));
+					if(useBJDamping) {	
+						double term6_r; double term6 = (vdWpotentialBJ<6>(r, R0, sr6, sr8, term6_r));
+						double term8_r; double term8 = (vdWpotentialBJ<8>(r, R0, sr6, sr8, term8_r));
+					} else {	
+						double invr = 1./r;
+						double term6_r; double term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r));
+						double term8_r; double term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r));
+					}
 					E12_C6 -= cellWeight * s6 * term6;
 					E12_C8 -= cellWeight * s8 * term8;
 					//Colect forces and/or stresses:
