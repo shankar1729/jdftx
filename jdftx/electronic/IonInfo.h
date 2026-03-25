@@ -48,7 +48,7 @@ static EnumStringMap<ForcesOutputCoords> forcesOutputCoordsMap(
 enum coreOverlapCheck { additive, vector, none };
 
 //! Style of vdW correction
-enum VDWstyle { VDW_D2, VDW_D3 };
+enum VDWstyle { VDW_D2, VDW_D3, VDW_D3BJ };
 
 
 //! Container class for ionic system: collection of species, each with several atoms

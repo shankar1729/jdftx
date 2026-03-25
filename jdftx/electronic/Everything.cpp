@@ -133,6 +133,7 @@ void Everything::setup()
 	{	switch(iInfo.vdWstyle)
 		{	case VDW_D2: { vanDerWaals = std::make_shared<VanDerWaalsD2>(*this); break; }
 			case VDW_D3: { vanDerWaals = std::make_shared<VanDerWaalsD3>(*this); break; }
+			case VDW_D3BJ: { vanDerWaals = std::make_shared<VanDerWaalsD3>(*this); break; }
 		}
 	}
 	//--- for fluid (must be D2):
