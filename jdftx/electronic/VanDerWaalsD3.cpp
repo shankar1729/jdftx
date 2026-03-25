@@ -91,13 +91,14 @@ namespace D3
 
 //----- Implementation of class VanDerWaalsD3 -----
 
-VanDerWaalsD3::VanDerWaalsD3(const Everything& e) : VanDerWaals(e)
+VanDerWaalsD3::VanDerWaalsD3(const Everything& e)
+	: VanDerWaals(e), useBJDamping(e.iInfo.vdWstyle == VDW_D3BJ)
 {
 	logPrintf("\nInitializing DFT-D3 calculator:\n");
 	
 	//Get parameters for exchange-correlation functional
 	string xcName = e.exCorr.getName();
-	D3::setXCscale(xcName, s6, sr6, s8, sr8);
+	D3::setXCscale(xcName, useBJDamping, s6, sr6, s8, sr8);
 	logPrintf("\tParameters set for %s functional\n", xcName.c_str());
 	logPrintf("\ts6: %6.3lf  s_r6: %6.3lf\n", s6, sr6);
 	logPrintf("\ts8: %6.3lf  s_r8: %6.3lf\n", s8, sr8);
@@ -194,7 +195,7 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 			double C6 = trace(transpose(L1) * pp.C6 * L2).real();
 			double C8 = C6 * ratio8by6;
 			double R0 = pp.R0;
-			if(iInfo.vdWstyle == VDW_D3BJ)
+			if(useBJDamping)
 				R0 = sqrt(C8/C6); //BJ damping uses C8/C6 to get R0
 			if(c1 == c2) diagC6[c1] = C6; //only for reporting
 			
@@ -210,16 +211,13 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
 					double term6_r; double term6;
 					double term8_r; double term8;
-					switch(iInfo.vdWstyle)
-					{	case VDW_D3BJ:
-							term6 = vdWpotentialBJ<6>(r, R0, sr6, sr8, term6_r);
-							term8 = vdWpotentialBJ<8>(r, R0, sr6, sr8, term8_r);
-							break;
-						case VDW_D3:
-						default:
-							term6 = vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r);
-							term8 = vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r);
-							break;
+					if(useBJDamping)
+					{	term6 = vdWpotentialBJ<6>(r, R0, sr6, sr8, term6_r);
+						term8 = vdWpotentialBJ<8>(r, R0, sr6, sr8, term8_r);
+					}
+					else
+					{	term6 = vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r);
+						term8 = vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r);
 					}
 					E12_C6 -= cellWeight * s6 * term6;
 					E12_C8 -= cellWeight * s8 * term8;

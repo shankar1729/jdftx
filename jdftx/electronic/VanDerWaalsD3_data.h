@@ -115,7 +115,7 @@ namespace D3
 	
 	//! Set scale parameters s6, s8 and damping parameters sr6, sr8 for r^-6, r^-8 terms by name of XC functional xcName.
 	//! Note that xcName is canonicalized upon return, especially for LibXC functionals, to unify internal and LibXC names.
-	void setXCscale(string& xcName, double& s6, double& sr6, double& s8, double& sr8)
+	void setXCscale(string& xcName, bool useBJDamping, double& s6, double& sr6, double& s8, double& sr8)
 	{	//Canonicalize name:
 		if(xcName.substr(0, 3) == "lda") xcName = "lda"; //remove LDA suffixes
 		#ifdef LIBXC_ENABLED
@@ -135,18 +135,17 @@ namespace D3
 		#endif
 		//Find XC functional in supported list:
 		XC xc;
-		switch(iInfo.vdWstyle)
-		{	case VDW_D3BJ:
-				if(not BJxcMap.getEnum(xcName.c_str(), xc))
-					die("\nDFT-D3(BJ) parameterization not available for %s functional.\n\n", xcName.c_str());
-				break;
-			default:
-				if(not xcMap.getEnum(xcName.c_str(), xc))
-					die("\nDFT-D3 parameterization not available for %s functional.\n\n", xcName.c_str());
+		if(useBJDamping)
+		{	if(not BJxcMap.getEnum(xcName.c_str(), xc))
+				die("\nDFT-D3(BJ) parameterization not available for %s functional.\n\n", xcName.c_str());
+		}
+		else
+		{	if(not xcMap.getEnum(xcName.c_str(), xc))
+				die("\nDFT-D3 parameterization not available for %s functional.\n\n", xcName.c_str());
 		}
 		//Set parameters:
-		switch(iInfo.vdWstyle)
-		{	case VDW_D3BJ:
+		if(useBJDamping)
+		{
 				s6 = 0.5;
 				switch(xc)
 				{	
@@ -160,8 +159,9 @@ namespace D3
 					default:
 						die("\nDFT-D3(BJ) parameterization not available for %s functional.\n\n", xcName.c_str());
 				}
-				break;
-			default:
+		}
+		else
+		{
 				s6 = 1.;
 				sr8 = 1.;
 				switch(xc)
@@ -197,7 +197,7 @@ namespace D3
 					case XC_M06_2X: { sr6=1.619; s8=0.000; break; }
 					case XC_M06_HF: { sr6=1.446; s8=0.000; break; }
 				}
-				break;
+		}
 	}
 
 	//! R0_A + R0_B for each pair of elements in Angstroms
