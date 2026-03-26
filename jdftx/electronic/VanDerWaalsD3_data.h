@@ -86,8 +86,8 @@ namespace D3
 		XC_TPSS, XC_M06_L, XC_HF, XC_PBE0, XC_PBE38, XC_HSE06,
 		XC_B3PW91, XC_B3LYP, XC_CAM_B3LYP, XC_PW6B95, XC_TPSS0,
 		XC_TPSSH, XC_PWB6K, XC_MPW1B95, XC_MPWB1K, XC_BMK, XC_LC_WPBE,
-		XC_M05, XC_M05_2X, XC_M06, XC_M06_2X, XC_M06_HF
-		// X_R2SCAN, X_RSCAN
+		XC_M05, XC_M05_2X, XC_M06, XC_M06_2X, XC_M06_HF,
+		XC_R2SCAN, XC_RSCAN
 	};
 		
 	//! Map XC onto shortened names:
@@ -105,8 +105,8 @@ namespace D3
 		
 	//! Map XC onto shortened names:
 	EnumStringMap<XC> BJxcMap(
-		XC_PBE, "gga-PBE", XC_TPSS, "mgga-TPSS", XC_PBE0, "hyb-PBE0"
-		// X_R2SCAN, "mgga-r2scan", X_RSCAN, "mgga-rscan",
+		XC_PBE, "gga-PBE", XC_TPSS, "mgga-TPSS", XC_PBE0, "hyb-PBE0",
+		XC_R2SCAN, "mgga-r2scan", XC_RSCAN, "mgga-rscan"
 	);
 
 	//Replace first occurence of target in s with replacement
@@ -147,6 +147,7 @@ namespace D3
 				die("\nDFT-D3 parameterization not available for %s functional.\n\n", xcName.c_str());
 		}
 		//Set parameters:
+		//Note that for DFT-D3(BJ), sr6 and sr8 are actually a1/a2
 		if(useBJDamping)
 		{
 				s6 = 0.5;
@@ -155,8 +156,8 @@ namespace D3
 					case XC_PBE: { s8=3.2822; sr6=0.3946; sr8=4.8516; break; }
 					// //mGGAs:
 					case XC_TPSS: { s8=1.9435; sr6=0.4535; sr8=4.4752; break; }
-					// case X_R2SCAN: { s8=0.7898; sr6=0.4948; sr8=5.7308; break; }
-					// case X_RSCAN: { s8=1.0886; sr6=0.4702; sr8=5.7341; break; }
+					case XC_R2SCAN: { s8=0.7898; sr6=0.4948; sr8=5.7308; break; }
+					case XC_RSCAN: { s8=1.0886; sr6=0.4702; sr8=5.7341; break; }
 					// //Hybrids:
 					case XC_PBE0: { s8=1.2177 ; sr6=0.4145; sr8=4.8593; break; }
 					default:
