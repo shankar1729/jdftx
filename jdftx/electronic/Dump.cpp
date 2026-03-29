@@ -40,7 +40,23 @@ Dump::Dump()
 void Dump::setup(const Everything& everything)
 {	e = &everything;
 	if(dos) dos->setup(everything);
-	
+
+	//Warn if no State dump is configured (makes restart impossible):
+	bool hasStateDump = false;
+	for(auto entry: *this)
+		if(entry.second == DumpState)
+		{	hasStateDump = true;
+			break;
+		}
+	if(!hasStateDump)
+	{	logPrintf("\n"
+			"WARNING: No 'dump ... State' command found in input. Wavefunctions will not be\n"
+			"   saved, making it impossible to restart the calculation from a checkpoint.\n"
+			"   Consider adding 'dump End State' to save restart files at the end, and/or\n"
+			"   'dump Electronic <N> State' to save periodic checkpoints every N SCF cycles.\n"
+			"   Note: on SIGQUIT (kill -3), State will be saved automatically.\n\n");
+	}
+
 	//Add some citations here so that they are included in a dry run:
 	for(auto dumpPair: *this)
 		switch(dumpPair.second)
@@ -68,7 +84,16 @@ void Dump::operator()(DumpFrequency freq, int iter)
 {
 	if(!checkInterval(freq, iter)) return; // => don't dump this time
 	curIter = iter; curFreq = freq; //used by getFilename()
-	
+
+	//Emergency checkpoint: on killFlag (SIGQUIT), force-include State in End dump
+	//so that the calculation can be restarted even if user forgot 'dump End State':
+	if(freq == DumpFreq_End && killFlag
+		&& !count(std::make_pair(DumpFreq_End, DumpState)))
+	{	logPrintf("\n+-- Emergency checkpoint: saving State (wfns) for restart capability --+\n");
+		logFlush();
+		insert(std::make_pair(DumpFreq_End, DumpState));
+	}
+
 	bool foundVars = false; //whether any variables are to be dumped at this frequency
 	for(auto entry: *this)
 		if(entry.first==freq && entry.second!=DumpNone)

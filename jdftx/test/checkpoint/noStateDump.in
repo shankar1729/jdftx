@@ -1,0 +1,5 @@
+include ${SRCDIR}/common.in
+
+#No State in dump list — should trigger WARNING
+dump End Forces ElecDensity
+dump-name noStateDump.$VAR

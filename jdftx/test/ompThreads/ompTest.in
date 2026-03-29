@@ -1,0 +1,12 @@
+#Minimal Fe BCC to verify OMP_NUM_THREADS is respected
+lattice body-centered Cubic 5.42
+ion-species GBRV/$ID_lda.uspp
+elec-cutoff 15 75
+elec-ex-corr lda
+ion Fe  0 0 0  0
+kpoint-folding 1 1 1
+elec-smearing Fermi 0.01
+spintype z-spin
+elec-initial-magnetization 3 no
+electronic-SCF nIterations 3
+dump End None
