@@ -130,8 +130,7 @@ namespace D3
 
 		// // Declared aliases not currently active in BJ switch:
 		// XC_BOP, "hyb-lc-bop", XC_B97_D, "gga-b97-d",
-		// XC_PBEhPBE, "gga-pbehpbe", XC_PBEhPBE, "hyb-pbeh-pbe",
-		// XC_XLYP, "gga-xlyp", XC_HCTH_407, "gga-hcth-407", XC_PW91, "gga-pw91", XC_tHCTH, "gga-tau-hcth",
+		// XC_XLYP, "gga-xlyp", XC_HCTH_407, "gga-hcth-407", XC_PW91, "gga-PW91", XC_tHCTH, "mgga-tau-hcth",
 		// XC_revTPSS, "mgga-revtpss",
 		// XC_HSE03, "hyb-hse03", XC_BHLYP, "hyb-bhandh", 
 		// XC_B3P86, "hyb-b3p86",
@@ -141,7 +140,7 @@ namespace D3
 		// XC_revTPSSh, "hyb-revtpssh", XC_TPSS1KCIS, "hyb-tpss1kcis", 
 		// XC_M11, "hyb-m11", XC_N12SX, "hyb-n12-sx", XC_MN12SX, "hyb-mn12-sx", XC_MN12L, "hyb-mn12-l",
 		// XC_MN15, "hyb-mn15",
-		// XC_B1B95, "hyb-b88b95",
+		// XC_B1B95, "hyb-b88b95", // (not a typo, b88bp5 commonly called b1b95)
 		// XC_SCAN, "mgga-scan"
 	);
 
@@ -196,7 +195,6 @@ namespace D3
 					case XC_PBE: { s8=0.7875; sr6=0.4289; sr8=4.4407; break; }
 					case XC_PBESOL: { s8=2.9491; sr6=0.4466; sr8=6.1742; break; } // 10.1039/C0CP02984J
 					// case XC_B97_D: { s8=2.2609; sr6=0.5545; sr8=3.2297; break; } // 10.1002/jcc.21759
-					// case XC_PBEhPBE: { s8=1.1152; sr6=0.0000; sr8=6.7184; break; } // 10.1039/c7cp04913g
 					// case XC_XLYP: { s8=1.5669; sr6=0.0809; sr8=5.3166; break; } // 10.1039/c7cp04913g
 					// case XC_HCTH_407: { s8=0.6490; sr6=0.0000; sr8=4.8162; break; } // 10.1039/c7cp04913g
 					// case XC_PW91: { s8=1.9598; sr6=0.6319; sr8=4.5718; break; } // 10.1073/pnas.1516984112
