@@ -126,7 +126,7 @@ namespace D3
 		D3_XC_COMMON_MAP_ENTRIES,
 
 		// Supported only for BJ damping:
-		XC_R2SCAN, "mgga-r2scan", XC_RSCAN, "mgga-rscan",
+		XC_R2SCAN, "mgga-r2scan", XC_RSCAN, "mgga-rscan"
 
 		// // Declared aliases not currently active in BJ switch:
 		// XC_BOP, "hyb-lc-bop", XC_B97_D, "gga-b97-d",
