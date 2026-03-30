@@ -233,9 +233,6 @@ namespace D3
 					// case XC_TPSS1KCIS: { s8=1.0542; sr6=0.0000; sr8=6.0201; break; } // 10.1039/c7cp04913g
 					case XC_TPSSH: { s8=0.4243; sr6=0.00; sr8=5.5253; break; } // 10.1039/C0CP02984J
 					// case XC_revTPSSh: { s8=1.4076; sr6=0.2660; sr8=5.3761; break; } // 10.1039/c7cp04913g
-					// case XC_R2SCANH: { s8=1.1236; sr6=0.4709; sr8=5.9157; break; } // 10.1063/5.0086040
-					// case XC_R2SCAN0: { s8=1.1846; sr6=0.4534; sr8=5.8972; break; } // 10.1063/5.0086040
-					// case XC_R2SCAN50: { s8=1.3294; sr6=0.4311; sr8=5.9240; break; } // 10.1063/5.0086040
 					// case XC_M11: { s8=2.8112; sr6=0.0000; sr8=10.1389; break; } // 10.1021/acs.jpclett.5b01591
 					// case XC_N12SX: { s8=2.4900; sr6=0.3283; sr8=5.7898; break; } // 10.1021/acs.jpclett.5b01591
 					// case XC_MN12SX: { s8=1.1674; sr6=0.0983; sr8=8.0259; break; } // 10.1021/acs.jpclett.5b01591
