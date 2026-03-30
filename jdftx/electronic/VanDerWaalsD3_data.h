@@ -190,14 +190,13 @@ namespace D3
 					// case XC_XLYP: { s8=1.5669; sr6=0.0809; sr8=5.3166; break; } // 10.1039/c7cp04913g
 					// case XC_HCTH_407: { s8=0.6490; sr6=0.0000; sr8=4.8162; break; } // 10.1039/c7cp04913g
 					// case XC_PW91: { s8=1.9598; sr6=0.6319; sr8=4.5718; break; } // 10.1073/pnas.1516984112
-					case XC_RPBE: { s8=2.3550; sr6=0.5238; sr8=3.5016; break; } // 10.1002/jcc.21759
-					// case XC_RPBE: { s8=0.8318; sr6=0.1820; sr8=4.0094; break; } // 10.1039/c7cp04913g DUP
+					case XC_RPBE: { s8=0.8318; sr6=0.1820; sr8=4.0094; break; } // 10.1039/c7cp04913g
 					case XC_SSB: { s8=-0.1744; sr6=-0.0952; sr8=5.2170; break; } // 10.1039/C0CP02984J
 					// mGGAs:
 					case XC_TPSS: { s8=1.9435; sr6=0.4535; sr8=4.4752; break; } // 10.1002/jcc.21759
-					// case XC_SCAN: { s8=0.0; sr6=0.538; sr8=5.4200; break; } // 10.1103/physrevb.94.115144
 					// case XC_revTPSS: { s8=1.4023; sr6=0.4426; sr8=4.4723; break; } // 10.1039/c7cp04913g
 					// case XC_tHCTH: { s8=1.2626; sr6=0.0000; sr8=5.6162; break; } // 10.1039/c7cp04913g
+					// case XC_SCAN: { s8=0.0; sr6=0.538; sr8=5.4200; break; } // 10.1103/physrevb.94.115144
 					case XC_R2SCAN: { s8=0.7898; sr6=0.4948; sr8=5.7308; break; } // 10.1063/5.0041008
 					case XC_RSCAN: { s8=1.0886; sr6=0.4702; sr8=5.7341; break; } // 10.1063/5.0041008
 					// Hybrids:
