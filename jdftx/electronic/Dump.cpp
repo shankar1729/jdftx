@@ -41,22 +41,6 @@ void Dump::setup(const Everything& everything)
 {	e = &everything;
 	if(dos) dos->setup(everything);
 
-	//Warn if no State dump is configured (makes restart impossible):
-	bool hasStateDump = false;
-	for(auto entry: *this)
-		if(entry.second == DumpState)
-		{	hasStateDump = true;
-			break;
-		}
-	if(!hasStateDump)
-	{	logPrintf("\n"
-			"WARNING: No 'dump ... State' command found in input. Wavefunctions will not be\n"
-			"   saved, making it impossible to restart the calculation from a checkpoint.\n"
-			"   Consider adding 'dump End State' to save restart files at the end, and/or\n"
-			"   'dump Electronic <N> State' to save periodic checkpoints every N SCF cycles.\n"
-			"   Note: on SIGQUIT (kill -3), State will be saved automatically.\n\n");
-	}
-
 	//Add some citations here so that they are included in a dry run:
 	for(auto dumpPair: *this)
 		switch(dumpPair.second)

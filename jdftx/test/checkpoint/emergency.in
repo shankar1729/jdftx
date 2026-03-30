@@ -1,0 +1,8 @@
+include ${SRCDIR}/common.in
+
+#Many SCF iterations so we have time to send SIGQUIT
+electronic-SCF nIterations 200
+
+#Intentionally NO 'dump End State' -- emergency dump should create .wfns anyway
+dump End Forces
+dump-name emergency.$VAR
