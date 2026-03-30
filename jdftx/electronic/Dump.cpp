@@ -69,6 +69,12 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(!checkInterval(freq, iter)) return; // => don't dump this time
 	curIter = iter; curFreq = freq; //used by getFilename()
 	
+	//On SIGQUIT, include State in dump End implicitly to enable restart:
+	if((freq==DumpFreq_End) && killFlag && !count(std::make_pair(DumpFreq_End, DumpState)))
+	{	logPrintf("\nAdding State to dump End on SIGQUIT.\n"); logFlush();
+		insert(std::make_pair(DumpFreq_End, DumpState));
+	}
+	
 	bool foundVars = false; //whether any variables are to be dumped at this frequency
 	for(auto entry: *this)
 		if(entry.first==freq && entry.second!=DumpNone)
