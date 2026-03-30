@@ -40,7 +40,7 @@ Dump::Dump()
 void Dump::setup(const Everything& everything)
 {	e = &everything;
 	if(dos) dos->setup(everything);
-
+	
 	//Add some citations here so that they are included in a dry run:
 	for(auto dumpPair: *this)
 		switch(dumpPair.second)
@@ -68,16 +68,13 @@ void Dump::operator()(DumpFrequency freq, int iter)
 {
 	if(!checkInterval(freq, iter)) return; // => don't dump this time
 	curIter = iter; curFreq = freq; //used by getFilename()
-
-	//Emergency checkpoint: on killFlag (SIGQUIT), force-include State in End dump
-	//so that the calculation can be restarted even if user forgot 'dump End State':
-	if(freq == DumpFreq_End && killFlag
-		&& !count(std::make_pair(DumpFreq_End, DumpState)))
-	{	logPrintf("\n+-- Emergency checkpoint: saving State (wfns) for restart capability --+\n");
-		logFlush();
+	
+	//On SIGQUIT, include State in dump End implicitly to enable restart:
+	if((freq==DumpFreq_End) && killFlag && !count(std::make_pair(DumpFreq_End, DumpState)))
+	{	logPrintf("\nAdding State to dump End on SIGQUIT.\n"); logFlush();
 		insert(std::make_pair(DumpFreq_End, DumpState));
 	}
-
+	
 	bool foundVars = false; //whether any variables are to be dumped at this frequency
 	for(auto entry: *this)
 		if(entry.first==freq && entry.second!=DumpNone)

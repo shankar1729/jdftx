@@ -281,16 +281,13 @@ void initSystem(int argc, char** argv, const InitParams* ip)
 			logPrintf("Could not determine thread count from SLURM_CPUS_PER_TASK=\"%s\".\n", slurmCpusPerTask);
 	}
 
-	//Respect OMP_NUM_THREADS if set (unless overridden by -c flag or SLURM):
 	if(!manualThreadCount && !slurmCpusPerTask)
-	{	const char* ompNumThreads = getenv("OMP_NUM_THREADS");
+	{	//Check OMP_NUM_THREADS for thread count (lower priority than -c or SLURM):
+		const char* ompNumThreads = getenv("OMP_NUM_THREADS");
 		if(ompNumThreads)
 		{	int nThreadsOMP;
 			if(sscanf(ompNumThreads, "%d", &nThreadsOMP)==1 && nThreadsOMP>0)
-			{	if(nThreadsOMP != nProcsAvailable)
-					logPrintf("Note: OMP_NUM_THREADS=%d overrides auto-detected thread count of %d.\n", nThreadsOMP, nProcsAvailable);
 				nProcsAvailable = nThreadsOMP;
-			}
 			else
 				logPrintf("Could not determine thread count from OMP_NUM_THREADS=\"%s\".\n", ompNumThreads);
 		}

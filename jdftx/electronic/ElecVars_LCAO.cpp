@@ -142,7 +142,6 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 	
 	bool report(int iter)
 	{	eInfo.smearReport();
-		//Periodic dump during LCAO (reuses dump-interval Electronic settings):
 		const_cast<Everything&>(e).dump(DumpFreq_Electronic, iter);
 		return false;
 	}
