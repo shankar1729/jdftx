@@ -1,0 +1,5 @@
+include ${SRCDIR}/common.in
+
+#State in dump list — should NOT trigger WARNING
+dump End State Forces
+dump-name withStateDump.$VAR

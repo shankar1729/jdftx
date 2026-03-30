@@ -142,6 +142,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 	
 	bool report(int iter)
 	{	eInfo.smearReport();
+		const_cast<Everything&>(e).dump(DumpFreq_Electronic, iter);
 		return false;
 	}
 };

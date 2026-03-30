@@ -280,6 +280,18 @@ void initSystem(int argc, char** argv, const InitParams* ip)
 		else
 			logPrintf("Could not determine thread count from SLURM_CPUS_PER_TASK=\"%s\".\n", slurmCpusPerTask);
 	}
+
+	if(!manualThreadCount && !slurmCpusPerTask)
+	{	//Check OMP_NUM_THREADS for thread count (lower priority than -c or SLURM):
+		const char* ompNumThreads = getenv("OMP_NUM_THREADS");
+		if(ompNumThreads)
+		{	int nThreadsOMP;
+			if(sscanf(ompNumThreads, "%d", &nThreadsOMP)==1 && nThreadsOMP>0)
+				nProcsAvailable = nThreadsOMP;
+			else
+				logPrintf("Could not determine thread count from OMP_NUM_THREADS=\"%s\".\n", ompNumThreads);
+		}
+	}
 	resumeOperatorThreading(); //if necessary, this informs MKL of the thread count
 	
 	//Print total resources used by run:
