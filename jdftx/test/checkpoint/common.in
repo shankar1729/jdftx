@@ -1,11 +1,8 @@
-#Minimal Fe BCC for checkpoint tests (fast: Gamma-only, low cutoff)
 lattice body-centered Cubic 5.42
-ion-species GBRV/$ID_lda.uspp
-elec-cutoff 15 75
-elec-ex-corr lda
+ion-species GBRV/$ID_pbe.uspp
+elec-cutoff 20 100
 ion Fe  0 0 0  0
-kpoint-folding 1 1 1
+kpoint-folding 1 1 1  #Gamma-only for quick test
 elec-smearing Fermi 0.01
 spintype z-spin
 elec-initial-magnetization 3 no
-electronic-SCF nIterations 3
