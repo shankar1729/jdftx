@@ -95,14 +95,12 @@ namespace D3
 		XC_R2SCAN, XC_RSCAN,
 
 		// Declared (maps/parameters present), but not currently active in either damping switch:
-		XC_BP86, XC_RPW86PBE, XC_BLYP, XC_B97_D, XC_BOP, XC_MPWLYP, XC_OLYP, XC_BPBE, XC_OPBE, XC_revSSB,
-		XC_otpss, XC_revPBE0, XC_revPBE38, XC_HSE03, XC_BHLYP, XC_B2PLYP, XC_B2CPPLYP, XC_PWPB95, XC_B1B95, XC_DSDBLYP,
-		XC_PBEhPBE, XC_XLYP, XC_MPWPW91, XC_HCTH_407, XC_PW91, XC_revTPSS, XC_tHCTH,
-		XC_B3P86, XC_B1P86, XC_B1LYP, XC_MPW1PW91, XC_MPW1KCIS, XC_MPWKCIS1K,
-		XC_PBEh1PBE, XC_PBE1KCIS, XC_X3LYP, XC_O3LYP, XC_B97_1, XC_B97_2,
-		XC_B98, XC_HISS, XC_revTPSSh, XC_revTPSS0, XC_TPSS1KCIS, XC_rHCTHhyb,
-		XC_M11, XC_N12SX, XC_MN12SX, XC_MN12L, XC_MN15, XC_LC_whPBE, XC_MPW2PLYP,
-		XC_R2SCANH, XC_R2SCAN0, XC_R2SCAN50, XC_SCAN
+		XC_B97_D, XC_BOP, XC_HSE03, XC_BHLYP, XC_B1B95, XC_XLYP, XC_HCTH_407, XC_PW91, XC_revTPSS, XC_tHCTH,
+		XC_B3P86, XC_B1LYP, XC_MPW1PW91, XC_MPW1KCIS, XC_MPWKCIS1K,
+		XC_PBE1KCIS, XC_X3LYP, XC_O3LYP, XC_B97_1, XC_B97_2,
+		XC_B98, XC_revTPSSh, XC_TPSS1KCIS,
+		XC_M11, XC_N12SX, XC_MN12SX, XC_MN12L, XC_MN15,
+		XC_SCAN
 	};
 		
 	// Shared aliases used by both zero-damping and BJ-damping maps:
@@ -131,19 +129,19 @@ namespace D3
 		XC_R2SCAN, "mgga-r2scan", XC_RSCAN, "mgga-rscan",
 
 		// // Declared aliases not currently active in BJ switch:
-		// XC_BOP, "gga-bop", XC_RPW86PBE, "gga-rpw86pbe", XC_BLYP, "gga-blyp", XC_B97_D, "gga-b97-d",
-		// XC_MPWLYP, "gga-mpwlyp", XC_OLYP, "gga-olyp", XC_BPBE, "gga-bpbe", XC_OPBE, "gga-opbe", XC_PBEhPBE, "gga-pbehpbe", XC_PBEhPBE, "hyb-pbeh-pbe",
-		// XC_XLYP, "gga-xlyp", XC_MPWPW91, "gga-mpwpw91", XC_HCTH_407, "gga-hcth-407", XC_PW91, "gga-pw91", XC_tHCTH, "gga-thcth",
-		// XC_revSSB, "gga-revssb", XC_otpss, "mgga-otpss", XC_revTPSS, "mgga-revtpss",
-		// XC_revPBE0, "hyb-revpbe0", XC_revPBE38, "hyb-revpbe38", XC_HSE03, "hyb-hse03", XC_BHLYP, "hyb-bhlyp",
-		// XC_B2PLYP, "hyb-b2plyp", XC_B2CPPLYP, "hyb-b2cpplyp", XC_PWPB95, "hyb-pwpb95", XC_B3P86, "hyb-b3p86",
-		// XC_B1P86, "hyb-b1p86", XC_B1LYP, "hyb-b1lyp", XC_MPW1PW91, "hyb-mpw1pw91", XC_MPW1KCIS, "hyb-mpw1kcis",
-		// XC_MPWKCIS1K, "hyb-mpwkcis1k", XC_PBEh1PBE, "hyb-pbeh1pbe", XC_PBE1KCIS, "hyb-pbe1kcis", XC_X3LYP, "hyb-x3lyp",
-		// XC_O3LYP, "hyb-o3lyp", XC_B97_1, "hyb-b97-1", XC_B97_2, "hyb-b97-2", XC_B98, "hyb-b98", XC_HISS, "hyb-hiss",
-		// XC_revTPSSh, "hyb-revtpssh", XC_revTPSS0, "hyb-revtpss0", XC_TPSS1KCIS, "hyb-tpss1kcis", XC_rHCTHhyb, "hyb-rhcthhyb",
+		// XC_BOP, "hyb-lc-bop", XC_B97_D, "gga-b97-d",
+		// XC_PBEhPBE, "gga-pbehpbe", XC_PBEhPBE, "hyb-pbeh-pbe",
+		// XC_XLYP, "gga-xlyp", XC_HCTH_407, "gga-hcth-407", XC_PW91, "gga-pw91", XC_tHCTH, "gga-tau-hcth",
+		// XC_revTPSS, "mgga-revtpss",
+		// XC_HSE03, "hyb-hse03", XC_BHLYP, "hyb-bhandh", 
+		// XC_B3P86, "hyb-b3p86",
+		// XC_B1LYP, "hyb-b1lyp", XC_MPW1PW91, "hyb-mpw1pw", XC_MPW1KCIS, "hyb-mpw1kcis",
+		// XC_MPWKCIS1K, "hyb-mpwkcis1k", XC_PBE1KCIS, "hyb-pbe1kcis", XC_X3LYP, "hyb-x3lyp",
+		// XC_O3LYP, "hyb-o3lyp", XC_B97_1, "hyb-b97-1", XC_B97_2, "hyb-b97-2", XC_B98, "hyb-b98", 
+		// XC_revTPSSh, "hyb-revtpssh", XC_TPSS1KCIS, "hyb-tpss1kcis", 
 		// XC_M11, "hyb-m11", XC_N12SX, "hyb-n12-sx", XC_MN12SX, "hyb-mn12-sx", XC_MN12L, "hyb-mn12-l",
-		// XC_MN15, "hyb-mn15", XC_LC_whPBE, "hyb-lc-whpbe", XC_MPW2PLYP, "hyb-mpw2plyp",
-		// XC_R2SCANH, "hyb-r2scanh", XC_R2SCAN0, "hyb-r2scan0", XC_R2SCAN50, "hyb-r2scan50", XC_B1B95, "hyb-b1b95", XC_DSDBLYP, "hyb-dsd-blyp",
+		// XC_MN15, "hyb-mn15",
+		// XC_B1B95, "hyb-b88b95",
 		// XC_SCAN, "mgga-scan"
 	);
 
@@ -197,82 +195,60 @@ namespace D3
 					// case XC_BOP: { s8=3.2950; sr6=0.4870; sr8=3.5043; break; } // 10.1039/C0CP02984J
 					case XC_PBE: { s8=0.7875; sr6=0.4289; sr8=4.4407; break; }
 					case XC_PBESOL: { s8=2.9491; sr6=0.4466; sr8=6.1742; break; } // 10.1039/C0CP02984J
-					// case XC_RPW86PBE: { s8=1.3845; sr6=0.4613; sr8=4.5062; break; }
-					// case XC_BLYP: { s8=2.6996; sr6=0.4298; sr8=4.2359; break; } // 10.1002/jcc.21759
 					// case XC_B97_D: { s8=2.2609; sr6=0.5545; sr8=3.2297; break; } // 10.1002/jcc.21759
-					// case XC_MPWLYP: { s8=2.0077; sr6=0.4831; sr8=4.5323; break; } // 10.1039/C0CP02984J
-					// case XC_OLYP: { s8=2.6205; sr6=0.5299; sr8=2.8065; break; } // 10.1039/C0CP02984J
-					// case XC_BPBE: { s8=4.0728; sr6=0.4567; sr8=4.3908; break; } // 10.1039/C0CP02984J
-					// case XC_OPBE: { s8=3.3816; sr6=0.5512; sr8=2.9444; break; } // 10.1039/C0CP02984J
 					// case XC_PBEhPBE: { s8=1.1152; sr6=0.0000; sr8=6.7184; break; } // 10.1039/c7cp04913g
 					// case XC_XLYP: { s8=1.5669; sr6=0.0809; sr8=5.3166; break; } // 10.1039/c7cp04913g
-					// case XC_MPWPW91: { s8=1.7974; sr6=0.3168; sr8=4.7732; break; } // 10.1039/c7cp04913g
 					// case XC_HCTH_407: { s8=0.6490; sr6=0.0000; sr8=4.8162; break; } // 10.1039/c7cp04913g
 					// case XC_PW91: { s8=1.9598; sr6=0.6319; sr8=4.5718; break; } // 10.1073/pnas.1516984112
 					case XC_RPBE: { s8=2.3550; sr6=0.5238; sr8=3.5016; break; } // 10.1002/jcc.21759
 					// case XC_RPBE: { s8=0.8318; sr6=0.1820; sr8=4.0094; break; } // 10.1039/c7cp04913g DUP
 					case XC_SSB: { s8=-0.1744; sr6=-0.0952; sr8=5.2170; break; } // 10.1039/C0CP02984J
-					// case XC_revSSB: { s8=0.4389; sr6=0.4720; sr8=4.0986; break; } // 10.1039/C0CP02984J
 					// mGGAs:
 					case XC_TPSS: { s8=1.9435; sr6=0.4535; sr8=4.4752; break; } // 10.1002/jcc.21759
 					// case XC_SCAN: { s8=0.0; sr6=0.538; sr8=5.4200; break; } // 10.1103/physrevb.94.115144
-					// case XC_otpss: { s8=2.7495; sr6=0.4634; sr8=4.3153; break; } // 10.1039/C0CP02984J
 					// case XC_revTPSS: { s8=1.4023; sr6=0.4426; sr8=4.4723; break; } // 10.1039/c7cp04913g
 					// case XC_tHCTH: { s8=1.2626; sr6=0.0000; sr8=5.6162; break; } // 10.1039/c7cp04913g
 					case XC_R2SCAN: { s8=0.7898; sr6=0.4948; sr8=5.7308; break; } // 10.1063/5.0041008
 					case XC_RSCAN: { s8=1.0886; sr6=0.4702; sr8=5.7341; break; } // 10.1063/5.0041008
 					// Hybrids:
 					case XC_PBE0: { s8=1.2177 ; sr6=0.4145; sr8=4.8593; break; } // 10.1002/jcc.21759
-					// case XC_revPBE0: { s8=1.7588; sr6=0.4679; sr8=3.7619; break; } // 10.1039/C0CP02984J
 					case XC_PBE38: { s8=1.4623; sr6=0.3995; sr8=5.1405; break; } // 10.1039/C0CP02984J
-					// case XC_revPBE38: { s8=1.4760; sr6=0.4309; sr8=3.9446; break; } // 10.1039/C0CP02984J
 					// case XC_HSE03: { s8=1.1243; sr6=0.0000; sr8=6.8889; break; } // 10.1039/c7cp04913g
 					case XC_HSE06: { s8=2.3100; sr6=0.3830; sr8=5.6850; break; } // 10.1021/jp501237c
 					case XC_B3PW91: { s8=2.8524; sr6=0.4312; sr8=4.4693; break; } // 10.1039/C0CP02984J
 					// case XC_B3P86: { s8=3.3211; sr6=0.4601; sr8=4.9294; break; } // 10.1039/c7cp04913g
 					case XC_B3LYP: { s8=1.9889; sr6=0.3981; sr8=4.4211; break; } // 10.1002/jcc.21759
-					// case XC_B1P86: { s8=3.5681; sr6=0.4724; sr8=4.9858; break; } // 10.1039/c7cp04913g
 					// case XC_B1LYP: { s8=2.1167; sr6=0.1986; sr8=5.3875; break; } // 10.1039/c7cp04913g
 					// case XC_MPW1PW91: { s8=1.8744; sr6=0.3342; sr8=4.9819; break; } // 10.1039/c7cp04913g
 					// case XC_MPW1KCIS: { s8=1.0893; sr6=0.0576; sr8=5.5314; break; } // 10.1039/c7cp04913g
 					// case XC_MPWKCIS1K: { s8=1.2875; sr6=0.0855; sr8=5.8961; break; } // 10.1039/c7cp04913g
-					// case XC_PBEh1PBE: { s8=1.4877; sr6=0.0000; sr8=7.0385; break; } // 10.1039/c7cp04913g
 					// case XC_PBE1KCIS: { s8=0.7688; sr6=0.0000; sr8=6.2794; break; } // 10.1039/c7cp04913g
 					// case XC_X3LYP: { s8=1.5744; sr6=0.2022; sr8=5.4184; break; } // 10.1039/c7cp04913g
 					// case XC_O3LYP: { s8=1.8171; sr6=0.0963; sr8=5.9940; break; } // 10.1039/c7cp04913g
 					// case XC_B97_1: { s8=0.4814; sr6=0.0000; sr8=6.2279; break; } // 10.1039/c7cp04913g
 					// case XC_B97_2: { s8=0.9448; sr6=0.0000; sr8=5.4603; break; } // 10.1039/c7cp04913g
 					// case XC_B98: { s8=0.7086; sr6=0.0000; sr8=6.0672; break; } // 10.1039/c7cp04913g
-					// case XC_HISS: { s8=1.6112; sr6=0.0000; sr8=7.3539; break; } // 10.1039/c7cp04913g
 					// case XC_BHLYP: { s8=1.0354; sr6=0.2793; sr8=4.9615; break; } // 10.1039/C0CP02984J
 					case XC_CAM_B3LYP: { s8=2.0674; sr6=0.3708; sr8=5.4743; break; } // 10.1039/C0CP02984J
 					case XC_PW6B95: { s8=0.7257; sr6=0.2076; sr8=6.3750; break; } // 10.1002/jcc.21759
-					// case XC_B2PLYP: { s6=0.64; s8=0.9147; sr6=0.3065; sr8=5.0570; break; } // 10.1039/C0CP02984J
-					// case XC_MPW2PLYP: { s6=0.66; s8=0.6223; sr6=0.4105; sr8=5.0136; break; } // 10.1039/c7cp04913g
-					// case XC_B2CPPLYP: { s6=0.56; s8=0.2597; sr6=0.00; sr8=6.3332; break; } // 10.1039/C0CP02984J
-					// case XC_PWPB95: { s6=0.82; s8=0.2904; sr6=0.00; sr8=7.3141; break; } // 10.1039/C0CP02984J
 					case XC_TPSS0: { s8=1.2576; sr6=0.3768; sr8=4.5865; break; } // 10.1002/jcc.21759
-					// case XC_revTPSS0: { s8=1.6151; sr6=0.2218; sr8=5.7985; break; } // 10.1039/c7cp04913g
 					// case XC_TPSS1KCIS: { s8=1.0542; sr6=0.0000; sr8=6.0201; break; } // 10.1039/c7cp04913g
 					case XC_TPSSH: { s8=0.4243; sr6=0.00; sr8=5.5253; break; } // 10.1039/C0CP02984J
 					// case XC_revTPSSh: { s8=1.4076; sr6=0.2660; sr8=5.3761; break; } // 10.1039/c7cp04913g
 					// case XC_R2SCANH: { s8=1.1236; sr6=0.4709; sr8=5.9157; break; } // 10.1063/5.0086040
 					// case XC_R2SCAN0: { s8=1.1846; sr6=0.4534; sr8=5.8972; break; } // 10.1063/5.0086040
 					// case XC_R2SCAN50: { s8=1.3294; sr6=0.4311; sr8=5.9240; break; } // 10.1063/5.0086040
-					// case XC_rHCTHhyb: { s8=0.9585; sr6=0.0000; sr8=6.2303; break; } // 10.1039/c7cp04913g
 					// case XC_M11: { s8=2.8112; sr6=0.0000; sr8=10.1389; break; } // 10.1021/acs.jpclett.5b01591
 					// case XC_N12SX: { s8=2.4900; sr6=0.3283; sr8=5.7898; break; } // 10.1021/acs.jpclett.5b01591
 					// case XC_MN12SX: { s8=1.1674; sr6=0.0983; sr8=8.0259; break; } // 10.1021/acs.jpclett.5b01591
 					// case XC_MN12L: { s8=2.2674; sr6=0.0000; sr8=9.1494; break; } // 10.1021/acs.jpclett.5b01591
 					// case XC_MN15: { s8=0.7862; sr6=2.0971; sr8=7.5923; break; } // 10.1039/c7cp04913g
-					// case XC_LC_whPBE: { s8=1.1908; sr6=0.2746; sr8=5.3157; break; } // 10.1039/c7cp04913g
 					case XC_PWB6K: { s8=0.9383; sr6=0.1805; sr8=7.7627; break; } // 10.1039/C0CP02984J
 					case XC_MPW1B95: { s8=1.0508; sr6=0.1955; sr8=6.4177; break; } // 10.1039/C0CP02984J
 					case XC_MPWB1K: { s8=0.9499; sr6=0.1474; sr8=6.6223; break; } // 10.1039/C0CP02984J
 					case XC_BMK: { s8=2.0860; sr6=0.1940; sr8=5.9197; break; } // 10.1039/C0CP02984J
 					// case XC_B1B95: { s8=1.4507; sr6=0.2092; sr8=5.5545; break; } // 10.1039/C0CP02984J
 					case XC_LC_WPBE: { s8=1.8541; sr6=0.3919; sr8=5.0897; break; } // 10.1039/C0CP02984J
-					// case XC_DSDBLYP: { s6=0.50; s8=0.2130; sr6=0.00; sr8=6.0519; break; } // 10.1039/C0CP02984J
 					case XC_HF: { s8=0.9171; sr6=0.3385; sr8=2.883; break; } // 10.1002/jcc.21759
 					default:
 						die("\nDFT-D3(BJ) not currently supported for %s functional. Please use zero-damping form. \n\n", xcName.c_str());
