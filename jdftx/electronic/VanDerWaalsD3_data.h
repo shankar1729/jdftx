@@ -96,11 +96,8 @@ namespace D3
 
 		// Declared (maps/parameters present), but not currently active in either damping switch:
 		XC_B97_D, XC_BOP, XC_HSE03, XC_BHLYP, XC_B1B95, XC_XLYP, XC_HCTH_407, XC_PW91, XC_revTPSS, XC_tHCTH,
-		XC_B3P86, XC_B1LYP, XC_MPW1PW91, XC_MPW1KCIS, XC_MPWKCIS1K,
-		XC_PBE1KCIS, XC_X3LYP, XC_O3LYP, XC_B97_1, XC_B97_2,
-		XC_B98, XC_revTPSSh, XC_TPSS1KCIS,
-		XC_M11, XC_N12SX, XC_MN12SX, XC_MN12L, XC_MN15,
-		XC_SCAN
+		XC_B3P86, XC_B1LYP, XC_MPW1PW91, XC_MPW1KCIS, XC_MPWKCIS1K, XC_PBE1KCIS, XC_X3LYP, XC_O3LYP, XC_B97_1, 
+		XC_B97_2, XC_B98, XC_revTPSSh, XC_TPSS1KCIS, XC_M11, XC_N12SX, XC_MN12SX, XC_MN12L, XC_MN15, XC_SCAN
 	};
 		
 	// Shared aliases used by both zero-damping and BJ-damping maps:
@@ -126,22 +123,17 @@ namespace D3
 		D3_XC_COMMON_MAP_ENTRIES,
 
 		// Supported only for BJ damping:
-		XC_R2SCAN, "mgga-r2scan", XC_RSCAN, "mgga-rscan"
+		XC_R2SCAN, "mgga-r2scan", XC_RSCAN, "mgga-rscan",
 
 		// // Declared aliases not currently active in BJ switch:
-		// XC_BOP, "hyb-lc-bop", XC_B97_D, "gga-b97-d",
-		// XC_XLYP, "gga-xlyp", XC_HCTH_407, "gga-hcth-407", XC_PW91, "gga-PW91", XC_tHCTH, "mgga-tau-hcth",
-		// XC_revTPSS, "mgga-revtpss",
-		// XC_HSE03, "hyb-hse03", XC_BHLYP, "hyb-bhandh", 
-		// XC_B3P86, "hyb-b3p86",
-		// XC_B1LYP, "hyb-b1lyp", XC_MPW1PW91, "hyb-mpw1pw", XC_MPW1KCIS, "hyb-mpw1kcis",
-		// XC_MPWKCIS1K, "hyb-mpwkcis1k", XC_PBE1KCIS, "hyb-pbe1kcis", XC_X3LYP, "hyb-x3lyp",
-		// XC_O3LYP, "hyb-o3lyp", XC_B97_1, "hyb-b97-1", XC_B97_2, "hyb-b97-2", XC_B98, "hyb-b98", 
-		// XC_revTPSSh, "hyb-revtpssh", XC_TPSS1KCIS, "hyb-tpss1kcis", 
-		// XC_M11, "hyb-m11", XC_N12SX, "hyb-n12-sx", XC_MN12SX, "hyb-mn12-sx", XC_MN12L, "hyb-mn12-l",
-		// XC_MN15, "hyb-mn15",
-		// XC_B1B95, "hyb-b88b95", // (not a typo, b88bp5 commonly called b1b95)
-		// XC_SCAN, "mgga-scan"
+		XC_BOP, "hyb-lc-bop", XC_B97_D, "gga-b97-d", XC_XLYP, "gga-xlyp", XC_HCTH_407, "gga-hcth-407", 
+		XC_PW91, "gga-PW91", XC_tHCTH, "mgga-tau-hcth", XC_revTPSS, "mgga-revtpss", XC_HSE03, "hyb-hse03", 
+		XC_BHLYP, "hyb-bhandh", XC_B3P86, "hyb-b3p86", XC_B1LYP, "hyb-b1lyp", XC_MPW1PW91, "hyb-mpw1pw", 
+		XC_MPW1KCIS, "hyb-mpw1kcis", XC_MPWKCIS1K, "hyb-mpwkcis1k", XC_PBE1KCIS, "hyb-pbe1kcis", XC_X3LYP, "hyb-x3lyp",
+		XC_O3LYP, "hyb-o3lyp", XC_B97_1, "hyb-b97-1", XC_B97_2, "hyb-b97-2", XC_B98, "hyb-b98", 
+		XC_revTPSSh, "hyb-revtpssh", XC_TPSS1KCIS, "hyb-tpss1kcis", XC_M11, "hyb-m11", XC_N12SX, "hyb-n12-sx", 
+		XC_MN12SX, "hyb-mn12-sx", XC_MN12L, "hyb-mn12-l", XC_MN15, "hyb-mn15", XC_SCAN, "mgga-scan",
+		XC_B1B95, "hyb-b88b95" // (not a typo, b88bp5 commonly called b1b95)
 	);
 
 	#undef D3_XC_COMMON_MAP_ENTRIES
