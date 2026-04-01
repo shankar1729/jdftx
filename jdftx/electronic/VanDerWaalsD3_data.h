@@ -128,7 +128,7 @@ namespace D3
 		XC_MPW1KCIS, "hyb-mpw1kcis", XC_MPWKCIS1K, "hyb-mpwkcis1k", XC_PBE1KCIS, "hyb-pbe1kcis", XC_X3LYP, "hyb-x3lyp",
 		XC_O3LYP, "hyb-o3lyp", XC_B97_1, "hyb-b97-1", XC_B97_2, "hyb-b97-2", XC_B98, "hyb-b98", 
 		XC_revTPSSh, "hyb-revtpssh", XC_TPSS1KCIS, "hyb-tpss1kcis", XC_M11, "hyb-m11", XC_N12SX, "hyb-n12-sx", 
-		XC_MN12SX, "hyb-mn12-sx", XC_MN12L, "hyb-mn12-l", XC_MN15, "hyb-mn15", XC_SCAN, "mgga-scan",
+		XC_MN12SX, "hyb-mn12-sx", XC_MN12L, "mgga-mn12-l", XC_MN15, "hyb-mn15", XC_SCAN, "mgga-scan",
 		XC_B1B95, "hyb-b88b95" // (not a typo, b88bp5 commonly called b1b95)
 	);
 
