@@ -134,6 +134,11 @@ namespace D3
 
 	#undef D3_XC_COMMON_MAP_ENTRIES
 
+	enum FitPaper { 
+		FP_None, FP_Grimme_02_2011, FP_Grimme_03_2011, FP_Reimers_2015, FP_Goerigk_2017, FP_Ehlert_2021, FP_Goerigk_2015,
+		FP_Moellmann_2014, FP_Brandenburg_2016,
+	};
+
 	//Replace first occurence of target in s with replacement
 	inline void string_replace(string& s, string target, string replacement)
 	{	size_t pos = s.find(target);
@@ -174,75 +179,95 @@ namespace D3
 		//Set parameters:
 		//Note that for DFT-D3(BJ), sr6 and sr8 are actually a1/a2
 		if(useBJDamping) {
+				FitPaper fitPaper=FP_None;
 				s6 = 1.0;
 				switch(xc)
 				{	
 					// GGAs:
-					case XC_PBE: { s8=0.7875; sr6=0.4289; sr8=4.4407; break; } // 10.1002/jcc.21759 (Grimme 03-2011)
-					case XC_PBESOL: { s8=2.9491; sr6=0.4466; sr8=6.1742; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_RPBE: { s8=0.8318; sr6=0.1820; sr8=4.0094; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_SSB: { s8=-0.1744; sr6=-0.0952; sr8=5.2170; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
+					case XC_PBE: { s8=0.7875; sr6=0.4289; sr8=4.4407; fitpaper=FP_Grimme_03_2011; break; } // 10.1002/jcc.21759
+					case XC_PBESOL: { s8=2.9491; sr6=0.4466; sr8=6.1742; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
+					case XC_RPBE: { s8=0.8318; sr6=0.1820; sr8=4.0094; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_SSB: { s8=-0.1744; sr6=-0.0952; sr8=5.2170; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
 					// GGAs (BJ-only)
-					case XC_BOP: { s8=3.2950; sr6=0.4870; sr8=3.5043; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_B97_D: { s8=2.2609; sr6=0.5545; sr8=3.2297; break; } // 10.1002/jcc.21759  (Grimme 03-2011)
-					case XC_XLYP: { s8=1.5669; sr6=0.0809; sr8=5.3166; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_HCTH_407: { s8=0.6490; sr6=0.0000; sr8=4.8162; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_PW91: { s8=1.9598; sr6=0.6319; sr8=4.5718; break; } // 10.1073/pnas.1516984112 (Reimers 2015)
+					case XC_BOP: { s8=3.2950; sr6=0.4870; sr8=3.5043; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
+					case XC_B97_D: { s8=2.2609; sr6=0.5545; sr8=3.2297; fitpaper=FP_Grimme_03_2011; break; } // 10.1002/jcc.21759 
+					case XC_XLYP: { s8=1.5669; sr6=0.0809; sr8=5.3166; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_HCTH_407: { s8=0.6490; sr6=0.0000; sr8=4.8162; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_PW91: { s8=1.9598; sr6=0.6319; sr8=4.5718; fitpaper=FP_Reimers_2015; break; } // 10.1073/pnas.1516984112
 					// mGGAs:
-					case XC_TPSS: { s8=1.9435; sr6=0.4535; sr8=4.4752; break; } // 10.1002/jcc.21759 (Grimme 03-2011)
-					case XC_R2SCAN: { s8=0.7898; sr6=0.4948; sr8=5.7308; 
-						Citations::add("r2SCAN-D4: Dispersion corrected meta-generalized gradient approximation for general chemical applications", 
-							"S. Ehlert, U. Huniar, J. Ning, J. W. Furness, J. Sun, A. D. Kaplan, J. P. Perdew, and J. Gerit Brandenburg, J. Chem. Phys. 14, 154 (2021)");
-						break; 
-					} // 10.1063/5.0041008 (Brandenberg 2021)
-					case XC_RSCAN: { s8=1.0886; sr6=0.4702; sr8=5.7341; 
-						Citations::add("r2SCAN-D4: Dispersion corrected meta-generalized gradient approximation for general chemical applications", 
-							"S. Ehlert, U. Huniar, J. Ning, J. W. Furness, J. Sun, A. D. Kaplan, J. P. Perdew, and J. Gerit Brandenburg, J. Chem. Phys. 14, 154 (2021)");
-						break; } // 10.1063/5.0041008 (Brandenberg 2021)
+					case XC_TPSS: { s8=1.9435; sr6=0.4535; sr8=4.4752; fitpaper=FP_Grimme_03_2011; break; } // 10.1002/jcc.21759
+					case XC_R2SCAN: { s8=0.7898; sr6=0.4948; sr8=5.7308; fitpaper=FP_Ehlert_2021; break; } // 10.1063/5.0041008
+					case XC_RSCAN: { s8=1.0886; sr6=0.4702; sr8=5.7341; fitpaper=FP_Ehlert_2021; break; } // 10.1063/5.0041008
 					// mGGAs (BJ-only):
-					case XC_revTPSS: { s8=1.4023; sr6=0.4426; sr8=4.4723; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_tHCTH: { s8=1.2626; sr6=0.0000; sr8=5.6162; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_SCAN: { s8=0.0; sr6=0.538; sr8=5.4200; break; } // 10.1103/physrevb.94.115144 (Perdew 2016)
+					case XC_revTPSS: { s8=1.4023; sr6=0.4426; sr8=4.4723; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_tHCTH: { s8=1.2626; sr6=0.0000; sr8=5.6162; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_SCAN: { s8=0.0; sr6=0.538; sr8=5.4200; fitpaper=FP_Brandenburg_2016; break; } // 10.1103/physrevb.94.115144
 					// Hybrids:
-					case XC_PBE0: { s8=1.2177 ; sr6=0.4145; sr8=4.8593; break; } // 10.1002/jcc.21759 (Grimme 03-2011)
-					case XC_PBE38: { s8=1.4623; sr6=0.3995; sr8=5.1405; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_HSE06: { s8=2.3100; sr6=0.3830; sr8=5.6850; break; } // 10.1021/jp501237c (Grimme 2014)
-					case XC_B3PW91: { s8=2.8524; sr6=0.4312; sr8=4.4693; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_B3LYP: { s8=1.9889; sr6=0.3981; sr8=4.4211; break; } // 10.1002/jcc.21759 (Grimme 03-2011)
-					case XC_CAM_B3LYP: { s8=2.0674; sr6=0.3708; sr8=5.4743; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_PW6B95: { s8=0.7257; sr6=0.2076; sr8=6.3750; break; } // 10.1002/jcc.21759 (Grimme 03-2011)
-					case XC_TPSS0: { s8=1.2576; sr6=0.3768; sr8=4.5865; break; } // 10.1002/jcc.21759 (Grimme 03-2011)
-					case XC_TPSSH: { s8=0.4243; sr6=0.00; sr8=5.5253; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_PWB6K: { s8=0.9383; sr6=0.1805; sr8=7.7627; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_MPW1B95: { s8=1.0508; sr6=0.1955; sr8=6.4177; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_MPWB1K: { s8=0.9499; sr6=0.1474; sr8=6.6223; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_BMK: { s8=2.0860; sr6=0.1940; sr8=5.9197; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_LC_WPBE: { s8=1.8541; sr6=0.3919; sr8=5.0897; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_HF: { s8=0.9171; sr6=0.3385; sr8=2.883; break; } // 10.1002/jcc.21759 (Grimme 03-2011)
+					case XC_PBE0: { s8=1.2177 ; sr6=0.4145; sr8=4.8593; fitpaper=FP_Grimme_03_2011; break; } // 10.1002/jcc.21759
+					case XC_PBE38: { s8=1.4623; sr6=0.3995; sr8=5.1405; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
+					case XC_HSE06: { s8=2.3100; sr6=0.3830; sr8=5.6850; fitpaper=FP_Moellmann_2014; break; } // 10.1021/jp501237c
+					case XC_B3PW91: { s8=2.8524; sr6=0.4312; sr8=4.4693; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
+					case XC_B3LYP: { s8=1.9889; sr6=0.3981; sr8=4.4211; fitpaper=FP_Grimme_03_2011; break; } // 10.1002/jcc.21759
+					case XC_CAM_B3LYP: { s8=2.0674; sr6=0.3708; sr8=5.4743; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
+					case XC_PW6B95: { s8=0.7257; sr6=0.2076; sr8=6.3750; fitpaper=FP_Grimme_03_2011; break; } // 10.1002/jcc.21759
+					case XC_TPSS0: { s8=1.2576; sr6=0.3768; sr8=4.5865; fitpaper=FP_Grimme_03_2011; break; } // 10.1002/jcc.21759
+					case XC_TPSSH: { s8=0.4243; sr6=0.00; sr8=5.5253; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
+					case XC_PWB6K: { s8=0.9383; sr6=0.1805; sr8=7.7627; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
+					case XC_MPW1B95: { s8=1.0508; sr6=0.1955; sr8=6.4177; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
+					case XC_MPWB1K: { s8=0.9499; sr6=0.1474; sr8=6.6223; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
+					case XC_BMK: { s8=2.0860; sr6=0.1940; sr8=5.9197; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
+					case XC_LC_WPBE: { s8=1.8541; sr6=0.3919; sr8=5.0897; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J
+					case XC_HF: { s8=0.9171; sr6=0.3385; sr8=2.883; fitpaper=FP_Grimme_03_2011; break; } // 10.1002/jcc.21759
 					// Hybrids (BJ-only):
-					case XC_HSE03: { s8=1.1243; sr6=0.0000; sr8=6.8889; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_B3P86: { s8=3.3211; sr6=0.4601; sr8=4.9294; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_B1LYP: { s8=2.1167; sr6=0.1986; sr8=5.3875; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_MPW1PW91: { s8=1.8744; sr6=0.3342; sr8=4.9819; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_MPW1KCIS: { s8=1.0893; sr6=0.0576; sr8=5.5314; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_MPWKCIS1K: { s8=1.2875; sr6=0.0855; sr8=5.8961; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_PBE1KCIS: { s8=0.7688; sr6=0.0000; sr8=6.2794; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_X3LYP: { s8=1.5744; sr6=0.2022; sr8=5.4184; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_O3LYP: { s8=1.8171; sr6=0.0963; sr8=5.9940; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_B97_1: { s8=0.4814; sr6=0.0000; sr8=6.2279; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_B97_2: { s8=0.9448; sr6=0.0000; sr8=5.4603; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_B98: { s8=0.7086; sr6=0.0000; sr8=6.0672; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_BHLYP: { s8=1.0354; sr6=0.2793; sr8=4.9615; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
-					case XC_TPSS1KCIS: { s8=1.0542; sr6=0.0000; sr8=6.0201; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_revTPSSh: { s8=1.4076; sr6=0.2660; sr8=5.3761; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_M11: { s8=2.8112; sr6=0.0000; sr8=10.1389; break; } // 10.1021/acs.jpclett.5b01591 (Goerigk 2015)
-					case XC_N12SX: { s8=2.4900; sr6=0.3283; sr8=5.7898; break; } // 10.1021/acs.jpclett.5b01591 (Goerigk 2015)
-					case XC_MN12SX: { s8=1.1674; sr6=0.0983; sr8=8.0259; break; } // 10.1021/acs.jpclett.5b01591 (Goerigk 2015)
-					case XC_MN12L: { s8=2.2674; sr6=0.0000; sr8=9.1494; break; } // 10.1021/acs.jpclett.5b01591 (Goerigk 2015)
-					case XC_MN15: { s8=0.7862; sr6=2.0971; sr8=7.5923; break; } // 10.1039/c7cp04913g (Grimme 2017)
-					case XC_B1B95: { s8=1.4507; sr6=0.2092; sr8=5.5545; break; } // 10.1039/C0CP02984J (Grimme 02-2011)
+					case XC_HSE03: { s8=1.1243; sr6=0.0000; sr8=6.8889; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B3P86: { s8=3.3211; sr6=0.4601; sr8=4.9294; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B1LYP: { s8=2.1167; sr6=0.1986; sr8=5.3875; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_MPW1PW91: { s8=1.8744; sr6=0.3342; sr8=4.9819; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_MPW1KCIS: { s8=1.0893; sr6=0.0576; sr8=5.5314; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_MPWKCIS1K: { s8=1.2875; sr6=0.0855; sr8=5.8961; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_PBE1KCIS: { s8=0.7688; sr6=0.0000; sr8=6.2794; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_X3LYP: { s8=1.5744; sr6=0.2022; sr8=5.4184; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_O3LYP: { s8=1.8171; sr6=0.0963; sr8=5.9940; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B97_1: { s8=0.4814; sr6=0.0000; sr8=6.2279; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B97_2: { s8=0.9448; sr6=0.0000; sr8=5.4603; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B98: { s8=0.7086; sr6=0.0000; sr8=6.0672; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_BHLYP: { s8=1.0354; sr6=0.2793; sr8=4.9615; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
+					case XC_TPSS1KCIS: { s8=1.0542; sr6=0.0000; sr8=6.0201; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_revTPSSh: { s8=1.4076; sr6=0.2660; sr8=5.3761; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_M11: { s8=2.8112; sr6=0.0000; sr8=10.1389; fitpaper=FP_Goerigk_2015; break; } // 10.1021/acs.jpclett.5b01591
+					case XC_N12SX: { s8=2.4900; sr6=0.3283; sr8=5.7898; fitpaper=FP_Goerigk_2015; break; } // 10.1021/acs.jpclett.5b01591
+					case XC_MN12SX: { s8=1.1674; sr6=0.0983; sr8=8.0259; fitpaper=FP_Goerigk_2015; break; } // 10.1021/acs.jpclett.5b01591
+					case XC_MN12L: { s8=2.2674; sr6=0.0000; sr8=9.1494; fitpaper=FP_Goerigk_2015; break; } // 10.1021/acs.jpclett.5b01591
+					case XC_MN15: { s8=0.7862; sr6=2.0971; sr8=7.5923; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B1B95: { s8=1.4507; sr6=0.2092; sr8=5.5545; fitpaper=FP_Grimme_02_2011; break; } // 10.1039/C0CP02984J 
 					default:
 						die("\nDFT-D3(BJ) not currently supported for %s functional. Please use zero-damping form. \n\n", xcName.c_str());
+				};
+				switch(fitpaper) {
+					case FP_Ehlert_2021: { Citations::add("D3(BJ) fit parameters", 
+							"S. Ehlert, U. Huniar, J. Ning, J. W. Furness, J. Sun, A. D. Kaplan, J. P. Perdew, and J. Gerit Brandenburg, J. Chem. Phys. 14, 154 (2021)");
+						break; }
+					case FP_Grimme_02_2011: { Citations::add("D3(BJ) fit parameters", 
+							"L. Goerigka and S. Grimme, Phys. Chem. Chem. Phys. 13, 6670-6688 (2011)");
+						break; }
+					case FP_Goerigk_2017: { Citations::add("D3(BJ) fit parameters", 
+							"L. Goerigk, A. Hansen, C. Bauer, S. Ehrlich, A. Najibi, and S. Grimme, Phys. Chem. Chem. Phys. 19, 32184-32215 (2017)");
+						break; }
+					case FP_Goerigk_2015: { Citations::add("D3(BJ) fit parameters", 
+							"L. Goerigk, J. Phys. Chem. Lett. 6, 19, 3891–3896 (2015)");
+						break; }
+					case FP_Moellmann_2014: { Citations::add("D3(BJ) fit parameters", 
+							"J. Moellmann and S. Grimme, J. Phys. Chem. C 118, 7615-7621 (2014)");
+						break; }
+					case FP_Reimers_2015: { Citations::add("D3(BJ) fit parameters", 
+							"J. R. Reimers et al., PNAS 112, 15, 4513–4518 (2015)");
+						break; }
+					case FP_Brandenburg_2016: { Citations::add("D3(BJ) fit parameters", 
+							"J. Gerit Brandenburg, J. E. Bates, J. Sun, and J. P. Perdew, Phys. Rev. B 94, 115144 (2016)");
+						break; }
+					case FP_Grimme_03_2011: // Citation already added for the BJ form
+					case FP_None:
+					default: break;
 				}
 		} else {
 				s6 = 1.;
