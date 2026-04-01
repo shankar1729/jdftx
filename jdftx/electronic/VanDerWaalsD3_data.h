@@ -190,8 +190,15 @@ namespace D3
 					case XC_PW91: { s8=1.9598; sr6=0.6319; sr8=4.5718; break; } // 10.1073/pnas.1516984112 (Reimers 2015)
 					// mGGAs:
 					case XC_TPSS: { s8=1.9435; sr6=0.4535; sr8=4.4752; break; } // 10.1002/jcc.21759 (Grimme 03-2011)
-					case XC_R2SCAN: { s8=0.7898; sr6=0.4948; sr8=5.7308; break; } // 10.1063/5.0041008 (Brandenberg 2021)
-					case XC_RSCAN: { s8=1.0886; sr6=0.4702; sr8=5.7341; break; } // 10.1063/5.0041008 (Brandenberg 2021)
+					case XC_R2SCAN: { s8=0.7898; sr6=0.4948; sr8=5.7308; 
+						Citations::add("r2SCAN-D4: Dispersion corrected meta-generalized gradient approximation for general chemical applications", 
+							"S. Ehlert, U. Huniar, J. Ning, J. W. Furness, J. Sun, A. D. Kaplan, J. P. Perdew, and J. Gerit Brandenburg, J. Chem. Phys. 14, 154 (2021)");
+						break; 
+					} // 10.1063/5.0041008 (Brandenberg 2021)
+					case XC_RSCAN: { s8=1.0886; sr6=0.4702; sr8=5.7341; 
+						Citations::add("r2SCAN-D4: Dispersion corrected meta-generalized gradient approximation for general chemical applications", 
+							"S. Ehlert, U. Huniar, J. Ning, J. W. Furness, J. Sun, A. D. Kaplan, J. P. Perdew, and J. Gerit Brandenburg, J. Chem. Phys. 14, 154 (2021)");
+						break; } // 10.1063/5.0041008 (Brandenberg 2021)
 					// mGGAs (BJ-only):
 					case XC_revTPSS: { s8=1.4023; sr6=0.4426; sr8=4.4723; break; } // 10.1039/c7cp04913g (Grimme 2017)
 					case XC_tHCTH: { s8=1.2626; sr6=0.0000; sr8=5.6162; break; } // 10.1039/c7cp04913g (Grimme 2017)
