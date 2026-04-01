@@ -182,7 +182,7 @@ namespace D3
 				switch(xc)
 				{	
 					// GGAs:
-					case XC_PBE: { s8=0.7875; sr6=0.4289; sr8=4.4407; break; }
+					case XC_PBE: { s8=0.7875; sr6=0.4289; sr8=4.4407; break; } // 10.1002/jcc.21759
 					case XC_PBESOL: { s8=2.9491; sr6=0.4466; sr8=6.1742; break; } // 10.1039/C0CP02984J
 					case XC_RPBE: { s8=0.8318; sr6=0.1820; sr8=4.0094; break; } // 10.1039/c7cp04913g
 					case XC_SSB: { s8=-0.1744; sr6=-0.0952; sr8=5.2170; break; } // 10.1039/C0CP02984J
