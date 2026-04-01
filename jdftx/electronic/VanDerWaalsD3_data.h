@@ -93,8 +93,6 @@ namespace D3
 
 		// Supported only for BJ damping:
 		XC_R2SCAN, XC_RSCAN,
-
-		// Declared (maps/parameters present), but not currently active in either damping switch:
 		XC_B97_D, XC_BOP, XC_HSE03, XC_BHLYP, XC_B1B95, XC_XLYP, XC_HCTH_407, XC_PW91, XC_revTPSS, XC_tHCTH,
 		XC_B3P86, XC_B1LYP, XC_MPW1PW91, XC_MPW1KCIS, XC_MPWKCIS1K, XC_PBE1KCIS, XC_X3LYP, XC_O3LYP, XC_B97_1, 
 		XC_B97_2, XC_B98, XC_revTPSSh, XC_TPSS1KCIS, XC_M11, XC_N12SX, XC_MN12SX, XC_MN12L, XC_MN15, XC_SCAN
@@ -124,8 +122,6 @@ namespace D3
 
 		// Supported only for BJ damping:
 		XC_R2SCAN, "mgga-r2scan", XC_RSCAN, "mgga-rscan",
-
-		// // Declared aliases not currently active in BJ switch:
 		XC_BOP, "hyb-lc-bop", XC_B97_D, "gga-b97-d", XC_XLYP, "gga-xlyp", XC_HCTH_407, "gga-hcth-407", 
 		XC_PW91, "gga-PW91", XC_tHCTH, "mgga-tau-hcth", XC_revTPSS, "mgga-revtpss", XC_HSE03, "hyb-hse03", 
 		XC_BHLYP, "hyb-bhandh", XC_B3P86, "hyb-b3p86", XC_B1LYP, "hyb-b1lyp", XC_MPW1PW91, "hyb-mpw1pw", 
