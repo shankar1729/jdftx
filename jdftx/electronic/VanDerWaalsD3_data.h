@@ -243,32 +243,21 @@ namespace D3
 					default:
 						die("\nDFT-D3(BJ) not currently supported for %s functional. Please use zero-damping form. \n\n", xcName.c_str());
 				};
+				const char* fitCitation = nullptr;
 				switch(fitpaper) {
-					case FP_Ehlert_2021: { Citations::add("D3(BJ) fit parameters", 
-							"S. Ehlert, U. Huniar, J. Ning, J. W. Furness, J. Sun, A. D. Kaplan, J. P. Perdew, and J. Gerit Brandenburg, J. Chem. Phys. 14, 154 (2021)");
-						break; }
-					case FP_Goerigk_2017: { Citations::add("D3(BJ) fit parameters", 
-							"L. Goerigk, A. Hansen, C. Bauer, S. Ehrlich, A. Najibi, and S. Grimme, Phys. Chem. Chem. Phys. 19, 32184-32215 (2017)");
-						break; }
-					case FP_Brandenburg_2016: { Citations::add("D3(BJ) fit parameters", 
-							"J. Gerit Brandenburg, J. E. Bates, J. Sun, and J. P. Perdew, Phys. Rev. B 94, 115144 (2016)");
-						break; }
-					case FP_Goerigk_2015: { Citations::add("D3(BJ) fit parameters", 
-							"L. Goerigk, J. Phys. Chem. Lett. 6, 19, 3891–3896 (2015)");
-						break; }
-					case FP_Reimers_2015: { Citations::add("D3(BJ) fit parameters", 
-							"J. R. Reimers et al., PNAS 112, 15, 4513–4518 (2015)");
-						break; }
-					case FP_Moellmann_2014: { Citations::add("D3(BJ) fit parameters", 
-							"J. Moellmann and S. Grimme, J. Phys. Chem. C 118, 7615-7621 (2014)");
-						break; }
-					case FP_Grimme_02_2011: { Citations::add("D3(BJ) fit parameters", 
-							"L. Goerigka and S. Grimme, Phys. Chem. Chem. Phys. 13, 6670-6688 (2011)");
-						break; }
-					case FP_Grimme_03_2011: // Citation already added for the BJ form
+					case FP_Ehlert_2021: { fitCitation = "S. Ehlert et al., J. Chem. Phys. 14, 154 (2021)"; break; }
+					case FP_Goerigk_2017: { fitCitation = "L. Goerigk, A. Hansen, C. Bauer, S. Ehrlich, A. Najibi, and S. Grimme, Phys. Chem. Chem. Phys. 19, 32184-32215 (2017)"; break; }
+					case FP_Brandenburg_2016: { fitCitation = "J. Gerit Brandenburg, J. E. Bates, J. Sun, and J. P. Perdew, Phys. Rev. B 94, 115144 (2016)"; break; }
+					case FP_Goerigk_2015: { fitCitation = "L. Goerigk, J. Phys. Chem. Lett. 6, 19, 3891–3896 (2015)"; break; }
+					case FP_Reimers_2015: { fitCitation = "J. R. Reimers et al., PNAS 112, 15, 4513–4518 (2015)"; break; }
+					case FP_Moellmann_2014: { fitCitation = "J. Moellmann and S. Grimme, J. Phys. Chem. C 118, 7615-7621 (2014)"; break; }
+					case FP_Grimme_02_2011: { fitCitation = "L. Goerigka and S. Grimme, Phys. Chem. Chem. Phys. 13, 6670-6688 (2011)"; break; }
+					case FP_Grimme_03_2011: { fitCitation = "S. Grimme, S. Ehrlich and L. Goerigk, J. Comp. Chem. 32, 1456 (2011)"; break; }
 					case FP_None:
 					default: break;
 				}
+				if(fitCitation)
+					Citations::add("DFT-D3(BJ) dispersion correction fit parameters", fitCitation);
 		} else {
 				s6 = 1.;
 				sr8 = 1.;
