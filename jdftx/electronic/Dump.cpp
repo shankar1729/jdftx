@@ -792,6 +792,9 @@ void Dump::operator()(DumpFrequency freq, int iter)
 	if(freq==DumpFreq_End && ShouldDump(ElectronScattering))
 	{	electronScattering->dump(*e);
 	}
+
+	//Release GPU memory cached by temporaries created during dump:
+	ManagedMemoryBase::flushGpuCache();
 }
 
 bool Dump::checkInterval(DumpFrequency freq, int iter) const

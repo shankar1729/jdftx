@@ -35,6 +35,7 @@ class ManagedMemoryBase
 {
 public:
 	static void reportUsage(); //!< print memory usage report
+	static void flushGpuCache(); //!< Release cached GPU allocations back to the driver. Useful after operations that create many temporaries (e.g. dump).
 
 protected:
 	ManagedMemoryBase(): nBytes(0),c(0),onGpu(false) {} //!< Initialize a valid state, but don't allocate anything

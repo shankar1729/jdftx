@@ -1,0 +1,4 @@
+include ${SRCDIR}/common.in
+electronic-SCF energyDiffThreshold 1e-6 nIterations 8 history 4
+dump End State
+dump-name reference.$VAR

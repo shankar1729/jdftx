@@ -222,6 +222,14 @@ namespace MemPool
 		}
 		
 	public:
+		//Release all cached allocations back to the underlying memory space:
+		void flushCache()
+		{	if(not MemSpace::shouldCache) return;
+			lock.lock();
+			for(auto& entry: cache) MemSpace::free(entry.second);
+			cache.clear();
+			lock.unlock();
+		}
 		MemPool() : pool(0)
 		{	if(MemSpace::poolSize())
 			{	pool = (uint8_t*)cachedAlloc(MemSpace::poolSize(), true); //default pool to GPU
@@ -350,6 +358,13 @@ namespace MemPool
 
 
 //---------- class ManagedMemoryBase -----------
+
+void ManagedMemoryBase::flushGpuCache()
+{
+	#ifdef GPU_ENABLED
+	MemPool::GPU().flushCache();
+	#endif
+}
 
 void ManagedMemoryBase::reportUsage()
 {	MemUsageReport::manager(MemUsageReport::Print);
