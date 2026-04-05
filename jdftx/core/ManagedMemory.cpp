@@ -169,6 +169,8 @@ namespace MemPool
 		//Cache pointers (with/without pool):
 		std::map<void*, size_t> allocated;
 		std::multimap<size_t, void*> cache;
+		size_t cacheBytes = 0; //total bytes currently in cache
+		size_t maxCacheBytes = 0; //0 = unlimited (default, backward-compatible)
 		void cachedFree(void* ptr)
 		{	if(not MemSpace::shouldCache) {	MemSpace::free(ptr); return; }
 			//Move ptr from allocated to cache (for future allocs)
@@ -177,7 +179,17 @@ namespace MemPool
 			assert(iter != allocated.end());
 			size_t size = iter->second;
 			cache.insert(std::make_pair(size, ptr));
+			cacheBytes += size;
 			allocated.erase(iter);
+			//Evict largest cache entries if over limit:
+			if(maxCacheBytes > 0)
+			{	while(cacheBytes > maxCacheBytes && !cache.empty())
+				{	auto last = std::prev(cache.end()); //largest entry (least likely to be reused)
+					cacheBytes -= last->first;
+					MemSpace::free(last->second);
+					cache.erase(last);
+				}
+			}
 			lock.unlock();
 		}
 		void* cachedAlloc(size_t size, bool onGpu)
@@ -190,6 +202,7 @@ namespace MemPool
 					void* ptrCached = iter->second;
 					if(sizeCached < 2 * size) //ignore if too big (avoid wasting memory)
 					{	allocated.insert(std::make_pair(ptrCached, sizeCached));
+						cacheBytes -= sizeCached;
 						cache.erase(iter);
 						lock.unlock();
 						return ptrCached;
@@ -206,7 +219,8 @@ namespace MemPool
 			}
 			//Deallocate (unsuitable) cached entries till allocation succeeds:
 			for(auto iter=cache.begin(); iter!=cache.end();)
-			{	MemSpace::free(iter->second);
+			{	cacheBytes -= iter->first;
+				MemSpace::free(iter->second);
 				iter = cache.erase(iter);
 				void* ptr = MemSpace::alloc(size, onGpu);
 				if(ptr)
@@ -220,8 +234,32 @@ namespace MemPool
 			MemSpace::outOfMemory();
 			return NULL;
 		}
-		
+
 	public:
+		//Release all cached allocations back to the underlying memory space:
+		void flushCache()
+		{	if(not MemSpace::shouldCache) return;
+			lock.lock();
+			for(auto& entry: cache) MemSpace::free(entry.second);
+			cache.clear();
+			cacheBytes = 0;
+			lock.unlock();
+		}
+		//Set maximum cache size in bytes (0 = unlimited, the default):
+		void setMaxCacheBytes(size_t maxBytes)
+		{	lock.lock();
+			maxCacheBytes = maxBytes;
+			//Immediately evict if already over limit:
+			if(maxCacheBytes > 0)
+			{	while(cacheBytes > maxCacheBytes && !cache.empty())
+				{	auto last = std::prev(cache.end());
+					cacheBytes -= last->first;
+					MemSpace::free(last->second);
+					cache.erase(last);
+				}
+			}
+			lock.unlock();
+		}
 		MemPool() : pool(0)
 		{	if(MemSpace::poolSize())
 			{	pool = (uint8_t*)cachedAlloc(MemSpace::poolSize(), true); //default pool to GPU
@@ -350,6 +388,20 @@ namespace MemPool
 
 
 //---------- class ManagedMemoryBase -----------
+
+void ManagedMemoryBase::flushGpuCache()
+{
+	#ifdef GPU_ENABLED
+	MemPool::GPU().flushCache();
+	#endif
+}
+
+void ManagedMemoryBase::setGpuCacheLimit(size_t maxBytes)
+{
+	#ifdef GPU_ENABLED
+	MemPool::GPU().setMaxCacheBytes(maxBytes);
+	#endif
+}
 
 void ManagedMemoryBase::reportUsage()
 {	MemUsageReport::manager(MemUsageReport::Print);

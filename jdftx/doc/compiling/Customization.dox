@@ -89,6 +89,14 @@ Also consider compiling with the following optional flags:
   "export JDFTX_MEMPOOL_SIZE=4096" (i.e 4 GB) for a GPU with 6 GB memory.
   This makes a single memory allocation at the start of the run, and then
   manages memory internally, bypassing expensive cudaMalloc / cudaFree calls.
+
++ For large GPU systems (>100 atoms), the internal memory cache can accumulate
+  significant dead allocations that are never returned to the driver, inflating
+  peak GPU memory well beyond the working set.  Setting JDFTX_CACHE_LIMIT
+  to a value in MB caps the cache size by evicting the largest unused entries.
+  For example, "export JDFTX_CACHE_LIMIT=4096" (i.e. 4 GB) reduced peak VRAM
+  from 68 GB to 33 GB for a 108-atom slab with CANDLE solvation.
+  Default is 0 (unlimited), which preserves the original caching behavior.
   
 If you want to run on a GPU, it must be a discrete (not on-board) NVIDIA GPU
 with compute capability >= 1.3, since that is the minimum for double precision.

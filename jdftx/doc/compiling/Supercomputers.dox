@@ -30,7 +30,8 @@ An example job for Perlmutter using two GPU nodes with four GPUs each:
 
     export SLURM_CPU_BIND="cores"
     export JDFTX_MEMPOOL_SIZE=8192      # adjust as needed (in MB)
-    
+    export JDFTX_CACHE_LIMIT=4096       # optional: cap GPU cache to reduce peak VRAM (in MB)
+
     srun jdftx_gpu -i inputfile.in
 
 Similarly, to use two CPU nodes fully:

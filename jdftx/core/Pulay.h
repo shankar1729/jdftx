@@ -73,6 +73,8 @@ protected:
 	virtual void setVariable(const Variable&)=0; //!< Set the state of system to specified variable
 	virtual Variable precondition(const Variable&) const=0; //!< Apply preconditioner to variable/residual
 	virtual Variable applyMetric(const Variable&) const=0; //!< Apply metric to variable/residual
+	virtual void offloadVariable(Variable&) const {} //!< Optional: move variable data to CPU after storing in history. Reduces GPU memory from O(history) to O(1) active entries. Note: with CudaManagedMemory, toCpu() prefetches but may not free VRAM.
+	virtual void preloadVariable(const Variable&) const {} //!< Optional: move variable data back to GPU before use in mixing
 
 private:
 	const PulayParams& pp; //!< Pulay parameters
@@ -141,6 +143,7 @@ template<typename Variable> double Pulay<Variable>::minimize(double Eprev, std::
 		//Cache the old energy and variables
 		Eprev = E;
 		pastVariables.push_back(getVariable());
+		offloadVariable(pastVariables.back());
 
 		//Perform cycle:
 		std::vector<double> extraValues(extraThresh.size());
@@ -153,6 +156,7 @@ template<typename Variable> double Pulay<Variable>::minimize(double Eprev, std::
 		{	Variable residual = getResidual();
 			pastResiduals.push_back(residual);
 			residualNorm = sync(sqrt(dot(residual,residual)));
+			offloadVariable(pastResiduals.back());
 		}
 		
 		//Print energy and convergence parameters:
@@ -196,11 +200,14 @@ template<typename Variable> double Pulay<Variable>::minimize(double Eprev, std::
 			
 		//Update the overlap matrix
 		size_t ndim = pastResiduals.size();
+		preloadVariable(pastResiduals.back());
 		Variable MlastResidual = applyMetric(pastResiduals.back());
 		for(size_t j=0; j<ndim; j++)
-		{	double thisOverlap = dot(pastResiduals[j], MlastResidual);
+		{	preloadVariable(pastResiduals[j]);
+			double thisOverlap = dot(pastResiduals[j], MlastResidual);
 			overlap.set(j, ndim-1, thisOverlap);
 			overlap.set(ndim-1, j, thisOverlap);
+			offloadVariable(pastResiduals[j]);
 		}
 		
 		//Invert the residual overlap matrix to get the minimum of residual
@@ -219,8 +226,12 @@ template<typename Variable> double Pulay<Variable>::minimize(double Eprev, std::
 		//Update variable:
 		Variable v;
 		for(size_t j=0; j<ndim; j++)
-		{	axpy(alpha[j], pastVariables[j], v);
+		{	preloadVariable(pastVariables[j]);
+			preloadVariable(pastResiduals[j]);
+			axpy(alpha[j], pastVariables[j], v);
 			axpy(alpha[j], precondition(pastResiduals[j]), v);
+			offloadVariable(pastVariables[j]);
+			offloadVariable(pastResiduals[j]);
 		}
 		setVariable(v);
 	}
@@ -256,14 +267,19 @@ template<typename Variable> void Pulay<Variable>::loadState(const char* filename
 	}
 	fclose(fp);
 	fprintf(pp.fpLog, "done.\n"); fflush(pp.fpLog);
-	//Compute overlaps of loaded history:
+	//Compute overlaps of loaded history, then offload to CPU:
 	for(size_t i=0; i<ndim; i++)
-	{	Variable Mresidual_i = applyMetric(pastResiduals[i]);
+	{	preloadVariable(pastResiduals[i]);
+		Variable Mresidual_i = applyMetric(pastResiduals[i]);
 		for(size_t j=0; j<=i; j++)
-		{	double thisOverlap = dot(pastResiduals[j], Mresidual_i);
+		{	preloadVariable(pastResiduals[j]);
+			double thisOverlap = dot(pastResiduals[j], Mresidual_i);
 			overlap.set(i,j, thisOverlap);
 			overlap.set(j,i, thisOverlap);
+			offloadVariable(pastResiduals[j]);
 		}
+		offloadVariable(pastResiduals[i]);
+		offloadVariable(pastVariables[i]);
 	}
 }
 

@@ -29,6 +29,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdio>
 
 typedef std::vector<ScalarField> ScalarFieldArray; //!< dynamic size collection of real space scalar fields
+
+//! Move all fields in array to CPU (for out-of-core storage)
+inline void toCpu(const ScalarFieldArray& x) { for(const auto& f: x) if(f) f->toCpu(); }
+//! Move all fields in array to GPU (for on-demand computation)
+inline void toGpu(const ScalarFieldArray& x) { for(const auto& f: x) if(f) f->toGpu(); }
 typedef std::vector<ScalarFieldTilde> ScalarFieldTildeArray; //!< dynamic size collection of reciprocal space scalar fields
 typedef std::vector<complexScalarField> complexScalarFieldArray; //!< dynamic size collection of complex scalar fields
 typedef std::vector<complexScalarFieldTilde> complexScalarFieldTildeArray; //!< dynamic size collection of reciprocal complex scalar fields

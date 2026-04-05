@@ -364,3 +364,17 @@ double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<d
 double SCF::eigDiffRMS(const std::vector<diagMatrix>& eigs1, const std::vector<diagMatrix>& eigs2) const
 {	return eigDiffRMS(eigs1, eigs2, e);
 }
+
+void SCF::offloadVariable(SCFvariable& v) const
+{	toCpu(v.n);
+	if(mixTau) toCpu(v.tau);
+	//rhoAtom matrices are always on CPU, no action needed
+	//Note: with CudaManagedMemory build, toCpu() prefetches to host but the
+	//managed allocation may still count against GPU VRAM. With PinnedHostMemory,
+	//offloaded data goes to pinned host memory (ensure sufficient host RAM).
+}
+
+void SCF::preloadVariable(const SCFvariable& v) const
+{	toGpu(v.n);
+	if(mixTau) toGpu(v.tau);
+}

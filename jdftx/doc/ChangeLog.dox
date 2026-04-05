@@ -1,5 +1,11 @@
 /** \page ChangeLog Change log
 
+## Unreleased
+
++ GPU memory optimization:
+	- Out-of-core SCF Pulay history: offload past variables and residuals to CPU between SCF cycles, reducing GPU memory from O(history) to O(1) active entries
+	- GPU MemPool cache limit (JDFTX_CACHE_LIMIT environment variable): cap the allocator cache size to prevent dead allocations from inflating peak VRAM. Reduced peak from 68 GB to 24 GB for a 108-atom CANDLE slab
+
 ## 1.7.0 - 2021-01-04
 [Site archive](http://jdftx.org/1.7.0)
 

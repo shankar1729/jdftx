@@ -316,6 +316,19 @@ void initSystem(int argc, char** argv, const InitParams* ip)
 			logPrintf("Could not determine memory pool size from JDFTX_MEMPOOL_SIZE=\"%s\".\n", mempoolSizeStr);
 	}
 	
+	//GPU cache limit (reduces peak VRAM by evicting dead allocations):
+	const char* cacheLimitStr = getenv("JDFTX_CACHE_LIMIT");
+	if(cacheLimitStr)
+	{	int cacheLimitMB;
+		if(sscanf(cacheLimitStr, "%d", &cacheLimitMB)==1 && cacheLimitMB>=0)
+		{	size_t cacheLimitBytes = ((size_t)cacheLimitMB) << 20;
+			ManagedMemoryBase::setGpuCacheLimit(cacheLimitBytes);
+			logPrintf("GPU cache limit: %d MB (reduces peak VRAM for large systems)\n", cacheLimitMB);
+		}
+		else
+			logPrintf("Could not determine cache limit from JDFTX_CACHE_LIMIT=\"%s\".\n", cacheLimitStr);
+	}
+
 	//Add citations to the code for all calculations:
 	Citations::add("Software package",
 		"R. Sundararaman, K. Letchworth-Weaver, K.A. Schwarz, D. Gunceler, Y. Ozhabes and T.A. Arias, "

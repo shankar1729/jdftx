@@ -80,6 +80,12 @@ template<typename T> struct FieldData : private ManagedMemory<T>
 	
 	void zero() { ManagedMemory<T>::zero(); } //!< initialize to zero
 	bool isOnGpu() const { return ManagedMemory<T>::isOnGpu(); } //!< Check where the data is (for #ifdef simplicity exposed even when no GPU_ENABLED)
+	void toCpu() const { data(false); } //!< Move data to CPU without absorbing scale. With CudaManagedMemory, this prefetches but may not free the GPU-side managed allocation.
+	#ifdef GPU_ENABLED
+	void toGpu() const { dataGpu(false); } //!< Move data to GPU without absorbing scale (no-op if already there or no GPU support)
+	#else
+	void toGpu() const {} //!< No-op without GPU support
+	#endif
 
 	//Inter-process communication (expose corresponding MPIUtil ManagedMemory operations):
 	void sendData(const MPIUtil* mpiUtil, int dest, int tag, MPIUtil::Request* request=0) const;
