@@ -58,6 +58,7 @@ public:
 	virtual double energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr=0) const;
 
 private:
+	const bool useBJDamping; //whether to use BJ damping instead of zero-damping
 	double s6, s8; //scale factors for r^-6 and r^-8 terms corresponding to e.exCorr
 	double sr6, sr8; //factors in damping of r^-6 and r^-8 terms corresponding to e.exCorr
 	std::vector<D3::AtomParams> atomParams; //!< parameters per atom type

@@ -81,25 +81,63 @@ namespace D3
 		3.57788113, 5.06446567, 4.56053862, 4.20778980, 3.98102289,
 		3.82984466, 3.85504098, 3.88023730, 3.90543362};
 
-	//! List of supported functionals
-	enum XC { XC_LDA, XC_PBE, XC_PBESOL, XC_RPBE, XC_SSB, XC_HCTH_120,
-		XC_TPSS, XC_M06_L, XC_HF, XC_PBE0, XC_PBE38, XC_HSE06,
-		XC_B3PW91, XC_B3LYP, XC_CAM_B3LYP, XC_PW6B95, XC_TPSS0,
-		XC_TPSSH, XC_PWB6K, XC_MPW1B95, XC_MPWB1K, XC_BMK, XC_LC_WPBE,
-		XC_M05, XC_M05_2X, XC_M06, XC_M06_2X, XC_M06_HF};
+	//! List of functionals grouped by currently active D3 support
+	enum XC {
+		// Supported for both zero-damping and BJ damping:
+		XC_PBE, XC_PBESOL, XC_RPBE, XC_SSB, XC_TPSS,
+		XC_HF, XC_PBE0, XC_PBE38, XC_HSE06, XC_B3PW91, XC_B3LYP, XC_CAM_B3LYP, XC_PW6B95,
+		XC_TPSS0, XC_TPSSH, XC_PWB6K, XC_MPW1B95, XC_MPWB1K, XC_BMK, XC_LC_WPBE,
+
+		// Supported only for zero-damping:
+		XC_LDA, XC_HCTH_120, XC_M06_L, XC_M05, XC_M05_2X, XC_M06, XC_M06_2X, XC_M06_HF,
+
+		// Supported only for BJ damping:
+		XC_R2SCAN, XC_RSCAN,
+		XC_B97_D, XC_BOP, XC_HSE03, XC_BHLYP, XC_B1B95, XC_XLYP, XC_HCTH_407, XC_PW91, XC_revTPSS, XC_tHCTH,
+		XC_B3P86, XC_B1LYP, XC_MPW1PW91, XC_MPW1KCIS, XC_MPWKCIS1K, XC_PBE1KCIS, XC_X3LYP, XC_O3LYP, XC_B97_1, 
+		XC_B97_2, XC_B98, XC_revTPSSh, XC_TPSS1KCIS, XC_M11, XC_N12SX, XC_MN12SX, XC_MN12L, XC_MN15, XC_SCAN
+	};
 		
+	// Shared aliases used by both zero-damping and BJ-damping maps:
+	#define D3_XC_COMMON_MAP_ENTRIES \
+		XC_PBE, "gga-PBE", XC_PBESOL, "gga-PBEsol", XC_RPBE, "gga-RPBE", XC_SSB, "gga-SSB", XC_TPSS, "mgga-TPSS", \
+		XC_HF, "hartree-fock", XC_PBE0, "hyb-PBE0", XC_PBE38, "hyb-PBE38", XC_HSE06, "hyb-HSE06", \
+		XC_B3PW91, "hyb-B3PW91", XC_B3LYP, "hyb-B3LYP", XC_CAM_B3LYP, "hyb-CAM-B3LYP", XC_PW6B95, "hyb-PW6B95", \
+		XC_TPSS0, "hyb-TPSS0", XC_TPSSH, "hyb-TPSSH", XC_PWB6K, "hyb-PWB6K", XC_MPW1B95, "hyb-MPW1B95", \
+		XC_MPWB1K, "hyb-MPWB1K", XC_BMK, "hyb-BMK", XC_LC_WPBE, "hyb-LC-PBE", XC_LC_WPBE, "hyb-LC-wPBE"
+
 	//! Map XC onto shortened names:
 	EnumStringMap<XC> xcMap(
-		XC_LDA, "lda", XC_PBE, "gga-PBE", XC_PBESOL, "gga-PBEsol",
-		XC_RPBE, "gga-RPBE", XC_SSB, "gga-SSB", XC_HCTH_120, "gga-HCTH-120",
-		XC_TPSS, "mgga-TPSS", XC_M06_L, "mgga-M06-L",
-		XC_HF, "hartree-fock", XC_PBE0, "hyb-PBE0", XC_PBE38, "hyb-PBE38",
-		XC_HSE06, "hyb-HSE06", XC_B3PW91, "hyb-B3PW91", XC_B3LYP, "hyb-B3LYP",
-		XC_CAM_B3LYP, "hyb-CAM-B3LYP", XC_PW6B95, "hyb-PW6B95",
-		XC_TPSS0, "hyb-TPSS0", XC_TPSSH, "hyb-TPSSH", XC_PWB6K, "hyb-PWB6K",
-		XC_MPW1B95, "hyb-MPW1B95", XC_MPWB1K, "hyb-MPW1BK", XC_BMK, "hyb-BMK",
-		XC_LC_WPBE, "hyb-LC-PBE", XC_M05, "hyb-M05", XC_M05_2X, "hyb-M05-2X",
-		XC_M06, "hyb-M06", XC_M06_2X, "hyb-M06-2X", XC_M06_HF, "hyb-M06-HF");
+		// Supported for both zero-damping and BJ damping:
+		D3_XC_COMMON_MAP_ENTRIES,
+
+		// Supported only for zero-damping:
+		XC_LDA, "lda", XC_HCTH_120, "gga-HCTH-120", XC_M06_L, "mgga-M06-L",
+		XC_M05, "hyb-M05", XC_M05_2X, "hyb-M05-2X", XC_M06, "hyb-M06", XC_M06_2X, "hyb-M06-2X", XC_M06_HF, "hyb-M06-HF");
+		
+	//! Map XC onto shortened names:
+	EnumStringMap<XC> BJxcMap(
+		// Supported for both zero-damping and BJ damping:
+		D3_XC_COMMON_MAP_ENTRIES,
+
+		// Supported only for BJ damping:
+		XC_R2SCAN, "mgga-r2scan", XC_RSCAN, "mgga-rscan",
+		XC_BOP, "hyb-lc-bop", XC_B97_D, "gga-b97-d", XC_XLYP, "gga-xlyp", XC_HCTH_407, "gga-hcth-407", 
+		XC_PW91, "gga-PW91", XC_tHCTH, "mgga-tau-hcth", XC_revTPSS, "mgga-revtpss", XC_HSE03, "hyb-hse03", 
+		XC_BHLYP, "hyb-bhandh", XC_B3P86, "hyb-b3p86", XC_B1LYP, "hyb-b1lyp", XC_MPW1PW91, "hyb-mpw1pw", 
+		XC_MPW1KCIS, "hyb-mpw1kcis", XC_MPWKCIS1K, "hyb-mpwkcis1k", XC_PBE1KCIS, "hyb-pbe1kcis", XC_X3LYP, "hyb-x3lyp",
+		XC_O3LYP, "hyb-o3lyp", XC_B97_1, "hyb-b97-1", XC_B97_2, "hyb-b97-2", XC_B98, "hyb-b98", 
+		XC_revTPSSh, "hyb-revtpssh", XC_TPSS1KCIS, "hyb-tpss1kcis", XC_M11, "hyb-m11", XC_N12SX, "hyb-n12-sx", 
+		XC_MN12SX, "hyb-mn12-sx", XC_MN12L, "mgga-mn12-l", XC_MN15, "hyb-mn15", XC_SCAN, "mgga-scan",
+		XC_B1B95, "hyb-b88b95" // (not a typo, b88bp5 commonly called b1b95)
+	);
+
+	#undef D3_XC_COMMON_MAP_ENTRIES
+
+	enum FitPaper { 
+		FP_Ehlert_2021, FP_Goerigk_2017, FP_Brandenburg_2016, FP_Moellmann_2014, FP_Reimers_2015, 
+		FP_Goerigk_2015, FP_Goerigk_2011, FP_Grimme_2011, FP_None, 
+	};
 
 	//Replace first occurence of target in s with replacement
 	inline void string_replace(string& s, string target, string replacement)
@@ -110,7 +148,7 @@ namespace D3
 	
 	//! Set scale parameters s6, s8 and damping parameters sr6, sr8 for r^-6, r^-8 terms by name of XC functional xcName.
 	//! Note that xcName is canonicalized upon return, especially for LibXC functionals, to unify internal and LibXC names.
-	void setXCscale(string& xcName, double& s6, double& sr6, double& s8, double& sr8)
+	void setXCscale(string& xcName, bool useBJDamping, double& s6, double& sr6, double& s8, double& sr8)
 	{	//Canonicalize name:
 		if(xcName.substr(0, 3) == "lda") xcName = "lda"; //remove LDA suffixes
 		#ifdef LIBXC_ENABLED
@@ -130,43 +168,138 @@ namespace D3
 		#endif
 		//Find XC functional in supported list:
 		XC xc;
-		if(not xcMap.getEnum(xcName.c_str(), xc))
-			die("\nDFT-D3 parameterization not available for %s functional.\n\n", xcName.c_str());
+		if(useBJDamping)
+		{	if(not BJxcMap.getEnum(xcName.c_str(), xc))
+				die("\nDFT-D3(BJ) parameterization not available for %s functional.\n\n", xcName.c_str());
+		}
+		else
+		{	if(not xcMap.getEnum(xcName.c_str(), xc))
+				die("\nDFT-D3 parameterization not available for %s functional.\n\n", xcName.c_str());
+		}
 		//Set parameters:
-		s6 = 1.;
-		sr8 = 1.;
-		switch(xc)
-		{	case XC_LDA: { sr6 =0.999; s8 =-1.957; sr8=0.697; break; }
-			//GGAs:
-			case XC_PBE: { sr6=1.217; s8=0.722; break; }
-			case XC_PBESOL: { sr6=1.345; s8=0.612; break; }
-			case XC_RPBE: { sr6=0.872; s8=0.514; break; }
-			case XC_SSB: { sr6=1.215; s8=0.663; break; }
-			case XC_HCTH_120: { sr6=1.221; s8=1.206; break; }
-			//mGGAs:
-			case XC_TPSS: { sr6=1.166; s8=1.105; break; }
-			//Hybrids:
-			case XC_HF: { sr6=1.158; s8=1.746; break; }
-			case XC_PBE0: { sr6=1.287; s8=0.928; break; }
-			case XC_PBE38: { sr6=1.333; s8=0.998; break; }
-			case XC_HSE06: { sr6=1.129; s8=0.109; break; }
-			case XC_B3PW91: { sr6=1.176; s8=1.775; break; }
-			case XC_B3LYP: { sr6=1.261; s8=1.703; break; }
-			case XC_PW6B95: { sr6=1.532; s8=0.862; break; }
-			case XC_TPSS0: { sr6=1.252; s8=1.242; break; }
-			case XC_TPSSH: { sr6=1.223; s8=1.219; break; }
-			case XC_PWB6K: { sr6=1.660; s8=0.550; break; }
-			case XC_MPW1B95: { sr6=1.605; s8=1.118; break; }
-			case XC_MPWB1K: { sr6=1.671; s8=1.061; break; }
-			case XC_BMK: { sr6=1.931; s8=2.168; break; }
-			case XC_CAM_B3LYP: { sr6=1.378; s8=1.217; break; }
-			case XC_LC_WPBE: { sr6=1.355; s8=1.279; break; }
-			case XC_M05: { sr6=1.373; s8=0.595; break; }
-			case XC_M05_2X: { sr6=1.417; s8=0.000; break; }
-			case XC_M06_L: { sr6=1.581; s8=0.000; break; }
-			case XC_M06: { sr6=1.325; s8=0.000; break; }
-			case XC_M06_2X: { sr6=1.619; s8=0.000; break; }
-			case XC_M06_HF: { sr6=1.446; s8=0.000; break; }
+		//Note that for DFT-D3(BJ), sr6 and sr8 are actually a1/a2
+		if(useBJDamping) {
+				FitPaper fitpaper=FP_None;
+				s6 = 1.0;
+				switch(xc)
+				{	
+					// GGAs:
+					case XC_PBE: { s8=0.7875; sr6=0.4289; sr8=4.4407; fitpaper=FP_Grimme_2011; break; } // 10.1002/jcc.21759
+					case XC_PBESOL: { s8=2.9491; sr6=0.4466; sr8=6.1742; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					case XC_RPBE: { s8=0.8318; sr6=0.1820; sr8=4.0094; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_SSB: { s8=-0.1744; sr6=-0.0952; sr8=5.2170; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					// GGAs (BJ-only)
+					case XC_BOP: { s8=3.2950; sr6=0.4870; sr8=3.5043; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					case XC_B97_D: { s8=2.2609; sr6=0.5545; sr8=3.2297; fitpaper=FP_Grimme_2011; break; } // 10.1002/jcc.21759 
+					case XC_XLYP: { s8=1.5669; sr6=0.0809; sr8=5.3166; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_HCTH_407: { s8=0.6490; sr6=0.0000; sr8=4.8162; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_PW91: { s8=1.9598; sr6=0.6319; sr8=4.5718; fitpaper=FP_Reimers_2015; break; } // 10.1073/pnas.1516984112
+					// mGGAs:
+					case XC_TPSS: { s8=1.9435; sr6=0.4535; sr8=4.4752; fitpaper=FP_Grimme_2011; break; } // 10.1002/jcc.21759
+					case XC_R2SCAN: { s8=0.7898; sr6=0.4948; sr8=5.7308; fitpaper=FP_Ehlert_2021; break; } // 10.1063/5.0041008
+					case XC_RSCAN: { s8=1.0886; sr6=0.4702; sr8=5.7341; fitpaper=FP_Ehlert_2021; break; } // 10.1063/5.0041008
+					// mGGAs (BJ-only):
+					case XC_revTPSS: { s8=1.4023; sr6=0.4426; sr8=4.4723; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_tHCTH: { s8=1.2626; sr6=0.0000; sr8=5.6162; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_SCAN: { s8=0.0; sr6=0.538; sr8=5.4200; fitpaper=FP_Brandenburg_2016; break; } // 10.1103/physrevb.94.115144
+					// Hybrids:
+					case XC_PBE0: { s8=1.2177 ; sr6=0.4145; sr8=4.8593; fitpaper=FP_Grimme_2011; break; } // 10.1002/jcc.21759
+					case XC_PBE38: { s8=1.4623; sr6=0.3995; sr8=5.1405; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					case XC_HSE06: { s8=2.3100; sr6=0.3830; sr8=5.6850; fitpaper=FP_Moellmann_2014; break; } // 10.1021/jp501237c
+					case XC_B3PW91: { s8=2.8524; sr6=0.4312; sr8=4.4693; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					case XC_B3LYP: { s8=1.9889; sr6=0.3981; sr8=4.4211; fitpaper=FP_Grimme_2011; break; } // 10.1002/jcc.21759
+					case XC_CAM_B3LYP: { s8=2.0674; sr6=0.3708; sr8=5.4743; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					case XC_PW6B95: { s8=0.7257; sr6=0.2076; sr8=6.3750; fitpaper=FP_Grimme_2011; break; } // 10.1002/jcc.21759
+					case XC_TPSS0: { s8=1.2576; sr6=0.3768; sr8=4.5865; fitpaper=FP_Grimme_2011; break; } // 10.1002/jcc.21759
+					// case XC_TPSSH: { s8=0.4243; sr6=0.00; sr8=5.5253; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					// Note - the fitted values for TPSSh re-reported in (Goerigk 2017) are different than those reported in the original (Goerigk 2011).
+					// The consensus in the dispersion correction community seems to point to using the values reported in 2017, so those are chosen here.
+					// Until an erratum is published clarifying the discrepancy, we will use the 2017 values for TPSSh, and cite the 2017 paper instead of the 2011.
+					case XC_TPSSH: { s8=2.2382; sr6=0.4529; sr8=4.6550; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g 
+					case XC_PWB6K: { s8=0.9383; sr6=0.1805; sr8=7.7627; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					case XC_MPW1B95: { s8=1.0508; sr6=0.1955; sr8=6.4177; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					case XC_MPWB1K: { s8=0.9499; sr6=0.1474; sr8=6.6223; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					case XC_BMK: { s8=2.0860; sr6=0.1940; sr8=5.9197; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					case XC_LC_WPBE: { s8=1.8541; sr6=0.3919; sr8=5.0897; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J
+					case XC_HF: { s8=0.9171; sr6=0.3385; sr8=2.883; fitpaper=FP_Grimme_2011; break; } // 10.1002/jcc.21759
+					// Hybrids (BJ-only):
+					case XC_HSE03: { s8=1.1243; sr6=0.0000; sr8=6.8889; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B3P86: { s8=3.3211; sr6=0.4601; sr8=4.9294; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B1LYP: { s8=2.1167; sr6=0.1986; sr8=5.3875; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_MPW1PW91: { s8=1.8744; sr6=0.3342; sr8=4.9819; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_MPW1KCIS: { s8=1.0893; sr6=0.0576; sr8=5.5314; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_MPWKCIS1K: { s8=1.2875; sr6=0.0855; sr8=5.8961; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_PBE1KCIS: { s8=0.7688; sr6=0.0000; sr8=6.2794; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_X3LYP: { s8=1.5744; sr6=0.2022; sr8=5.4184; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_O3LYP: { s8=1.8171; sr6=0.0963; sr8=5.9940; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B97_1: { s8=0.4814; sr6=0.0000; sr8=6.2279; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B97_2: { s8=0.9448; sr6=0.0000; sr8=5.4603; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B98: { s8=0.7086; sr6=0.0000; sr8=6.0672; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_BHLYP: { s8=1.0354; sr6=0.2793; sr8=4.9615; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					case XC_TPSS1KCIS: { s8=1.0542; sr6=0.0000; sr8=6.0201; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_revTPSSh: { s8=1.4076; sr6=0.2660; sr8=5.3761; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_M11: { s8=2.8112; sr6=0.0000; sr8=10.1389; fitpaper=FP_Goerigk_2015; break; } // 10.1021/acs.jpclett.5b01591
+					case XC_N12SX: { s8=2.4900; sr6=0.3283; sr8=5.7898; fitpaper=FP_Goerigk_2015; break; } // 10.1021/acs.jpclett.5b01591
+					case XC_MN12SX: { s8=1.1674; sr6=0.0983; sr8=8.0259; fitpaper=FP_Goerigk_2015; break; } // 10.1021/acs.jpclett.5b01591
+					case XC_MN12L: { s8=2.2674; sr6=0.0000; sr8=9.1494; fitpaper=FP_Goerigk_2015; break; } // 10.1021/acs.jpclett.5b01591
+					case XC_MN15: { s8=0.7862; sr6=2.0971; sr8=7.5923; fitpaper=FP_Goerigk_2017; break; } // 10.1039/c7cp04913g
+					case XC_B1B95: { s8=1.4507; sr6=0.2092; sr8=5.5545; fitpaper=FP_Goerigk_2011; break; } // 10.1039/C0CP02984J 
+					default:
+						die("\nDFT-D3(BJ) not currently supported for %s functional. Please use zero-damping form. \n\n", xcName.c_str());
+				};
+				const char* fitCitation = nullptr;
+				switch(fitpaper) {
+					case FP_Ehlert_2021: { fitCitation = "S. Ehlert et al., J. Chem. Phys. 14, 154 (2021)"; break; }
+					case FP_Goerigk_2017: { fitCitation = "L. Goerigk, A. Hansen, C. Bauer, S. Ehrlich, A. Najibi, and S. Grimme, Phys. Chem. Chem. Phys. 19, 32184-32215 (2017)"; break; }
+					case FP_Brandenburg_2016: { fitCitation = "J. Gerit Brandenburg, J. E. Bates, J. Sun, and J. P. Perdew, Phys. Rev. B 94, 115144 (2016)"; break; }
+					case FP_Goerigk_2015: { fitCitation = "L. Goerigk, J. Phys. Chem. Lett. 6, 19, 3891–3896 (2015)"; break; }
+					case FP_Reimers_2015: { fitCitation = "J. R. Reimers et al., PNAS 112, 15, 4513–4518 (2015)"; break; }
+					case FP_Moellmann_2014: { fitCitation = "J. Moellmann and S. Grimme, J. Phys. Chem. C 118, 7615-7621 (2014)"; break; }
+					case FP_Goerigk_2011: { fitCitation = "L. Goerigka and S. Grimme, Phys. Chem. Chem. Phys. 13, 6670-6688 (2011)"; break; }
+					case FP_Grimme_2011: { fitCitation = "S. Grimme, S. Ehrlich and L. Goerigk, J. Comp. Chem. 32, 1456 (2011)"; break; }
+					case FP_None:
+					default: break;
+				}
+				if(fitCitation)
+					Citations::add("DFT-D3(BJ) dispersion correction fit parameters", fitCitation);
+		} else {
+				s6 = 1.;
+				sr8 = 1.;
+				switch(xc)
+				{	case XC_LDA: { sr6 =0.999; s8 =-1.957; sr8=0.697; break; }
+					//GGAs:
+					case XC_PBE: { sr6=1.217; s8=0.722; break; }
+					case XC_PBESOL: { sr6=1.345; s8=0.612; break; }
+					case XC_RPBE: { sr6=0.872; s8=0.514; break; }
+					case XC_SSB: { sr6=1.215; s8=0.663; break; }
+					case XC_HCTH_120: { sr6=1.221; s8=1.206; break; }
+					//mGGAs:
+					case XC_TPSS: { sr6=1.166; s8=1.105; break; }
+					//Hybrids:
+					case XC_HF: { sr6=1.158; s8=1.746; break; }
+					case XC_PBE0: { sr6=1.287; s8=0.928; break; }
+					case XC_PBE38: { sr6=1.333; s8=0.998; break; }
+					case XC_HSE06: { sr6=1.129; s8=0.109; break; }
+					case XC_B3PW91: { sr6=1.176; s8=1.775; break; }
+					case XC_B3LYP: { sr6=1.261; s8=1.703; break; }
+					case XC_PW6B95: { sr6=1.532; s8=0.862; break; }
+					case XC_TPSS0: { sr6=1.252; s8=1.242; break; }
+					case XC_TPSSH: { sr6=1.223; s8=1.219; break; }
+					case XC_PWB6K: { sr6=1.660; s8=0.550; break; }
+					case XC_MPW1B95: { sr6=1.605; s8=1.118; break; }
+					case XC_MPWB1K: { sr6=1.671; s8=1.061; break; }
+					case XC_BMK: { sr6=1.931; s8=2.168; break; }
+					case XC_CAM_B3LYP: { sr6=1.378; s8=1.217; break; }
+					case XC_LC_WPBE: { sr6=1.355; s8=1.279; break; }
+					case XC_M05: { sr6=1.373; s8=0.595; break; }
+					case XC_M05_2X: { sr6=1.417; s8=0.000; break; }
+					case XC_M06_L: { sr6=1.581; s8=0.000; break; }
+					case XC_M06: { sr6=1.325; s8=0.000; break; }
+					case XC_M06_2X: { sr6=1.619; s8=0.000; break; }
+					case XC_M06_HF: { sr6=1.446; s8=0.000; break; }
+					default:
+						die("\nDFT-D3 not currently supported for %s functional. Please use BJ-damping form. \n\n", xcName.c_str());
+				}
 		}
 	}
 

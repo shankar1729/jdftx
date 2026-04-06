@@ -278,7 +278,7 @@ struct CommandVanDerWaals : public Command
 {
 	CommandVanDerWaals() : Command("van-der-waals", "jdftx/Electronic/Functional")
 	{
-		format = "[<scaleOverride>=0] | D3";
+		format = "[<scaleOverride>=0] | D3 | D3BJ";
 		comments =
 			"Pair-potential corrections for the long range Van der Waals\n"
 			"interaction using either the DFT-D2 or DFT-D3 schemes.\n"
@@ -289,9 +289,13 @@ struct CommandVanDerWaals : public Command
 			"and mgga-TPSS exchange-correlation functionals (see elec-ex-corr).\n"
 			"Manually specify <scaleOverride> to use DFT-D2 with other functionals.\n"
 			"\n"
-			"If specified with argument 'D3', use DFT-D3 pair-potential corrections DFT-D3\n"
+			"If specified with argument 'D3', use DFT-D3 pair-potential corrections DFT-D3 with zero-damping\n"
 			"[S. Grimme, J. Antony, S. Ehrlich, H. Krieg, J. Chem. Phys. 132, 154104 (2010)]\n"
-			"instead. Note that this form does not scale the C6 parameters.";
+			"instead. Note that this form does not scale the C6 parameters.\n"
+			"\n"
+			"If specified with argument 'D3BJ', use DFT-D3 pair-potential corrections DFT-D3 with Beck-Johnson damping\n"
+			"[S. Grimme, S. Ehrlich, L. Goerigk, J. Comput. Chem. 32, 1456 (2011)]\n"
+			"instead. Note that this form also does not scale the C6 parameters.\n";
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -303,6 +307,10 @@ struct CommandVanDerWaals : public Command
 		{	e.iInfo.vdWstyle = VDW_D3;
 			e.iInfo.vdWscale = 0.; //not used for D3
 		}
+		else if(key == "D3BJ")
+		{	e.iInfo.vdWstyle = VDW_D3BJ;
+			e.iInfo.vdWscale = 0.; //not used for D3BJ
+		}
 		else
 		{	e.iInfo.vdWstyle = VDW_D2;
 			pl.rewind(); //so that scale can be read instead of key above
@@ -313,6 +321,8 @@ struct CommandVanDerWaals : public Command
 	void printStatus(Everything& e, int iRep)
 	{	if(e.iInfo.vdWstyle == VDW_D3)
 			logPrintf("D3");
+		else if(e.iInfo.vdWstyle == VDW_D3BJ)
+			logPrintf("D3BJ");
 		else if(e.iInfo.vdWscale)
 			logPrintf("%lg", e.iInfo.vdWscale);
 	}
