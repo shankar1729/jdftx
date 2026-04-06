@@ -92,26 +92,20 @@ namespace D3
 //----- Implementation of class VanDerWaalsD3 -----
 
 VanDerWaalsD3::VanDerWaalsD3(const Everything& e)
-	: VanDerWaals(e), useBJDamping(e.iInfo.vdWstyle == VDW_D3BJ)
+: VanDerWaals(e), dampBJ(e.iInfo.vdWstyle == VDW_D3BJ)
 {
-	if (useBJDamping)
-	{
-		logPrintf("\nInitializing DFT-D3(BJ) calculator:\n");
-	}
-	else {
-		logPrintf("\nInitializing DFT-D3 calculator:\n");
-	}
+	logPrintf("\nInitializing DFT-D3%s calculator:\n", dampBJ ? "(BJ)" : "");
 	
 	//Get parameters for exchange-correlation functional
 	string xcName = e.exCorr.getName();
-	D3::setXCscale(xcName, useBJDamping, s6, sr6, s8, sr8);
+	D3::setXCscale(xcName, dampBJ, s6, sr6, s8, sr8);
 	logPrintf("\tParameters set for %s functional\n", xcName.c_str());
-	if (useBJDamping)
-	{
-		logPrintf("\ts6: %6.3lf  s8: %6.3lf\n", s6, s8);
+	if(dampBJ)
+	{	logPrintf("\ts6: %6.3lf  s8: %6.3lf\n", s6, s8);
 		logPrintf("\ta1: %6.3lf  a2: %6.3lf\n", sr6, sr8);
-	} else {
-		logPrintf("\ts6: %6.3lf  s_r6: %6.3lf\n", s6, sr6);
+	}
+	else
+	{	logPrintf("\ts6: %6.3lf  s_r6: %6.3lf\n", s6, sr6);
 		logPrintf("\ts8: %6.3lf  s_r8: %6.3lf\n", s8, sr8);
 	}
 
@@ -136,11 +130,12 @@ VanDerWaalsD3::VanDerWaalsD3(const Everything& e)
 			pairParams[iSp1][iSp2] = D3::getPairParams(atomParams[iSp1], atomParams[iSp2]);
 	}
 
-	if (useBJDamping) {
-		Citations::add("DFT-D3(BJ) dispersion correction", "S. Grimme, S. Ehrlich and L. Goerigk, J. Comp. Chem. 32, 1456 (2011)");
-	} else {
-		Citations::add("DFT-D3 dispersion correction", "S. Grimme, J. Antony, S. Ehrlich and H. Krieg, J. Chem. Phys. 132, 154104 (2010)");
-	}
+	Citations::add(
+		"DFT-D3 dispersion correction",
+		dampBJ
+		? "S. Grimme, S. Ehrlich and L. Goerigk, J. Comp. Chem. 32, 1456 (2011)"
+		: "S. Grimme, J. Antony, S. Ehrlich and H. Krieg, J. Chem. Phys. 132, 154104 (2010)"
+	);
 }
 
 
@@ -169,11 +164,11 @@ template<int n, int alpha_n> double vdWpotential(double invr, double R0, double&
 //! Return r^-n pair-potential energy and set its derivative E_r for the BJ-damping form.
 template<int n> double vdWpotentialBJ(double r, double R0, double a1, double a2, double& E_r)
 {	//Main r^-n potential (and r derivative):
-    double subcdamp = a1*R0 + a2; // eqn 6 of Grimme 2011
-    double cdamp = pow(subcdamp, n); // raised to n (constant wrt r)
-    double rn = pow(r, n);
-    double E = 1 / (rn + cdamp);
-    E_r = -n * pow(r, n-1) * E * E;
+	double subcdamp = a1*R0 + a2; // eqn 6 of Grimme 2011
+	double cdamp = pow(subcdamp, n); // raised to n (constant wrt r)
+	double rn = pow(r, n);
+	double E = 1 / (rn + cdamp);
+	E_r = -n * pow(r, n-1) * E * E;
 	return E;
 }
 
@@ -210,9 +205,7 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 			double ratio8by6 = 3. * ap1.sqrtQ * ap2.sqrtQ;
 			double C6 = trace(transpose(L1) * pp.C6 * L2).real();
 			double C8 = C6 * ratio8by6;
-			double R0 = pp.R0;
-			if(useBJDamping)
-				R0 = sqrt(C8/C6); //BJ damping uses C8/C6 to get R0
+			double R0 = dampBJ ? sqrt(C8/C6) : pp.R0; //BJ damping uses C8/C6 to get R0
 			if(c1 == c2) diagC6[c1] = C6; //only for reporting
 			
 			//Sum energy, force and stress contributions over periodic images:
@@ -226,11 +219,12 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
 					double invr = 1./r;
 					double term6_r; double term6; double term8_r; double term8;
-					if(useBJDamping) {	
-						term6 = (vdWpotentialBJ<6>(r, R0, sr6, sr8, term6_r));
+					if(dampBJ) 
+					{	term6 = (vdWpotentialBJ<6>(r, R0, sr6, sr8, term6_r));
 						term8 = (vdWpotentialBJ<8>(r, R0, sr6, sr8, term8_r));
-					} else {	
-						term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r));
+					} 
+					else
+					{	term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r));
 						term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r));
 					}
 					E12_C6 -= cellWeight * s6 * term6;
@@ -276,8 +270,6 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 	watch.stop();
 	return E6 + E8;
 }
-
-
 
 
 //Compute local coordination number
