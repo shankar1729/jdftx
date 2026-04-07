@@ -141,6 +141,7 @@ template<int Nlm> void nAugmentGrad_gpu(const vector3<int> S, const matrix3<>& G
 	int nPerBlock = std::min(prop.warpSize, std::min(attr.maxThreadsPerBlock, int(prop.sharedMemPerBlock/sharedMemPerThread)));
 	int nBlocks = nCoeff;
 	double* E_nRadialTemp; cudaMalloc(&E_nRadialTemp, sizeof(double)*nCoeff*Nlm*8);
+	gpuErrorCheck();
 	cudaMemset(E_nRadialTemp, 0, sizeof(double)*nCoeff*Nlm*8);
 	gpuErrorCheck();
 	//Stage 1: calculate with the scattered accumulate to E_nRadial

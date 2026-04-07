@@ -204,6 +204,8 @@ namespace MemPool
 				lock.unlock();
 				return ptr;
 			}
+			logPrintf("MEMDBG: Allocation failed; attempting cache free (%lu entries in cache).\n", cache.size());
+			logFlush();
 			//Deallocate (unsuitable) cached entries till allocation succeeds:
 			for(auto iter=cache.begin(); iter!=cache.end();)
 			{	MemSpace::free(iter->second);
@@ -212,6 +214,8 @@ namespace MemPool
 				if(ptr)
 				{	allocated.insert(std::make_pair(ptr, size));
 					lock.unlock();
+					logPrintf("MEMDBG: Allocated %lu successfully (%lu entries in cache).\n", size, cache.size());
+					logFlush();
 					return ptr;
 				}
 			}
@@ -290,7 +294,7 @@ namespace MemPool
 			cudaError_t ret = cudaMallocManaged(&ptr, size);
 			if(not onGpu) cudaDeviceSynchronize();
 			if(prefetchSupported) cudaMemPrefetchAsync(ptr, size, onGpu ? memLocDevice : memLocHost);
-			gpuErrorCheck();
+			cudaGetLastError(); //clear error since handled by checking pointer
 			return (ret==cudaSuccess) ? ptr : 0;
 		}
 		static void free(void* ptr) { cudaFree(ptr); }
@@ -305,6 +309,7 @@ namespace MemPool
 		static void* alloc(size_t size, bool onGpu)
 		{	void* ptr;
 			cudaError_t ret = cudaMallocHost(&ptr, size);
+			cudaGetLastError(); //clear error since handled by checking pointer
 			return (ret==cudaSuccess) ? ptr : 0;
 		}
 		static void free(void* ptr) { cudaFreeHost(ptr); }
@@ -327,6 +332,7 @@ namespace MemPool
 		{	assert(isGpuMine());
 			void* ptr;
 			cudaError_t ret = cudaMalloc(&ptr, size);
+			cudaGetLastError(); //clear error since handled by checking pointer
 			return (ret==cudaSuccess) ? ptr : 0;
 		}
 		static void free(void* ptr)
