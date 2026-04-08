@@ -100,76 +100,25 @@ namespace MemUsageReport
 }
 
 
-//-------- Memory pool to reduce system alloc/free calls ---------
+//-------- Cache memory allocations to reduce system alloc/free calls ---------
 
-namespace MemPool
+namespace MemCache
 {
-	//Pool memory allocations in a memory space abstracted by MemSpace
+	//Cache memory allocations in a memory space abstracted by MemSpace
 	//MemSpace is a tag class with static members:
 	// const bool shouldCache;    //whether to cache allocations for this type
-	// size_t poolSize();         //appropriate pool size for this memory type
 	// void* alloc(size_t, bool); //returns 0 when out of memory (bool selects GPU/CPU for unified case)
 	// void free(void*);          //assumed to not fail
 	// void outOfMemory();        //exit with appropriate out of memory error
-	template<typename MemSpace> class MemPool
-	{	uint8_t* pool; //pointer to entire pool of memory (allocated once)
-		std::mutex lock; //for thread safety
-		//Allocated memory
-		std::map<size_t,size_t> used; //start -> stop
-		//Available 'holes' in memory:
-		std::map<size_t,size_t> holes; //start -> stop
-		std::map<size_t,std::set<size_t>> holesBySize; //size -> set of starts
-		//--- helper functions for managing holes
-		typedef std::map<size_t,size_t>::iterator MapIter;
-		typedef std::map<size_t,std::set<size_t>>::iterator MapSetIter;
-		inline void printHoles()
-		{	//List holes (for debugging only):
-			logPrintf("Holes:");
-			for(auto entry: holes)
-				logPrintf(" (%lu,%lu)", entry.first, entry.second);
-			logPrintf("\n");
-		}
-		inline void addHole(size_t start, size_t size)
-		{	size_t startEff = start;
-			size_t stopEff = start+size;
-			MapIter ubound = holes.upper_bound(start); //iterator to hole after start
-			MapIter lbound = ubound; if(lbound!=holes.begin()) lbound--; //iterator to hole before start
-			//Check for contiguous hole before:
-			if((lbound!=holes.end()) && (lbound->second==startEff))
-			{	startEff = lbound->first; //absorb into new hole
-				removeHole(lbound->first, &lbound); //remove old hole
-			}
-			//Check for contiguous hole after:
-			if((ubound!=holes.end()) && (ubound->first==stopEff))
-			{	stopEff = ubound->second; //absorb into new hole
-				removeHole(ubound->first, &ubound); //remove old hole
-			}
-			//Add new hole:
-			holes[startEff] = stopEff;
-			holesBySize[stopEff-startEff].insert(startEff);
-			//Uncomment following to debug:
-			//logPrintf("Added (%lu,%lu) expanded to (%lu,%lu)\t",start,start+size, startEff,stopEff); printHoles();
-		}
-		inline void removeHole(size_t start, MapIter* holesPtr=0, MapSetIter* holesBySizePtr=0)
-		{	//Remove from holes:
-			MapIter holesIter = holesPtr ? *holesPtr : holes.find(start);
-			assert((holesIter!=holes.end()) && (holesIter->first==start));
-			size_t size = holesIter->second - start;
-			holes.erase(holesIter);
-			//Remove from holesBySize:
-			MapSetIter holesBySizeIter = holesBySizePtr ? *holesBySizePtr : holesBySize.find(size);
-			assert((holesBySizeIter!=holesBySize.end()) && (holesBySizeIter->first==size));
-			holesBySizeIter->second.erase(start);
-			if(!holesBySizeIter->second.size()) //no more holes of this size
-				holesBySize.erase(holesBySizeIter);
-			//Uncomment following to debug:
-			//logPrintf("Deleted (%lu,%lu)\t", start,start+size); printHoles();
-		}
+	template<typename MemSpace> class MemCache
+	{	std::mutex lock; //for thread safety
 		
-		//Cache pointers (with/without pool):
+		//Cache pointers:
 		std::map<void*, size_t> allocated;
 		std::multimap<size_t, void*> cache;
-		void cachedFree(void* ptr)
+		
+	public:
+		void free(void* ptr)
 		{	if(not MemSpace::shouldCache) {	MemSpace::free(ptr); return; }
 			//Move ptr from allocated to cache (for future allocs)
 			lock.lock();
@@ -180,7 +129,8 @@ namespace MemPool
 			allocated.erase(iter);
 			lock.unlock();
 		}
-		void* cachedAlloc(size_t size, bool onGpu)
+		
+		void* alloc(size_t size, bool onGpu)
 		{	if(not MemSpace::shouldCache) return MemSpace::alloc(size, onGpu);
 			lock.lock();
 			//Search cache for suitable allocations first:
@@ -225,62 +175,15 @@ namespace MemPool
 			return NULL;
 		}
 		
-	public:
-		MemPool() : pool(0)
-		{	if(MemSpace::poolSize())
-			{	pool = (uint8_t*)cachedAlloc(MemSpace::poolSize(), true); //default pool to GPU
-				addHole(0, MemSpace::poolSize());
-			}
+		MemCache()
+		{
 		}
-		~MemPool()
-		{	if(pool) cachedFree(pool);
-			for(auto entry: allocated) MemSpace::free(entry.first);
+		
+		~MemCache()
+		{	for(auto entry: allocated) MemSpace::free(entry.first);
 			for(auto entry: cache) MemSpace::free(entry.second);
 			allocated.clear();
 			cache.clear();
-		}
-		void* alloc(size_t sizeRequested, bool onGpu)
-		{	if(!pool) return cachedAlloc(sizeRequested, onGpu); //pool not in use
-			lock.lock();
-			//Find size adjusted to chunk size:
-			const size_t chunkSize = 4096; //typical page size
-			const size_t chunkMask = chunkSize - 1;
-			size_t size = (sizeRequested + chunkMask) & (~chunkMask); //round up to multiple of chunkSize
-			//Find hole just big enough to fit it:
-			MapSetIter ubound = holesBySize.upper_bound(size);
-			if(ubound == holesBySize.end())
-			{	//No hole big enough left, so allocate externally:
-				lock.unlock();
-				return cachedAlloc(sizeRequested, onGpu);
-			}
-			else
-			{	//Hole found, so allocate from it:
-				size_t start = *(ubound->second.begin());
-				size_t holeSize = ubound->first;
-				used[start] = start+size; //mark allocated range
-				removeHole(start, 0, &ubound); //remove old hole
-				if(holeSize > size) addHole(start+size, holeSize-size); //add hole left behind (if any)
-				lock.unlock();
-				return (void*)(pool+start);
-			}
-		}
-		void free(void* ptr)
-		{	if(!pool) return cachedFree(ptr); //pool not in use
-			lock.lock();
-			//Find in used map:
-			size_t start = ((uint8_t*)ptr) - pool;
-			MapIter usedIter = used.find(start);
-			if(usedIter == used.end())
-			{	//Not found in used => allocated externally
-				cachedFree(ptr); //free externally
-			}
-			else
-			{	//Found in used => allocated in pool
-				size_t size = usedIter->second - start;
-				used.erase(usedIter); //remove from used
-				addHole(start, size); //add corresponding hole
-			}
-			lock.unlock();
 		}
 	};
 	
@@ -288,7 +191,6 @@ namespace MemPool
 	#if defined(GPU_ENABLED) && defined(CUDA_MANAGED_MEMORY)
 	struct MemSpaceUnified
 	{	static const bool shouldCache = true;
-		static size_t poolSize() { return mempoolSize; } //Unified pool size
 		static void* alloc(size_t size, bool onGpu)
 		{	void* ptr;
 			cudaError_t ret = cudaMallocManaged(&ptr, size);
@@ -305,7 +207,6 @@ namespace MemPool
 	#elif defined(GPU_ENABLED) && defined(PINNED_HOST_MEMORY)
 	struct MemSpaceCPU
 	{	static const bool shouldCache = true;
-		static size_t poolSize() { return mempoolSize; }
 		static void* alloc(size_t size, bool onGpu)
 		{	void* ptr;
 			cudaError_t ret = cudaMallocHost(&ptr, size);
@@ -318,7 +219,6 @@ namespace MemPool
 	#else
 	struct MemSpaceCPU
 	{	static const bool shouldCache = false;
-		static size_t poolSize() { return 0; } //No need to cache plain CPU allocations
 		static void* alloc(size_t size, bool onGpu) { return fftw_malloc(size); }
 		static void free(void* ptr) { fftw_free(ptr); }
 		static void outOfMemory() die_alone("Memory allocation failed (out of memory)\n");
@@ -327,7 +227,6 @@ namespace MemPool
 	#if defined(GPU_ENABLED) && (!defined(CUDA_MANAGED_MEMORY))
 	struct MemSpaceGPU
 	{	static const bool shouldCache = true;
-		static size_t poolSize() { return mempoolSize; }
 		static void* alloc(size_t size, bool onGpu)
 		{	assert(isGpuMine());
 			void* ptr;
@@ -344,12 +243,12 @@ namespace MemPool
 	#endif
 	
 	//Pool accessor functions (to avoid file-level static variables):
-	MemPool<MemSpaceCPU>& CPU() { static MemPool<MemSpaceCPU> pool; return pool; }
+	MemCache<MemSpaceCPU>& CPU() { static MemCache<MemSpaceCPU> pool; return pool; }
 	#ifdef GPU_ENABLED
 	#ifdef CUDA_MANAGED_MEMORY
 	MemPool<MemSpaceGPU>& GPU() { return CPU(); } //use single pool
 	#else
-	MemPool<MemSpaceGPU>& GPU() { static MemPool<MemSpaceGPU> pool; return pool; }
+	MemCache<MemSpaceGPU>& GPU() { static MemCache<MemSpaceGPU> pool; return pool; }
 	#endif
 	#endif
 }
@@ -367,12 +266,12 @@ void ManagedMemoryBase::memFree()
 	if(onGpu)
 	{
 		#ifdef GPU_ENABLED
-		MemPool::GPU().free(c);
+		      MemCache::GPU().free(c);
 		#else
 		assert(!"onGpu=true without GPU_ENABLED"); //Should never get here!
 		#endif
 	}
-	else MemPool::CPU().free(c);
+	else MemCache::CPU().free(c);
 	MemUsageReport::manager(MemUsageReport::Remove, category, nBytes);
 	onGpu = false;
 	c = 0;
@@ -390,13 +289,13 @@ void ManagedMemoryBase::memInit(string category, size_t nBytes, bool onGpu)
 	if(onGpu)
 	{
 		#ifdef GPU_ENABLED
-		c = MemPool::GPU().alloc(nBytes, true);
+		c = MemCache::GPU().alloc(nBytes, true);
 		#else
 		assert(!"onGpu=true without GPU_ENABLED");
 		#endif
 	}
 	else
-	{	c = MemPool::CPU().alloc(nBytes, false);
+	{	c = MemCache::CPU().alloc(nBytes, false);
 		#if defined(GPU_ENABLED) && defined(CUDA_MANAGED_MEMORY)
 		cudaDeviceSynchronize();
 		#endif
@@ -423,9 +322,9 @@ void ManagedMemoryBase::toCpu() const
 	if(prefetchSupported) cudaMemPrefetchAsync(c, nBytes, memLocHost);
 	gpuErrorCheck();
 	#else
-	void* cCpu = MemPool::CPU().alloc(nBytes, false);
+	void* cCpu = MemCache::CPU().alloc(nBytes, false);
 	cudaMemcpy(cCpu, me.c, nBytes, cudaMemcpyDeviceToHost);
-	MemPool::GPU().free(me.c); //Free GPU mem
+	   MemCache::GPU().free(me.c); //Free GPU mem
 	me.c = cCpu; //Make c a cpu pointer
 	#endif
 	me.onGpu = false;
@@ -442,9 +341,9 @@ void ManagedMemoryBase::toGpu() const
 	if(prefetchSupported) cudaMemPrefetchAsync(c, nBytes, memLocDevice);
 	gpuErrorCheck();
 	#else
-	void* cGpu = MemPool::GPU().alloc(nBytes, true);
+	void* cGpu = MemCache::GPU().alloc(nBytes, true);
 	cudaMemcpy(cGpu, me.c, nBytes, cudaMemcpyHostToDevice);
-	MemPool::CPU().free(me.c); //Free CPU mem
+	   MemCache::CPU().free(me.c); //Free CPU mem
 	me.c = cGpu; //Make c a gpu pointer
 	#endif
 	me.onGpu = true;
