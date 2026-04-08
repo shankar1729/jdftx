@@ -112,5 +112,17 @@ struct GpuLaunchConfigHalf3D : public GpuLaunchConfig3D
 //! Check for gpu errors and print a useful message (implemented in GpuUtils.cpp)
 void gpuErrorCheck();
 
+//! Wraps ManagedArray for temporary buffers from cu files
+class GpuBuffer
+{
+public:
+	GpuBuffer(size_t nElem);
+	~GpuBuffer();
+	void zero();
+	operator double*();
+private:
+	void* buffer;
+};
+
 //! @}
 #endif // JDFTX_CORE_GPUKERNELUTILS_H

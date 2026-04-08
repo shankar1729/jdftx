@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <core/RadialFunction.h>
 #include <core/SphericalHarmonics.h>
+#include <core/ManagedMemory.h>
 #include <core/GpuUtil.h>
 #include <core/Thread.h>
 
@@ -52,9 +53,8 @@ void RadialFunctionG::set(const std::vector<double>& coeff, double dGinv)
 	this->dGinv = dGinv;
 	nCoeff = coeff.size();
 	#ifdef GPU_ENABLED
-	cudaMalloc(&coeffGpu, sizeof(double)*nCoeff);
-	cudaMemcpy(coeffGpu, coeff.data(), sizeof(double)*nCoeff, cudaMemcpyHostToDevice);
-	gpuErrorCheck();
+	coeffManaged = new ManagedArray<double>(coeff);
+	coeffGpu = ((ManagedArray<double>*)coeffManaged)->dataGpu();
 	#endif
 }
 
@@ -67,7 +67,7 @@ void RadialFunctionG::updateGmax(int l, int nSamples)
 void RadialFunctionG::free(bool rFuncDelete)
 {	if(rFunc && rFuncDelete) delete rFunc;
 	#ifdef GPU_ENABLED
-	if(nCoeff) cudaFree(coeffGpu);
+	if(nCoeff) { delete (ManagedArray<double>*)coeffManaged; coeffGpu=0; }
 	#endif
 }
 

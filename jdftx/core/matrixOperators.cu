@@ -124,13 +124,12 @@ void relativeHermiticityError_kernel(int N, const complex* data, double* buf)
 }
 double relativeHermiticityError_gpu(int N, const complex* data)
 {	GpuLaunchConfig1D glc(relativeHermiticityError_kernel, N);
-	double* buf; cudaMalloc(&buf, sizeof(double)*(2*N)); //buffer to store results per row
+	GpuBuffer buf(2*N);
 	relativeHermiticityError_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, data, buf);
 	gpuErrorCheck();
 	double errNum = 0., errDen = 0.;
 	cublasDasum(cublasHandle, N, buf, 1, &errNum);
 	cublasDasum(cublasHandle, N, buf+N, 1, &errDen);
-	cudaFree(buf);
 	return sqrt(errNum / (errDen*N));
 }
 

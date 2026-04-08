@@ -261,15 +261,14 @@ void eblas_capMinMax_gpu(const int N, double* x, double& xMin, double& xMax, dou
 {	GpuLaunchConfig1D glc(eblas_capMinMax_kernel, N);
 	int nBlocksTot = glc.nBlocks.x * glc.nBlocks.y;
 	//First perform the capping and obtain the max and min per block:
-	double* xMinBlk; cudaMalloc(&xMinBlk, sizeof(double)*nBlocksTot*2);
-	double* xMaxBlk = xMinBlk + nBlocksTot;
+	GpuBuffer xMinBlk(nBlocksTot*2);
+	double* xMaxBlk = (double*)xMinBlk + nBlocksTot;
 	int sharedMemBytes = 2*glc.nPerBlock.x*sizeof(double);
 	eblas_capMinMax_kernel<<<glc.nBlocks,glc.nPerBlock,sharedMemBytes>>>(N,x,xMinBlk,xMaxBlk,capLo,capHi);
 	//Finish on the CPU:
 	double* xMinCpu = new double[2*nBlocksTot];
 	double* xMaxCpu = xMinCpu + nBlocksTot;
 	cudaMemcpy(xMinCpu, xMinBlk, sizeof(double)*nBlocksTot*2, cudaMemcpyDeviceToHost);
-	cudaFree(xMinBlk);
 	xMin = *std::min_element(xMinCpu, xMinCpu+nBlocksTot);
 	xMax = *std::max_element(xMaxCpu, xMaxCpu+nBlocksTot);
 	delete[] xMinCpu;

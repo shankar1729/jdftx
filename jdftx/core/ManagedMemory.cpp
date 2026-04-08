@@ -204,8 +204,8 @@ namespace MemPool
 				lock.unlock();
 				return ptr;
 			}
-			logPrintf("MEMDBG: Allocation failed; attempting cache free (%lu entries in cache).\n", cache.size());
-			logFlush();
+			printf("MEMDBG: Allocate %lu failed; attempting cache free (%lu entries in cache).\n", size, cache.size());
+			fflush(stdout);
 			//Deallocate (unsuitable) cached entries till allocation succeeds:
 			for(auto iter=cache.begin(); iter!=cache.end();)
 			{	MemSpace::free(iter->second);
@@ -214,8 +214,8 @@ namespace MemPool
 				if(ptr)
 				{	allocated.insert(std::make_pair(ptr, size));
 					lock.unlock();
-					logPrintf("MEMDBG: Allocated %lu successfully (%lu entries in cache).\n", size, cache.size());
-					logFlush();
+					printf("MEMDBG: Allocated %lu successfully (%lu entries in cache).\n", size, cache.size());
+					fflush(stdout);
 					return ptr;
 				}
 			}

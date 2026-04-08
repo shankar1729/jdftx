@@ -140,10 +140,8 @@ template<int Nlm> void nAugmentGrad_gpu(const vector3<int> S, const matrix3<>& G
 	int sharedMemPerThread = 6 * sizeof(double);
 	int nPerBlock = std::min(prop.warpSize, std::min(attr.maxThreadsPerBlock, int(prop.sharedMemPerBlock/sharedMemPerThread)));
 	int nBlocks = nCoeff;
-	double* E_nRadialTemp; cudaMalloc(&E_nRadialTemp, sizeof(double)*nCoeff*Nlm*8);
-	gpuErrorCheck();
-	cudaMemset(E_nRadialTemp, 0, sizeof(double)*nCoeff*Nlm*8);
-	gpuErrorCheck();
+	GpuBuffer E_nRadialTemp(nCoeff*Nlm*8);
+	E_nRadialTemp.zero();
 	//Stage 1: calculate with the scattered accumulate to E_nRadial
 	nAugmentGrad_kernel<Nlm><<<nBlocks,nPerBlock,sharedMemPerThread*nPerBlock>>>(S, G, nCoeff, dGinv, nRadial, atpos, ccE_n, E_nRadialTemp, E_atpos, E_RRT, atposDeriv, nagIndex, nagIndexPtr);
 	gpuErrorCheck();
@@ -151,8 +149,6 @@ template<int Nlm> void nAugmentGrad_gpu(const vector3<int> S, const matrix3<>& G
 	GpuLaunchConfig1D glc(nAugmentGrad_collectKernel, nCoeff*Nlm);
 	nAugmentGrad_collectKernel<<<glc.nBlocks,glc.nPerBlock>>>(nCoeff*Nlm, E_nRadialTemp, E_nRadial);
 	gpuErrorCheck();
-	//Cleanup:
-	cudaFree(E_nRadialTemp);
 }
 void nAugmentGrad_gpu(int Nlm, const vector3<int> S, const matrix3<>& G,
 	int nCoeff, double dGinv, const double* nRadial, const vector3<>& atpos,

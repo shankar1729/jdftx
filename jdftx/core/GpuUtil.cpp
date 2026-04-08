@@ -23,6 +23,8 @@ int selectedDevice = -1;
 #include <core/GpuUtil.h>
 #include <core/MPIUtil.h>
 #include <core/Util.h>
+#include <core/ManagedMemory.h>
+#include <core/GpuKernelUtils.h>
 #include <pthread.h>
 #include <utility>
 #include <cstdlib>
@@ -110,6 +112,25 @@ void gpuErrorCheck()
 	{	fprintf(stderr, "CUDA Error: %s\n", cudaGetErrorString(err));
 		stackTraceExit(1);
 	}
+}
+
+
+GpuBuffer::GpuBuffer(size_t nElem)
+{	ManagedArray<double>* mem = new ManagedArray<double>();
+	mem->init(nElem, true);
+	buffer = (void*)mem;
+}
+
+GpuBuffer::~GpuBuffer()
+{	delete (ManagedArray<double>*)buffer;
+}
+
+void GpuBuffer::zero()
+{	((ManagedArray<double>*)buffer)->zero();
+}
+
+GpuBuffer::operator double*()
+{	return ((ManagedArray<double>*)buffer)->dataGpu();
 }
 
 #endif //GPU_ENABLED
