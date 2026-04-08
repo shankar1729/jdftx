@@ -201,6 +201,23 @@ namespace MemCache
 				}
 				lock.unlock();
 			}
+			
+			//Clear in advance to avoid overflowing target total memory usage:
+			size_t expectedSize = overallTot + size;
+			if(cacheSize and (expectedSize > cacheSize))
+			{	const size_t expectedOverflow = expectedSize - cacheSize;
+				report("Overflow anticipated", expectedOverflow);
+				for(auto iter=cache.begin(); iter!=cache.end();)
+				{	MemSpace::free(iter->second);
+					nFreesRaw++;
+					cacheTot -= iter->first;
+					overallTot -= iter->first;
+					iter = cache.erase(iter);
+					if(overallTot + size <= cacheSize) break;
+				}
+				report("Overflow addressed", expectedOverflow);
+			}
+			
 			//Allocate from underlying memory space:
 			void* ptr = MemSpace::alloc(size, onGpu);
 			nAllocsRaw++; //counted regardless of success
@@ -254,11 +271,12 @@ namespace MemCache
 		}
 		
 		inline void report(const char* context, size_t size)
-		{	if(cacheDebug)
+		{	static const size_t halfMB = (1L << 19);
+			if(cacheDebug)
 			{	fprintf(stderr,
-					"CACHEDBG: %s %lu; total: %lu MB, cache: %lu MB (%lu entries), raw allocs: %.1lf%%, frees: %.1lf%%\n",
-					context, size, overallTot >> 20, cacheTot >> 20, cache.size(), 
-					nAllocsRaw*100.0/nAllocs, nFreesRaw*100.0/nFrees);
+					"CACHEDBG: %s %lu MB; total: %lu MB, cache: %lu MB (%lu entries), raw allocs: %.1lf%%, frees: %.1lf%%\n",
+					context, (size + halfMB) >> 20, (overallTot + halfMB) >> 20, (cacheTot + halfMB) >> 20,
+					cache.size(), nAllocsRaw*100.0/nAllocs, nFreesRaw*100.0/nFrees);
 				fflush(stderr);
 			}
 		}
