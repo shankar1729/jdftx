@@ -29,6 +29,53 @@ extern bool prefetchSupported; //defined in GpuUtil.cpp
 extern int memLocDevice, memLocHost; //defined in GpuUtil.cpp
 #endif
 
+size_t cacheSize = 0; //target size of total allocations (unlimited if 0)
+double cacheMargin = 0.1; //fraction of allocation size that may be wasted when reusing a cached pointer
+bool cacheDebug = false;
+
+void initMemCache()
+{	if(not isGpuEnabled()) return; //Cache only used for GPU-related allocations
+	
+	//Cache size:
+	const char* cacheSizeSrc = "JDFTX_CACHE_SIZE";
+	const char* cacheSizeStr = getenv(cacheSizeSrc);
+	string cacheTargetStr = "unlimited";
+	if(not cacheSizeStr)
+	{	cacheSizeSrc = "JDFTX_MEMPOOL_SIZE";
+		cacheSizeStr = getenv(cacheSizeSrc);
+		if(cacheSizeStr)
+			logPrintf("WARNING: JDFTX_MEMPOOL_SIZE is deprecated; specify JDFTX_CACHE_SIZE instead.\n");
+	}
+	if(cacheSizeStr)
+	{	int cacheSizeMB;
+		if((sscanf(cacheSizeStr, "%d", &cacheSizeMB) == 1) and (cacheSizeMB >= 0))
+		{	cacheSize = ((size_t)cacheSizeMB) << 20; //convert to bytes
+			ostringstream oss; oss << cacheSizeMB << " MB (per process)";
+			cacheTargetStr = oss.str();
+		}
+		else die("Invalid %s=\"%s\".\n", cacheSizeSrc, cacheSizeStr);
+	}
+	
+	//Allocation margin:
+	const char* cacheMarginStr = getenv("JDFTX_CACHE_MARGIN");
+	if(cacheMarginStr)
+		if(not ((sscanf(cacheMarginStr, "%lf", &cacheMargin) == 1) and (cacheMargin > 0)))
+			die("Invalid JDFTX_CACHE_MARGIN=\"%s\".\n", cacheMarginStr);
+	
+	//Report cache parameters:
+	logPrintf("Allocation cache: target size: %s, margin: %lg\n", 
+		cacheTargetStr.c_str(), cacheMargin);
+
+	//Allocation margin:
+	const char* cacheDebugStr = getenv("JDFTX_CACHE_DEBUG");
+	cacheDebug = cacheDebugStr and (string(cacheDebugStr) == "yes");
+	if(cacheDebug)
+	{	fprintf(stderr, "CACHEDBG: cache allocation debug messages enabled.\n");
+		fflush(stderr);
+	}
+}
+
+
 //-------- Memory usage profiler ---------
 
 namespace MemUsageReport
@@ -116,31 +163,38 @@ namespace MemCache
 		//Cache pointers:
 		std::map<void*, size_t> allocated;
 		std::multimap<size_t, void*> cache;
-		
+		size_t allocatedTot, cacheTot, overallTot; //total sizes per category
+		size_t nAllocs, nAllocsRaw, nFrees, nFreesRaw; //statistics of total and raw alloc/free calls
 	public:
 		void free(void* ptr)
 		{	if(not MemSpace::shouldCache) {	MemSpace::free(ptr); return; }
+			nFrees++;
 			//Move ptr from allocated to cache (for future allocs)
 			lock.lock();
 			auto iter = allocated.find(ptr);
 			assert(iter != allocated.end());
 			size_t size = iter->second;
 			cache.insert(std::make_pair(size, ptr));
+			cacheTot += size;
 			allocated.erase(iter);
+			allocatedTot -= size;
 			lock.unlock();
 		}
 		
 		void* alloc(size_t size, bool onGpu)
 		{	if(not MemSpace::shouldCache) return MemSpace::alloc(size, onGpu);
+			nAllocs++;
 			lock.lock();
 			//Search cache for suitable allocations first:
 			{	auto iter = cache.lower_bound(size); //smallest allocation >= required
 				if(iter != cache.end())
 				{	size_t sizeCached = iter->first;
 					void* ptrCached = iter->second;
-					if(sizeCached < 2 * size) //ignore if too big (avoid wasting memory)
+					if(sizeCached < size + size*cacheMargin) //ignore if too big (avoid wasting memory)
 					{	allocated.insert(std::make_pair(ptrCached, sizeCached));
+						allocatedTot += sizeCached;
 						cache.erase(iter);
+						cacheTot -= sizeCached;
 						lock.unlock();
 						return ptrCached;
 					}
@@ -149,23 +203,30 @@ namespace MemCache
 			}
 			//Allocate from underlying memory space:
 			void* ptr = MemSpace::alloc(size, onGpu);
+			nAllocsRaw++; //counted regardless of success
 			if(ptr)
 			{	allocated.insert(std::make_pair(ptr, size));
+				allocatedTot += size;
+				overallTot += size;
 				lock.unlock();
 				return ptr;
 			}
-			printf("MEMDBG: Allocate %lu failed; attempting cache free (%lu entries in cache).\n", size, cache.size());
-			fflush(stdout);
+			report("Allocate failed", size);
 			//Deallocate (unsuitable) cached entries till allocation succeeds:
 			for(auto iter=cache.begin(); iter!=cache.end();)
 			{	MemSpace::free(iter->second);
+				nFreesRaw++;
+				cacheTot -= iter->first;
+				overallTot -= iter->first;
 				iter = cache.erase(iter);
 				void* ptr = MemSpace::alloc(size, onGpu);
+				nAllocsRaw++; //counted regardless of success
 				if(ptr)
 				{	allocated.insert(std::make_pair(ptr, size));
+					allocatedTot += size;
+					overallTot += size;
 					lock.unlock();
-					printf("MEMDBG: Allocated %lu successfully (%lu entries in cache).\n", size, cache.size());
-					fflush(stdout);
+					report("Allocate fixed", size);
 					return ptr;
 				}
 			}
@@ -176,7 +237,13 @@ namespace MemCache
 		}
 		
 		MemCache()
-		{
+		{	allocatedTot = 0;
+			cacheTot = 0;
+			overallTot = 0;
+			nAllocs = 0;
+			nAllocsRaw = 0;
+			nFrees = 0;
+			nFreesRaw = 0;
 		}
 		
 		~MemCache()
@@ -184,6 +251,16 @@ namespace MemCache
 			for(auto entry: cache) MemSpace::free(entry.second);
 			allocated.clear();
 			cache.clear();
+		}
+		
+		inline void report(const char* context, size_t size)
+		{	if(cacheDebug)
+			{	fprintf(stderr,
+					"CACHEDBG: %s %lu; total: %lu MB, cache: %lu MB (%lu entries), raw allocs: %.1lf%%, frees: %.1lf%%\n",
+					context, size, overallTot >> 20, cacheTot >> 20, cache.size(), 
+					nAllocsRaw*100.0/nAllocs, nFreesRaw*100.0/nFrees);
+				fflush(stderr);
+			}
 		}
 	};
 	

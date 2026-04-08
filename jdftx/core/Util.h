@@ -45,7 +45,6 @@ extern MPIUtil* mpiGroup; //!< MPI within current group of processes
 extern MPIUtil* mpiGroupHead; //!< MPI across equal ranks in each group
 extern MPIUtil* mpiWorldFull; //!< Actual MPI_COMM_WORLD used for smart resource division (relevant in library mode)
 extern bool mpiDebugLog; //!< If true, all processes output to seperate debug log files, otherwise only head process outputs (set before calling initSystem())
-extern size_t mempoolSize; //!< If non-zero, size of memory pool managed internally by JDFTx
 class Everything; //!< global forward declaration for auxiliary headers that don't need details within Everything
 
 //! Parameters used for common initialization functions

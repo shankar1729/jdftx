@@ -30,6 +30,9 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //! @file ManagedMemory.h Base class and operators for managed-memory objects
 
+void initMemCache(); //!< load memory caching settings (for GPU allocations) from environment
+
+
 //! Base class for managed-memory objects (that could potentially live on GPUs as well) with unspecified data type
 class ManagedMemoryBase
 {

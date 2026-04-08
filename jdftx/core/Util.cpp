@@ -301,20 +301,8 @@ void initSystem(int argc, char** argv, const InitParams* ip)
 		logPrintf("Run totals: %d processes, %d threads, %lg GPUs\n", mpiWorld->nProcesses(), nProcsTot, nGPUsTot);
 	}
 	
-	//Memory pool size:
-	const char* mempoolSizeStr = getenv("JDFTX_MEMPOOL_SIZE");
-	if(mempoolSizeStr)
-	{	int mempoolSizeMB;
-		if(sscanf(mempoolSizeStr, "%d", &mempoolSizeMB)==1 && mempoolSizeMB>=0)
-		{	mempoolSize = ((size_t)mempoolSizeMB) << 20; //convert to bytes
-			logPrintf("Memory pool size: %d MB (per process)\n", mempoolSizeMB);
-			#ifdef CUDA_MANAGED_MEMORY
-			logPrintf("WARNING: memory pool should not be used with CUDA managed memory.\n");
-			#endif
-		}
-		else
-			logPrintf("Could not determine memory pool size from JDFTX_MEMPOOL_SIZE=\"%s\".\n", mempoolSizeStr);
-	}
+	//Memory cache settings:
+	initMemCache();
 	
 	//Add citations to the code for all calculations:
 	Citations::add("Software package",
