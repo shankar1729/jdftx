@@ -30,7 +30,7 @@ extern int memLocDevice, memLocHost; //defined in GpuUtil.cpp
 #endif
 
 size_t cacheSize = 0; //target size of total allocations (unlimited if 0)
-double cacheMargin = 0.1; //fraction of allocation size that may be wasted when reusing a cached pointer
+double cacheMargin = 0.5; //fraction of allocation size that may be wasted when reusing a cached pointer
 bool cacheDebug = false;
 
 void initMemCache()
@@ -163,6 +163,7 @@ namespace MemCache
 		//Cache pointers:
 		std::map<void*, size_t> allocated;
 		std::multimap<size_t, void*> cache;
+		typedef std::multimap<size_t, void*>::iterator CacheIter;
 		size_t allocatedTot, cacheTot, overallTot; //total sizes per category
 		size_t nAllocs, nAllocsRaw, nFrees, nFreesRaw; //statistics of total and raw alloc/free calls
 	public:
@@ -199,7 +200,6 @@ namespace MemCache
 						return ptrCached;
 					}
 				}
-				lock.unlock();
 			}
 			
 			//Clear in advance to avoid overflowing target total memory usage:
@@ -208,41 +208,25 @@ namespace MemCache
 			{	const size_t expectedOverflow = expectedSize - cacheSize;
 				report("Overflow anticipated", expectedOverflow);
 				for(auto iter=cache.begin(); iter!=cache.end();)
-				{	MemSpace::free(iter->second);
-					nFreesRaw++;
-					cacheTot -= iter->first;
-					overallTot -= iter->first;
-					iter = cache.erase(iter);
+				{	iter = freeRaw(iter);
 					if(overallTot + size <= cacheSize) break;
 				}
 				report("Overflow addressed", expectedOverflow);
 			}
 			
 			//Allocate from underlying memory space:
-			void* ptr = MemSpace::alloc(size, onGpu);
-			nAllocsRaw++; //counted regardless of success
+			void* ptr = allocRaw(size, onGpu);
 			if(ptr)
-			{	allocated.insert(std::make_pair(ptr, size));
-				allocatedTot += size;
-				overallTot += size;
-				lock.unlock();
+			{	lock.unlock();
 				return ptr;
 			}
 			report("Allocate failed", size);
 			//Deallocate (unsuitable) cached entries till allocation succeeds:
 			for(auto iter=cache.begin(); iter!=cache.end();)
-			{	MemSpace::free(iter->second);
-				nFreesRaw++;
-				cacheTot -= iter->first;
-				overallTot -= iter->first;
-				iter = cache.erase(iter);
-				void* ptr = MemSpace::alloc(size, onGpu);
-				nAllocsRaw++; //counted regardless of success
+			{	iter = freeRaw(iter);
+				void* ptr = allocRaw(size, onGpu);
 				if(ptr)
-				{	allocated.insert(std::make_pair(ptr, size));
-					allocatedTot += size;
-					overallTot += size;
-					lock.unlock();
+				{	lock.unlock();
 					report("Allocate fixed", size);
 					return ptr;
 				}
@@ -268,6 +252,28 @@ namespace MemCache
 			for(auto entry: cache) MemSpace::free(entry.second);
 			allocated.clear();
 			cache.clear();
+		}
+		
+	private:
+		//Raw allocation, along with book-keeping for cache
+		inline void* allocRaw(size_t size, bool onGpu)
+		{	void* ptr = MemSpace::alloc(size, onGpu);
+			nAllocsRaw++; //counted regardless of success
+			if(ptr)
+			{	allocated.insert(std::make_pair(ptr, size));
+				allocatedTot += size;
+				overallTot += size;
+			}
+			return ptr;
+		}
+		
+		//Free underlying memory of entry in cache, and advance iterator to next entry
+		inline CacheIter freeRaw(CacheIter iter)
+		{	MemSpace::free(iter->second);
+			nFreesRaw++;
+			cacheTot -= iter->first;
+			overallTot -= iter->first;
+			return cache.erase(iter);
 		}
 		
 		inline void report(const char* context, size_t size)
