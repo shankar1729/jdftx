@@ -5,6 +5,7 @@ var classVibrations =
     [ "setup", "classVibrations.html#a03cbc41194109c96dbc08b94a6d83a48", null ],
     [ "centralDiff", "classVibrations.html#a1b59cd3be0cca6131f42308dca03f78b", null ],
     [ "dr", "classVibrations.html#ac4f3a0f78a2903302f6daeda35d79171", null ],
+    [ "dumpK", "classVibrations.html#acc50599a19ce277b14f50e0073574fd5", null ],
     [ "omegaMin", "classVibrations.html#a02a4e4dc7863c494252ac60d47f30544", null ],
     [ "omegaResolution", "classVibrations.html#a4e9af7ccfec82096a8f1879fbe2ecc75", null ],
     [ "rotationSym", "classVibrations.html#a7569f41a9a3a9a5818efa1f788dd264b", null ],

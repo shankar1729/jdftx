@@ -1,9 +1,5 @@
 var NAVTREEINDEX0 =
 {
-"":[2,3,0,0],
-"":[2,3,0,3],
-"":[2,3,0,13],
-"":[2,3,0,1],
 "ASE.html":[1,3,0],
 "ASE.html#autotoc_md21":[0],
 "ASE.html#autotoc_md22":[1],
@@ -109,9 +105,9 @@ var NAVTREEINDEX0 =
 "CommandDebug.html#autotoc_md108":[77],
 "CommandDebug.html#autotoc_md109":[78],
 "CommandDefectSupercell.html":[1,1,0,25],
-"CommandDefectSupercell.html#autotoc_md398":[79],
-"CommandDefectSupercell.html#autotoc_md399":[80],
-"CommandDefectSupercell.html#autotoc_md400":[81],
+"CommandDefectSupercell.html#autotoc_md401":[79],
+"CommandDefectSupercell.html#autotoc_md402":[80],
+"CommandDefectSupercell.html#autotoc_md403":[81],
 "CommandDensityOfStates.html":[1,1,0,26],
 "CommandDensityOfStates.html#autotoc_md110":[82],
 "CommandDensityOfStates.html#autotoc_md111":[83],
@@ -249,5 +245,9 @@ var NAVTREEINDEX0 =
 "CommandFluidDielectricTensor.html#autotoc_md210":[182],
 "CommandFluidDielectricTensor.html#autotoc_md211":[183],
 "CommandFluidExCorr.html":[1,1,0,60],
-"CommandFluidExCorr.html#autotoc_md212":[184]
+"CommandFluidExCorr.html#autotoc_md212":[184],
+"CommandFluidExCorr.html#autotoc_md213":[185],
+"CommandFluidExCorr.html#autotoc_md214":[186],
+"CommandFluidGummelLoop.html":[1,1,0,61],
+"CommandFluidGummelLoop.html#autotoc_md215":[187]
 };

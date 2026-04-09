@@ -17,6 +17,7 @@ var IonInfo_8h =
     ] ],
     [ "VDWstyle", "group__IonicSystem.html#ga025c0c68e91008a898e54e55b89654f5", [
       [ "VDW_D2", "group__IonicSystem.html#gga025c0c68e91008a898e54e55b89654f5ad69a8130de4b51e61cf18850fa6f4f8f", null ],
-      [ "VDW_D3", "group__IonicSystem.html#gga025c0c68e91008a898e54e55b89654f5a2f72be14cb8fe8881a347ad81304e632", null ]
+      [ "VDW_D3", "group__IonicSystem.html#gga025c0c68e91008a898e54e55b89654f5a2f72be14cb8fe8881a347ad81304e632", null ],
+      [ "VDW_D3BJ", "group__IonicSystem.html#gga025c0c68e91008a898e54e55b89654f5a893152a02228bfee1dead6ff98de8f56", null ]
     ] ]
 ];

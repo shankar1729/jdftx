@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['jeffereyaustineos_2323',['JeffereyAustinEOS',['../structJeffereyAustinEOS.html',1,'']]],
-  ['jeffereyaustineos_5feval_2324',['JeffereyAustinEOS_eval',['../structJeffereyAustinEOS__eval.html',1,'']]]
+  ['jdftxwrapper_2352',['JDFTxWrapper',['../classJDFTxWrapper.html',1,'']]],
+  ['jeffereyaustineos_2353',['JeffereyAustinEOS',['../structJeffereyAustinEOS.html',1,'']]],
+  ['jeffereyaustineos_5feval_2354',['JeffereyAustinEOS_eval',['../structJeffereyAustinEOS__eval.html',1,'']]]
 ];

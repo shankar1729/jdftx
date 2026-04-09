@@ -26,6 +26,7 @@ var group__Solvation =
       [ "loadState", "classNonlinearPCM.html#a8b64e7425b4df7752712a84f438090da", null ],
       [ "minimizeFluid", "classNonlinearPCM.html#a53da90606ff04d0e48f81c76ed79b6c1", null ],
       [ "prefersGummel", "classNonlinearPCM.html#a35b36188ddfa6a1268be5866cf642c7c", null ],
+      [ "printDebug", "classNonlinearPCM.html#a2736ae5e0bb0f6683fa8c7616f506dd9", null ],
       [ "report", "classNonlinearPCM.html#a44474ec01f250c716c9ece4a9099b15d", null ],
       [ "saveState", "classNonlinearPCM.html#a0c70ea98e5e304c52d9249ec58959f65", null ],
       [ "set_internal", "classNonlinearPCM.html#aeaf1e5e5fb83196164fbb5a8bfba603b", null ],

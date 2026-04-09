@@ -14,10 +14,12 @@ var structMinimizeParams =
       [ "CubicWolfe", "structMinimizeParams.html#a7b08a534183734884dc6d44a7cb5a03da088937150401c3b28a760553e5695cbf", null ]
     ] ],
     [ "MinimizeParams", "structMinimizeParams.html#a2a2950e037fa63f2ca8239f173cebc11", null ],
+    [ "abortOnFailedStep", "structMinimizeParams.html#adb056efd5394749a34b002053c5b9a13", null ],
     [ "alphaTincreaseFactor", "structMinimizeParams.html#a766535712118aa36486d1229f22a5bfd", null ],
     [ "alphaTmin", "structMinimizeParams.html#add3a6266d5c13410ea29ae38a7acfb97", null ],
     [ "alphaTreduceFactor", "structMinimizeParams.html#ada7577db97d4f6ba4bf5d2593817ddcb", null ],
     [ "alphaTstart", "structMinimizeParams.html#a57e75b046608feb84e1e152c0a3880e3", null ],
+    [ "convergeAll", "structMinimizeParams.html#acf7f989a9ad5366ab4d3c28891d30a9b", null ],
     [ "dirUpdateScheme", "structMinimizeParams.html#ae70afe521adde2c5b5201d36d2c6e175", null ],
     [ "energyDiffThreshold", "structMinimizeParams.html#a0eefa69c93e3a8c077da0306df962adf", null ],
     [ "energyFormat", "structMinimizeParams.html#a6ebb70616f03c7129f2fb58ce8a98c0d", null ],

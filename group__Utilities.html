@@ -173,6 +173,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structGpuLaunchConfigHalf3D.html">GpuLaunchConfigHalf3D</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">3D launch configuration for symmetry-reduced G-space loops (z dimension folded for real data sets)  <a href="structGpuLaunchConfigHalf3D.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classGpuBuffer.html">GpuBuffer</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Wraps <a class="el" href="structManagedArray.html">ManagedArray</a> for temporary buffers from cu files.  <a href="classGpuBuffer.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classManagedMemory.html">ManagedMemory&lt; T &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class for managed memory of a specified data type.  <a href="classManagedMemory.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -197,7 +200,7 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structostringstream.html">ostringstream</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structInitParams.html">InitParams</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameters used for common initialization functions.  <a href="structInitParams.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">global forward declaration for auxiliary headers that don't need details within <a class="el" href="classEverything.html" title="Container class that contains, well, everything.">Everything</a>  <a href="structInitParams.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classStopWatch.html">StopWatch</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -823,7 +826,7 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <tr class="separator:ga8ba71496e65bcc3dbbc022da69307265"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga0597f5fb1522f1d652f4aa4219b2a8a4"><td class="memItemLeft" align="right" valign="top"><a id="ga0597f5fb1522f1d652f4aa4219b2a8a4"></a>
 <a class="el" href="classMPIUtil.html">MPIUtil</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">mpiWorld</a></td></tr>
-<tr class="memdesc:ga0597f5fb1522f1d652f4aa4219b2a8a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">MPI across all processes. <br /></td></tr>
+<tr class="memdesc:ga0597f5fb1522f1d652f4aa4219b2a8a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">MPI across all processes used in run (could be &lt; MPI_COMM_WORLD in library mode) <br /></td></tr>
 <tr class="separator:ga0597f5fb1522f1d652f4aa4219b2a8a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga1fb83d6aa6b4f89361b2a93425b89a7e"><td class="memItemLeft" align="right" valign="top"><a id="ga1fb83d6aa6b4f89361b2a93425b89a7e"></a>
 <a class="el" href="classMPIUtil.html">MPIUtil</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga1fb83d6aa6b4f89361b2a93425b89a7e">mpiGroup</a></td></tr>
@@ -833,14 +836,14 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <a class="el" href="classMPIUtil.html">MPIUtil</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gae63b2082e1ef86f146a99592b64dbf16">mpiGroupHead</a></td></tr>
 <tr class="memdesc:gae63b2082e1ef86f146a99592b64dbf16"><td class="mdescLeft">&#160;</td><td class="mdescRight">MPI across equal ranks in each group. <br /></td></tr>
 <tr class="separator:gae63b2082e1ef86f146a99592b64dbf16"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga79f491a0c4099e97210b9fa9b60d5d72"><td class="memItemLeft" align="right" valign="top"><a id="ga79f491a0c4099e97210b9fa9b60d5d72"></a>
+<a class="el" href="classMPIUtil.html">MPIUtil</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#ga79f491a0c4099e97210b9fa9b60d5d72">mpiWorldFull</a></td></tr>
+<tr class="memdesc:ga79f491a0c4099e97210b9fa9b60d5d72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Actual MPI_COMM_WORLD used for smart resource division (relevant in library mode) <br /></td></tr>
+<tr class="separator:ga79f491a0c4099e97210b9fa9b60d5d72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae33e980fb4eaf243be1c38d7e1fcdf0b"><td class="memItemLeft" align="right" valign="top"><a id="gae33e980fb4eaf243be1c38d7e1fcdf0b"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gae33e980fb4eaf243be1c38d7e1fcdf0b">mpiDebugLog</a></td></tr>
 <tr class="memdesc:gae33e980fb4eaf243be1c38d7e1fcdf0b"><td class="mdescLeft">&#160;</td><td class="mdescRight">If true, all processes output to seperate debug log files, otherwise only head process outputs (set before calling <a class="el" href="group__Utilities.html#ga5fc279ce64bacfe5b20f578b7f0dfcfe" title="Init MPI (if not already done), print banner, set up threads (play nice with job schedulers),...">initSystem()</a>) <br /></td></tr>
 <tr class="separator:gae33e980fb4eaf243be1c38d7e1fcdf0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gabd502861db54565ab958658de49f3da1"><td class="memItemLeft" align="right" valign="top"><a id="gabd502861db54565ab958658de49f3da1"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Utilities.html#gabd502861db54565ab958658de49f3da1">mempoolSize</a></td></tr>
-<tr class="memdesc:gabd502861db54565ab958658de49f3da1"><td class="mdescLeft">&#160;</td><td class="mdescRight">If non-zero, size of memory pool managed internally by JDFTx. <br /></td></tr>
-<tr class="separator:gabd502861db54565ab958658de49f3da1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga3e2a4f73141a2637d52da2d3ec93ccad"><td class="memItemLeft" align="right" valign="top"><a id="ga3e2a4f73141a2637d52da2d3ec93ccad"></a>
 FILE *&#160;</td><td class="memItemRight" valign="bottom"><b>globalLog</b></td></tr>
 <tr class="separator:ga3e2a4f73141a2637d52da2d3ec93ccad"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -944,8 +947,8 @@ FILE *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 <div class="line">                finalizeSystem(<span class="keyword">false</span>); \</div>
 <div class="line">                exit(1); \</div>
 <div class="line">        }</div>
-<div class="ttc" id="aclassMPIUtil_html_aff9a994b6a40ea001110feb3b4510e2b"><div class="ttname"><a href="classMPIUtil.html#aff9a994b6a40ea001110feb3b4510e2b">MPIUtil::isHead</a></div><div class="ttdeci">bool isHead() const</div><div class="ttdoc">whether this is the root process (makes code more readable)</div><div class="ttdef"><b>Definition:</b> MPIUtil.h:51</div></div>
-<div class="ttc" id="agroup__Utilities_html_ga0597f5fb1522f1d652f4aa4219b2a8a4"><div class="ttname"><a href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">mpiWorld</a></div><div class="ttdeci">MPIUtil * mpiWorld</div><div class="ttdoc">MPI across all processes.</div></div>
+<div class="ttc" id="aclassMPIUtil_html_aff9a994b6a40ea001110feb3b4510e2b"><div class="ttname"><a href="classMPIUtil.html#aff9a994b6a40ea001110feb3b4510e2b">MPIUtil::isHead</a></div><div class="ttdeci">bool isHead() const</div><div class="ttdoc">whether this is the root process (makes code more readable)</div><div class="ttdef"><b>Definition:</b> MPIUtil.h:52</div></div>
+<div class="ttc" id="agroup__Utilities_html_ga0597f5fb1522f1d652f4aa4219b2a8a4"><div class="ttname"><a href="group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4">mpiWorld</a></div><div class="ttdeci">MPIUtil * mpiWorld</div><div class="ttdoc">MPI across all processes used in run (could be &lt; MPI_COMM_WORLD in library mode)</div></div>
 </div><!-- fragment -->
 <p>Quit with an error message (formatted using printf()). Must be called from all processes. </p>
 

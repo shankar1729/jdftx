@@ -10,6 +10,8 @@ var structFluidSolverParams =
     [ "anions", "structFluidSolverParams.html#ad5a9b9ea515192b2ef92c8ded0337c6f", null ],
     [ "cations", "structFluidSolverParams.html#a4b82e46dca7a11bb618f3d7be10f9cbc", null ],
     [ "cavityFile", "structFluidSolverParams.html#ad49a63a52881bae26fbb63adfddd7c41", null ],
+    [ "cavityFunction", "structFluidSolverParams.html#abb26fba5aa546f99570b884bad2c1eb9", null ],
+    [ "cavityFunctionGrad", "structFluidSolverParams.html#a99fe503f5a293fa8a5df7f1a3ec299f2", null ],
     [ "cavityPressure", "structFluidSolverParams.html#ada4f7926ef2beb648f624a4d3a4ea342", null ],
     [ "cavityScale", "structFluidSolverParams.html#a61f035ba179e32f6df198277cc72c82e", null ],
     [ "cavityTension", "structFluidSolverParams.html#a0d9d83ace9cf64ad3a5815f4c57f2650", null ],

@@ -73,6 +73,7 @@ var Dump_8h =
       [ "DumpDn", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a4e46a29524eea26e0df16bc97438d367", null ],
       [ "DumpDVext", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7aa32771a8f94d45a050994ee1d6c749e8", null ],
       [ "DumpDVscloc", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7aebf732b2552efa743ba2f8b4b9abc036", null ],
+      [ "DumpHC", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7ab7ebcbe9ff10e13185ef06858b3a1412", null ],
       [ "DumpDelim", "group__Output.html#ggab78cde8e08849746f8d4ea413fb1a6d7a8c8ec9aacf8c352c7183c06134275419", null ]
     ] ]
 ];

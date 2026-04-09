@@ -104,10 +104,10 @@ $(document).ready(function(){initNavTree('CommandVibrations.html',''); initResiz
 <div class="title">vibrations </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md386"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md389"></a>
 Syntax:</h2>
 <pre class="fragment">vibrations &lt;key1&gt; &lt;args1&gt; ...
-</pre> <h2><a class="anchor" id="autotoc_md387"></a>
+</pre> <h2><a class="anchor" id="autotoc_md390"></a>
 Description:</h2>
 <p>Calculate vibrational modes of the system using a finite difference method. Note that this command should typically be issued in a run with converged ionic positions; ionic (and lattice) minimization are bypassed by the vibrations module.</p>
 <p>Any number of the following subcommands and their arguments may follow:</p><ul>
@@ -119,9 +119,10 @@ Description:</h2>
 <li>omegaMin &lt;omegaMin&gt;: frequency cutoff (in Eh) for free energy calculation (default: 2e-4)</li>
 <li>T &lt;T&gt;: temperature (in Kelvin) for free energy calculation (default: 298)</li>
 <li>omegaResolution &lt;omegaResolution&gt;: resolution for detecting and reporting degeneracies in modes (default: 1e-4). Does not affect free energies and all modes are still printed.</li>
+<li>dumpK yes|no: dump the Hessian matrix at the end of vibrational analysis. (default no). Includes subspace projections performed according to translationSym and rotationSym.</li>
 </ul>
 <p>Note that for a periodic system with k-points, wave functions may be incompatible with and without the vibrations command due to symmetry-breaking by the perturbations. To avoid this, perform electronic optimization (without <a class="el" href="CommandInitialState.html">initial-state</a>) in the vibration calculation itself, or consider using the phonon code instead.</p>
-<h2><a class="anchor" id="autotoc_md388"></a>
+<h2><a class="anchor" id="autotoc_md391"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; (None)</p>
 <p><b>Forbids:</b> &#160;&#160;&#160; <a class="el" href="CommandFixElectronDensity.html">fix-electron-density</a> &#160;&#160;&#160; <a class="el" href="CommandFixElectronPotential.html">fix-electron-potential</a></p>

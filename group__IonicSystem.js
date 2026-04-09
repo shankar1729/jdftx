@@ -95,6 +95,7 @@ var group__IonicSystem =
       [ "ionWidth", "classIonInfo.html#a374553bf484839a6613c83fc0e7f964f", null ],
       [ "ionWidthMethod", "classIonInfo.html#af15687dd2aec9380f2861c62a35a341a", null ],
       [ "ljOverride", "classIonInfo.html#a11cc8ad1ccfa19f7571955b48c70da6a", null ],
+      [ "metadynamicsBond", "classIonInfo.html#a3553441c915b4633fddd1532d36ca3d3", null ],
       [ "nChargeball", "classIonInfo.html#a970313db61e8c35d23e725cdc7de1b4b", null ],
       [ "nCore", "classIonInfo.html#a0e2ab1bebc837ec5506df215c285de83", null ],
       [ "pspFilenamePatterns", "classIonInfo.html#ad8ca3d54cc38eb92e776ff9a124c6b73", null ],

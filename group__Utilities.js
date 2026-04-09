@@ -54,6 +54,12 @@ var group__Utilities =
     [ "GpuLaunchConfigHalf3D", "structGpuLaunchConfigHalf3D.html", [
       [ "GpuLaunchConfigHalf3D", "structGpuLaunchConfigHalf3D.html#aac6ecfd4ca1c1c4d634c5e307f72956e", null ]
     ] ],
+    [ "GpuBuffer", "classGpuBuffer.html", [
+      [ "GpuBuffer", "classGpuBuffer.html#aa2526f52c35c746fb9e24ad8df635d5e", null ],
+      [ "~GpuBuffer", "classGpuBuffer.html#a643a2fbee87068d916a1895c67f095be", null ],
+      [ "operator double *", "classGpuBuffer.html#a35a73c2b7520886f400f3821405de8d7", null ],
+      [ "zero", "classGpuBuffer.html#a61fda028cdb4414b46196893b479aaef", null ]
+    ] ],
     [ "ManagedMemory", "classManagedMemory.html", [
       [ "ManagedMemory", "classManagedMemory.html#ad14859701e6bcf5d34ba275663dc8a47", null ],
       [ "~ManagedMemory", "classManagedMemory.html#a09d922447545b42684442a6e35c6940e", null ],
@@ -195,10 +201,9 @@ var group__Utilities =
       [ "str", "structostringstream.html#a2ff838b4e1ed6bdfe63e4cdaa4f4d36a", null ]
     ] ],
     [ "InitParams", "structInitParams.html", [
-      [ "InitParams", "structInitParams.html#a6cde23f48a92381c4012d7c668016695", null ],
+      [ "InitParams", "structInitParams.html#a55b8882663fd16db430fbf76293f49f1", null ],
       [ "description", "structInitParams.html#a850dfdea8e7158b6336b336927b803c6", null ],
       [ "dryRun", "structInitParams.html#a2659b915373a3eb3af5a9b6731c442a9", null ],
-      [ "e", "structInitParams.html#a5afb0f59a3f92279b82ab4ce075bcf19", null ],
       [ "inputFilename", "structInitParams.html#a471ab752be2f305baedfc3431a7145c6", null ],
       [ "packageName", "structInitParams.html#adc5da7aa00e31864265f9413fb20d01a", null ],
       [ "printDefaults", "structInitParams.html#abb7f583b55c326d16ac655edf617cce4", null ],
@@ -301,7 +306,6 @@ var group__Utilities =
     [ "KJoule", "group__Utilities.html#gabcd6046add257d90eb89f41e3a2ccb13", null ],
     [ "KPascal", "group__Utilities.html#ga278dca3bb3312e40081f1b40c845b42e", null ],
     [ "liter", "group__Utilities.html#ga2161034ba3dc89bf7e0a94a7d17a95de", null ],
-    [ "mempoolSize", "group__Utilities.html#gabd502861db54565ab958658de49f3da1", null ],
     [ "meter", "group__Utilities.html#ga81230fc213736db75d5c970e68886a10", null ],
     [ "mmHg", "group__Utilities.html#gaef987b98e46a94d8b97eebe70a71e7e8", null ],
     [ "mol", "group__Utilities.html#gaabefcc198b3e2606497fd55b370846fa", null ],
@@ -309,6 +313,7 @@ var group__Utilities =
     [ "mpiGroup", "group__Utilities.html#ga1fb83d6aa6b4f89361b2a93425b89a7e", null ],
     [ "mpiGroupHead", "group__Utilities.html#gae63b2082e1ef86f146a99592b64dbf16", null ],
     [ "mpiWorld", "group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4", null ],
+    [ "mpiWorldFull", "group__Utilities.html#ga79f491a0c4099e97210b9fa9b60d5d72", null ],
     [ "Newton", "group__Utilities.html#gab8fbe0e564f63aedc8d34c558be1612b", null ],
     [ "nProcsAvailable", "group__Utilities.html#ga08f23ff704a488738a9741bde7feab45", null ],
     [ "nullLog", "group__Utilities.html#ga5a037ad642646d7d094bc2278d206d70", null ],

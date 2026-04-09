@@ -161,12 +161,21 @@ std::vector&lt; <a class="el" href="structWannier_1_1TrialOrbital.html">TrialOrb
 <tr class="memitem:aba3dad71aa69c9ae621465f04404eab2"><td class="memItemLeft" align="right" valign="top"><a id="aba3dad71aa69c9ae621465f04404eab2"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>needAtomicOrbitals</b></td></tr>
 <tr class="separator:aba3dad71aa69c9ae621465f04404eab2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a18ce072095e35f7709310da7593622e7"><td class="memItemLeft" align="right" valign="top"><a id="a18ce072095e35f7709310da7593622e7"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannier.html#a18ce072095e35f7709310da7593622e7">addAtomicOrbitals</a></td></tr>
+<tr class="memdesc:a18ce072095e35f7709310da7593622e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether to automatically add atomic orbitals for all atoms <br /></td></tr>
+<tr class="separator:a18ce072095e35f7709310da7593622e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a642edec95eaa232117ad6f676c83cc3a"><td class="memItemLeft" align="right" valign="top"><a id="a642edec95eaa232117ad6f676c83cc3a"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannier.html#a642edec95eaa232117ad6f676c83cc3a">pinAtomicOrbitals</a></td></tr>
+<tr class="memdesc:a642edec95eaa232117ad6f676c83cc3a"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether to pin centers of automatically-added atomic orbitals <br /></td></tr>
+<tr class="separator:a642edec95eaa232117ad6f676c83cc3a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4b3bad62b55ee7ae7d5ab0657ffd3601"><td class="memItemLeft" align="right" valign="top"><a id="a4b3bad62b55ee7ae7d5ab0657ffd3601"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannier.html#a4b3bad62b55ee7ae7d5ab0657ffd3601">ignoreSemiCore</a></td></tr>
+<tr class="memdesc:a4b3bad62b55ee7ae7d5ab0657ffd3601"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether to ignore semi-core orbitals when adding atomic orbitals <br /></td></tr>
+<tr class="separator:a4b3bad62b55ee7ae7d5ab0657ffd3601"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa8af1cb4c5ce78dc7a592b6a52a1a337"><td class="memItemLeft" align="right" valign="top"><a id="aa8af1cb4c5ce78dc7a592b6a52a1a337"></a>
 enum Wannier::LocalizationMeasure&#160;</td><td class="memItemRight" valign="bottom"><b>localizationMeasure</b></td></tr>
 <tr class="separator:aa8af1cb4c5ce78dc7a592b6a52a1a337"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a700c1f5b8331f22e53b9becb899b4d9c"><td class="memItemLeft" align="right" valign="top"><a id="a700c1f5b8331f22e53b9becb899b4d9c"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>precond</b></td></tr>
-<tr class="separator:a700c1f5b8331f22e53b9becb899b4d9c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1268295ebe7dd976e77f655b745554f7"><td class="memItemLeft" align="right" valign="top"><a id="a1268295ebe7dd976e77f655b745554f7"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>bStart</b></td></tr>
 <tr class="separator:a1268295ebe7dd976e77f655b745554f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -184,13 +193,24 @@ double&#160;</td><td class="memItemRight" valign="bottom"><b>eInnerMin</b></td><
 double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannier.html#ae5156864b89875184cdecffca245010e">eInnerMax</a></td></tr>
 <tr class="memdesc:ae5156864b89875184cdecffca245010e"><td class="mdescLeft">&#160;</td><td class="mdescRight">inner energy window (within which all bands used) <br /></td></tr>
 <tr class="separator:ae5156864b89875184cdecffca245010e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0f8d5341115d745efaa515ebaa970a8f"><td class="memItemLeft" align="right" valign="top"><a id="a0f8d5341115d745efaa515ebaa970a8f"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannier.html#a0f8d5341115d745efaa515ebaa970a8f">projectionOuter</a></td></tr>
+<tr class="memdesc:a0f8d5341115d745efaa515ebaa970a8f"><td class="mdescLeft">&#160;</td><td class="mdescRight">projection threshold for inclusion in outer window <br /></td></tr>
+<tr class="separator:a0f8d5341115d745efaa515ebaa970a8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9ae4f3fe3b32ba140e3bd0fa5366d15c"><td class="memItemLeft" align="right" valign="top"><a id="a9ae4f3fe3b32ba140e3bd0fa5366d15c"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannier.html#a9ae4f3fe3b32ba140e3bd0fa5366d15c">projectionInner</a></td></tr>
+<tr class="memdesc:a9ae4f3fe3b32ba140e3bd0fa5366d15c"><td class="mdescLeft">&#160;</td><td class="mdescRight">projection threshold for inclusion in inner window <br /></td></tr>
+<tr class="separator:a9ae4f3fe3b32ba140e3bd0fa5366d15c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afd12d8e060f6b31af8ea4d0a14566905"><td class="memItemLeft" align="right" valign="top"><a id="afd12d8e060f6b31af8ea4d0a14566905"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>outerWindow</b></td></tr>
 <tr class="separator:afd12d8e060f6b31af8ea4d0a14566905"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4cff06558c57af8d347613b4b7138141"><td class="memItemLeft" align="right" valign="top"><a id="a4cff06558c57af8d347613b4b7138141"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannier.html#a4cff06558c57af8d347613b4b7138141">innerWindow</a></td></tr>
-<tr class="memdesc:a4cff06558c57af8d347613b4b7138141"><td class="mdescLeft">&#160;</td><td class="mdescRight">denotes which windows are available <br /></td></tr>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>innerWindow</b></td></tr>
 <tr class="separator:a4cff06558c57af8d347613b4b7138141"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7a46111f2db8b78e8ff46c83298d3294"><td class="memItemLeft" align="right" valign="top"><a id="a7a46111f2db8b78e8ff46c83298d3294"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannier.html#a7a46111f2db8b78e8ff46c83298d3294">useProjectionThresholds</a></td></tr>
+<tr class="memdesc:a7a46111f2db8b78e8ff46c83298d3294"><td class="mdescLeft">&#160;</td><td class="mdescRight">denotes which windows are available <br /></td></tr>
+<tr class="separator:a7a46111f2db8b78e8ff46c83298d3294"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acef9684e6397caa105741d6a19a50890"><td class="memItemLeft" align="right" valign="top"><a id="acef9684e6397caa105741d6a19a50890"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>nFrozen</b></td></tr>
 <tr class="separator:acef9684e6397caa105741d6a19a50890"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -218,6 +238,10 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannier.html#a5aa878e27ad0f5593d4fa9496e7286ac">saveSpin</a></td></tr>
 <tr class="memdesc:a5aa878e27ad0f5593d4fa9496e7286ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether to output spin matrix elements (non-collinear only) <br /></td></tr>
 <tr class="separator:a5aa878e27ad0f5593d4fa9496e7286ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a76ea8b190531dfcca66cf9630cad9bb2"><td class="memItemLeft" align="right" valign="top"><a id="a76ea8b190531dfcca66cf9630cad9bb2"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannier.html#a76ea8b190531dfcca66cf9630cad9bb2">saveR</a></td></tr>
+<tr class="memdesc:a76ea8b190531dfcca66cf9630cad9bb2"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether to output position matrix elements R (short-range Wannier-rotation-matched part) <br /></td></tr>
+<tr class="separator:a76ea8b190531dfcca66cf9630cad9bb2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5c46f3434e822df70b1c146884dd2067"><td class="memItemLeft" align="right" valign="top"><a id="a5c46f3434e822df70b1c146884dd2067"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWannier.html#a5c46f3434e822df70b1c146884dd2067">saveRP</a></td></tr>
 <tr class="memdesc:a5c46f3434e822df70b1c146884dd2067"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether to output R*P matrix elements for Wannierized angular momentum / electric quadrupole evaluation <br /></td></tr>

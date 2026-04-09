@@ -110,10 +110,12 @@ Syntax:</h2>
 </pre> <h2><a class="anchor" id="autotoc_md288"></a>
 Description:</h2>
 <p>where possible keys and value types are:</p><ul>
+<li>abortOnFailedStep : no|yes, whether to abort when a step fails</li>
 <li>alphaTincreaseFactor: step size increase factor when curvature is wrong in linmin</li>
 <li>alphaTmin : minimum test step size</li>
 <li>alphaTreduceFactor : step size reduction factor when energy increases in linmin</li>
 <li>alphaTstart : initial test step size (constant step-size factor for Relax linmin)</li>
+<li>convergeAll : no|yes, whether all thresholds must be satisfied for convergence</li>
 <li>dirUpdateScheme : FletcherReeves|HestenesStiefel|L-BFGS|PolakRibiere|SteepestDescent (search direction method)</li>
 <li>energyDiffThreshold : convergence threshold for energy difference between successive iterations</li>
 <li>fdTest : no|yes, whether to perform a finite difference test</li>
@@ -143,6 +145,7 @@ Properties:</h2>
     maxThreshold         no \
     energyDiffThreshold  1e-06 \
     nEnergyDiff          2 \
+    convergeAll          no \
     alphaTstart          1 \
     alphaTmin            1e-10 \
     updateTestStepSize   yes \
@@ -151,6 +154,7 @@ Properties:</h2>
     nAlphaAdjustMax      3 \
     wolfeEnergy          0.0001 \
     wolfeGradient        0.9 \
+    abortOnFailedStep    no \
     fdTest               no
 </pre><p> Back to: <a class="el" href="Commands.html">Input file documentation</a> or <a class="el" href="CommandIndex.html">Index of commands</a> </p>
 </div></div><!-- contents -->

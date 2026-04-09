@@ -14,6 +14,7 @@ var structRadialFunctionG =
     [ "updateGmax", "structRadialFunctionG.html#a69d56a476e213b645fe03023635b8625", null ],
     [ "coeff", "structRadialFunctionG.html#a570dd683b5f5e54f884a103fb9c5e305", null ],
     [ "coeffGpu", "structRadialFunctionG.html#a3a421ff0d06e91f3a2e6eb28b6d85d45", null ],
+    [ "coeffManaged", "structRadialFunctionG.html#ae486483823fc2d2d3ec695e4b7a4f165", null ],
     [ "dGinv", "structRadialFunctionG.html#af7eb8c46033375ed496b98a38ee99899", null ],
     [ "nCoeff", "structRadialFunctionG.html#adbb4d1914f41594e50ea2fddf77e53c1", null ],
     [ "rFunc", "structRadialFunctionG.html#ad9dafdb846ae711bc725815c0c19660a", null ]

@@ -1,7 +1,8 @@
 var searchData=
 [
-  ['magnetism_4374',['Magnetism',['../Magnetism.html',1,'SolidTutorials']]],
-  ['metal_20surfaces_4375',['Metal surfaces',['../MetalSurfaces.html',1,'SurfaceTutorials']]],
-  ['metals_4376',['Metals',['../Metals.html',1,'SolidTutorials']]],
-  ['molecules_4377',['Molecules',['../MoleculeTutorials.html',1,'Tutorials']]]
+  ['magnetism_4427',['Magnetism',['../Magnetism.html',1,'SolidTutorials']]],
+  ['metadynamics_2dbond_4428',['metadynamics-bond',['../CommandMetadynamicsBond.html',1,'CommandIndex']]],
+  ['metal_20surfaces_4429',['Metal surfaces',['../MetalSurfaces.html',1,'SurfaceTutorials']]],
+  ['metals_4430',['Metals',['../Metals.html',1,'SolidTutorials']]],
+  ['molecules_4431',['Molecules',['../MoleculeTutorials.html',1,'Tutorials']]]
 ];

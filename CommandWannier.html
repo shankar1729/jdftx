@@ -104,28 +104,37 @@ $(document).ready(function(){initNavTree('CommandWannier.html',''); initResizabl
 <div class="title">wannier </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="autotoc_md401"></a>
+<div class="textblock"><h2><a class="anchor" id="autotoc_md404"></a>
 Syntax:</h2>
 <pre class="fragment">wannier &lt;key1&gt; &lt;args1...&gt;  &lt;key2&gt; &lt;args2...&gt;  ...
 </pre><p> <b>Note:</b> only available in calculations using the 'wannier' executable. </p>
-<h2><a class="anchor" id="autotoc_md402"></a>
+<h2><a class="anchor" id="autotoc_md405"></a>
 Description:</h2>
 <p>Control calculation and output of maximally-localized <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions.">Wannier</a> functions <a class="el" href="citelist.html#CITEREF_MLWF">[20]</a>. The possible &lt;key&gt;'s and their corresponding arguments are:</p>
 <ul>
+<li><p class="startli">addAtomicOrbitals yes|no</p>
+<p class="startli">Whether to automatically add atomic orbitals for each atom. Typically, this should be used with no <a class="el" href="CommandWannierCenter.html">wannier-center</a> commands, and is recommended when using projection based windows. Default: no.</p>
+</li>
+<li><p class="startli">pinAtomicOrbitals yes|no</p>
+<p class="startli">Whether to pin the atomic orbitals during minimization, as in <a class="el" href="CommandWannierCenterPinned.html">wannier-center-pinned</a>. Default: no.</p>
+</li>
+<li><p class="startli">ignoreSemiCore yes|no</p>
+<p class="startli">Whether to drop inner orbitals of each angular momentum when adding atomic orbitals automatically (no effect if addAtomicOrbitals = no). Default: yes.</p>
+</li>
 <li><p class="startli">localizationMeasure FiniteDifference | RealSpace</p>
 <p class="startli">Controls how the localization of the Wannier functions is calculated. The finite-difference reciprocal space measure of Marzari and Vanderbilt (default) is inexpensive, but its error scales as Nkpoints^(-2./3). The real space version is slower but its error scales as exp(-Nkpoints^(1/3)), and is preferable for quantitative applications. Note that the real-space version is not translationally invariant and wraps on a superlattice Wigner-Seitz cell centered at the origin.</p>
 </li>
-<li><p class="startli">precondition yes|no</p>
-<p class="startli">Whether to use an inverse-Hemholtz preconditioner for the minimization. Affects only the FiniteDifference localizationMeasure. (default: no)</p>
-</li>
 <li><p class="startli">bStart &lt;band&gt;</p>
-<p class="startli">For fixed band calculations, 0-based index of lowest band used. The number of bands equals the number of wannier-centers specified. Default: 0. Use in insulator calculations to ignore semi-core orbitals.</p>
+<p class="startli">For fixed band calculations, 0-based index of lowest band used. If atomic orbitals have been added with semi-core ignored, this index excludes the ignored semi-core orbitals. The number of bands equals the number of wannier-centers specified. Default: 0. Use in insulator calculations to ignore semi-core orbitals.</p>
 </li>
 <li><p class="startli">outerWindow &lt;eMin&gt; &lt;eMax&gt;</p>
 <p class="startli">Energy window within which bands contribute to wannier functions <a class="el" href="citelist.html#CITEREF_MLWFmetal">[28]</a>. bStart is ignored if outerWindow is specified.</p>
 </li>
 <li><p class="startli">innerWindow &lt;eMin&gt; &lt;eMax&gt;</p>
 <p class="startli">Inner energy window within which bands are used exactly <a class="el" href="citelist.html#CITEREF_MLWFmetal">[28]</a>. Requires outerWindow, and innerWindow must be its subset.</p>
+</li>
+<li><p class="startli">projectionThresholds &lt;pOuter&gt; &lt;pInner&gt;</p>
+<p class="startli">Bands with higher projection than &lt;pOuter&gt; will be included in outer window. Bands with higher projection than &lt;pInner&gt; will be included in inner window. &lt;pOuter&gt; must be smaller than &lt;pInner&gt;. If energy windows are also specified, the effective windows are unions of the energy and projection-based selections.</p>
 </li>
 <li><p class="startli">frozenCenters &lt;nFrozen&gt; &lt;filename&gt;</p>
 <p class="startli">Include frozen Wannier centers imported as unitary rotations from &lt;filename&gt; (.mlwfU output from another wannier run on the same jdftx state), and force the current centers to be orthogonal to the imported ones. Note that all output of this run will include the frozen as well as new centers for convenience.</p>
@@ -143,8 +152,11 @@ Description:</h2>
 <li><p class="startli">saveSpin yes|no</p>
 <p class="startli">Whether to write spin matrix elements (for non-collinear calculations only). Default: no.</p>
 </li>
+<li><p class="startli">saveR yes|no</p>
+<p class="startli">Whether to write R matrix elements. Note that the position R here is only the short-ranged part; longer-ranged contributions from the derivative of the <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions.">Wannier</a> rotations need to be added after <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions.">Wannier</a> interpolation. Default: no.</p>
+</li>
 <li><p class="startli">saveRP yes|no</p>
-<p class="startli">Whether to write R*P matrix elements for calculation of angular momentum and electric quadrupole matrix elements in post-processing. Note that the position R here is the only short-ranged part; longer-ranged contributions from derivative of <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions.">Wannier</a> rotations need to be added after <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions.">Wannier</a> interpolation. The output drops a factor of (-i) to make it real when possible, i.e. it actually corresponds to R*[R,H] instead of R*P. Default: no.</p>
+<p class="startli">Whether to write R*P matrix elements for calculation of angular momentum and electric quadrupole matrix elements in post-processing. Note that the position R here is only the short-ranged part; longer-ranged contributions from derivative of <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions.">Wannier</a> rotations need to be added after <a class="el" href="classWannier.html" title="Compute Maximally-Localized Wannier Functions.">Wannier</a> interpolation. The output drops a factor of (-i) to make it real when possible, i.e. it actually corresponds to R*[R,H] instead of R*P. Default: no.</p>
 </li>
 <li><p class="startli">saveZ &lt;Vfilename&gt; &lt;Emag&gt;</p>
 <p class="startli">If specified, output matrix elements of z for perturbative electric field in post processing. &lt;Vfilename&gt; is Vscloc output from a calculation with an applied electric field, and it should be in the <a class="el" href="CommandDumpName.html">dump-name</a> format contain $VAR (as in command <a class="el" href="CommandFixElectronPotential.html">fix-electron-potential</a>). &lt;Emag&gt; is the magnitude of the difference in electric field (in Eh/a0) between that calculation and the present case. This combination is used to compute the matrix element accounting for static local field effects due to the response of the system to the electric field. Alternately, specify &lt;Vfilename&gt;=Ramp and &lt;Emag&gt;=0 to use a ramp potential (no local field). Default: no.</p>
@@ -177,7 +189,7 @@ Description:</h2>
 <p class="startli">Whether to include polar contribution subtractions in electron-phonon matrix elements. Requires files 'totalE.Zeff' containing Born effective charges and 'totalE.epsInf' containing optical dielectric tensor computed externally. Default: false.</p>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md403"></a>
+<h2><a class="anchor" id="autotoc_md406"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; <a class="el" href="CommandCoulombInteraction.html">coulomb-interaction</a> &#160;&#160;&#160; <a class="el" href="CommandSpintype.html">spintype</a></p>
 <p><b>Forbids:</b> &#160;&#160;&#160; (None)</p>

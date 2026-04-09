@@ -7,6 +7,7 @@ var structIonicGaussianPotential =
     ] ],
     [ "IonicGaussianPotential", "structIonicGaussianPotential.html#aa2fcd34005013c0f8813887de715bb99", null ],
     [ "energyAndGrad", "structIonicGaussianPotential.html#a03042ce43ebd3f1bf35717b2dada4cf9", null ],
+    [ "center", "structIonicGaussianPotential.html#acfc66f9860bbb3f5ec2f276cce967b4a", null ],
     [ "geometry", "structIonicGaussianPotential.html#a3ff1c42dc321e4bc37df5d6338272159", null ],
     [ "iSpecies", "structIonicGaussianPotential.html#a5de7469e5c66f138b68b0a57d32b80b0", null ],
     [ "sigma", "structIonicGaussianPotential.html#a7d3feb90b34b43650223fec0c03f2f7b", null ],

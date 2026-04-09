@@ -1,18 +1,18 @@
 var CommandIndex =
 [
-    [ "Input file format", "Commands.html#autotoc_md419", null ],
-    [ "Commands allowed in jdftx input files", "Commands.html#autotoc_md420", [
-      [ "%Coulomb interactions", "Commands.html#autotoc_md421", null ],
-      [ "%Electronic", "Commands.html#autotoc_md422", null ],
-      [ "%Fluid", "Commands.html#autotoc_md423", null ],
-      [ "%Initialization", "Commands.html#autotoc_md424", null ],
-      [ "%Ionic", "Commands.html#autotoc_md425", null ],
-      [ "%Miscellaneous", "Commands.html#autotoc_md426", null ],
-      [ "%Output", "Commands.html#autotoc_md427", null ],
-      [ "%Perturb", "Commands.html#autotoc_md428", null ]
+    [ "Input file format", "Commands.html#autotoc_md422", null ],
+    [ "Commands allowed in jdftx input files", "Commands.html#autotoc_md423", [
+      [ "%Coulomb interactions", "Commands.html#autotoc_md424", null ],
+      [ "%Electronic", "Commands.html#autotoc_md425", null ],
+      [ "%Fluid", "Commands.html#autotoc_md426", null ],
+      [ "%Initialization", "Commands.html#autotoc_md427", null ],
+      [ "%Ionic", "Commands.html#autotoc_md428", null ],
+      [ "%Miscellaneous", "Commands.html#autotoc_md429", null ],
+      [ "%Output", "Commands.html#autotoc_md430", null ],
+      [ "%Perturb", "Commands.html#autotoc_md431", null ]
     ] ],
-    [ "Additional commands in phonon input files", "Commands.html#autotoc_md429", null ],
-    [ "Additional commands in wannier input files", "Commands.html#autotoc_md430", null ],
+    [ "Additional commands in phonon input files", "Commands.html#autotoc_md432", null ],
+    [ "Additional commands in wannier input files", "Commands.html#autotoc_md433", null ],
     [ "add-U", "CommandAddU.html", null ],
     [ "band-projection-params", "CommandBandProjectionParams.html", null ],
     [ "band-unfold", "CommandBandUnfold.html", null ],
@@ -97,6 +97,7 @@ var CommandIndex =
     [ "latt-scale", "CommandLattScale.html", null ],
     [ "lcao-params", "CommandLcaoParams.html", null ],
     [ "lj-override", "CommandLjOverride.html", null ],
+    [ "metadynamics-bond", "CommandMetadynamicsBond.html", null ],
     [ "pcm-nonlinear-debug", "CommandPcmNonlinearDebug.html", null ],
     [ "pcm-nonlinear-scf", "CommandPcmNonlinearScf.html", null ],
     [ "pcm-params", "CommandPcmParams.html", null ],

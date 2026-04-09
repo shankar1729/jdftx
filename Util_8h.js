@@ -30,10 +30,10 @@ var Util_8h =
     [ "globalLog", "group__Utilities.html#ga3e2a4f73141a2637d52da2d3ec93ccad", null ],
     [ "inputBasename", "group__Utilities.html#ga907316040fd97459f37e166f613b88cb", null ],
     [ "killFlag", "group__Utilities.html#ga8ba71496e65bcc3dbbc022da69307265", null ],
-    [ "mempoolSize", "group__Utilities.html#gabd502861db54565ab958658de49f3da1", null ],
     [ "mpiDebugLog", "group__Utilities.html#gae33e980fb4eaf243be1c38d7e1fcdf0b", null ],
     [ "mpiGroup", "group__Utilities.html#ga1fb83d6aa6b4f89361b2a93425b89a7e", null ],
     [ "mpiGroupHead", "group__Utilities.html#gae63b2082e1ef86f146a99592b64dbf16", null ],
     [ "mpiWorld", "group__Utilities.html#ga0597f5fb1522f1d652f4aa4219b2a8a4", null ],
+    [ "mpiWorldFull", "group__Utilities.html#ga79f491a0c4099e97210b9fa9b60d5d72", null ],
     [ "nullLog", "group__Utilities.html#ga5a037ad642646d7d094bc2278d206d70", null ]
 ];

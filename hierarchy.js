@@ -108,6 +108,7 @@ var hierarchy =
     [ "GGA_calc< GGA_X_LB94, true, nCount >", "structGGA__calc_3_01GGA__X__LB94_00_01true_00_01nCount_01_4.html", null ],
     [ "GGA_calc< variant, false, nCount >", "structGGA__calc_3_01variant_00_01false_00_01nCount_01_4.html", null ],
     [ "GGA_calc< variant, true, nCount >", "structGGA__calc_3_01variant_00_01true_00_01nCount_01_4.html", null ],
+    [ "GpuBuffer", "classGpuBuffer.html", null ],
     [ "GpuLaunchConfig", "structGpuLaunchConfig.html", [
       [ "GpuLaunchConfig1D", "structGpuLaunchConfig1D.html", null ],
       [ "GpuLaunchConfig3D", "structGpuLaunchConfig3D.html", [
@@ -156,6 +157,7 @@ var hierarchy =
         ] ]
       ] ]
     ] ],
+    [ "JDFTxWrapper", "classJDFTxWrapper.html", null ],
     [ "WannierMinimizer::KmeshEntry", "structWannierMinimizer_1_1KmeshEntry.html", null ],
     [ "Supercell::KmeshTransform", "structSupercell_1_1KmeshTransform.html", [
       [ "WannierMinimizer::Kpoint", "structWannierMinimizer_1_1Kpoint.html", null ]
@@ -219,6 +221,7 @@ var hierarchy =
     [ "matrix3< scalar >", "classmatrix3.html", null ],
     [ "matrix3< int >", "classmatrix3.html", null ],
     [ "matrixScaledTransOp", "structmatrixScaledTransOp.html", null ],
+    [ "MetadynamicsBond", "structMetadynamicsBond.html", null ],
     [ "mGGA_calc< variant, spinScaling, nCount >", "structmGGA__calc.html", null ],
     [ "mGGA_calc< variant, false, nCount >", "structmGGA__calc_3_01variant_00_01false_00_01nCount_01_4.html", null ],
     [ "mGGA_calc< variant, true, nCount >", "structmGGA__calc_3_01variant_00_01true_00_01nCount_01_4.html", null ],
@@ -255,6 +258,7 @@ var hierarchy =
     [ "MPIUtil", "classMPIUtil.html", null ],
     [ "nAugmentFunctor", "structnAugmentFunctor.html", null ],
     [ "nAugmentGradFunctor", "structnAugmentGradFunctor.html", null ],
+    [ "NDarray", "structNDarray.html", null ],
     [ "ExCorr::OrbitalDep", "structExCorr_1_1OrbitalDep.html", [
       [ "ExCorr_OrbitalDep_GLLBsc", "structExCorr__OrbitalDep__GLLBsc.html", null ]
     ] ],

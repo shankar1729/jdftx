@@ -106,11 +106,12 @@ $(document).ready(function(){initNavTree('CommandElecNbands.html',''); initResiz
 <div class="contents">
 <div class="textblock"><h2><a class="anchor" id="autotoc_md155"></a>
 Syntax:</h2>
-<pre class="fragment">elec-n-bands &lt;n&gt;
+<pre class="fragment">elec-n-bands &lt;n&gt; [&lt;multiplier&gt;=1.0]
 </pre> <h2><a class="anchor" id="autotoc_md156"></a>
 Description:</h2>
 <p>Manually specify the number of bands.</p>
-<p>(Default: set nBands assuming insulator, or in calculations with fermi-fillings, set equal to total number of atomic orbitals.)</p>
+<p>Default: set nBands assuming insulator, or in calculations with fermi-fillings, set equal to total number of atomic orbitals.</p>
+<p>Optionally, scale the default number of bands by a &lt;multiplier&gt; that is &gt;= 1. This only takes effect when &lt;n&gt; is set to zero, i.e., requesting the default number of bands.</p>
 <h2><a class="anchor" id="autotoc_md157"></a>
 Properties:</h2>
 <p><b>Requires:</b> &#160;&#160;&#160; (None)</p>

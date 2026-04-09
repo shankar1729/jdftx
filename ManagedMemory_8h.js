@@ -2,6 +2,7 @@ var ManagedMemory_8h =
 [
     [ "axpy", "group__DataStructures.html#gac5df245d577add645fc2935e8778c956", null ],
     [ "dotc", "group__DataStructures.html#ga5fcbeb8d29e7654e3775f57a49f5321a", null ],
+    [ "initMemCache", "group__DataStructures.html#ga56c372ea41151f18afd822e095d86ed0", null ],
     [ "memcpy", "group__DataStructures.html#ga5addd98db48d726585f63d17dcd96f2e", null ],
     [ "nrm2", "group__DataStructures.html#gaeddf940aa3a5ba61db3cd3881e95f59e", null ],
     [ "scale", "group__DataStructures.html#gaa788bc31a0280b4a1a5c24daaa4c6ad7", null ],

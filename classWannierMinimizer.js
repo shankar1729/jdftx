@@ -17,7 +17,7 @@ var classWannierMinimizer =
     [ "isMine", "classWannierMinimizer.html#a6fb1e3555a8e7568eb2e98152cfe0729", null ],
     [ "isMine_q", "classWannierMinimizer.html#a65b3fc3330992d82f9a312dacc317c75", null ],
     [ "overlap", "classWannierMinimizer.html#a134958cecb2fb967248204fbdf53837b", null ],
-    [ "precondition", "classWannierMinimizer.html#a8281596e4fd572db8baca31aad57328d", null ],
+    [ "precondition", "classWannierMinimizer.html#a80116028202ba97ec01fae789ddb1faa", null ],
     [ "report", "classWannierMinimizer.html#a9e61678b37e19866cd12529f1f59eb2e", null ],
     [ "saveMLWF", "classWannierMinimizer.html#a958dd0b08c146fb02235f94e8700c07d", null ],
     [ "saveMLWF", "classWannierMinimizer.html#a7b9f6ccfd9271dc0e0f409c671b3f67a", null ],

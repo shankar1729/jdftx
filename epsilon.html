@@ -105,19 +105,23 @@ $(document).ready(function(){initNavTree('epsilon.html',''); initResizable(); })
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><pre class="fragment">usage: epsilon [-h] [--omegaMin OMEGAMIN] [--omegaMax OMEGAMAX]
-               [--n_omega N_OMEGA] [--gamma GAMMA] [--prefix PREFIX]
+               [--n_omega N_OMEGA] [--gamma GAMMA] [--E_threshold E_THRESHOLD]
+               [--prefix PREFIX]
 
 Compute dielectric tensor (epsilon) from DFT outputs. Each of the 9 tensor
 components is written in a dat file, where first, second and third columns are
 the frequency [eV], real(epsilon) and imag(epsilon) respectively.
 
 options:
-  -h, --help           show this help message and exit
-  --omegaMin OMEGAMIN  Starting frequency of the energy grid [eV]. Default=0.0
-  --omegaMax OMEGAMAX  Frequency cutoff for the energy grid [eV]. Default=0.0
-  --n_omega N_OMEGA    Size of the energy grid. Default=1
-  --gamma GAMMA        Gaussian broadening parameter [eV]. Defualt=0.2
-  --prefix PREFIX      Prefix of DFT outputs. Default=totalE
+  -h, --help            show this help message and exit
+  --omegaMin OMEGAMIN   Starting frequency of the energy grid [eV].
+                        Default=0.0
+  --omegaMax OMEGAMAX   Frequency cutoff for the energy grid [eV]. Default=0.0
+  --n_omega N_OMEGA     Size of the energy grid. Default=1
+  --gamma GAMMA         Gaussian broadening parameter [eV]. Defualt=0.2
+  --E_threshold E_THRESHOLD
+                        Degeneracy energy threshold [Ha]. Defualt=1.0e-6
+  --prefix PREFIX       Prefix of DFT outputs. Default=totalE
 </pre> </div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->
