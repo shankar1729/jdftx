@@ -60,6 +60,8 @@ protected:
 	void setVariable(const SCFvariable&);
 	SCFvariable precondition(const SCFvariable&) const;
 	SCFvariable applyMetric(const SCFvariable&) const;
+	void offloadVariable(SCFvariable&) const;
+	void preloadVariable(const SCFvariable&) const;
 
 private:
 	Everything& e;
