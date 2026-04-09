@@ -81,27 +81,42 @@ Also consider compiling with the following optional flags:
 + <b>-D PinnedHostMemory=yes</b>: use page-locked memory on the host (CPU) to speed up memory transfers to the GPU.
   Make sure the usage limits allow sufficient / unlimited page-locked memory (see eg. ulimit man page).
 
++ <b>-D CudaManagedMemory=yes</b>: Use CUDA managed/unified memory to let the CUDA driver
+  manage memory transfers between CPU and GPU automatically, instead of JDFTx handling them.
+  This is usually slightly slower than the explicit memory management, but on new-enough GPUs,
+  allows running calculations that don't even fit with the GPU memory. For optimal performance,
+  it is recommended to have builds with and without this flag, and use the managed build only
+  when you need to stretch the limit of the GPU memory.
+
 + <b>-D CudaAwareMPI=yes</b>: If your MPI library supports direct transfers from GPU memory,
   this flag will speed up MPI data transfers between GPUs.
 
-+ Prior to GPU runs, consider setting the environment variable JDFTX_MEMPOOL_SIZE
++ Prior to GPU runs, consider setting the environment variable JDFTX_CACHE_SIZE
   to a large fraction of the memory size in MB / GPU.  For example, say
-  "export JDFTX_MEMPOOL_SIZE=4096" (i.e 4 GB) for a GPU with 6 GB memory.
-  This makes a single memory allocation at the start of the run, and then
-  manages memory internally, bypassing expensive cudaMalloc / cudaFree calls.
+  "export JDFTX_CACHE_SIZE=5120" (i.e 5 GB) for a GPU with 6 GB memory.
+  This caches GPU pointers, bypassing expensive cudaMalloc / cudaFree calls, while
+  keeping total GPU memory used (in use + cache) below the specified size if possible.
+  GPU allocations are cached even if this size is not set, allowing the cache to
+  expand to use all the GPU memory; this may be a little slower because the code
+  has to rely on failed cudaMalloc calls to detect that it has reached the limit.
+
++ Use the variable JDFTX_CACHE_MARGIN variable to fine tune the cached allocations.
+  Thsi controls the fraction of memory that is allowed to be 'wasted' when reusing
+  a previously freed pointer for a new allocation. For example, the default value
+  of 0.5 allows reusing a pointer with capacity up to 1.5 times the required size,
+  which could end up needing 50% more memory than the absolute minimum usage.
+  For calculations that are tight fits, reduce the margin: this will lead to less
+  wastage, but also less reuse of pointers, increasing the cudaMalloc overhead.
   
 If you want to run on a GPU, it must be a discrete (not on-board) NVIDIA GPU
 with compute capability >= 1.3, since that is the minimum for double precision.
-You may also need to specify <b>-D CUDA_ARCH=compute_xy</b> and  <b>-D CUDA_CODE=sm_xy</b>
-to match the compute architecture x.y of the oldest GPU you want to run on.
-It currently defaults to compute capability 3.5 which is the most prominent
-among compute-capable GPUs and Tesla coprocessors available today.
+Specify <b>CUDAARCHS=xy</b> based on the minimum compute capability x.y to support.
 See https://developer.nvidia.com/cuda-gpus for compute capabilities of various GPUs.
   
 Note that you will get a real speedup only if your device has a higher memory bandwidth
 than your CPU/motherboard/RAM combination, since plane-wave DFT is often a memory-bound computation.
 Also keep in mind that you need a lot of memory on the GPU to actually fit systems
-of reasonable size (you probably need at least 1-2 GB of GRAM to handle moderate-sized systems).
+of reasonable size (you probably need at least 10 GB of GRAM to handle moderate-sized systems).
 
 When you compile with GPU support, extra executables jdftx_gpu, phonon_gpu and wannier_gpu
 will be generated that will run code almost exclusively on the GPUs,

@@ -343,13 +343,13 @@ namespace MemCache
 	};
 	#endif
 	
-	//Pool accessor functions (to avoid file-level static variables):
-	MemCache<MemSpaceCPU>& CPU() { static MemCache<MemSpaceCPU> pool; return pool; }
+	//Cache accessor functions (to avoid file-level static variables):
+	MemCache<MemSpaceCPU>& CPU() { static MemCache<MemSpaceCPU> cache; return cache; }
 	#ifdef GPU_ENABLED
 	#ifdef CUDA_MANAGED_MEMORY
-	MemPool<MemSpaceGPU>& GPU() { return CPU(); } //use single pool
+	MemCache<MemSpaceGPU>& GPU() { return CPU(); } //use single combined cache
 	#else
-	MemCache<MemSpaceGPU>& GPU() { static MemCache<MemSpaceGPU> pool; return pool; }
+	MemCache<MemSpaceGPU>& GPU() { static MemCache<MemSpaceGPU> cache; return cache; }
 	#endif
 	#endif
 }
