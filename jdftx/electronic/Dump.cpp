@@ -33,7 +33,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <ctime>
 
 Dump::Dump()
-: potentialSubtraction(true), bandProjectionOrtho(false), bandProjectionNorm(true), Munfold(1,1,1), curIter(0)
+: e(0), potentialSubtraction(true), bandProjectionOrtho(false), bandProjectionNorm(true), Munfold(1,1,1), curIter(0)
 {
 }
 
@@ -66,6 +66,7 @@ void Dump::setup(const Everything& everything)
 
 void Dump::operator()(DumpFrequency freq, int iter)
 {
+	if(!e) return; //Not yet initialized (called during LCAO before dump.setup())
 	if(!checkInterval(freq, iter)) return; // => don't dump this time
 	curIter = iter; curFreq = freq; //used by getFilename()
 	
