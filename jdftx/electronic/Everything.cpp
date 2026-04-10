@@ -147,8 +147,8 @@ void Everything::setup()
 	
 	//Setup wavefunctions, densities, fluid, output module etc:
 	iInfo.update(ener); //needs to happen before eVars setup for LCAO
+	dump.setup(*this); //in advance of Electronic-frequency dump within LCAO
 	eVars.setup(*this);
-	dump.setup(*this);
 
 	//Setup vibrations module:
 	if(vibrations) vibrations->setup(this);
