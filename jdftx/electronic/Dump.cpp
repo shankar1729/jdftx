@@ -65,8 +65,7 @@ void Dump::setup(const Everything& everything)
 
 
 void Dump::operator()(DumpFrequency freq, int iter)
-{
-	if(!e) return; //Safety net: e should always be set (dump.setup runs before eVars.setup)
+{	if(!e) return;
 	if(!checkInterval(freq, iter)) return; // => don't dump this time
 	curIter = iter; curFreq = freq; //used by getFilename()
 	
