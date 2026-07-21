@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jdftx-python"
+version = "0.0.1"
+description = "Python module for JDFTx"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "ase",
+    "numpy",
+    # TODO: Replace me with version >= 2025.5.3 once released
+    "pymatgen@git+https://github.com/materialsproject/pymatgen.git",
+]
+
+[tool.setuptools]
+packages = ["jdftx.scripts"]
+package-dir = {"jdftx.scripts" = "jdftx/scripts"}
+
+[tool.setuptools.package-data]
+"jdftx.scripts.ase" = ["*.py"]
