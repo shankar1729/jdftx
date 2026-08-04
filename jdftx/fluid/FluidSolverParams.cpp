@@ -26,7 +26,7 @@ FluidSolverParams::FluidSolverParams()
 components(components_), solvents(solvents_), cations(cations_), anions(anions_),
 vdwScale(0.75), pCavity(0.), lMax(3), cavityScale(1.), ionSpacing(0.),
 zMask0(0.), zMaskH(0.), zMaskIonH(0.), zMaskSigma(0.5),
-linearDielectric(false), linearScreening(false), nonlinearSCF(false), screenOverride(0.)
+linearDielectric(false), linearScreening(false), screenOverride(0.)
 {
 }
 
@@ -113,13 +113,13 @@ void FluidSolverParams::setPCMparams()
 			switch(solvents[0]->name)
 			{	case FluidComponent::H2O:
 					Ztot = 8;
-					Res = 1.0 * Angstrom;
-					Zcenter = -0.8476;
+					eta_wDiel = 1.46;
+					sqrtC6eff = 0.770;
+					pCavity = 1.0;
 					break;
 				default:
 					throw string("CANON has not been parametrized for this solvent");
 			}
-			nonlinearSCF = true; //CANON always needs this
 			break;
 		}
 		case PCM_CANDLE:

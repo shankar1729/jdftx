@@ -120,11 +120,12 @@ struct FluidSolverParams
 	double cavityTension; //!< effective surface tension (including dispersion etc.) of the cavity (hartree per bohr^2)
 	double vdwScale; //!< overall scale factor for Grimme pair potentials (or damping range scale factor for vdw-TS when implemented)
 	
-	//For CANDLE alone:
-	double Ztot; //!< number of valence electrons (also used by CANON)
+	//For CANDLE and CANON:
+	double Ztot; //!< number of valence electrons
 	double eta_wDiel; //!< electrostatic cavity expansion widthin bohrs (fit parameter)
-	double sqrtC6eff; //!< effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this); also used by CANON
-	double pCavity; //!< sensitivity of cavity to surface electric field to emulate charge asymmetry [e-a0/Eh]  (fit parameter)
+	double sqrtC6eff; //!< effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this)
+	double pCavity; //!< sensitivity of cavity to surface electric field to emulate charge asymmetry [e-a0/Eh]  (fit parameter) in CANDLE.
+	//!< Dipole density on cavity surface in CANON.
 	
 	//For SCCS alone:
 	double rhoMin, rhoMax; //!< start and end of transition
@@ -133,10 +134,6 @@ struct FluidSolverParams
 	
 	//For SaLSA alone:
 	int lMax;
-	
-	//For CANON alone:
-	double Res; //! Electrostatic radius used for dielectric nonlocality in CANON
-	double Zcenter; //!< Charge at center used to determine asymmetry in CANON
 	
 	//For soft sphere model alone:
 	double getAtomicRadius(const class SpeciesInfo& sp) const; //!< get the solute atom radius for the soft-sphere solvation model given species
@@ -159,7 +156,6 @@ struct FluidSolverParams
 	//Debug parameters for Nonlinear PCM's:
 	bool linearDielectric; //!< If true, work in the linear dielectric response limit
 	bool linearScreening; //!< If true, work in the linearized Poisson-Boltzman limit for the ions
-	bool nonlinearSCF; //!< whether to use an SCF method for nonlinear PCMs
 	double screenOverride; //! overrides screening factor with this value
 	PulayParams scfParams; //!< parameters controlling Pulay mixing for SCF version of nonlinear PCM
 	

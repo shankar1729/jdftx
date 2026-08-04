@@ -44,7 +44,8 @@ protected:
 	ScalarField nCavity, tauCavity, nCavityEx[2]; //!< Cavity determining electron density (or product for SaLSA, or KE density for SG14tauVW, and expanded electron densities for the SGA13 variant)
 	ScalarFieldArray shape; //!< Electrostatic cavity shape function. Second component, if any, is separate ionic cavity
 	ScalarField shapeVdw; //!< Separate cavitation/dispersion shape function for the SGA13 variant
-	
+	ScalarFieldTilde rhoLiquidTilde0, A_rhoLiquidTilde0; //!< built-in charge density in liquid for CANON, and corresponding energy derivative
+
 	virtual void printDebug(FILE* fp) const {} //!< over-ride to get extra PCM-specific output in fluidDebug text file
 	
 	void updateCavity(); //!< update shape function(s) from nCavity, and energies dependent upon shape alone
@@ -64,6 +65,7 @@ private:
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
 	double nbar_c[2]; //!< thresholds for solvent and optionally ionic cavity (CANON only)
 	RadialFunctionG wExpand[2]; //!< weight functions for cavity expansion in SGA13, and for nonlocal cavity determination in CANON
+	RadialFunctionG wEta, wEta_prime; //!< weight function for dielectric cavity expansion in CANDLE and CANON, and its derivative w.r.t eta
 	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy
 	std::vector<vector3<>> atposAll; //!< all solute atomic positions (SoftSphere only)
 	std::vector<vector3<int>> latticeReps; //!< lattice repetitions needed to treat periodic boundaries correctly for SoftSphere

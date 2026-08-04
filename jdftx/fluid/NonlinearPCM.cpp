@@ -27,16 +27,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 
 //Initialize Kkernel to square-root of the inverse kinetic operator
-inline void setPreconditioner(int i, double Gsq, double* preconditioner, double epsBulk, double kappaSq, RadialFunctionG& w1)
-{	double epsEff = w1
-		? (1 + (epsBulk-1) * std::pow(w1(sqrt(Gsq)), 2))
-		: epsBulk;
-	preconditioner[i] = (Gsq || kappaSq) ? 1./(epsEff*Gsq + kappaSq) : 0.;
+inline void setPreconditioner(int i, double Gsq, double* preconditioner, double epsBulk, double kappaSq)
+{	preconditioner[i] = (Gsq || kappaSq) ? 1./(epsBulk*Gsq + kappaSq) : 0.;
 }
 
 
 NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
-: PCM(e, fsp), pMol(0.), ionNbulk(0.), ionZ(0.), screeningEval(0), dielectricEval(0), isNonlocal(false)
+: PCM(e, fsp), pMol(0.), ionNbulk(0.), ionZ(0.), screeningEval(0), dielectricEval(0)
 {
 	const auto& solvent = fsp.solvents[0];
 	pMol = solvent->pMol ? solvent->pMol : solvent->molecule.getDipole().length();
@@ -109,13 +106,9 @@ NonlinearPCM::NonlinearPCM(const Everything& e, const FluidSolverParams& fsp)
 		ionEnergyLookup.init(1, samples, dVmapped);
 	}
 	
-	//Initialize convolution kernels for nonlocal version, CANON
-	isNonlocal = (fsp.pcmVariant == PCM_CANON);
-	if(isNonlocal) updateNonlocal();
-	
 	//Initialize preconditioner:
 	preconditioner = std::make_shared<RealKernel>(gInfo);
-	applyFuncGsq(gInfo, setPreconditioner, preconditioner->data(), epsBulk, k2factor, w1);
+	applyFuncGsq(gInfo, setPreconditioner, preconditioner->data(), epsBulk, k2factor);
 }
 
 NonlinearPCM::~NonlinearPCM()
@@ -125,29 +118,7 @@ NonlinearPCM::~NonlinearPCM()
 	{	delete screeningEval;
 		ionEnergyLookup.free();
 	}
-	if(isNonlocal)
-	{	Nw0.free();
-		w1.free();
-	}
 }
-
-void NonlinearPCM::updateNonlocal()
-{	Zcenter = fsp.Zcenter;
-	Res = fsp.Res;
-	const double dG = gInfo.dGradial, Gmax = gInfo.GmaxGrid;
-	unsigned nGradial = unsigned(ceil(Gmax/dG))+5;
-	std::vector<double> Nw0_samples(nGradial), w1_samples(nGradial);
-	for(unsigned i=0; i<nGradial; i++)
-	{	double GR = (i*dG) * fsp.Res;
-		double j0 = bessel_jl(0, GR);
-		double j1_by_x_3 = j0 + bessel_jl(2, GR);  //3 j1(x)/x = j0(x) + j2(x)
-		Nw0_samples[i] = fsp.solvents[0]->Nbulk * (-fsp.Zcenter) * (1.0 - j0); //Zcenter is in expt charge convention
-		w1_samples[i] = j1_by_x_3;
-	}
-	Nw0.init(0, Nw0_samples, dG);
-	w1.init(0, w1_samples, dG);
-}
-
 
 void NonlinearPCM::loadState(const char* filename)
 {	ScalarField Iphi(ScalarFieldData::alloc(gInfo));
@@ -185,7 +156,7 @@ double NonlinearPCM::compute(ScalarFieldTilde* grad, ScalarFieldTilde* Kgrad)
 	
 	//Dielectric term:
 	ScalarField A, A_s_UNUSED; nullToZero(A, gInfo);
-	VectorField Dphi = I(gradient(w1 ? w1*phiTot : phiTot)), A_Dphi_null;  //includes CANON nonlocality, if needed
+	VectorField Dphi = I(gradient(phiTot)), A_Dphi_null;
 	VectorField& A_Dphi = grad ? Dphi : A_Dphi_null; //Retrieve gradient in place (since Dphi no longer needed)
 	(*dielectricEval)(dielEnergyLookup, shape[0], Dphi, A, A_Dphi, A_s_UNUSED);
 	
@@ -203,7 +174,6 @@ double NonlinearPCM::compute(ScalarFieldTilde* grad, ScalarFieldTilde* Kgrad)
 	
 	if(grad)
 	{	ScalarFieldTilde A_phiTilde = -divergence(J(A_Dphi)); //dielectric part
-		if(w1) A_phiTilde = w1 * A_phiTilde; //CANON nonlocality
 		if(A_phi) A_phiTilde += J(A_phi); //ionic part
 		A_phiTilde += KinvPhi; //vacuum part
 		*grad = O(A_phiTilde - rhoFreeTilde);
@@ -229,12 +199,6 @@ void NonlinearPCM::set_internal(const ScalarFieldTilde& rhoExplicitTilde, const 
 	nCavity = I(nCavityTilde + getFullCore());
 	updateCavity();
 	
-	//Built-in charge for CANON:
-	if(isNonlocal)
-	{	if(not ((Zcenter == fsp.Zcenter) and (Res == fsp.Res))) updateNonlocal();
-		rhoLiquidTilde0 = Nw0 * J(shape[0]);
-	}
-	
 	//Initialize the state if it hasn't been loaded:
 	if(!phiTot) nullToZero(phiTot, gInfo);
 }
@@ -250,7 +214,7 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 	if(Adiel_RRT) *Adiel_RRT += Lstress(phiTot, phiTot) * (1.0/(8*M_PI));
 	
 	//Compute dielectric contributions:
-	{	VectorField Dphi = I(gradient(w1 ? w1*phiTot : phiTot)), F_Dphi;
+	{	VectorField Dphi = I(gradient(phiTot)), F_Dphi;
 		if(Adiel_RRT) nullToZero(F_Dphi, gInfo); //only needed for stress
 		(*dielectricEval)(dielEnergyLookup, shape[0], Dphi, F, F_Dphi, F_shape[0]);
 		if(Adiel_RRT) *Adiel_RRT += gInfo.dV * dotOuter(F_Dphi, Dphi);
@@ -268,7 +232,7 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 	Adiel["Electrostatic"] = minusFvac - integral(F)
 		+ dot(phiTot, O(rhoFreeTilde))
 		- 0.5*dot(phiExplicitTilde, O(rhoExplicitTilde));
-	if(isNonlocal)
+	if(rhoLiquidTilde0)
 	{	phiLiquid0 = coulomb(rhoLiquidTilde0);
 		Adiel["Electrostatic"] -= 0.5 * dot(phiLiquid0, O(rhoLiquidTilde0));
 	}
@@ -279,10 +243,7 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 	
 	//Collect cavity shape derivatives:
 	ScalarFieldArray Adiel_shape = -1.0 * F_shape; //since energy contribution is -F
-	if(isNonlocal)
-	{	ScalarFieldTilde Adiel_rhoLiquidTilde0 = phiTot - phiLiquid0;
-		Adiel_shape[0] += I(Nw0 * Adiel_rhoLiquidTilde0); 
-	}
+	if(rhoLiquidTilde0) ((NonlinearPCM*)this)->A_rhoLiquidTilde0 = phiTot - phiLiquid0;
 	
 	//Propagate to derivatives w.r.t electronic charge and density:
 	Adiel_rhoExplicitTilde = phiTot - phiExplicitTilde;
@@ -318,24 +279,4 @@ void NonlinearPCM::dumpDensities(const char* filenamePattern) const
 	}
 }
 
-void NonlinearPCM::printDebug(FILE* fp) const
-{	if(isNonlocal)
-	{	//Compute derivative w.r.t CANON nonlocal kernel parameter Zcenter:
-		ScalarFieldTilde phiLiquid0 = coulomb(rhoLiquidTilde0);
-		ScalarFieldTilde Adiel_rhoLiquidTilde0 = phiTot - phiLiquid0;
-		double E_zCenter = dot(rhoLiquidTilde0, O(Adiel_rhoLiquidTilde0)) / Zcenter;
-		fprintf(fp, "   E_Zcenter = %.15lg\n", E_zCenter);
-		
-		//Compute derivative w.r.t CANON nonlocal kernel parameter Res:
-		ScalarField F, F_shape0; nullToZero(F, gInfo);
-		VectorField Dphi = I(gradient(w1*phiTot)), F_Dphi;
-		nullToZero(F_Dphi, gInfo);
-		(*dielectricEval)(dielEnergyLookup, shape[0], Dphi, F, F_Dphi, F_shape0);
-		VectorFieldTilde A_DphiTilde = -J(F_Dphi), DphiTilde = gradient(phiTot);
-		double E_Res = -trace(convolveStress(Nw0, Adiel_rhoLiquidTilde0, J(shape[0]))) / Res;
-		for(int iDir=0; iDir<3; iDir++)
-			E_Res -= trace(convolveStress(w1, A_DphiTilde[iDir], DphiTilde[iDir])) / Res;
-		fprintf(fp, "   E_Res = %.15lg\n", E_Res);		
-	}
-}
 
