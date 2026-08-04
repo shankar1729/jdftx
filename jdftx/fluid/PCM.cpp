@@ -104,8 +104,8 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 				Rex[1] = solvent->Rvdw + fsp.ionSpacing;
 			}
 			for(size_t iShape=0; iShape<shape.size(); iShape++)
-			{	double mhalfSigmaSq = -0.5 * std::pow(1.1, 2);
-				nbar_c[iShape] = 0.031 * log(Rex[iShape] / 0.96);
+			{	double mhalfSigmaSq = -0.5 * std::pow(0.2, 2);
+				nbar_c[iShape] = 0.060 * log(Rex[iShape] / 0.78);
 				wExpand[iShape].init(0, dG, e.gInfo.GmaxGrid, wTheta_calc, Rex[iShape], mhalfSigmaSq);
 				logPrintf(
 					"   %s cavity set by nc = %lg determined from %s = %lg bohrs",
