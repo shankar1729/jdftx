@@ -108,12 +108,12 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 				nbar_c[iShape] = 0.060 * log(Rex[iShape] / 0.78);
 				wExpand[iShape].init(0, dG, e.gInfo.GmaxGrid, wTheta_calc, Rex[iShape], mhalfSigmaSq);
 				logPrintf(
-					"   %s cavity set by nc = %lg determined from %s = %lg bohrs",
+					"   %s cavity set by nc = %lg determined from %s = %lg bohrs\n",
 					iShape ? "Ionic" : "Solvent", nbar_c[iShape],
 					iShape ? "Rvdw + ionSpacing" : "Rvdw", Rex[iShape]
 				);
 			}
-			logPrintf("   Charge asymmetry from cavity dipole density pCavity = %lg\n", fsp.pCavity);
+			logPrintf("   Charge asymmetry from cavity potential phiCavity = %lg\n", fsp.phiCavity);
 			break;
 		}
 		case PCM_CANDLE:
@@ -333,9 +333,7 @@ void PCM::updateCavity()
 	{	nCavityEx[0] = I(wExpand[0] * J(nCavity));
 		ShapeFunction::compute(nCavityEx[0], shapeVdw, nbar_c[0], fsp.sigma); //vdW cavity
 		shape[0] = I(wEta * J(shapeVdw)); //dielectric cavity
-		double prefacAlq0 = fsp.solvents[0]->Nbulk * fsp.pCavity / fsp.eta_wDiel;
-		ScalarField rhoLiquid0 = prefacAlq0 * (shapeVdw - shape[0]);
-		Adiel["ChargeAsym"] = dot(coulomb(J(rhoLiquid0)), O(rhoExplicitTilde));
+		Adiel["ChargeAsym"] = fsp.phiCavity * dot(J(1 - shape[0]), O(rhoExplicitTilde));
 		if(shape.size() > 1) //separate ionic cavity:
 		{	nCavityEx[1] = I(wExpand[1] * J(nCavity));
 			ShapeFunction::compute(nCavityEx[1], shape[1], nbar_c[1], fsp.sigma);
@@ -522,26 +520,18 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		((PCM*)this)->A_pCavity = A_pCavity;
 	}
 	else if(fsp.pcmVariant == PCM_CANON)
-	{	double prefacAlq0 = fsp.solvents[0]->Nbulk * fsp.pCavity / fsp.eta_wDiel;
-		ScalarFieldTilde rhoLiquidTilde0 = prefacAlq0 * J(shapeVdw - shape[0]);
-		ScalarField A_rhoLiquid0 = I(coulomb(rhoExplicitTilde));
-		A_rhoExplicitTilde += coulomb(rhoLiquidTilde0);
-		ScalarField Alq0_shapeDiff = prefacAlq0 * A_rhoLiquid0;
-		ScalarField A_shape0 = A_shape[0] - Alq0_shapeDiff;
-		ScalarField A_shapeVdw = I(wEta * (J(A_shape0))) + Alq0_shapeDiff + Acavity_shapeVdw, A_nCavityEx[2];
+	{	ScalarFieldTilde shapeConjTilde = J(1 - shape[0]);
+		A_rhoExplicitTilde += fsp.phiCavity * shapeConjTilde;
+		ScalarField A_shape0 = A_shape[0] - fsp.phiCavity * I(rhoExplicitTilde);
+		ScalarField A_shapeVdw = I(wEta * (J(A_shape0))) + Acavity_shapeVdw, A_nCavityEx[2];
 		ShapeFunction::propagateGradient(nCavityEx[0], A_shapeVdw, A_nCavityEx[0], nbar_c[0], fsp.sigma);
 		A_nCavity += I(wExpand[0] * J(A_nCavityEx[0]));
 		if(Adiel_RRT) 
 			*Adiel_RRT += convolveStress(wEta, J(A_shape0), J(shapeVdw))
 				+ convolveStress(wExpand[0], J(A_nCavityEx[0]), J(nCavity))
-				+ coulombStress(rhoExplicitTilde, rhoLiquidTilde0);
+				+ matrix3<>(1,1,1) * Adiel["ChargeAsym"];
 		((PCM*)this)->A_eta_wDiel = integral(A_shape0 * I(wEta_prime * J(shapeVdw)));
-		((PCM*)this)->A_pCavity = 0.0;
-		if(fsp.pCavity)
-		{	double Alq0_lnPrefac = dot(J(A_rhoLiquid0), O(rhoLiquidTilde0));
-			((PCM*)this)->A_eta_wDiel -= Alq0_lnPrefac / fsp.eta_wDiel;
-			((PCM*)this)->A_pCavity += Alq0_lnPrefac / fsp.pCavity;
-		}
+		((PCM*)this)->A_phiCavity = dot(shapeConjTilde, O(rhoExplicitTilde));
 		
 		if(shape.size() > 1)
 		{	ShapeFunction::propagateGradient(nCavityEx[1], A_shape[1], A_nCavityEx[1], nbar_c[1], fsp.sigma);
@@ -692,7 +682,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 		case PCM_CANON:
 			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
 			fprintf(fp, "   E_eta_wDiel = %.15lg\n", A_eta_wDiel);
-			fprintf(fp, "   E_pCavity = %.15lg\n", A_pCavity);
+			fprintf(fp, "   E_phiCavity = %.15lg\n", A_phiCavity);
 			break;
 		case PCM_CANDLE:
 			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);

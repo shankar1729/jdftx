@@ -109,10 +109,11 @@ enum PCMparameter
 	PCMp_rhoMin, //!< min electron density (bohr^-3) for SCCS cavity switching function
 	PCMp_rhoMax, //!< max electron density (bohr^-3) for SCCS cavity switching function
 	PCMp_rhoDelta, //!< electron density change (bohr^-3) for SCCS cavity area calculation
-	PCMp_eta_wDiel, //!< fit parameter for dielectric cavity in CANDLE
-	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for CANDLE
+	PCMp_eta_wDiel, //!< fit parameter for dielectric cavity in CANDLE and CANON
+	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for CANDLE and CANON
 	PCMp_pCavity, //!< sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
-	PCMp_Ztot, //!< Total valence charge on the solvent, used by CANDLE and CANON for vdW cavity determination
+	PCMp_Ztot, //!< Total valence charge on the solvent, used by CANDLE for vdW cavity determination
+	PCMp_phiCavity, //!< effective cavity potential  [Eh] in CANON
 	PCMp_screenOverride, //! Overrides screening length
 	PCMp_Delim //!< Delimiter used in parsing
 };
@@ -136,6 +137,7 @@ EnumStringMap<PCMparameter> pcmParamMap
 	PCMp_sqrtC6eff, "sqrtC6eff",
 	PCMp_pCavity, "pCavity",
 	PCMp_Ztot, "Ztot",
+	PCMp_phiCavity, "phiCavity",
 	PCMp_screenOverride, "screenOverride"
 );
 EnumStringMap<PCMparameter> pcmParamDescMap
@@ -156,8 +158,9 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_rhoDelta, "electron density change (bohr^-3) for SCCS cavity area calculation",
 	PCMp_eta_wDiel, "fit parameter for dielectric cavity in CANDLE and CANON",
 	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for CANDLE and CANON",
-	PCMp_pCavity, "sensitivity of cavity to surface electric fields [a.u.] in CANDLE and cavity dipole density in CANON",
-	PCMp_Ztot, "total valence charge on the solvent, used by CANDLE and CANON",
+	PCMp_pCavity, "sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE",
+	PCMp_Ztot, "total valence charge on the solvent, used by CANDLE for vdW cavity determination",
+	PCMp_phiCavity, "effective cavity potential  [Eh] in CANON",
 	PCMp_screenOverride, "overrides the screening length calculated from fluid-components"
 );
 
@@ -205,6 +208,7 @@ struct CommandPcmParams : public Command
 				READ_AND_CHECK(sqrtC6eff, >=, 0.)
 				READ_AND_CHECK(pCavity, <, DBL_MAX)
 				READ_AND_CHECK(Ztot, >, 0.)
+				READ_AND_CHECK(phiCavity, <, DBL_MAX)
 				READ_AND_CHECK(screenOverride, >, 0.)
 				case PCMp_Delim: return; //end of input
 			}
@@ -234,6 +238,7 @@ struct CommandPcmParams : public Command
 		PRINT(sqrtC6eff)
 		PRINT(pCavity)
 		PRINT(Ztot)
+		PRINT(phiCavity)
 		PRINT(screenOverride)
 		#undef PRINT
 	}

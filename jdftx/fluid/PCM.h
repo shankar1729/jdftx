@@ -60,7 +60,7 @@ protected:
 private:
 	ScalarField Acavity_shape, Acavity_shapeVdw; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions (assumed Acavity does not depend on ionic cavity)
 	matrix3<> Acavity_RRT; //!< Cached gradients of cavitation (and dispersion) energies w.r.t lattice vectors
-	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity, A_cavityScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
+	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity, A_phiCavity, A_cavityScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
 	double nbar_c[2]; //!< thresholds for solvent and optionally ionic cavity (CANON only)
 	RadialFunctionG wExpand[2]; //!< weight functions for cavity expansion in SGA13, and for nonlocal cavity determination in CANON

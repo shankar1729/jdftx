@@ -125,7 +125,7 @@ struct FluidSolverParams
 	double eta_wDiel; //!< electrostatic cavity expansion widthin bohrs (fit parameter)
 	double sqrtC6eff; //!< effective C6 parameter in J-nm^6/mol)^(1/2) for the entire molecule (fit parameter) (vdwScale unnecessary and not used due to this)
 	double pCavity; //!< sensitivity of cavity to surface electric field to emulate charge asymmetry [e-a0/Eh]  (fit parameter) in CANDLE.
-	//!< Dipole density on cavity surface in CANON.
+	double phiCavity; //!< cavity potential in CANON.
 	
 	//For SCCS alone:
 	double rhoMin, rhoMax; //!< start and end of transition
