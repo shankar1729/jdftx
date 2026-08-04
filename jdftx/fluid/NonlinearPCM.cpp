@@ -169,14 +169,13 @@ double NonlinearPCM::compute(ScalarFieldTilde* grad, ScalarFieldTilde* Kgrad)
 	}
 	
 	//Free charges (right-hand side of Poisson-Boltzmann charge):
-	ScalarFieldTilde rhoFreeTilde = rhoExplicitTilde + rhoLiquidTilde0;
-	double Acoulomb = dot(rhoFreeTilde, O(phiTot));
+	double Acoulomb = dot(rhoExplicitTilde, O(phiTot));
 	
 	if(grad)
 	{	ScalarFieldTilde A_phiTilde = -divergence(J(A_Dphi)); //dielectric part
 		if(A_phi) A_phiTilde += J(A_phi); //ionic part
 		A_phiTilde += KinvPhi; //vacuum part
-		*grad = O(A_phiTilde - rhoFreeTilde);
+		*grad = O(A_phiTilde - rhoExplicitTilde);
 		if(Kgrad)
 		{	*Kgrad = (*preconditioner) * (*grad);
 		}
@@ -228,25 +227,26 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 	
 	//Compute the energy:
 	ScalarFieldTilde phiExplicitTilde = coulomb(rhoExplicitTilde), phiLiquid0;
-	ScalarFieldTilde rhoFreeTilde = rhoExplicitTilde + rhoLiquidTilde0;
 	Adiel["Electrostatic"] = minusFvac - integral(F)
-		+ dot(phiTot, O(rhoFreeTilde))
+		+ dot(phiTot, O(rhoExplicitTilde))
 		- 0.5*dot(phiExplicitTilde, O(rhoExplicitTilde));
 	if(rhoLiquidTilde0)
 	{	phiLiquid0 = coulomb(rhoLiquidTilde0);
-		Adiel["Electrostatic"] -= 0.5 * dot(phiLiquid0, O(rhoLiquidTilde0));
+		Adiel["Electrostatic"] += dot(phiLiquid0, O(rhoExplicitTilde));
 	}
 	if(Adiel_RRT)
 	{	*Adiel_RRT += Adiel["Electrostatic"] * matrix3<>(1,1,1) //volume contribution
 			- 0.5*coulombStress(rhoExplicitTilde, rhoExplicitTilde); //through coulomb in phiExt
+		if(rhoLiquidTilde0)
+			*Adiel_RRT -= coulombStress(rhoExplicitTilde, rhoLiquidTilde0);
 	}
 	
 	//Collect cavity shape derivatives:
 	ScalarFieldArray Adiel_shape = -1.0 * F_shape; //since energy contribution is -F
-	if(rhoLiquidTilde0) ((NonlinearPCM*)this)->A_rhoLiquidTilde0 = phiTot - phiLiquid0;
+	if(rhoLiquidTilde0) ((NonlinearPCM*)this)->A_rhoLiquidTilde0 = phiExplicitTilde;
 	
 	//Propagate to derivatives w.r.t electronic charge and density:
-	Adiel_rhoExplicitTilde = phiTot - phiExplicitTilde;
+	Adiel_rhoExplicitTilde = phiTot - phiExplicitTilde + phiLiquid0;
 	ScalarField Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
 	Adiel_nCavityTilde = J(Adiel_nCavity);
