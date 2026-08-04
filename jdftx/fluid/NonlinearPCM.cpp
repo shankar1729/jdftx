@@ -226,27 +226,20 @@ double NonlinearPCM::get_Adiel_and_grad_internal(ScalarFieldTilde& Adiel_rhoExpl
 	}
 	
 	//Compute the energy:
-	ScalarFieldTilde phiExplicitTilde = coulomb(rhoExplicitTilde), phiLiquid0;
+	ScalarFieldTilde phiExplicitTilde = coulomb(rhoExplicitTilde);
 	Adiel["Electrostatic"] = minusFvac - integral(F)
 		+ dot(phiTot, O(rhoExplicitTilde))
 		- 0.5*dot(phiExplicitTilde, O(rhoExplicitTilde));
-	if(rhoLiquidTilde0)
-	{	phiLiquid0 = coulomb(rhoLiquidTilde0);
-		Adiel["Electrostatic"] += dot(phiLiquid0, O(rhoExplicitTilde));
-	}
 	if(Adiel_RRT)
 	{	*Adiel_RRT += Adiel["Electrostatic"] * matrix3<>(1,1,1) //volume contribution
 			- 0.5*coulombStress(rhoExplicitTilde, rhoExplicitTilde); //through coulomb in phiExt
-		if(rhoLiquidTilde0)
-			*Adiel_RRT -= coulombStress(rhoExplicitTilde, rhoLiquidTilde0);
 	}
 	
 	//Collect cavity shape derivatives:
 	ScalarFieldArray Adiel_shape = -1.0 * F_shape; //since energy contribution is -F
-	if(rhoLiquidTilde0) ((NonlinearPCM*)this)->A_rhoLiquidTilde0 = phiExplicitTilde;
 	
 	//Propagate to derivatives w.r.t electronic charge and density:
-	Adiel_rhoExplicitTilde = phiTot - phiExplicitTilde + phiLiquid0;
+	Adiel_rhoExplicitTilde = phiTot - phiExplicitTilde;
 	ScalarField Adiel_nCavity;
 	propagateCavityGradients(Adiel_shape, Adiel_nCavity, Adiel_rhoExplicitTilde, extraForces, Adiel_RRT);
 	Adiel_nCavityTilde = J(Adiel_nCavity);

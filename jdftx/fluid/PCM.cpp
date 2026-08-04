@@ -334,7 +334,8 @@ void PCM::updateCavity()
 		ShapeFunction::compute(nCavityEx[0], shapeVdw, nbar_c[0], fsp.sigma); //vdW cavity
 		shape[0] = I(wEta * J(shapeVdw)); //dielectric cavity
 		double prefacAlq0 = fsp.solvents[0]->Nbulk * fsp.pCavity / fsp.eta_wDiel;
-		rhoLiquidTilde0 = prefacAlq0 * J(shapeVdw - shape[0]);
+		ScalarField rhoLiquid0 = prefacAlq0 * (shapeVdw - shape[0]);
+		Adiel["ChargeAsym"] = dot(coulomb(J(rhoLiquid0)), O(rhoExplicitTilde));
 		if(shape.size() > 1) //separate ionic cavity:
 		{	nCavityEx[1] = I(wExpand[1] * J(nCavity));
 			ShapeFunction::compute(nCavityEx[1], shape[1], nbar_c[1], fsp.sigma);
@@ -522,18 +523,22 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 	}
 	else if(fsp.pcmVariant == PCM_CANON)
 	{	double prefacAlq0 = fsp.solvents[0]->Nbulk * fsp.pCavity / fsp.eta_wDiel;
-		ScalarField Alq0_shapeDiff = prefacAlq0 * I(A_rhoLiquidTilde0);
+		ScalarFieldTilde rhoLiquidTilde0 = prefacAlq0 * J(shapeVdw - shape[0]);
+		ScalarField A_rhoLiquid0 = I(coulomb(rhoExplicitTilde));
+		A_rhoExplicitTilde += coulomb(rhoLiquidTilde0);
+		ScalarField Alq0_shapeDiff = prefacAlq0 * A_rhoLiquid0;
 		ScalarField A_shape0 = A_shape[0] - Alq0_shapeDiff;
 		ScalarField A_shapeVdw = I(wEta * (J(A_shape0))) + Alq0_shapeDiff + Acavity_shapeVdw, A_nCavityEx[2];
 		ShapeFunction::propagateGradient(nCavityEx[0], A_shapeVdw, A_nCavityEx[0], nbar_c[0], fsp.sigma);
 		A_nCavity += I(wExpand[0] * J(A_nCavityEx[0]));
 		if(Adiel_RRT) 
 			*Adiel_RRT += convolveStress(wEta, J(A_shape0), J(shapeVdw))
-				+ convolveStress(wExpand[0], J(A_nCavityEx[0]), J(nCavity));
+				+ convolveStress(wExpand[0], J(A_nCavityEx[0]), J(nCavity))
+				+ coulombStress(rhoExplicitTilde, rhoLiquidTilde0);
 		((PCM*)this)->A_eta_wDiel = integral(A_shape0 * I(wEta_prime * J(shapeVdw)));
 		((PCM*)this)->A_pCavity = 0.0;
 		if(fsp.pCavity)
-		{	double Alq0_lnPrefac = dot(A_rhoLiquidTilde0, O(rhoLiquidTilde0));
+		{	double Alq0_lnPrefac = dot(J(A_rhoLiquid0), O(rhoLiquidTilde0));
 			((PCM*)this)->A_eta_wDiel -= Alq0_lnPrefac / fsp.eta_wDiel;
 			((PCM*)this)->A_pCavity += Alq0_lnPrefac / fsp.pCavity;
 		}

@@ -44,7 +44,6 @@ protected:
 	ScalarField nCavity, tauCavity, nCavityEx[2]; //!< Cavity determining electron density (or product for SaLSA, or KE density for SG14tauVW, and expanded electron densities for the SGA13 variant)
 	ScalarFieldArray shape; //!< Electrostatic cavity shape function. Second component, if any, is separate ionic cavity
 	ScalarField shapeVdw; //!< Separate cavitation/dispersion shape function for the SGA13 variant
-	ScalarFieldTilde rhoLiquidTilde0, A_rhoLiquidTilde0; //!< built-in charge density in liquid for CANON, and corresponding energy derivative
 
 	virtual void printDebug(FILE* fp) const {} //!< over-ride to get extra PCM-specific output in fluidDebug text file
 	
