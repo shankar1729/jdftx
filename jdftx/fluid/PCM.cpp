@@ -333,7 +333,7 @@ void PCM::updateCavity()
 	{	nCavityEx[0] = I(wExpand[0] * J(nCavity));
 		ShapeFunction::compute(nCavityEx[0], shapeVdw, nbar_c[0], fsp.sigma); //vdW cavity
 		shape[0] = I(wEta * J(shapeVdw)); //dielectric cavity
-		Adiel["ChargeAsym"] = fsp.phiCavity * dot(J(1 - shape[0]), O(rhoExplicitTilde));
+		Adiel["ChargeAsym"] = fsp.phiCavity * dot(J(1 - shapeVdw), O(rhoExplicitTilde));
 		if(shape.size() > 1) //separate ionic cavity:
 		{	nCavityEx[1] = I(wExpand[1] * J(nCavity));
 			ShapeFunction::compute(nCavityEx[1], shape[1], nbar_c[1], fsp.sigma);
@@ -520,17 +520,16 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		((PCM*)this)->A_pCavity = A_pCavity;
 	}
 	else if(fsp.pcmVariant == PCM_CANON)
-	{	ScalarFieldTilde shapeConjTilde = J(1 - shape[0]);
+	{	ScalarFieldTilde shapeConjTilde = J(1 - shapeVdw);
 		A_rhoExplicitTilde += fsp.phiCavity * shapeConjTilde;
-		ScalarField A_shape0 = A_shape[0] - fsp.phiCavity * I(rhoExplicitTilde);
-		ScalarField A_shapeVdw = I(wEta * (J(A_shape0))) + Acavity_shapeVdw, A_nCavityEx[2];
+		ScalarField A_shapeVdw = I(wEta * (J(A_shape[0]))) + Acavity_shapeVdw - fsp.phiCavity * I(rhoExplicitTilde), A_nCavityEx[2];
 		ShapeFunction::propagateGradient(nCavityEx[0], A_shapeVdw, A_nCavityEx[0], nbar_c[0], fsp.sigma);
 		A_nCavity += I(wExpand[0] * J(A_nCavityEx[0]));
 		if(Adiel_RRT) 
-			*Adiel_RRT += convolveStress(wEta, J(A_shape0), J(shapeVdw))
+			*Adiel_RRT += convolveStress(wEta, J(A_shape[0]), J(shapeVdw))
 				+ convolveStress(wExpand[0], J(A_nCavityEx[0]), J(nCavity))
 				+ matrix3<>(1,1,1) * Adiel["ChargeAsym"];
-		((PCM*)this)->A_eta_wDiel = integral(A_shape0 * I(wEta_prime * J(shapeVdw)));
+		((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wEta_prime * J(shapeVdw)));
 		((PCM*)this)->A_phiCavity = dot(shapeConjTilde, O(rhoExplicitTilde));
 		
 		if(shape.size() > 1)
