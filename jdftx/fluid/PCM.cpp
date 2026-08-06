@@ -94,10 +94,8 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 		}
 		case PCM_CANON:
 		{	Citations::add("Charge-Asymmetric Nonlinear Optimally-Nonlocal (CANON) fluid model",
-					"K. A. Schwarz and R. Sundararaman, under preparation (2024)");
+					"R. Vasdev, K. A. Schwarz and R. Sundararaman, under preparation (2026)");
 			useEta = true;
-			cavitationNL = true;
-			dispNLunified = true;
 			Rex[0] = solvent->Rvdw;
 			if(fsp.ionSpacing)
 			{	shape.resize(2); //separate ionic cavity
@@ -114,6 +112,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 				);
 			}
 			logPrintf("   Charge asymmetry from cavity potential phiCavity = %lg\n", fsp.phiCavity);
+			logPrintf("   Effective cavity tension: %lg Eh/bohr^2 to account for cavitation and dispersion.\n", fsp.cavityTension);
 			break;
 		}
 		case PCM_CANDLE:
@@ -383,7 +382,6 @@ void PCM::updateCavity()
 	const auto& solvent = fsp.solvents[0];
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
-		case PCM_CANON:
 		case PCM_CANDLE:
 		case PCM_SGA13:
 		{	//Select relevant shape function:
@@ -408,7 +406,7 @@ void PCM::updateCavity()
 			ScalarFieldTildeArray Ntilde(Sf.size()), A_Ntilde(Sf.size()); //effective nuclear densities in spherical-averaged ansatz
 			for(unsigned i=0; i<Sf.size(); i++)
 				Ntilde[i] = solvent->Nbulk * (Sf[i] * sTilde);
-			bool useSqrtC6eff = (fsp.pcmVariant==PCM_CANDLE) or (fsp.pcmVariant==PCM_CANON);
+			bool useSqrtC6eff = (fsp.pcmVariant==PCM_CANDLE);
 			const double vdwScaleEff = useSqrtC6eff ? fsp.sqrtC6eff : fsp.vdwScale;
 			Adiel["Dispersion"] = e.vanDerWaalsFluid->energyAndGrad(atpos, Ntilde, atomicNumbers, vdwScaleEff, &A_Ntilde,
 				0, e.iInfo.computeStress ? &Acavity_RRT : 0);
@@ -423,20 +421,24 @@ void PCM::updateCavity()
 			(useShape0 ? Acavity_shape : Acavity_shapeVdw) = Jdag(A_sTilde);
 			break;
 		}
+		case PCM_CANON:
 		case PCM_GLSSA13:
 		case PCM_SoftSphere:
-		{	VectorField Dshape = gradient(shape[0]);
+		{	bool useShapeVdw = (fsp.pcmVariant == PCM_CANON);
+			const ScalarField& shapeCur = useShapeVdw ? shapeVdw : shape[0];
+			ScalarField& Acavity_shapeCur = useShapeVdw ? Acavity_shapeVdw : Acavity_shape;
+			VectorField Dshape = gradient(shapeCur);
 			ScalarField surfaceDensity = sqrt(lengthSquared(Dshape));
 			ScalarField invSurfaceDensity = inv(surfaceDensity);
 			A_tension = integral(surfaceDensity);
 			Adiel["CavityTension"] = A_tension * fsp.cavityTension;
-			Acavity_shape = (-fsp.cavityTension)*divergence(Dshape*invSurfaceDensity);
+			Acavity_shapeCur = (-fsp.cavityTension)*divergence(Dshape*invSurfaceDensity);
 			if(e.iInfo.computeStress)
 				Acavity_RRT = (-fsp.cavityTension * gInfo.dV) * dotOuter(Dshape, Dshape, invSurfaceDensity)
 					+ matrix3<>(1,1,1) * Adiel["CavityTension"];
 			if(fsp.cavityPressure)
-			{	Adiel["CavityPressure"] = fsp.cavityPressure * (gInfo.detR - integral(shape[0]));
-				Acavity_shape = Acavity_shape - fsp.cavityPressure;
+			{	Adiel["CavityPressure"] = fsp.cavityPressure * (gInfo.detR - integral(shapeCur));
+				Acavity_shapeCur -= fsp.cavityPressure;
 				if(e.iInfo.computeStress)
 					Acavity_RRT += matrix3<>(1,1,1) * Adiel["CavityPressure"];
 			}
@@ -584,12 +586,11 @@ void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCav
 	//VDW contribution:
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
-		case PCM_CANON:
 		case PCM_CANDLE:
 		case PCM_SGA13:
 		{	const auto& solvent = fsp.solvents[0];
 			bool useShape0 = (fsp.pcmVariant==PCM_SaLSA);
-			bool useSqrtC6eff = (fsp.pcmVariant==PCM_CANDLE) or (fsp.pcmVariant==PCM_CANON);
+			bool useSqrtC6eff = (fsp.pcmVariant==PCM_CANDLE);
 			const ScalarFieldTilde sTilde = J(useShape0 ? shape[0] : shapeVdw);
 			ScalarFieldTildeArray Ntilde(Sf.size());
 			for(unsigned i=0; i<Sf.size(); i++)
@@ -679,7 +680,7 @@ void PCM::dumpDebug(const char* filenamePattern) const
 			fprintf(fp, "   E_vdwScale = %.15lg\n", A_vdwScale);
 			break;
 		case PCM_CANON:
-			fprintf(fp, "   E_sqrtC6eff = %.15lg\n", A_vdwScale);
+			fprintf(fp, "   E_tension = %.15lg\n", A_tension);
 			fprintf(fp, "   E_eta_wDiel = %.15lg\n", A_eta_wDiel);
 			fprintf(fp, "   E_phiCavity = %.15lg\n", A_phiCavity);
 			break;

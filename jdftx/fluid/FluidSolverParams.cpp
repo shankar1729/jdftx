@@ -115,9 +115,9 @@ void FluidSolverParams::setPCMparams()
 			switch(solvents[0]->name)
 			{	case FluidComponent::H2O:
 					Ztot = 8;
-					eta_wDiel = 1.7;
-					sqrtC6eff = 0.770;
-					phiCavity = -0.025;
+					eta_wDiel = 2.4;
+					cavityTension = 5.0E-5;
+					phiCavity = -0.035;
 					break;
 				default:
 					throw string("CANON has not been parametrized for this solvent");
@@ -431,7 +431,7 @@ bool FluidSolverParams::needsVDW() const
 			return false;
 		case FluidLinearPCM:
 		case FluidNonlinearPCM:
-			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_CANDLE || pcmVariant==PCM_CANON);
+			return (pcmVariant==PCM_SGA13 || pcmVariant==PCM_CANDLE);
 		case FluidSaLSA:
 		case FluidClassicalDFT:
 		default:

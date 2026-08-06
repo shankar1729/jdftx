@@ -110,7 +110,7 @@ enum PCMparameter
 	PCMp_rhoMax, //!< max electron density (bohr^-3) for SCCS cavity switching function
 	PCMp_rhoDelta, //!< electron density change (bohr^-3) for SCCS cavity area calculation
 	PCMp_eta_wDiel, //!< fit parameter for dielectric cavity in CANDLE and CANON
-	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for CANDLE and CANON
+	PCMp_sqrtC6eff, //!< sqrt(effective molecule C6 coefficient) for CANDLE
 	PCMp_pCavity, //!< sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE
 	PCMp_Ztot, //!< Total valence charge on the solvent, used by CANDLE for vdW cavity determination
 	PCMp_phiCavity, //!< effective cavity potential  [Eh] in CANON
@@ -157,7 +157,7 @@ EnumStringMap<PCMparameter> pcmParamDescMap
 	PCMp_rhoMax, "max electron density (bohr^-3) for SCCS cavity switching function",
 	PCMp_rhoDelta, "electron density change (bohr^-3) for SCCS cavity area calculation",
 	PCMp_eta_wDiel, "fit parameter for dielectric cavity in CANDLE and CANON",
-	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for CANDLE and CANON",
+	PCMp_sqrtC6eff, "sqrt(effective molecule C6 coefficient) for CANDLE",
 	PCMp_pCavity, "sensitivity of cavity to surface electric fields [e-a0/Eh] in CANDLE",
 	PCMp_Ztot, "total valence charge on the solvent, used by CANDLE for vdW cavity determination",
 	PCMp_phiCavity, "effective cavity potential  [Eh] in CANON",
