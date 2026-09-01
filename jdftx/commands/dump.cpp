@@ -611,6 +611,8 @@ enum VibrationsMember
 	VM_T,
 	VM_omegaResolution,
 	VM_dumpK,
+	VM_iConfiguration,
+	VM_nConfigurations,
 	VM_Delim
 };
 
@@ -623,7 +625,9 @@ EnumStringMap<VibrationsMember> vibMap
 	VM_omegaMin, "omegaMin",
 	VM_T, "T",
 	VM_omegaResolution, "omegaResolution",
-	VM_dumpK, "dumpK"
+	VM_dumpK, "dumpK",
+	VM_iConfiguration, "iConfiguration",
+	VM_nConfigurations, "nConfigurations"
 );
 
 struct CommandVibrations : public Command
@@ -652,6 +656,10 @@ struct CommandVibrations : public Command
 			"   in modes (default: 1e-4). Does not affect free energies and all modes are still printed.\n"
 			"+ dumpK yes|no: dump the Hessian matrix at the end of vibrational analysis. (default no).\n"
 			"   Includes subspace projections performed according to translationSym and rotationSym.\n"
+			"+ iConfiguration <iConfiguration>: Configuration index to inititate evaluation at (default -1). \n"
+			"   Changing from default value disables analysis.\n"
+			"+ nConfigurations <nConfigurations>: Number of configurations to evaluate (default -1). \n"
+			"   Changing from default value disables analysis.\n"
 			"\n"
 			"Note that for a periodic system with k-points, wave functions may be incompatible\n"
 			"with and without the vibrations command due to symmetry-breaking by the perturbations.\n"
@@ -677,6 +685,8 @@ struct CommandVibrations : public Command
 				case VM_T: pl.get(e.vibrations->T, 298., "T", true); e.vibrations->T *= Kelvin; break;
 				case VM_omegaResolution: pl.get(e.vibrations->omegaResolution, 1e-4, "omegaResolution", true); break;
 				case VM_dumpK: pl.get(e.vibrations->dumpK, false, boolMap, "dumpK", true); break;
+				case VM_iConfiguration: pl.get(e.vibrations->iConfiguration, -1, "iConfiguration", true); break;
+				case VM_nConfigurations: pl.get(e.vibrations->nConfigurations, -1, "nConfigurations", true); break;
 				case VM_Delim: return; //end of input
 			}
 		}
@@ -693,6 +703,8 @@ struct CommandVibrations : public Command
 		logPrintf("\\\n\tT %g", e.vibrations->T/Kelvin);
 		logPrintf("\\\n\tomegaResolution %g", e.vibrations->omegaResolution);
 		logPrintf("\\\n\tdumpK %s", boolMap.getString(e.vibrations->dumpK));
+		logPrintf("\\\n\tiConfiguration %d", e.vibrations->iConfiguration);
+		logPrintf("\\\n\tnConfigurations %d", e.vibrations->nConfigurations);
 	}
 }
 commandVibrations;
