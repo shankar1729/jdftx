@@ -64,6 +64,24 @@ namespace ShapeFunctionCANDLE
 	}
 }
 
+namespace ShapeFunctionCANON
+{
+	__global__
+	void computeTau_or_grad_kernel(int N, bool grad,
+		const double* n, vector3<const double*> Dn, double* tau,
+		const double* A_tau, double* A_n, vector3<double*> A_Dn)
+	{	int i = kernelIndex1D();
+		if(i<N) computeTau_or_grad_calc(i, grad, n, Dn, tau, A_tau, A_n, A_Dn);
+	}
+	void computeTau_or_grad_gpu(int N, bool grad,
+		const double* n, vector3<const double*> Dn, double* tau,
+		const double* A_tau, double* A_n, vector3<double*> A_Dn)
+	{	GpuLaunchConfig1D glc(computeTau_or_grad_kernel, N);
+		computeTau_or_grad_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, grad, n, Dn, tau, A_tau, A_n, A_Dn);
+		gpuErrorCheck();
+	}
+}
+
 namespace ShapeFunctionSGA13
 {
 	__global__

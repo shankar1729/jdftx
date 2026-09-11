@@ -56,6 +56,16 @@ namespace ShapeFunctionCANDLE
 		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity, matrix3<>* E_RRT=0);
 }
 
+//! Shape function in CANON \cite CANON
+namespace ShapeFunctionCANON
+{
+	//! Compute effective kinetic energy density from cavity-determining electron density
+	void computeTau(const ScalarField& n, ScalarField& tau);
+	
+	//! Propagate gradients w.r.t tau to n (accumulate to E_n and optionally to stress E_RRT)
+	void propagateTauGradient(const ScalarField& n, const ScalarField& E_tau, ScalarField& E_n, matrix3<>* E_RRT);
+}
+
 //! Shape function for \cite CavityWDA
 namespace ShapeFunctionSGA13
 {
@@ -141,6 +151,30 @@ namespace ShapeFunctionCANDLE
 		}
 	}
 }
+
+namespace ShapeFunctionCANON
+{
+	__hostanddev__ void computeTau_or_grad_calc(int i, bool grad,
+		const double* nArr, vector3<const double*> DnArr, double* tau,
+		const double* A_tau, double* A_n, vector3<double*> A_Dn)
+	{
+		const double NCUT = 1E-8;
+		const double thomasFermiPrefac = 0.3 * std::pow(3*M_PI*M_PI, 2./3.);
+		double n = nArr[i];
+		double nReg = fmax(fabs(n), NCUT);
+		vector3<> Dn = loadVector(DnArr, i);
+		if(not grad)
+			tau[i] = thomasFermiPrefac*pow(nReg,  5./3) + Dn.length_squared()/(8*nReg);
+		else
+		{	if(nReg > NCUT)
+			{	double A_nReg = A_tau[i] * ((thomasFermiPrefac*(5./3))*pow(nReg,  2./3) - Dn.length_squared()/(8*nReg*nReg));
+				A_n[i] += A_nReg * std::signbit(n);
+			}
+			storeVector(Dn * (A_tau[i]/(4*nReg)), A_Dn, i);
+		}
+	}
+}
+
 
 namespace ShapeFunctionSGA13
 {

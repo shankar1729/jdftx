@@ -102,12 +102,12 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 				Rex[1] = solvent->Rvdw + fsp.ionSpacing;
 			}
 			for(size_t iShape=0; iShape<shape.size(); iShape++)
-			{	double mhalfSigmaSq = -0.5 * std::pow(0.2, 2);
-				nbar_c[iShape] = 0.060 * log(Rex[iShape] / 0.78);
+			{	double mhalfSigmaSq = -0.5 * std::pow(0.4, 2);
+				tau_bar_c[iShape] = 0.0068 * log(Rex[iShape] / 0.60);
 				wExpand[iShape].init(0, dG, e.gInfo.GmaxGrid, wTheta_calc, Rex[iShape], mhalfSigmaSq);
 				logPrintf(
-					"   %s cavity set by nc = %lg determined from %s = %lg bohrs\n",
-					iShape ? "Ionic" : "Solvent", nbar_c[iShape],
+					"   %s cavity set by tau_c = %lg determined from %s = %lg bohrs\n",
+					iShape ? "Ionic" : "Solvent", tau_bar_c[iShape],
 					iShape ? "Rvdw + ionSpacing" : "Rvdw", Rex[iShape]
 				);
 			}
@@ -329,13 +329,19 @@ void PCM::updateCavity()
 		shape[0] = I(wEta * J(shapeVdw)); //dielectric cavity
 	}
 	else if(fsp.pcmVariant == PCM_CANON)
-	{	nCavityEx[0] = I(wExpand[0] * J(nCavity));
-		ShapeFunction::compute(nCavityEx[0], shapeVdw, nbar_c[0], fsp.sigma); //vdW cavity
+	{	ShapeFunctionCANON::computeTau(nCavity, tauCavity); //get effective KE density
+		tauCavityEx[0] = I(wExpand[0] * J(tauCavity));
+		//HACK
+		printStats(nCavity, "nCavity");
+		printStats(tauCavity, "tauCavity");
+		printStats(tauCavityEx[0], "tauCavityEx");
+		//end HACK
+		ShapeFunction::compute(tauCavityEx[0], shapeVdw, tau_bar_c[0], fsp.sigma); //vdW cavity
 		shape[0] = I(wEta * J(shapeVdw)); //dielectric cavity
 		Adiel["ChargeAsym"] = fsp.phiCavity * dot(J(1 - shapeVdw), O(rhoExplicitTilde));
 		if(shape.size() > 1) //separate ionic cavity:
-		{	nCavityEx[1] = I(wExpand[1] * J(nCavity));
-			ShapeFunction::compute(nCavityEx[1], shape[1], nbar_c[1], fsp.sigma);
+		{	tauCavityEx[1] = I(wExpand[1] * J(tauCavity));
+			ShapeFunction::compute(tauCavityEx[1], shape[1], tau_bar_c[1], fsp.sigma);
 		}
 	}
 	else if(fsp.pcmVariant==PCM_SoftSphere)
@@ -524,21 +530,22 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 	else if(fsp.pcmVariant == PCM_CANON)
 	{	ScalarFieldTilde shapeConjTilde = J(1 - shapeVdw);
 		A_rhoExplicitTilde += fsp.phiCavity * shapeConjTilde;
-		ScalarField A_shapeVdw = I(wEta * (J(A_shape[0]))) + Acavity_shapeVdw - fsp.phiCavity * I(rhoExplicitTilde), A_nCavityEx[2];
-		ShapeFunction::propagateGradient(nCavityEx[0], A_shapeVdw, A_nCavityEx[0], nbar_c[0], fsp.sigma);
-		A_nCavity += I(wExpand[0] * J(A_nCavityEx[0]));
+		ScalarField A_shapeVdw = I(wEta * (J(A_shape[0]))) + Acavity_shapeVdw - fsp.phiCavity * I(rhoExplicitTilde), A_tauCavityEx[2];
+		ShapeFunction::propagateGradient(tauCavityEx[0], A_shapeVdw, A_tauCavityEx[0], tau_bar_c[0], fsp.sigma);
+		ScalarField A_tauCavity = I(wExpand[0] * J(A_tauCavityEx[0]));
 		if(Adiel_RRT) 
 			*Adiel_RRT += convolveStress(wEta, J(A_shape[0]), J(shapeVdw))
-				+ convolveStress(wExpand[0], J(A_nCavityEx[0]), J(nCavity))
+				+ convolveStress(wExpand[0], J(A_tauCavityEx[0]), J(tauCavity))
 				+ matrix3<>(1,1,1) * Adiel["ChargeAsym"];
 		((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wEta_prime * J(shapeVdw)));
 		((PCM*)this)->A_phiCavity = dot(shapeConjTilde, O(rhoExplicitTilde));
 		
 		if(shape.size() > 1)
-		{	ShapeFunction::propagateGradient(nCavityEx[1], A_shape[1], A_nCavityEx[1], nbar_c[1], fsp.sigma);
-			A_nCavity += I(wExpand[1] * J(A_nCavityEx[1]));
-			if(Adiel_RRT) *Adiel_RRT += convolveStress(wExpand[1], J(A_nCavityEx[1]), J(nCavity));
+		{	ShapeFunction::propagateGradient(tauCavityEx[1], A_shape[1], A_tauCavityEx[1], tau_bar_c[1], fsp.sigma);
+			A_tauCavity += I(wExpand[1] * J(A_tauCavityEx[1]));
+			if(Adiel_RRT) *Adiel_RRT += convolveStress(wExpand[1], J(A_tauCavityEx[1]), J(tauCavity));
 		}
+		ShapeFunctionCANON::propagateTauGradient(nCavity, A_tauCavity, A_nCavity, Adiel_RRT);
 	}
 	else if(fsp.pcmVariant == PCM_SoftSphere)
 	{	nullToZero(A_nCavity, gInfo); //no electronic contributions
@@ -605,7 +612,6 @@ void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCav
 	//Full core contribution:
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
-		case PCM_CANON:
 		case PCM_CANDLE:
 		{	VectorFieldTilde gradAtpos; nullToZero(gradAtpos, gInfo);
 			for(unsigned iSp=0; iSp<atpos.size(); iSp++)
@@ -623,7 +629,6 @@ void PCM::accumExtraForces(IonicGradient* forces, const ScalarFieldTilde& A_nCav
 ScalarFieldTilde PCM::getFullCore() const
 {	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:
-		case PCM_CANON:
 		case PCM_CANDLE:
 		{	ScalarFieldTilde nFullCore, SG(ScalarFieldTildeData::alloc(gInfo, isGpuEnabled()));
 			for(unsigned iSp=0; iSp<atpos.size(); iSp++)

@@ -41,7 +41,9 @@ public:
 protected:
 	EnergyComponents Adiel; //!< PCM energy components
 	ScalarFieldTilde rhoExplicitTilde; //!< Charge density of explicit (electronic) system
-	ScalarField nCavity, tauCavity, nCavityEx[2]; //!< Cavity determining electron density (or product for SaLSA, or KE density for SG14tauVW, and expanded electron densities for the SGA13 variant)
+	ScalarField nCavity; //!< Cavity determining electron density (or product for SaLSA)
+	ScalarField nCavityEx[2]; //!< Expanded electron densities for the SGA13 variant
+	ScalarField tauCavity, tauCavityEx[2]; //!< Effective kinetic energy density and expanded versions for CANON
 	ScalarFieldArray shape; //!< Electrostatic cavity shape function. Second component, if any, is separate ionic cavity
 	ScalarField shapeVdw; //!< Separate cavitation/dispersion shape function for the SGA13 variant
 
@@ -62,7 +64,7 @@ private:
 	matrix3<> Acavity_RRT; //!< Cached gradients of cavitation (and dispersion) energies w.r.t lattice vectors
 	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity, A_phiCavity, A_cavityScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
-	double nbar_c[2]; //!< thresholds for solvent and optionally ionic cavity (CANON only)
+	double tau_bar_c[2]; //!< thresholds for solvent and optionally ionic cavity (CANON only)
 	RadialFunctionG wExpand[2]; //!< weight functions for cavity expansion in SGA13, and for nonlocal cavity determination in CANON
 	RadialFunctionG wEta, wEta_prime; //!< weight function for dielectric cavity expansion in CANDLE and CANON, and its derivative w.r.t eta
 	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy

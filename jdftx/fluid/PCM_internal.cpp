@@ -92,6 +92,39 @@ namespace ShapeFunctionCANDLE
 	}
 }
 
+namespace ShapeFunctionCANON
+{
+	void computeTau_or_grad(int N, bool grad,
+		const double* n, vector3<const double*> Dn, double* tau,
+		const double* A_tau, double* A_n, vector3<double*> A_Dn)
+	{	threadedLoop(computeTau_or_grad_calc, N, grad, n, Dn, tau, A_tau, A_n, A_Dn);
+	}
+	#ifdef GPU_ENABLED
+	void computeTau_or_grad_gpu(int N, bool grad,
+		const double* n, vector3<const double*> Dn, double* tau,
+		const double* A_tau, double* A_n, vector3<double*> A_Dn);
+	#endif
+	void computeTau(const ScalarField& n, ScalarField& tau)
+	{	VectorField Dn = gradient(n);
+		nullToZero(tau, n->gInfo);
+		callPref(computeTau_or_grad)(n->gInfo.nr, false,
+			n->dataPref(), Dn.const_dataPref(), tau->dataPref(),
+			NULL, NULL, vector3<double*>());
+	}
+	void propagateTauGradient(const ScalarField& n, const ScalarField& E_tau, ScalarField& E_n, matrix3<>* E_RRT)
+	{	VectorField Dn = gradient(n);
+		nullToZero(E_n, n->gInfo);
+		VectorField E_Dn; nullToZero(E_Dn, n->gInfo);
+		callPref(computeTau_or_grad)(n->gInfo.nr, true,
+			n->dataPref(), Dn.const_dataPref(), NULL,
+			E_tau->dataPref(), E_n->dataPref(), E_Dn.dataPref());
+		if(E_RRT)
+			*E_RRT -= n->gInfo.dV * dotOuter(E_Dn, Dn);
+		Dn = 0; //free memory
+		E_n -= divergence(E_Dn);
+	}
+}
+
 namespace ShapeFunctionSGA13
 {
 	void expandDensityHelper(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)
