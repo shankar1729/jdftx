@@ -102,12 +102,12 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 				Rex[1] = solvent->Rvdw + fsp.ionSpacing;
 			}
 			for(size_t iShape=0; iShape<shape.size(); iShape++)
-			{	double mhalfSigmaSq = -0.5 * std::pow(0.4, 2);
-				tau_bar_c[iShape] = 0.0068 * log(Rex[iShape] / 0.60);
+			{	double mhalfSigmaSq = -0.5 * std::pow(0.25, 2);
+				sigma_bar_c[iShape] = 7.1E-5 * log(Rex[iShape] / 0.436);
 				wExpand[iShape].init(0, dG, e.gInfo.GmaxGrid, wTheta_calc, Rex[iShape], mhalfSigmaSq);
 				logPrintf(
-					"   %s cavity set by tau_c = %lg determined from %s = %lg bohrs\n",
-					iShape ? "Ionic" : "Solvent", tau_bar_c[iShape],
+					"   %s cavity set by sigma_c = %lg determined from %s = %lg bohrs\n",
+					iShape ? "Ionic" : "Solvent", sigma_bar_c[iShape],
 					iShape ? "Rvdw + ionSpacing" : "Rvdw", Rex[iShape]
 				);
 			}
@@ -329,19 +329,14 @@ void PCM::updateCavity()
 		shape[0] = I(wEta * J(shapeVdw)); //dielectric cavity
 	}
 	else if(fsp.pcmVariant == PCM_CANON)
-	{	ShapeFunctionCANON::computeTau(nCavity, tauCavity); //get effective KE density
-		tauCavityEx[0] = I(wExpand[0] * J(tauCavity));
-		//HACK
-		printStats(nCavity, "nCavity");
-		printStats(tauCavity, "tauCavity");
-		printStats(tauCavityEx[0], "tauCavityEx");
-		//end HACK
-		ShapeFunction::compute(tauCavityEx[0], shapeVdw, tau_bar_c[0], fsp.sigma); //vdW cavity
+	{	sigmaCavity = lengthSquared(gradient(nCavity));
+		sigmaCavityEx[0] = I(wExpand[0] * J(sigmaCavity));
+		ShapeFunction::compute(sigmaCavityEx[0], shapeVdw, sigma_bar_c[0], fsp.sigma); //vdW cavity
 		shape[0] = I(wEta * J(shapeVdw)); //dielectric cavity
 		Adiel["ChargeAsym"] = fsp.phiCavity * dot(J(1 - shapeVdw), O(rhoExplicitTilde));
 		if(shape.size() > 1) //separate ionic cavity:
-		{	tauCavityEx[1] = I(wExpand[1] * J(tauCavity));
-			ShapeFunction::compute(tauCavityEx[1], shape[1], tau_bar_c[1], fsp.sigma);
+		{	sigmaCavityEx[1] = I(wExpand[1] * J(sigmaCavity));
+			ShapeFunction::compute(sigmaCavityEx[1], shape[1], sigma_bar_c[1], fsp.sigma);
 		}
 	}
 	else if(fsp.pcmVariant==PCM_SoftSphere)
@@ -530,22 +525,25 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 	else if(fsp.pcmVariant == PCM_CANON)
 	{	ScalarFieldTilde shapeConjTilde = J(1 - shapeVdw);
 		A_rhoExplicitTilde += fsp.phiCavity * shapeConjTilde;
-		ScalarField A_shapeVdw = I(wEta * (J(A_shape[0]))) + Acavity_shapeVdw - fsp.phiCavity * I(rhoExplicitTilde), A_tauCavityEx[2];
-		ShapeFunction::propagateGradient(tauCavityEx[0], A_shapeVdw, A_tauCavityEx[0], tau_bar_c[0], fsp.sigma);
-		ScalarField A_tauCavity = I(wExpand[0] * J(A_tauCavityEx[0]));
+		ScalarField A_shapeVdw = I(wEta * (J(A_shape[0]))) + Acavity_shapeVdw - fsp.phiCavity * I(rhoExplicitTilde), A_sigmaCavityEx[2];
+		ShapeFunction::propagateGradient(sigmaCavityEx[0], A_shapeVdw, A_sigmaCavityEx[0], sigma_bar_c[0], fsp.sigma);
+		ScalarField A_sigmaCavity = I(wExpand[0] * J(A_sigmaCavityEx[0]));
 		if(Adiel_RRT) 
 			*Adiel_RRT += convolveStress(wEta, J(A_shape[0]), J(shapeVdw))
-				+ convolveStress(wExpand[0], J(A_tauCavityEx[0]), J(tauCavity))
+				+ convolveStress(wExpand[0], J(A_sigmaCavityEx[0]), J(sigmaCavity))
 				+ matrix3<>(1,1,1) * Adiel["ChargeAsym"];
 		((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wEta_prime * J(shapeVdw)));
 		((PCM*)this)->A_phiCavity = dot(shapeConjTilde, O(rhoExplicitTilde));
 		
 		if(shape.size() > 1)
-		{	ShapeFunction::propagateGradient(tauCavityEx[1], A_shape[1], A_tauCavityEx[1], tau_bar_c[1], fsp.sigma);
-			A_tauCavity += I(wExpand[1] * J(A_tauCavityEx[1]));
-			if(Adiel_RRT) *Adiel_RRT += convolveStress(wExpand[1], J(A_tauCavityEx[1]), J(tauCavity));
+		{	ShapeFunction::propagateGradient(sigmaCavityEx[1], A_shape[1], A_sigmaCavityEx[1], sigma_bar_c[1], fsp.sigma);
+			A_sigmaCavity += I(wExpand[1] * J(A_sigmaCavityEx[1]));
+			if(Adiel_RRT) *Adiel_RRT += convolveStress(wExpand[1], J(A_sigmaCavityEx[1]), J(sigmaCavity));
 		}
-		ShapeFunctionCANON::propagateTauGradient(nCavity, A_tauCavity, A_nCavity, Adiel_RRT);
+		VectorField Dn = gradient(nCavity);
+		A_nCavity -= 2 * divergence(A_sigmaCavity * Dn);
+		if(Adiel_RRT)
+			*Adiel_RRT -= 2 * gInfo.dV * dotOuter(A_sigmaCavity * Dn, Dn);
 	}
 	else if(fsp.pcmVariant == PCM_SoftSphere)
 	{	nullToZero(A_nCavity, gInfo); //no electronic contributions
