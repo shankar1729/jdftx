@@ -19,6 +19,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/Everything.h>
+#include <electronic/DefectCoulomb.h>
 #include <electronic/ElecMinimizer.h>
 #include <electronic/ColumnBundle.h>
 #include <electronic/ExCorr.h>
@@ -139,6 +140,8 @@ void ElecVars::setup(const Everything &everything)
 	}
 	
 	
+	if(defectCoulomb) defectCoulomb->setup(*e);
+
 	//Initialize matrix arrays if required:
 	Hsub.resize(eInfo.nStates);
 	Hsub_evecs.resize(eInfo.nStates);
@@ -288,6 +291,12 @@ void ElecVars::EdensityAndVscloc(Energies& ener, const ExCorr* alternateExCorr)
 	ScalarFieldTilde dH = (*e->coulomb)(nTilde); //Note: external charge and nuclear charge contribute to d_vac as well (see below)
 	ener.E["EH"] = 0.5*dot(nTilde, O(dH));
 	VsclocTilde += dH;
+
+	// Mixed-boundary correction: derivative of 1/2 deltaRho (Kiso-Kslab) deltaRho.
+	if(defectCoulomb)
+	{	ener.E["EdefectCoulomb"] = defectCoulomb->update(nTilde);
+		VsclocTilde += defectCoulomb->potential;
+	}
 
 	// External charge:
 	ener.E["Eexternal"] = 0.;

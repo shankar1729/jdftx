@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <electronic/IonInfo.h>
 #include <electronic/Everything.h>
+#include <electronic/DefectCoulomb.h>
 #include <electronic/SpeciesInfo.h>
 #include <electronic/ExCorr.h>
 #include <electronic/ColumnBundle.h>
@@ -178,8 +179,8 @@ void IonInfo::update(Energies& ener)
 		sp->updateLocal(Vlocps, rhoIon, nChargeball, nCoreTilde, tauCoreTilde);
 	//Add long-range part to Vlocps and smoothen rhoIon:
 	Vlocps += (*e->coulomb)(rhoIon, Coulomb::PointChargeRight);
-	if(computeStress and ionWidth)
-		rhoIonBare = clone(rhoIon); //remember rhoIon before convolution for stress calculation
+	if(ionWidth)
+		rhoIonBare = clone(rhoIon); //retain the actual Coulomb source before plotting/fluid convolution
 	rhoIon = gaussConvolve(rhoIon, ionWidth);
 	//Process partial core density:
 	if(nCoreTilde) nCore = I(nCoreTilde); // put in real space
@@ -234,6 +235,8 @@ double IonInfo::ionicEnergyAndGrad()
 	const ScalarFieldTilde ccgrad_Vlocps = J(eVars.get_nTot()); //just the electron density for Vlocps
 	const ScalarFieldTilde ccgrad_nChargeball = eVars.V_cavity; //cavity potential for chargeballs
 	ScalarFieldTilde ccgrad_rhoIon = (*e->coulomb)(ccgrad_Vlocps, Coulomb::PointChargeLeft); //long-range portion of Vlocps for rhoIon
+	if(eVars.defectCoulomb) //derivative through the bare current ionic charge; reference stays fixed
+		ccgrad_rhoIon += eVars.defectCoulomb->ionicPotential;
 	if(eVars.d_fluid) //and electrostatic potential due to fluid (if any):
 	{	ccgrad_rhoIon +=  gaussConvolve(eVars.d_fluid, ionWidth);
 		if(computeStress)

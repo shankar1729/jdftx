@@ -1,0 +1,8 @@
+include ${SRCDIR}/common.in
+ion-width 1.2
+ion He 0 0 0 0
+initial-state clean.$VAR
+defect-coulomb clean.defectReference
+dump-only
+dump-name widthRecovery.$VAR
+dump End DefectCoulomb Ecomponents

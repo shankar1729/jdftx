@@ -5,6 +5,7 @@ set(targetNameList
 	TestSphere          #Hard sphere (surface tension)
 	Capacitor           #Parallel plate capacitor (dielectric constant)
 	TestPlanar          #Liquid-Vapor interface (surface tension)
+	TestDefectCoulomb    #Mixed-boundary Coulomb finite-difference checks
 	TestOperators       #Test operators and memory management
 	SO3quadConvergence  #Test SO3 quadrature convergence
 	NonlinearEps        #Nonlinear dielectric constant

@@ -18,6 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/SCF.h>
+#include <electronic/DefectCoulomb.h>
 #include <electronic/ElecMinimizer.h>
 #include <electronic/Everything.h>
 #include <electronic/ExactExchange.h>
@@ -162,6 +163,7 @@ double SCF::cycle(double dEprev, std::vector<double>& extraValues)
 
 void SCF::report(int iter)
 {
+	if(e.eVars.defectCoulomb) e.eVars.defectCoulomb->report();
 	if(e.cntrl.shouldPrintEigsFillings) print_Hsub_eigs(e);
 	if(e.cntrl.shouldPrintEcomponents) { logPrintf("\n"); e.ener.print(); logPrintf("\n"); }
 	logFlush();

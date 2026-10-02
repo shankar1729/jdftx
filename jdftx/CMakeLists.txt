@@ -315,6 +315,9 @@ endmacro()
 
 add_JDFTx_executable(jdftx jdftx.cpp)
 
+# Density-only construction of a mixed-boundary potential for NSCF calculations.
+add_JDFTx_executable(ConstructDefectPotential aux/ConstructDefectPotential.cpp)
+
 #----------------------- Secondary executables ------------------------
 
 #Wannier:

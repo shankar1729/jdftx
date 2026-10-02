@@ -75,6 +75,7 @@ public:
 	diagMatrix barostat; //!< optional barostat internal degrees of freedom used for IonicDynamics
 	
 	ScalarFieldTilde Vlocps; //!< Net local pseudopotential
+	const ScalarFieldTilde& getRhoIonBare() const { return ionWidth ? rhoIonBare : rhoIon; } //!< bare long-range Coulomb source
 	ScalarFieldTilde rhoIon; //!< Total ionic charge density (with width ionWidth, used for interactions with fluid)
 	ScalarFieldTilde nChargeball; //!< Extra electron density around ionic cores to keep fluid out (DEPRECATED)
 	ScalarField nCore; //!< Core electron density for partial (nonlinear) core correction

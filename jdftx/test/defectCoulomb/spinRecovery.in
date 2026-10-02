@@ -1,0 +1,8 @@
+include ${SRCDIR}/common.in
+spintype z-spin
+ion He 0 0 0 0
+initial-state spinClean.$VAR
+defect-coulomb spinClean.defectReference
+dump-only
+dump-name spinRecovery.$VAR
+dump End DefectCoulomb Ecomponents

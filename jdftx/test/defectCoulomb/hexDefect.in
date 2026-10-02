@@ -1,0 +1,6 @@
+include ${SRCDIR}/hexCommon.in
+ion He 0 0 0 0
+ion He 0 0 0.16 0
+defect-coulomb hexClean.defectReference
+dump-name hexDefect.$VAR
+dump End DefectCoulomb Ecomponents ElecDensity

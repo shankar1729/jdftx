@@ -1,0 +1,5 @@
+include ${SRCDIR}/common.in
+spintype z-spin
+ion He 0 0 0 0
+dump-name spinClean.$VAR
+dump End State ElecDensity DefectReference Ecomponents
