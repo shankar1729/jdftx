@@ -20,6 +20,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <wannier/Wannier.h>
 #include <wannier/WannierMinimizerFD.h>
 #include <wannier/WannierMinimizerRS.h>
+#include <electronic/symbols.h>
 
 Wannier::Wannier() : needAtomicOrbitals(false),
 	addAtomicOrbitals(false), pinAtomicOrbitals(false), ignoreSemiCore(true),
@@ -46,11 +47,13 @@ void Wannier::setup(const Everything& everything)
 
 	//Add atomic orbitals automatically, if requested:
 	nBandsSemiCore = 0;
+	int nBandsIgnoredP = 0;
 	if(addAtomicOrbitals)
 	{	logPrintf("\nAdding atomic orbitals as trial orbitals (%s semicore orbitals):\n",
 			ignoreSemiCore ? "ignoring" : "including");
 		for(int iSp=0; iSp<int(e->iInfo.species.size()); iSp++)
 		{	const SpeciesInfo& sp = *(e->iInfo.species[iSp]);
+			bool ignoreP = (ignorePtillGroup and (getGroupNumber(sp.atomicNumber) <= ignorePtillGroup));
 			//Prepare template of atomic orbitals for one atom:
 			DOS::Weight::OrbitalDesc od;
 			od.spinType = (e->eInfo.spinType == SpinNone)
@@ -62,6 +65,10 @@ void Wannier::setup(const Everything& everything)
 			{	int nMax = sp.nAtomicOrbitals(od.l) - 1; //max pseudo-principal quantum number
 				int nMin = (ignoreSemiCore ? std::max(nMax, 0) : 0);
 				nBandsSemiCore += nMin * (2*od.l+1) * nSpins * sp.atpos.size();
+				if(ignoreP and (od.l == 1))
+				{	nBandsIgnoredP += (nMax - nMin + 1) * 3 * nSpins * sp.atpos.size();
+					continue;
+				}
 				for(od.n=nMin; int(od.n)<=nMax; od.n++)
 				{	switch(od.spinType)
 					{	case SpinNone:
@@ -97,7 +104,8 @@ void Wannier::setup(const Everything& everything)
 			logPrintf("  Added %lu orbitals each for %lu %s atoms.\n",
 				orbitalDescs.size(), sp.atpos.size(), sp.name.c_str());
 		}
-		logPrintf("  Ignored %d semicore bands overall.\n\n", nBandsSemiCore);
+		logPrintf("  Ignored %d semicore bands overall.\n", nBandsSemiCore);
+		logPrintf("  Ignored %d outer-p bands overall.\n\n", nBandsIgnoredP);
 		needAtomicOrbitals = true;
 	}
 

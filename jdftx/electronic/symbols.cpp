@@ -253,3 +253,20 @@ double atomicMass(AtomicSymbol symbol)
 	if(symbol==AtomicSymbol::Zr) return 91.224000;
 	die("Atomic mass unavilable for element %s\n", atomicSymbolMap.getString(symbol));
 }
+
+int getGroupNumber(int Z)
+{	if(Z == 1) return 1;  // H
+    if(Z == 2) return 18; // He
+	if(Z <= 4) return Z - 2; //Li - Be
+	if(Z <= 10) return Z + 8; //B - Ne
+	if(Z <= 12) return Z - 10; //Na - Mg
+	if(Z <= 18) return Z; //Al - Ar
+	if(Z <= 36) return Z - 18; //K - Kr
+	if(Z <= 54) return Z - 36; //Rb - Xe
+	if(Z <= 56) return Z - 54; //Cs - Ba
+	if(Z <= 71) return 3; //Lanthanides
+	if(Z <= 86) return Z - 68; //Hf - Rn
+	if(Z <= 88) return Z - 86; //Fr - Ra
+	if(Z <= 103) return 3; //Actinides
+	return Z - 100; //irrelevant, but correct till 118
+}

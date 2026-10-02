@@ -25,6 +25,7 @@ enum WannierMember
 {	WM_addAtomicOrbitals,
 	WM_pinAtomicOrbitals,
 	WM_ignoreSemiCore,
+	WM_ignorePtillGroup,
 	WM_localizationMeasure,
 	WM_bStart,
 	WM_outerWindow,
@@ -54,6 +55,7 @@ EnumStringMap<WannierMember> wannierMemberMap
 (	WM_addAtomicOrbitals, "addAtomicOrbitals",
 	WM_pinAtomicOrbitals, "pinAtomicOrbitals",
 	WM_ignoreSemiCore, "ignoreSemiCore",
+	WM_ignorePtillGroup, "ignorePtillGroup",
 	WM_localizationMeasure, "localizationMeasure",
 	WM_bStart, "bStart",
 	WM_outerWindow, "outerWindow",
@@ -110,6 +112,10 @@ struct CommandWannier : public Command
 			"   Whether to drop inner orbitals of each angular momentum when adding\n"
 			"   atomic orbitals automatically (no effect if addAtomicOrbitals = no).\n"
 			"   Default: yes.\n"
+			"\n+ ignorePtillGroup <group>\n\n"
+			"   Whether to drop p orbitals of elements up to <group> in periodic table.\n"
+			"   For example, set this to 12 to not add p orbitals for s and d-block metals.\n"
+			"   Default: 0 (don't ignore p-shell automatically for any element).\n"
 			"\n+ localizationMeasure FiniteDifference | RealSpace\n\n"
 			"   Controls how the localization of the %Wannier functions is calculated.\n"
 			"   The finite-difference reciprocal space measure of Marzari and Vanderbilt\n"
@@ -237,6 +243,9 @@ struct CommandWannier : public Command
 					break;
 				case WM_ignoreSemiCore:
 					pl.get(wannier.ignoreSemiCore, true,  boolMap, "ignoreSemiCore", true);
+					break;
+				case WM_ignorePtillGroup:
+					pl.get(wannier.ignorePtillGroup, 0,  "group", true);
 					break;
 				case WM_localizationMeasure:
 					pl.get(wannier.localizationMeasure, Wannier::LM_FiniteDifference,  localizationMeasureMap, "localizationMeasure", true);
