@@ -62,6 +62,8 @@ public:
 	
 	std::vector<matrix> rhoAtom, U_rhoAtom; //!< Atomic density matrices and gradients w.r.t them (for DFT+U)
 	
+	std::shared_ptr<class DefectCoulomb> defectCoulomb; //!< fixed clean-reference Coulomb correction
+
 	//External interactions:
 	ScalarFieldArray Vexternal; //!< external potential
 	ScalarFieldTilde rhoExternal; //!< external charge density

@@ -1,0 +1,8 @@
+lattice Hexagonal 16 24
+ion-species SG15/$ID_ONCV_PBE.upf
+elec-cutoff 15 60
+elec-ex-corr gga-PBE
+symmetries none
+coulomb-interaction Slab 001
+elec-smearing Fermi 0.01
+electronic-scf nIterations 80 energyDiffThreshold 1e-10 residualThreshold 1e-8 mixedVariable potential

@@ -1,0 +1,6 @@
+# Out-of-source builds and local analysis outputs
+/build/
+/build-*/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/

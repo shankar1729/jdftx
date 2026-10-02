@@ -1,0 +1,160 @@
+#!/usr/bin/env python3
+"""Construct a native JDFTx NSCF potential from saved clean and defect densities."""
+import argparse
+import os
+from pathlib import Path
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+
+
+def native_path(value):
+    path = str(Path(value).expanduser().resolve())
+    if any(c.isspace() or c in '#\\' for c in path):
+        raise ValueError(f"JDFTx input paths cannot contain whitespace, #, or backslashes: {path}")
+    return path
+
+
+def density_pattern(value):
+    path = native_path(value)
+    if '$VAR' in path:
+        if path.count('$VAR') != 1:
+            raise ValueError('Density patterns must contain exactly one $VAR.')
+        return path
+    for suffix in ('.n_up', '.n_dn', '.n_re', '.n_im', '.n'):
+        if path.endswith(suffix):
+            return path[:-len(suffix)] + '.$VAR'
+    raise ValueError('Supply a JDFTx ElecDensity file ending in .n or .n_up, or a quoted pattern containing $VAR.')
+
+
+def pseudopotential_environment(pseudo_dir):
+    env = os.environ.copy()
+    if pseudo_dir:
+        path = Path(pseudo_dir).expanduser().resolve()
+        if not path.is_dir():
+            raise ValueError(f'Pseudopotential directory does not exist: {path}')
+        env['JDFTX_PSEUDO_DIR'] = str(path)
+    elif not env.get('JDFTX_PSEUDO_DIR'):
+        # A separately built backend may not have its own pseudopotential library.
+        # Reuse the library of the user's usual JDFTx executable if available.
+        for name in ('jdftx', 'jdftx_gpu'):
+            executable = shutil.which(name)
+            if not executable:
+                continue
+            parent = Path(executable).resolve().parent
+            for path in (parent / 'pseudopotentials', parent.parent / 'share/jdftx/pseudopotentials'):
+                if any((path / family).is_dir() for family in ('SG15', 'GBRV')):
+                    env['JDFTX_PSEUDO_DIR'] = str(path)
+                    break
+            if env.get('JDFTX_PSEUDO_DIR'):
+                break
+    if env.get('JDFTX_PSEUDO_DIR'):
+        print('Additional pseudopotential search directory: ' + env['JDFTX_PSEUDO_DIR'], flush=True)
+    return env
+
+
+def run_stage(engine, launcher, recipe, log, cwd, env):
+    result = subprocess.run(launcher + [str(engine), '-d', '-i', str(recipe), '-o', str(log)], cwd=cwd, env=env)
+    if result.returncode:
+        detail = ''
+        if log.is_file():
+            match = re.search(r'failed with message:\s*([^\n]+)', log.read_text(errors='replace'))
+            if match:
+                detail = match.group(1).strip() + '. '
+                if 'has not been defined' in detail:
+                    detail += 'Check ion-species and supply --pseudo-dir or JDFTX_PSEUDO_DIR for wildcard pseudopotentials. '
+        raise RuntimeError(f"Potential construction failed. {detail}See {log}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, epilog=(
+        'Input geometries must match the saved densities; inputs are read from their own directories. '
+        'Original SCF/restart/dump controls are ignored. No SCF or orbitals are solved. '
+        'Use quoted $VAR patterns for polarized/noncollinear densities.'))
+    parser.add_argument('--clean-input', required=True, help='Clean geometry and physical settings input')
+    parser.add_argument('--defect-input', required=True, help='Defect geometry and physical settings input')
+    parser.add_argument('--clean-density', required=True, help='clean.n or clean.$VAR (shell-quote $VAR)')
+    parser.add_argument('--defect-density', required=True, help='defect.n or defect.$VAR (shell-quote $VAR)')
+    parser.add_argument('--output-prefix', default='defect-mixed', help='Output prefix, default: defect-mixed')
+    parser.add_argument('--engine', help='Path to ConstructDefectPotential[_gpu]')
+    parser.add_argument('--pseudo-dir', help='Additional pseudopotential search directory (JDFTX_PSEUDO_DIR)')
+    parser.add_argument('--gpu', action='store_true', help='Use the CUDA backend')
+    parser.add_argument('--launcher', default='', help="Optional launcher, e.g. 'mpirun -n 2'")
+    parser.add_argument('--charge-tolerance', type=float, default=1e-5, help='Neutrality tolerance in electrons')
+    parser.add_argument('--defect-center', nargs=3, type=float, metavar=('C0', 'C1', 'C2'),
+                        help='Override the isolated-kernel embedding center; coordinates follow the defect input coords-type')
+    parser.add_argument('--overwrite', action='store_true', help='Replace existing outputs with this prefix')
+    args = parser.parse_args()
+    import math
+    if not math.isfinite(args.charge_tolerance) or args.charge_tolerance <= 0:
+        parser.error('--charge-tolerance must be finite and positive')
+    if args.defect_center and not all(map(math.isfinite, args.defect_center)):
+        parser.error('--defect-center coordinates must be finite')
+    try:
+        clean_input = Path(native_path(args.clean_input))
+        defect_input = Path(native_path(args.defect_input))
+        for path in (clean_input, defect_input):
+            if not path.is_file():
+                raise ValueError(f'Input file does not exist: {path}')
+        clean_density = density_pattern(args.clean_density)
+        defect_density = density_pattern(args.defect_density)
+        prefix = Path(native_path(args.output_prefix))
+        suffix = '_gpu' if args.gpu else ''
+        root = Path(__file__).resolve().parents[2]
+        candidate = root / ('build-gpu' if args.gpu else 'build') / ('ConstructDefectPotential' + suffix)
+        found = args.engine or (str(candidate) if candidate.is_file() else shutil.which('ConstructDefectPotential' + suffix))
+        if not found:
+            raise ValueError('Backend is not built. Run cmake --build ' +
+                             ('build-gpu' if args.gpu else 'build') + ' --target ConstructDefectPotential' + suffix)
+        engine = Path(found).expanduser().resolve()
+        if not engine.is_file() or not os.access(engine, os.X_OK):
+            raise ValueError(f'Backend is not executable: {engine}')
+        env = pseudopotential_environment(args.pseudo_dir)
+        # Include all native potential channel names and helper artifacts in the collision check.
+        endings = ('.Vscloc', '.Vscloc_up', '.Vscloc_dn', '.Vscloc_re', '.Vscloc_im',
+                   '.deltaRho', '.Vcorr', '.defectReference', '.clean.in', '.clean.out',
+                   '.defect.in', '.defect.out', '.nscf.in', '.deltaRhoEffective')
+        if not args.overwrite:
+            for ending in endings:
+                if Path(str(prefix) + ending).exists():
+                    raise ValueError(f'Output already exists: {prefix}{ending}; choose another prefix or use --overwrite')
+        # Never overwrite a source density, even with --overwrite.
+        source_files = {Path(pattern.replace('$VAR', channel)) for pattern in (clean_density, defect_density)
+                        for channel in ('n', 'n_up', 'n_dn', 'n_re', 'n_im')}
+        source_files.update((clean_input, defect_input))
+        if any(Path(str(prefix) + ending) in source_files for ending in endings):
+            raise ValueError('Output prefix would overwrite a source input or density.')
+        prefix.parent.mkdir(parents=True, exist_ok=True)
+        clean_recipe = Path(str(prefix) + '.clean.in')
+        defect_recipe = Path(str(prefix) + '.defect.in')
+        reference = str(prefix) + '.defectReference'
+        clean_recipe.write_text(f'include {clean_input}\n'
+                                f'potential-build-mode reference\npotential-build-density {clean_density}\n'
+                                f'potential-build-output {prefix}\n')
+        defect_recipe.write_text(f'include {defect_input}\n'
+                                 f'potential-build-mode corrected\npotential-build-density {defect_density}\n'
+                                 f'potential-build-reference {reference}\npotential-build-output {prefix}\n'
+                                 f'potential-build-tolerance {args.charge_tolerance:.17g}\n')
+        if args.defect_center:
+            with defect_recipe.open('a') as recipe:
+                recipe.write('potential-build-center ' + ' '.join(f'{x:.17g}' for x in args.defect_center) + '\n')
+        launcher = shlex.split(args.launcher)
+        run_stage(engine, launcher, clean_recipe, Path(str(prefix) + '.clean.out'), clean_input.parent, env)
+        run_stage(engine, launcher, defect_recipe, Path(str(prefix) + '.defect.out'), defect_input.parent, env)
+        potentials = [str(prefix) + ending for ending in endings[:5] if Path(str(prefix) + ending).is_file()]
+        if not potentials or not Path(str(prefix) + '.nscf.in').is_file():
+            raise RuntimeError('Backend completed without producing the expected potential and NSCF input.')
+        print('Constructed: ' + ', '.join(potentials))
+        print('NSCF input: ' + str(prefix) + '.nscf.in')
+        print('Run from ' + str(defect_input.parent) + ' using fix-electron-potential ' + str(prefix) + '.$VAR')
+        print('The potential is evaluated at the supplied density; an uncorrected density is not made self-consistent.')
+    except (ValueError, RuntimeError, OSError) as error:
+        print(f'error: {error}', file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

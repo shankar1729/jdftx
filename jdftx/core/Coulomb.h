@@ -137,6 +137,9 @@ public:
 	
 	//! Apply Coulomb kernel (parameters same as destructible input version above)
 	ScalarFieldTilde operator()(const ScalarFieldTilde&, PointChargeMode pointChargeMode=PointChargeNone) const;
+
+	//! Gaussian width used for embedded point-charge range separation (zero without embedding).
+	double getIonWidth() const { return params.embed ? ionWidth : 0.; }
 	
 	//! Return the lattice gradient of dot(X, O(coulomb(Y))
 	matrix3<> latticeGradient(const ScalarFieldTilde& X, const ScalarFieldTilde& Y, PointChargeMode pointChargeMode=PointChargeNone) const;

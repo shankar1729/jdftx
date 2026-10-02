@@ -1,0 +1,7 @@
+include ${SRCDIR}/hexCommon.in
+ion He 0 0 0 0
+initial-state hexClean.$VAR
+defect-coulomb hexClean.defectReference
+dump-only
+dump-name hexRecovery.$VAR
+dump End DefectCoulomb Ecomponents

@@ -1,0 +1,6 @@
+include ${SRCDIR}/common.in
+ion He 0 0 0 0
+ion He 0 0 0.16 0
+defect-coulomb clean.defectReference
+dump-name defect.$VAR
+dump End DefectCoulomb ElecDensity Ecomponents Dvac

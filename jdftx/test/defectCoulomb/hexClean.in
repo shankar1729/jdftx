@@ -1,0 +1,4 @@
+include ${SRCDIR}/hexCommon.in
+ion He 0 0 0 0
+dump-name hexClean.$VAR
+dump End State ElecDensity DefectReference Ecomponents

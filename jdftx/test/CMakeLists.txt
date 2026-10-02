@@ -16,3 +16,20 @@ add_jdftx_test(spinOrbit)
 add_jdftx_test(graphene)
 add_jdftx_test(metalSurface)
 add_jdftx_test(checkpoint)
+
+add_jdftx_test(defectCoulomb)
+
+# End-to-end one-shot generation, native potential comparison and an NSCF solve.
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME defectPotential COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/defectCoulomb/checkPotential.py
+        ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/defectCoulomb
+        ${CMAKE_SOURCE_DIR}/scripts/defectDensityToVscloc)
+    set_tests_properties(defectCoulomb PROPERTIES FIXTURES_SETUP defectDensities)
+    set_tests_properties(defectPotential PROPERTIES FIXTURES_REQUIRED defectDensities)
+    add_test(NAME defectEmbedding COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/defectCoulomb/checkEmbedding.py
+        ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/defectCoulomb
+        ${CMAKE_SOURCE_DIR}/scripts/defectDensityToVscloc)
+endif()

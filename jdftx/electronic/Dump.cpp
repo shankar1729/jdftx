@@ -18,6 +18,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------*/
 
 #include <electronic/Dump.h>
+#include <electronic/DefectCoulomb.h>
 #include <electronic/Dump_internal.h>
 #include <electronic/Everything.h>
 #include <electronic/ColumnBundle.h>
@@ -197,6 +198,20 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		}
 		EndDump
 	}
+	if(ShouldDump(DefectReference))
+	{	StartDump("defectReference")
+		DefectCoulomb::saveReference(*e, fname);
+		EndDump
+	}
+	if(ShouldDump(DefectCoulomb))
+	{	if(!eVars.defectCoulomb) die("dump DefectCoulomb requires defect-coulomb.\n");
+		eVars.defectCoulomb->update(J(eVars.get_nTot()));
+		DUMP_nocheck(I(eVars.defectCoulomb->deltaRho), "deltaRho")
+		if(e->coulombParams.embed)
+		{	DUMP_nocheck(I(eVars.defectCoulomb->effectiveSource), "deltaRhoEffective")
+		}
+		DUMP_nocheck(I(eVars.defectCoulomb->potential), "Vcorr")
+	}
 	DUMP(I(iInfo.rhoIon), "Nion", IonicDensity)
 	
 	if(ShouldDump(ElecDensity))
@@ -218,6 +233,10 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		|| ShouldDump(ChargedDefect);
 	if(ShouldDump(Dvac) || needDtot)
 	{	d_vac = iInfo.Vlocps + (*e->coulomb)(J(eVars.get_nTot())); //local pseudopotential + Hartree term
+		if(eVars.defectCoulomb)
+		{	eVars.defectCoulomb->update(J(eVars.get_nTot()));
+			d_vac += eVars.defectCoulomb->potential;
+		}
 		//Subtract neutral-atom reference potential (gives smoother result):
 		if(potentialSubtraction)
 		{	ScalarFieldTilde dAtomic;
