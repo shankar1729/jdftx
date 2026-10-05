@@ -87,6 +87,11 @@ public:
 	#ifdef GPU_ENABLED
 	T* dataGpu() { toGpu(); return (T*)c; } //!< Get a GPU data pointer (must be called from GPU owner thread)
 	const T* dataGpu() const { toGpu(); return (const T*)c; } //!< Get a const GPU data pointer (must be called from GPU owner thread)
+	//! GPU pointer to hand to CUDA-aware MPI. MPI does not know about our CUDA stream, so first wait until every queued
+	//! kernel has finished; otherwise MPI can read a buffer that is still being written (or have its received data
+	//! overwritten by a late kernel). Matters most with CUDA_MANAGED_MEMORY, where toGpu() only prefetches asynchronously.
+	T* dataGpuForMPI() { toGpu(); cudaDeviceSynchronize(); return (T*)c; }
+	const T* dataGpuForMPI() const { toGpu(); cudaDeviceSynchronize(); return (const T*)c; } //!< const version of dataGpuForMPI()
 	#endif
 
 	size_t nData() const { return nElem; } //!< number of data points
@@ -266,7 +271,7 @@ template<typename T> void ManagedMemory<T>::zero()
 
 //Which data to use for MPI operations:
 #if defined(GPU_ENABLED) && defined(CUDA_AWARE_MPI)
-#define dataMPI dataGpu
+#define dataMPI dataGpuForMPI //GPU pointer, after waiting for pending GPU work (see dataGpuForMPI)
 #else
 #define dataMPI data
 #endif
