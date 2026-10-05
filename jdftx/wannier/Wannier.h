@@ -57,6 +57,7 @@ public:
 	bool addAtomicOrbitals; //!< whether to automatically add atomic orbitals for all atoms
 	bool pinAtomicOrbitals; //!< whether to pin centers of automatically-added atomic orbitals
 	bool ignoreSemiCore; //!< whether to ignore semi-core orbitals when adding atomic orbitals
+	int ignorePtillGroup; //!< ignore p shell till this group number when adding atomic orbitals
 	
 	enum LocalizationMeasure
 	{	LM_FiniteDifference,

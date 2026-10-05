@@ -41,10 +41,12 @@ public:
 protected:
 	EnergyComponents Adiel; //!< PCM energy components
 	ScalarFieldTilde rhoExplicitTilde; //!< Charge density of explicit (electronic) system
-	ScalarField nCavity, tauCavity, nCavityEx[2]; //!< Cavity determining electron density (or product for SaLSA, or KE density for SG14tauVW, and expanded electron densities for the SGA13 variant)
+	ScalarField nCavity; //!< Cavity determining electron density (or product for SaLSA)
+	ScalarField nCavityEx[2]; //!< Expanded electron densities for the SGA13 variant
+	ScalarField sigmaCavity, sigmaCavityEx[2]; //!< Density-gradient-squared and expanded versions for CANON
 	ScalarFieldArray shape; //!< Electrostatic cavity shape function. Second component, if any, is separate ionic cavity
 	ScalarField shapeVdw; //!< Separate cavitation/dispersion shape function for the SGA13 variant
-	
+
 	virtual void printDebug(FILE* fp) const {} //!< over-ride to get extra PCM-specific output in fluidDebug text file
 	
 	void updateCavity(); //!< update shape function(s) from nCavity, and energies dependent upon shape alone
@@ -60,10 +62,11 @@ protected:
 private:
 	ScalarField Acavity_shape, Acavity_shapeVdw; //!< Cached gradients of cavitation (and dispersion) energies w.r.t shape functions (assumed Acavity does not depend on ionic cavity)
 	matrix3<> Acavity_RRT; //!< Cached gradients of cavitation (and dispersion) energies w.r.t lattice vectors
-	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity, A_cavityScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
+	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity, A_phiCavity, A_cavityScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
-	double nbar_c[2]; //!< thresholds for solvent and optionally ionic cavity (CANON only)
+	double sigma_bar_c[2]; //!< density gradient squared threshold for solvent and optionally ionic cavity (CANON only)
 	RadialFunctionG wExpand[2]; //!< weight functions for cavity expansion in SGA13, and for nonlocal cavity determination in CANON
+	RadialFunctionG wEta, wEta_prime; //!< weight function for dielectric cavity expansion in CANDLE and CANON, and its derivative w.r.t eta
 	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy
 	std::vector<vector3<>> atposAll; //!< all solute atomic positions (SoftSphere only)
 	std::vector<vector3<int>> latticeReps; //!< lattice repetitions needed to treat periodic boundaries correctly for SoftSphere

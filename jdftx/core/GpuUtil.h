@@ -38,6 +38,7 @@ extern cublasHandle_t cublasHandle; //!< global handle to cublas (defined in Gpu
 #include <cusolverDn.h>
 extern cusolverDnHandle_t cusolverHandle;  //!< global handle to cusolverDn (defined in GpuUtil.cpp)
 #endif
+extern bool gpuSyncMPI; //!< whether cuda-aware MPI needs GPU sync
 
 //! Must be called before any GPU use (preferably from main(), see #isGpuMine)
 //! If mpiHostGpu (group of GPU processes on the same node) is specified, divide compatible GPUs amongst processes on same node, else select one with max memory

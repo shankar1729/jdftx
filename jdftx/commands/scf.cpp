@@ -203,8 +203,7 @@ struct CommandPcmNonlinearScf: public CommandPulay
 	}
 	
 	void process(ParamList& pl, Everything& e)
-	{	e.eVars.fluidParams.nonlinearSCF = true;
-		PulayParams& pp = e.eVars.fluidParams.scfParams;
+	{	PulayParams& pp = e.eVars.fluidParams.scfParams;
 		pp.energyLabel = "Adiel";
 		pp.energyFormat = "%+.15lf";
 		pp.energyDiffThreshold = 1e-7;
