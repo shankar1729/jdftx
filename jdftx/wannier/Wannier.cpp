@@ -23,7 +23,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/symbols.h>
 
 Wannier::Wannier() : needAtomicOrbitals(false),
-	addAtomicOrbitals(false), pinAtomicOrbitals(false), ignoreSemiCore(true),
+	addAtomicOrbitals(false), pinAtomicOrbitals(false), ignoreSemiCore(true), ignorePtillGroup(0),
 	localizationMeasure(LM_FiniteDifference),
 	bStart(0), eOuterMin(0.), eOuterMax(0.), eInnerMin(0.), eInnerMax(0.),
 	projectionOuter(0.0), projectionInner(1.0), outerWindow(false), innerWindow(false),
