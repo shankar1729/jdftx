@@ -354,6 +354,7 @@ struct CommandWannier : public Command
 		logPrintf(" \\\n\taddAtomicOrbitals %s", boolMap.getString(wannier.addAtomicOrbitals));
 		logPrintf(" \\\n\tpinAtomicOrbitals %s", boolMap.getString(wannier.pinAtomicOrbitals));
 		logPrintf(" \\\n\tignoreSemiCore %s", boolMap.getString(wannier.ignoreSemiCore));
+		logPrintf(" \\\n\tignorePtillGroup %d", wannier.ignorePtillGroup);
 		logPrintf(" \\\n\tlocalizationMeasure %s", localizationMeasureMap.getString(wannier.localizationMeasure));
 		logPrintf(" \\\n\tsaveWfns %s", boolMap.getString(wannier.saveWfns));
 		logPrintf(" \\\n\tsaveWfnsRealSpace %s", boolMap.getString(wannier.saveWfnsRealSpace));
