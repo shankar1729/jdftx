@@ -78,6 +78,7 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 		logPrintf("   Cavity determined by nc: %lg and sigma: %lg\n", fsp.nc, fsp.sigma);
 
 	//Add citations, initialization and print information unique to the model:
+	needParameterDerivatives = false;
 	bool atomSpheres = false; //cavity based on atomic spheres
 	bool useEta = false; //uses eta to expand electrostatic cavity
 	bool cavitationNL = false; //nonlocal cavitation model
@@ -101,8 +102,10 @@ PCM::PCM(const Everything& e, const FluidSolverParams& fsp): FluidSolver(e,fsp)
 			{	shape.resize(2); //separate ionic cavity
 				Rex[1] = solvent->Rvdw + fsp.ionSpacing;
 			}
+			constexpr double sigma = 0.25;
+			inv_s_cut = fsp.eta_wDiel / sigma;
 			for(size_t iShape=0; iShape<shape.size(); iShape++)
-			{	double mhalfSigmaSq = -0.5 * std::pow(0.25, 2);
+			{	double mhalfSigmaSq = -0.5 * std::pow(sigma, 2);
 				sigma_bar_c[iShape] = 7.1E-5 * log(Rex[iShape] / 0.436);
 				wExpand[iShape].init(0, dG, e.gInfo.GmaxGrid, wTheta_calc, Rex[iShape], mhalfSigmaSq);
 				logPrintf(
@@ -332,7 +335,8 @@ void PCM::updateCavity()
 	{	sigmaCavity = lengthSquared(gradient(nCavity));
 		sigmaCavityEx[0] = I(wExpand[0] * J(sigmaCavity));
 		ShapeFunction::compute(sigmaCavityEx[0], shapeVdw, sigma_bar_c[0], fsp.sigma); //vdW cavity
-		shape[0] = I(wEta * J(shapeVdw)); //dielectric cavity
+		nullToZero(shapeActivationPrime, gInfo);
+		shape[0] = ShapeFunctionCANON::activation(I(wEta * J(shapeVdw)), shapeActivationPrime, inv_s_cut); //dielectric cavity
 		Adiel["ChargeAsym"] = fsp.phiCavity * dot(J(1 - shapeVdw), O(rhoExplicitTilde));
 		if(shape.size() > 1) //separate ionic cavity:
 		{	sigmaCavityEx[1] = I(wExpand[1] * J(sigmaCavity));
@@ -499,7 +503,7 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 		{	//First compute derivative w.r.t expanded electron density:
 			ScalarField A_nCavityEx;
 			ShapeFunction::propagateGradient(nCavityEx[i], *(A_shapeEx[i]), A_nCavityEx, fsp.nc, fsp.sigma);
-			((PCM*)this)->A_nc += (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[i]);
+			if(needParameterDerivatives) ((PCM*)this)->A_nc += (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[i]);
 			//then propagate to original electron density:
 			ScalarField nCavityExUnused; //unused return value below
 			ShapeFunctionSGA13::expandDensity(wExpand[i], Rex[i], nCavity, nCavityExUnused, &A_nCavityEx, &A_nCavity, Adiel_RRT);
@@ -518,22 +522,28 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 				+ coulombStress(A_phiExt, Sf[0]*rhoExplicitTilde)
 				+ convolveStress(Sf[0], coulomb(A_phiExt), rhoExplicitTilde);
 		}
-		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
-		((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wEta_prime*J(shapeVdw)));
-		((PCM*)this)->A_pCavity = A_pCavity;
+		if(needParameterDerivatives)
+		{	((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavityEx*nCavityEx[0]);
+			((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wEta_prime*J(shapeVdw)));
+			((PCM*)this)->A_pCavity = A_pCavity;
+		}
 	}
 	else if(fsp.pcmVariant == PCM_CANON)
 	{	ScalarFieldTilde shapeConjTilde = J(1 - shapeVdw);
 		A_rhoExplicitTilde += fsp.phiCavity * shapeConjTilde;
-		ScalarField A_shapeVdw = I(wEta * (J(A_shape[0]))) + Acavity_shapeVdw - fsp.phiCavity * I(rhoExplicitTilde), A_sigmaCavityEx[2];
+		ScalarField A_shape0_arg = A_shape[0] * shapeActivationPrime; //derivative w.r.t argument of shape[0]'s activation function
+		ScalarField A_shapeVdw = I(wEta * (J(A_shape0_arg))) + Acavity_shapeVdw - fsp.phiCavity * I(rhoExplicitTilde), A_sigmaCavityEx[2];
 		ShapeFunction::propagateGradient(sigmaCavityEx[0], A_shapeVdw, A_sigmaCavityEx[0], sigma_bar_c[0], fsp.sigma);
 		ScalarField A_sigmaCavity = I(wExpand[0] * J(A_sigmaCavityEx[0]));
 		if(Adiel_RRT) 
-			*Adiel_RRT += convolveStress(wEta, J(A_shape[0]), J(shapeVdw))
+			*Adiel_RRT += convolveStress(wEta, J(A_shape0_arg), J(shapeVdw))
 				+ convolveStress(wExpand[0], J(A_sigmaCavityEx[0]), J(sigmaCavity))
 				+ matrix3<>(1,1,1) * Adiel["ChargeAsym"];
-		((PCM*)this)->A_eta_wDiel = integral(A_shape[0] * I(wEta_prime * J(shapeVdw)));
-		((PCM*)this)->A_phiCavity = dot(shapeConjTilde, O(rhoExplicitTilde));
+		if(needParameterDerivatives)
+		{	((PCM*)this)->A_eta_wDiel = integral(A_shape0_arg * I(wEta_prime * J(shapeVdw)))
+				+ integral(A_shape0_arg * I(wEta * J(shapeVdw))) / fsp.eta_wDiel;
+			((PCM*)this)->A_phiCavity = dot(shapeConjTilde, O(rhoExplicitTilde));
+		}
 		
 		if(shape.size() > 1)
 		{	ShapeFunction::propagateGradient(sigmaCavityEx[1], A_shape[1], A_sigmaCavityEx[1], sigma_bar_c[1], fsp.sigma);
@@ -557,7 +567,7 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 			for(unsigned iSp=0; iSp<atpos.size(); iSp++)
 				for(unsigned iAtom=0; iAtom<atpos[iSp].size(); iAtom++)
 					(*forces)[iSp][iAtom] -= *(A_atposAllPtr++); //negative gradient
-			((PCM*)this)->A_cavityScale = cblas_ddot(Rall.size(), Rall.data(),1, A_Rall.data(),1) / fsp.cavityScale; //gradient w.r.t scale factor used for fits
+			if(needParameterDerivatives) ((PCM*)this)->A_cavityScale = cblas_ddot(Rall.size(), Rall.data(),1, A_Rall.data(),1) / fsp.cavityScale;
 		}
 	}
 	else if(fsp.pcmVariant == PCM_FixedCavity)
@@ -580,7 +590,7 @@ void PCM::propagateCavityGradients(const ScalarFieldArray& A_shape, ScalarField&
 	}
 	else //All gradients are w.r.t the same shape function - propagate them to nCavity (which is defined as a density product for SaLSA)
 	{	ShapeFunction::propagateGradient(nCavity, A_shape[0] + Acavity_shape, A_nCavity, fsp.nc, fsp.sigma);
-		((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
+		if(needParameterDerivatives) ((PCM*)this)->A_nc = (-1./fsp.nc) * integral(A_nCavity*nCavity);
 	}
 }
 
@@ -648,7 +658,7 @@ void PCM::dumpDensities(const char* filenamePattern) const
     if(shape.size() > 1)
 	{	FLUID_DUMP(shape[1], "ShapeIonic");
 	}
-	if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_CANDLE)
+	if(fsp.pcmVariant==PCM_SGA13 || fsp.pcmVariant==PCM_CANDLE || fsp.pcmVariant==PCM_CANON)
 	{	FLUID_DUMP(shapeVdw, "ShapeVdw");
 	}
 }
@@ -675,7 +685,10 @@ void PCM::dumpDebug(const char* filenamePattern) const
 	Adiel.print(fp, true, "   %13s = %25.16lf\n");	
 	
 	fprintf(fp, "\n\nGradients wrt fit parameters:\n");
-	if((!isPCM_SCCS(fsp.pcmVariant)) && (fsp.pcmVariant!=PCM_SoftSphere))
+	((PCM*)this)->needParameterDerivatives = true;
+	get_Adiel_and_grad(); //recalculate gradient propagation with paramater derivatives
+	((PCM*)this)->needParameterDerivatives = false;
+	if((!isPCM_SCCS(fsp.pcmVariant)) && (fsp.pcmVariant!=PCM_SoftSphere) && (fsp.pcmVariant!=PCM_CANON))
 		fprintf(fp, "   E_nc = %.15lg\n", A_nc);
 	switch(fsp.pcmVariant)
 	{	case PCM_SaLSA:

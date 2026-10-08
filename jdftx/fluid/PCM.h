@@ -44,6 +44,7 @@ protected:
 	ScalarField nCavity; //!< Cavity determining electron density (or product for SaLSA)
 	ScalarField nCavityEx[2]; //!< Expanded electron densities for the SGA13 variant
 	ScalarField sigmaCavity, sigmaCavityEx[2]; //!< Density-gradient-squared and expanded versions for CANON
+	ScalarField shapeActivationPrime; //!< Derivative of activation function of dielectric cavity for CANON
 	ScalarFieldArray shape; //!< Electrostatic cavity shape function. Second component, if any, is separate ionic cavity
 	ScalarField shapeVdw; //!< Separate cavitation/dispersion shape function for the SGA13 variant
 
@@ -65,6 +66,7 @@ private:
 	double A_nc, A_tension, A_vdwScale, A_eta_wDiel, A_pCavity, A_phiCavity, A_cavityScale; //!< Cached derivatives w.r.t fit parameters (accessed via dumpDebug() for PCM fits)
 	double Rex[2]; //!< radii for cavity expansion (SGA13 only)
 	double sigma_bar_c[2]; //!< density gradient squared threshold for solvent and optionally ionic cavity (CANON only)
+	double inv_s_cut; //!< cutoff for shape activation in CANON
 	RadialFunctionG wExpand[2]; //!< weight functions for cavity expansion in SGA13, and for nonlocal cavity determination in CANON
 	RadialFunctionG wEta, wEta_prime; //!< weight function for dielectric cavity expansion in CANDLE and CANON, and its derivative w.r.t eta
 	RadialFunctionG wCavity; //!< weight function for nonlocal cavitation energy
@@ -76,6 +78,7 @@ private:
 	int nShape; //natural number of shape functions of the solvation model (2 if ionspacing is used to make ionic cavity, else 1)
 	bool fixedCavityMasked; //!< whether mask has already been applied to fixed cavity
 protected:
+	bool needParameterDerivatives; //!< whether parameter derivatives need to be calculated
 	std::vector<RadialFunctionG> Sf; //!< spherically-averaged structure factors for each solvent site
 	std::vector<int> atomicNumbers; //!< atomic number for each solvent site (for dispersion interactions)
 	static ScalarFieldTilde coulomb(const ScalarFieldTilde& rho) { return (-4*M_PI) * Linv(O(rho)); }

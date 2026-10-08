@@ -64,6 +64,19 @@ namespace ShapeFunctionCANDLE
 	}
 }
 
+namespace ShapeFunctionCANON
+{
+	__global__
+	void activation_kernel(int N, double* s, double* prime, double inv_s_cut)
+	{	int i = kernelIndex1D(); if(i<N) activation_calc(i, s, prime, inv_s_cut);
+	}
+	void activation_gpu(int N, double* s, double* prime, double inv_s_cut)
+	{	GpuLaunchConfig1D glc(activation_kernel, N);
+		activation_kernel<<<glc.nBlocks,glc.nPerBlock>>>(N, s, prime, inv_s_cut);
+		gpuErrorCheck();
+	}
+}
+
 namespace ShapeFunctionSGA13
 {
 	__global__
