@@ -23,8 +23,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <core/LatticeUtils.h>
 #include <core/Units.h>
 
+
 Vibrations::Vibrations() : dr(0.01), centralDiff(false), useConstraints(false),
-translationSym(true), rotationSym(false), omegaMin(2e-4), T(298*Kelvin), omegaResolution(1e-4)
+translationSym(true), rotationSym(false), omegaMin(2e-4), T(298*Kelvin), omegaResolution(1e-4), 
+dumpK(false), iConfiguration(-1), nConfigurations(-1),
+iConfigStart(0), iConfigStop(0), computeOnly(false)
 {
 }
 
@@ -49,31 +52,125 @@ inline void setPtest(size_t iStart, size_t iStop, const vector3<int>& S, std::ve
 	)
 }
 
+
 void Vibrations::calculate()
 {
 	logPrintf("------ Vibrations::calculate() -------\n");
 	logPrintf("WARNING: Vibrations module is experimental. Please report bugs!\n");
 	logPrintf("Compare results with and without symmetries and report discrepancies.\n");
 
-	//Create a non-constraint which simplifies the logic below
+	//Initialize data structure to hold all relevant information for the calculation:
+	VibrationsData data;
+
+	//Construct the modes to evaluate
+	construct_modes(data);
+
+	// Determine which configurations to compute, and whether to only compute or also collect into Hessian/dipole derivative matrices:
+
+	//                      ||      nConfigurations >= 0           ||  nConfigurations == -1  
+	//                      ||                                     ||        (default)
+	// -------------------- || --------------------------------    || -------------------------
+	//                      ||            Run iConfigs             ||
+	// iConfiguration >= 0  ||      iConfiguration through         || Run iConfiguration only     
+	//                      ||  iConfiguration+nConfigurations-1   ||                                 
+	// -------------------- || --------------------------------    || -------------------------
+	// iConfiguration == -1 ||    Run first nConfigurations        || Run all configurations          
+	//      (default)       ||                                     ||        (default)                       
+        
+	int nConfigs = 1 + data.nPrimary * (centralDiff ? 2 : 1);
+	bool startSet = (iConfiguration>=0);
+	bool lenSet = (nConfigurations>=0);
+	iConfigStart = startSet ? iConfiguration : 0;
+	iConfigStop = lenSet ? iConfigStart + nConfigurations : nConfigs + 1;
+	computeOnly = startSet or lenSet; //If either of these are set, do not bother in anything besides computing and writing grad and Pel
+	logPrintf("Computing configurations %d through %d (of %d total).\n", iConfigStart, iConfigStop-1, nConfigs);
+	if(computeOnly) logPrintf("Will not collect into Hessian/dipole derivative matrices for analysis.\n (Hint: do not set iConfiguration or nConfigurations to allow collecting results and running analysis.)\n");
+	
+	//Determine number of degrees of freedom:
+	logPrintf("Degrees of freedom: %d total, %d symmetry-independent.\n", data.nModes, data.nPrimary);
+	if(!data.nModes)
+	{	//Exit, but produce output in the same format as if there were modes:
+		logPrintf("0 imaginary modes, 0 modes within cutoff, 0 real modes.\n");
+		logPrintf("\nVibrational free energy components at T = %lg K:\n", T/Kelvin);
+		logPrintf("\tZPE:   %15.6lf\n", 0.);
+		logPrintf("\tEvib:  %15.6lf\n", 0.);
+		logPrintf("\tTSvib: %15.6lf\n", 0.);
+		logPrintf("\tAvib:  %15.6lf\n", 0.);
+		logPrintf("\n");
+		return;
+	}
+	
+	//Find inverse of each symmetry matrix:
+	set_iRotInv(data);
+	
+	//Initialize dipole measuring vector field
+	nullToZero(Ptest, e->gInfo);
+	threadLaunch(setPtest, e->gInfo.nr, e->gInfo.S, Ptest.data(), getSplit());
+
+	//Construct maps for mapping iConfig to perturbation d (ds), and iMode to configuration indices (iModeToConfigs):
+	construct_maps(data);
+
+	//Initialize Hessian, dipole derivative matrix, and multiplicity vector:
+	data.K = zeroes(data.nModes, data.nModes); //force matrix
+	data.dP = zeroes(data.nModes, 3); //dipole derivative
+	data.mult = diagMatrix(data.nModes, 0.); //multiplicity in entries due to symmetrization
+	{	IonicMinimizer imin(*e);
+		IonicGradient grad0;
+		vector3<> Pel0;
+		//Evaluate forces and dipole moment at equilibrium configuration (iConfig=0)
+		compute_or_collect_iConfig(imin, data.ds, grad0, Pel0, 0);
+		for(int iMode=0; iMode<data.nModes; iMode++){
+			//Evaluate forces and dipole moment at configuration(s) corresponding to this mode, and add contributions to K and dP
+			process_mode(imin, iMode, data, grad0, Pel0);
+		}
+		if(computeOnly){
+			logPrintf("All requested configurations computed and written to disk. Exiting.\n");
+			return;
+		}
+	}
+
+	//Correct for multiple countings:
+	account_for_multiplicity(data);
+
+	//Fill in modes set by translation symmetry, if any:
+	fill_in_trans_sym_modes(data);
+
+	//Symmetrize force matrix:
+	logPrintf("\nRelative symmetry error in force matrix = %lg\n", 0.5*nrm2(data.K - dagger(data.K))/nrm2(data.K));
+	data.K = dagger_symmetrize(data.K);
+
+	//Project out translation / rotation modes:
+	apply_projections(data);
+	//Construct mass-weighted frequency-squared matrix and solve for eigenvalues and eigenvectors:
+	solve_modes(data);
+	//Enumerate imaginary, zero, and real modes:
+	process_solved_modes(data);
+	//Print mode information to out file:
+	print_modes(data);
+	//Print vibrational free energy components to out file:
+	print_free_energy(data);
+	//Dump Hessian if requested:
+	if(dumpK)
+	{	string fname = e->dump.getFilename("K");
+		logPrintf("\nWriting force matrix K to '%s' ... \n", fname.c_str()); logFlush();
+		FILE* fp = fopen(fname.c_str(), "wb");
+		if(!fp) die("Error opening file for writing.\n");
+		data.K.write(fp);
+		fclose(fp);
+	}	
+}
+
+// Helper function to construct the vector of Mode objects
+void Vibrations::construct_modes(VibrationsData& data)
+{	//Create a non-constraint which simplifies the logic below
 	SpeciesInfo::Constraint nullConstraint;
 	nullConstraint.moveScale = 1.;
 	nullConstraint.type = SpeciesInfo::Constraint::None;
-	
-	//Determine number of degrees of freedom:
-	struct Mode
-	{	unsigned s; //!< species number
-		unsigned a; //!< atom number
-		vector3<> n; //!< cartesian direction
-		bool isPrimary; //!< whether this mode belongs to the irredicuble wedge (false => generated by symmetrization)
-		bool fromTranslation; //!< whether this mode is filled in by the translation symmetry
-	};
-	std::vector<Mode> modes;
-	int nPrimary = 0; //number of modes with isPrimary=true
-	bool foundTranslatable = false; //found an atom to fill in using translation symmetry
 	const auto& species = e->iInfo.species;
 	const std::vector<SpaceGroupOp>& sym = e->symmUnperturbed.getMatrices();
 	const std::vector< std::vector< std::vector<int> > >& atomMap = e->symmUnperturbed.getAtomMap();
+	data.nPrimary = 0;
+	data.foundTranslatable = false;
 	for(unsigned s=0; s<species.size(); s++)
 	{	const SpeciesInfo& sp = *(species[s]);
 		std::vector<bool> isPrimary(sp.atpos.size(), true);  //whether atom is the first of a set related by symmetries
@@ -107,7 +204,7 @@ void Vibrations::calculate()
 			}
 			//Check whether to fillin with translation symmetries:
 			bool fromTranslation = false;
-			if(translationSym && !foundTranslatable)
+			if(translationSym && !data.foundTranslatable)
 			{	bool singleton = true; //invariant under symmetries
 				for(unsigned iRot=0; iRot<sym.size(); iRot++)
 					if(atomMap[s][a][iRot] != int(a))
@@ -116,158 +213,276 @@ void Vibrations::calculate()
 					}
 				if(singleton)
 				{	fromTranslation = true;
-					foundTranslatable = true;
+					data.foundTranslatable = true;
 					isPrimary[a] = false;
 				}
 			}
 			//Add modes for each of these directions:
 			for(const vector3<>& n: nSet)
 			{	Mode mode = { s, a, n, isPrimary[a], fromTranslation };
-				modes.push_back(mode);
+				data.modes.push_back(mode);
 			}
-			if(isPrimary[a]) nPrimary += nSet.size();
+			if(isPrimary[a]) data.nPrimary += nSet.size();
 			//Unset primary flags of symmetric images:
 			for(unsigned iRot=0; iRot<sym.size(); iRot++)
 				isPrimary[atomMap[s][a][iRot]] = false;
 		}
 	}
-	int nModes = modes.size();
-	logPrintf("Degrees of freedom: %d total, %d symmetry-independent.\n", nModes, nPrimary);
-	if(!nModes)
-	{	//Exit, but produce output in the same format as if there were modes:
-		logPrintf("0 imaginary modes, 0 modes within cutoff, 0 real modes.\n");
-		logPrintf("\nVibrational free energy components at T = %lg K:\n", T/Kelvin);
-		logPrintf("\tZPE:   %15.6lf\n", 0.);
-		logPrintf("\tEvib:  %15.6lf\n", 0.);
-		logPrintf("\tTSvib: %15.6lf\n", 0.);
-		logPrintf("\tAvib:  %15.6lf\n", 0.);
-		logPrintf("\n");
-		return;
+	// Cast to a signed integer for ease of use later on
+	int nModes = data.modes.size();
+	data.nModes = nModes;
+}
+
+
+
+// Helper function to create a vector<IonicGradient> "ds" which maps a configuration index to its ionic perturbation vector 
+// (0th index used for the 0 displacement equilibrium "perturbation"), and a vector<vector<int>> "iModeToConfigs" which 
+// maps a mode index to the configuration indices needed to evaluate that mode (excluding the equilibrium configuration)
+void Vibrations::construct_maps(VibrationsData& data)
+{	data.nConfigs = 1 + data.nPrimary * (centralDiff ? 2 : 1);
+	data.iModeToConfigs.resize(data.nModes);
+	data.ds.resize(data.nConfigs);
+	const std::vector<Mode>& modes = data.modes;
+	std::vector<std::vector<int>>& iModeToConfigs = data.iModeToConfigs;
+	std::vector<IonicGradient>& ds = data.ds;
+	//Set perturbation for equilibrium configuration (iConfig=0) to zero:
+	IonicGradient& d = ds[0];
+	d.init(e->iInfo);
+	//Collect the displacements corresponding to each configuration (skipping the equilibrium configuration at iConfig=0)
+	int iConfig = 1;
+	for(int iMode=0; iMode<data.nModes; iMode++)
+	{	const Mode& mode = modes[iMode];
+		std::vector<int>& iConfigs = iModeToConfigs[iMode];
+		IonicGradient& d = ds[iConfig];
+		d.init(e->iInfo);
+		if(!mode.isPrimary) continue;
+		iConfigs.push_back(iConfig);
+		d[mode.s][mode.a] = mode.n;
+		ds[iConfig] = d;
+		if(centralDiff)
+		{	iConfig++;
+			IonicGradient& d2 = ds[iConfig];
+			d2.init(e->iInfo);
+			d2[mode.s][mode.a] = -mode.n;
+			iConfigs.push_back(iConfig);
+			ds[iConfig] = d2;
+		}
+		iConfig++;
 	}
-	
-	//Find inverse of each symmetry matrix:
-	std::vector<unsigned> iRotInv(sym.size());
+}
+
+// Helper function to set the inverse of each symmetry operation as stored in data.iRotInv
+void Vibrations::set_iRotInv(VibrationsData& data)
+{	//Find inverse of each symmetry matrix:
+	const std::vector<SpaceGroupOp>& sym = e->symmUnperturbed.getMatrices();
+	data.iRotInv = std::vector<unsigned>(sym.size());
 	for(unsigned iRot1=0; iRot1<sym.size(); iRot1++)
 		for(unsigned iRot2=iRot1; iRot2<sym.size(); iRot2++)
 			if(sym[iRot1].rot * sym[iRot2].rot == matrix3<int>(1,1,1))
-			{	iRotInv[iRot1] = iRot2;
-				iRotInv[iRot2] = iRot1;
+			{	data.iRotInv[iRot1] = iRot2;
+				data.iRotInv[iRot2] = iRot1;
 				continue;
 			}
-	
-	//Initialize dipole measuring vector field
-	nullToZero(Ptest, e->gInfo);
-	threadLaunch(setPtest, e->gInfo.nr, e->gInfo.S, Ptest.data(), getSplit());
+}
 
-	//Get forces in unperturbed configuration
-	int nConfigurations = 1 + nPrimary * (centralDiff ? 2 : 1);
-	int iConfiguration = 0;
-	IonicMinimizer imin(*e);
-	IonicGradient grad0;
-	imin.compute(&grad0, 0);
-	vector3<> Pel0 = getPel(); //electronic dipole moment
-	logPrintf("Completed %d of %d configurations.\n", ++iConfiguration, nConfigurations);
-	
-	//Compute force matrix:
-	matrix K = zeroes(nModes, nModes);
-	matrix dP = zeroes(nModes, 3); //dipole derivative
-	{	diagMatrix mult(nModes, 0.); //multiplicity in entries due to symmetrization
-		IonicGradient dPrev; dPrev.init(e->iInfo); //previous displacement (initially zero)
-		complex *Kdata = K.data(), *dPdata = dP.data();
-		for(const Mode& mode: modes) if(mode.isPrimary) //Loop over modes in irredicuble wedge
-		{	//Create ionic gradient object corresponding to mode:
-			IonicGradient d; d.init(e->iInfo);
-			d[mode.s][mode.a] = mode.n; //all others zero
-			//Compute forces at perturbed position:
-			IonicGradient gradPlus, gradMinus, Kcur;
-			imin.step(d-dPrev, dr); dPrev=d;
-			imin.compute(&gradPlus, 0);
-			vector3<> PelPlus = getPel(), PelMinus, dPcur; //electronic dipole moment and derivative w.r.t mode
-			logPrintf("Completed %d of %d configurations.\n", ++iConfiguration, nConfigurations);
-	
-			if(centralDiff)
-			{	d *= -1;
-				imin.step(d-dPrev, dr); dPrev=d;
-				imin.compute(&gradMinus, 0);
-				PelMinus = getPel();
-				logPrintf("Completed %d of %d configurations.\n", ++iConfiguration, nConfigurations);
+
+// Helper function to step the perturbation, compute the forces and dipole moment, and then unstep the perturbation.
+void Vibrations::compute_iConfig(IonicMinimizer& imin, IonicGradient& d, IonicGradient& grad, vector3<>& Pel)
+{	//Compute forces and dipole derivatives for this configuration
+	imin.step(d, dr);
+	imin.compute(&grad, 0);
+	Pel = getPel();
+	imin.step(d, -dr); //restore to unperturbed configuration
+}
+
+string get_arb_fname(const Everything& e, const std::string& prefix, int iConfig)
+{	return e.dump.getFilename(string((prefix + std::to_string(iConfig)).c_str()));
+}
+
+
+bool missing_files(const Everything& e, const int iConfig)
+{
+	string grad_fname = get_arb_fname(e, "grad", iConfig);
+	string Pel_fname = get_arb_fname(e, "Pel", iConfig);
+	std::vector<string> req_fnames = {grad_fname, Pel_fname};
+	for(string fname: req_fnames)
+	{	
+		FILE* fp = fopen(fname.c_str(), "rb");
+		if(!fp) return true;
+		else fclose(fp);
+	}
+	return false;
+}
+
+// Helper function to:
+// first: Check if the grad/Pel files exist for the configuration index iConfig,
+// second: If they do not exist, compute them with compute_iConfig and then write them to disk,
+// third: If they do exist, read them from disk into grad and Pel.
+// QUESTION - I couldn't figure out a way to directly read/write a vector3, so for Pel I create a temporary 3x1 matrix for this function
+// - is this okay? Or is there a more elegant way that I'm missing?
+void Vibrations::compute_or_collect_iConfig(IonicMinimizer& imin, std::vector<IonicGradient>& ds, IonicGradient& grad, vector3<>& Pel, int iConfig)
+{	//Compute forces and dipole derivatives for this configuration
+	string grad_fname = get_arb_fname(*e, "grad", iConfig);
+	string Pel_fname = get_arb_fname(*e, "Pel", iConfig);
+	bool perform_compute = missing_files(*e, iConfig);
+	// Compute and write the files if they are missing
+	if(perform_compute){
+		IonicGradient& d = ds[iConfig];
+		compute_iConfig(imin, d, grad, Pel);
+		const int& nConfigs = ds.size();
+		logPrintf("Completed %d of %d configurations.\n", iConfig+1, nConfigs);
+		grad.write(grad_fname.c_str());
+		matrix Pel_mat = zeroes(3,1);
+		for (int k=0; k<3; k++){
+			Pel_mat(k,0) = Pel[k];
+		}
+		Pel_mat.write(Pel_fname.c_str());
+		if(iConfig == 0){
+			e->dump(DumpFreq_Ionic, iConfig);
+		}
+	} // Don't read the existing files if we're on a compute only run
+	else if(!computeOnly){
+		grad.init(e->iInfo);
+		grad.read(grad_fname.c_str());
+		matrix Pel_mat = zeroes(3,1);
+		Pel_mat.read(Pel_fname.c_str());
+		complex *Pel_data = Pel_mat.data();
+		for (int k=0; k<3; k++){
+			Pel[k] += Pel_data[Pel_mat.index(k,0)].real();
+		}
+	}
+}
+
+
+// Helper function to either:
+// if we're only computing, loop through each configuration index for this mode within the requested evaluation range 
+//     and run compute_or_collect_iConfig on it (this will skip the reading process if the iConfig's grad/Pel files already exist), or
+// if we're computing and analyzing, run compute_or_collect_iConfig on the modes config indices 
+//     (no need to check for requested bounds since computeOnly remains false if iConfiguration and nConfigurations are not set), 
+//     use the results from the configuration(s) to construct Kcur/dPcur, 
+void Vibrations::process_mode(IonicMinimizer& imin, int iMode, VibrationsData& data, IonicGradient& grad0, vector3<>& Pel0){
+	Mode mode = data.modes[iMode];
+	if(mode.isPrimary){
+		IonicGradient gradPlus, gradMinus;
+		vector3<> PelPlus, PelMinus;
+		std::vector<IonicGradient>& ds = data.ds;
+		std::vector<int> iConfigs = data.iModeToConfigs[iMode];
+		IonicGradient Kcur; 
+		Kcur.init(e->iInfo);
+		vector3<> dPcur;
+		// If this is a compute-only run, just compute every configuration within the range as gradPlus/PelPlus and move on
+		if(computeOnly){
+			for(int iConfig: iConfigs){
+				if(iConfig >= iConfigStart && iConfig < iConfigStop){
+					compute_or_collect_iConfig(imin, ds, gradPlus, PelPlus, iConfig);
+				}
+			}
+		}
+		else{
+			int iiConfig = 0;
+			compute_or_collect_iConfig(imin, ds, gradPlus, PelPlus, iConfigs[iiConfig++]);
+			if(centralDiff){
+				compute_or_collect_iConfig(imin, ds, gradMinus, PelMinus, iConfigs[iiConfig++]);
 				Kcur = (gradPlus - gradMinus) * (0.5/dr);
 				dPcur = (PelPlus - PelMinus) * (0.5/dr);
 			}
-			else
-			{	Kcur = (gradPlus - grad0) * (1./dr);
+			else{
+				Kcur = (gradPlus - grad0) * (1./dr);
 				dPcur = (PelPlus - Pel0) * (1./dr);
 			}
+			const auto& species = e->iInfo.species;
 			dPcur -= species[mode.s]->Z * mode.n; //ionic contribution to dipole derivative
-			
-			//Collect contributions to force matrix from this mode and its symmetric counterparts:
-			for(unsigned iRot=0; iRot<sym.size(); iRot++)
-			{	matrix3<> rot = e->gInfo.R * sym[iRot].rot * inv(e->gInfo.R); //cartesian rotation matrix corresponding to symmetry
-				//Modes corresponding to displacement (first index of matrix):
-				unsigned a1 = atomMap[mode.s][mode.a][iRot];
-				vector3<> n1 = rot * mode.n;
-				std::map<int,double> dModes;
-				for(int i1=0; i1<nModes; i1++)
-					if(modes[i1].s==mode.s && modes[i1].a==a1)
-					{	double w = dot(n1, modes[i1].n); //projection weight
-						if(fabs(w) < symmThreshold) continue;
-						mult[i1] += w*w; //symmetry multiplicity
-						//Loop over modes corresponding to force (second index of matrix):
-						for(int i2=0; i2<nModes; i2++)
-						{	const Mode& mode2 = modes[i2];
-							unsigned a2 = atomMap[mode2.s][mode2.a][iRotInv[iRot]]; //index of atom which upon rotation rot maps onto atom mode2.a
-							Kdata[K.index(i1,i2)] += w * dot(mode2.n, rot * Kcur[mode2.s][a2]);
-						}
-						//Dipole derivatives:
-						vector3<> rot_dPcur = rot * dPcur; //rotated dipole derivative
-						for(int k=0; k<3; k++)
-							dPdata[dP.index(i1,k)] += w * rot_dPcur[k];
-					}
+			collect_cur_contributions(data, Kcur, dPcur, iMode);
+		}
+	}
+}
+
+
+void Vibrations::collect_cur_contributions(VibrationsData& data, const IonicGradient& Kcur, const vector3<>& dPcur, int iMode){
+	const std::vector<SpaceGroupOp>& sym = e->symmUnperturbed.getMatrices();
+	const std::vector< std::vector< std::vector<int> > >& atomMap = e->symmUnperturbed.getAtomMap();
+	const auto& modes = data.modes;
+	Mode mode = modes[iMode];
+	const auto& iRotInv = data.iRotInv;
+	std::vector<double>& mult = data.mult;
+	matrix& K = data.K;
+	matrix& dP = data.dP;
+	for(unsigned iRot=0; iRot<sym.size(); iRot++){	
+		matrix3<> rot = e->gInfo.R * sym[iRot].rot * inv(e->gInfo.R); //cartesian rotation matrix corresponding to symmetry
+		//Modes corresponding to displacement (first index of matrix):
+		unsigned a1 = atomMap[mode.s][mode.a][iRot];
+		vector3<> n1 = rot * mode.n;
+		std::map<int,double> dModes;
+		for(int i1=0; i1<data.nModes; i1++){
+			const Mode& mode1 = modes[i1];
+			if(mode1.s==mode.s && mode1.a==a1){	
+				double w = dot(n1, mode1.n); //projection weight
+				if(fabs(w) < symmThreshold) continue;
+				mult[i1] += w*w; //symmetry multiplicity
+				//Loop over modes corresponding to force (second index of matrix):
+				for(int i2=0; i2<data.nModes; i2++)
+				{	const Mode& mode2 = modes[i2];
+					unsigned inverseRotation = iRotInv[iRot];
+					unsigned a2 = atomMap[mode2.s][mode2.a][iRotInv[iRot]]; //index of atom which upon rotation rot maps onto atom mode2.a
+					vector3<> rotKcur = rot * Kcur[mode2.s][a2]; //rotated force derivative
+					double contrib = w * dot(mode2.n, rotKcur);
+					K.data()[K.index(i1,i2)] += contrib;
+				}
+				//Dipole derivatives:
+				vector3<> rot_dPcur = rot * dPcur; //rotated dipole derivative
+				for(int k=0; k<3; k++){
+					dP.data()[dP.index(i1,k)] += w * rot_dPcur[k];
+				}
 			}
 		}
-		IonicGradient d; d.init(e->iInfo); //all zeroes
-		imin.step(d-dPrev, dr); dPrev=d; //Restore original ionic positions
-		
-		//Invert multiplicity matrixZero out  modes to be set by translational symmetry:
-		for(int i=0; i<nModes; i++)
-			mult[i] = modes[i].fromTranslation ? 0. : 1./mult[i];
-		
-		//Correct for multiple counting:
-		K = mult * K;
-		dP = mult * dP;
 	}
-	
-	//Fill in modes set by translation symmetry, if any:
-	for(int i1=0; i1<nModes; i1++) if(modes[i1].fromTranslation)
+}
+
+void Vibrations::account_for_multiplicity(VibrationsData& data){
+	//Invert multiplicity matrixZero out  modes to be set by translational symmetry:
+	for(int i=0; i<data.nModes; i++){
+		data.mult[i] = data.modes[i].fromTranslation ? 0. : 1./data.mult[i];
+	}
+	//Correct for multiple counting:
+	data.K = data.mult * data.K;
+	data.dP = data.mult * data.dP;
+}
+
+void Vibrations::fill_in_trans_sym_modes(VibrationsData& data){
+	const std::vector<Mode>& modes = data.modes;
+	matrix& K = data.K;
+	matrix& dP = data.dP;
+	for(int i1=0; i1<data.nModes; i1++) if(modes[i1].fromTranslation)
 	{	//Create a uniform unit displacement of all atoms which moves current atom according to mode:
-		matrix x(1, nModes); complex* xData = x.data();
-		for(int i2=0; i2<nModes; i2++)
+		matrix x(1, data.nModes); complex* xData = x.data();
+		for(int i2=0; i2<data.nModes; i2++)
 			xData[x.index(0,i2)] = dot(modes[i1].n, modes[i2].n);
 		//A uniform displacement of all atoms should yield no net force
 		//Except three rows of K are zero; set them so that the above becomes true.
-		K.set(i1,i1+1, 0,nModes, -(x * K));
+		K.set(i1,i1+1, 0,data.nModes, -(x * K));
 		//Simiarly polarization due to uniform displacement should be zero:
 		dP.set(i1,i1+1, 0,3, -(x * dP));
 	}
-	
-	//Symmetrize force matrix:
-	logPrintf("\nRelative symmetry error in force matrix = %lg\n", 0.5*nrm2(K - dagger(K))/nrm2(K));
-	K = dagger_symmetrize(K);
-	
+}
+
+void Vibrations::apply_projections(VibrationsData& data){
+	const std::vector<Mode>& modes = data.modes;
+	matrix& K = data.K;
 	//Project out translation / rotation modes:
-	matrix projector(nModes, 6); int nProjectors=0;
+	matrix projector(data.nModes, 6); int nProjectors=0;
 	complex* projData = projector.data();
 	if(translationSym)
 	{	for(int k=0; k<3; k++)
-		{	vector3<> e(0,0,0); e[k]=1; //unit vector
-			for(int i=0; i<nModes; i++)
+		{	
+			vector3<> e(0,0,0); e[k]=1; //unit vector
+			for(int i=0; i<data.nModes; i++)
 				projData[projector.index(i,nProjectors)] = dot(modes[i].n, e);
 			nProjectors++;
 		}
 	}
 	if(rotationSym)
 	{	IonicGradient r = getCMcoords();
-		//Compute inertia tensor:
+		//Compute inertia tensor:	
 		matrix3<> I;
 		for(unsigned s=0; s<e->iInfo.species.size(); s++)
 		{	const SpeciesInfo& sp = *(e->iInfo.species[s]);
@@ -284,61 +499,80 @@ void Vibrations::calculate()
 				removePhase(3, IevecsData+Ievecs.index(0,j), meanPhase, sigmaPhase, rmsImagErr);
 				vector3<> axis; for(int k=0; k<3; k++) axis[k] = IevecsData[Ievecs.index(k,j)].real();
 				//Add rotational projectors for each axis with non-zero moment:
-				for(int i=0; i<nModes; i++)
-					projData[projector.index(i,nProjectors)] = box(modes[i].n, axis, r[modes[i].s][modes[i].a]);
+				for(int i=0; i<data.nModes; i++){
+					const Mode& modei = modes[i];
+					projData[projector.index(i,nProjectors)] = box(modei.n, axis, r[modei.s][modei.a]);
+				}
 				nProjectors++;
 			}
 	}
 	if(nProjectors)
-	{	projector = projector(0,nModes, 0,nProjectors); //discard empty columns
+	{	projector = projector(0,data.nModes, 0,nProjectors); //discard empty columns
 		projector = projector * invsqrt(dagger(projector)*projector); //orthonormalize
 		matrix ppDag = projector * dagger(projector);
-		matrix IminPpdag = eye(nModes) - ppDag;
+		matrix IminPpdag = eye(data.nModes) - ppDag;
 		K = IminPpdag * K * IminPpdag;
 		//dP -= ppDag * dP;
 		logPrintf("Projected out %d rotation+translation modes\n", nProjectors);
 	}
-	
+}
+
+void Vibrations::solve_modes(VibrationsData& data){
+	const auto& species = e->iInfo.species;
+
 	//Initialize mass matrix:
-	diagMatrix invsqrtM(nModes);
-	for(int i=0; i<nModes; i++)
-		invsqrtM[i] = 1./sqrt(species[modes[i].s]->mass * amu);
+	data.invsqrtM = diagMatrix(data.nModes);
+	for(int i=0; i<data.nModes; i++)
+		data.invsqrtM[i] = 1./sqrt(species[data.modes[i].s]->mass * amu);
 	
 	//Construct and diagonalize frequency-squared matrix:
-	matrix omegaSq = invsqrtM * K * invsqrtM;
-	diagMatrix omegaSqEigs; matrix omegaSqEvecs;
-	omegaSq.diagonalize(omegaSqEvecs, omegaSqEigs);
-	
+	data.omegaSq = data.invsqrtM * data.K * data.invsqrtM;
+	data.omegaSqEigs = diagMatrix(data.nModes);
+	data.omegaSqEvecs = zeroes(data.nModes, data.nModes);
+	data.omegaSq.diagonalize(data.omegaSqEvecs, data.omegaSqEigs);
+}
+
+void Vibrations::process_solved_modes(VibrationsData& data){
 	//Determine number of modes of each type:
-	int iZeroStart=0, iRealStart=nModes;
+	data.iZeroStart=0, data.iRealStart=data.nModes;
 	double omegaMinSq = omegaMin*omegaMin;
 	double omegaSqEigPrev = -DBL_MAX;
-	for(int i=0; i<nModes; i++)
-	{	double omegaSqEig = omegaSqEigs[i];
-		if(omegaSqEigPrev<-omegaMinSq && omegaSqEig>-omegaMinSq) iZeroStart=i;
-		if(omegaSqEigPrev<+omegaMinSq && omegaSqEig>+omegaMinSq) iRealStart=i;
+	for(int i=0; i<data.nModes; i++)
+	{	
+		double omegaSqEig = data.omegaSqEigs[i];
+		if(omegaSqEigPrev<-omegaMinSq && omegaSqEig>-omegaMinSq) data.iZeroStart=i;
+		if(omegaSqEigPrev<+omegaMinSq && omegaSqEig>+omegaMinSq) data.iRealStart=i;
 		omegaSqEigPrev = omegaSqEig;
 	}
-	logPrintf("%d imaginary modes, %d modes within cutoff, %d real modes.\n", iZeroStart, iRealStart-iZeroStart, nModes-iRealStart);
+	logPrintf("%d imaginary modes, %d modes within cutoff, %d real modes.\n", data.iZeroStart, data.iRealStart-data.iZeroStart, data.nModes-data.iRealStart);
 	
 	//Detect degeneracies:
-	std::set<int> iFreqChange; //index of modes whose energy differs (more than resolution) from previous one
-	for(int i=1; i<nModes; i++)
-		if(fabs(sqrt(fabs(omegaSqEigs[i])) - sqrt(fabs(omegaSqEigs[i-1]))) > omegaResolution)
-			iFreqChange.insert(i);
-	iFreqChange.insert(0);
-	iFreqChange.insert(iZeroStart);
-	iFreqChange.insert(iRealStart);
-	iFreqChange.insert(nModes);
-	
+	for(int i=1; i<data.nModes; i++)
+		if(fabs(sqrt(fabs(data.omegaSqEigs[i])) - sqrt(fabs(data.omegaSqEigs[i-1]))) > omegaResolution)
+			data.iFreqChange.insert(i);
+	data.iFreqChange.insert(0);
+	data.iFreqChange.insert(data.iZeroStart);
+	data.iFreqChange.insert(data.iRealStart);
+	data.iFreqChange.insert(data.nModes);
+}
+
+void Vibrations::print_modes(VibrationsData& data){
+	logPrintf("print_modes - setting references.\n"); logFlush();
 	const double fineStructConst = 7.29735257e-3;
+	std::vector<Mode>& modes = data.modes;
+	diagMatrix& invsqrtM = data.invsqrtM;
+	diagMatrix& omegaSqEigs = data.omegaSqEigs;
+	matrix& omegaSqEvecs = data.omegaSqEvecs;
+	int& iZeroStart = data.iZeroStart;
+	int& iRealStart = data.iRealStart;
+	std::set<int>& iFreqChange = data.iFreqChange;
 
 	//Print modes:
 	matrix dEvecs = invsqrtM * omegaSqEvecs; //displacements of the eigenvectors
-	matrix Pevecs = dagger(dEvecs) * dP; // dipole moments of the eigenvectors
+	matrix Pevecs = dagger(dEvecs) * data.dP; // dipole moments of the eigenvectors
 	diagMatrix PsqEvecs = diag(Pevecs * dagger(Pevecs)); //dipole intensity of the eigenvectors
 	complex* dEvecsData = dEvecs.data();
-	for(int i=0; i<nModes; i++)
+	for(int i=0; i<data.nModes; i++)
 	{	//Classify mode:
 		string modeType; int iMode=0;
 		if(i<iZeroStart) { iMode=i; modeType = "Imaginary"; }
@@ -363,7 +597,7 @@ void Vibrations::calculate()
 		double meanPhase, sigmaPhase, rmsImagErr;
 		removePhase(3, dEvecsData+dEvecs.index(0,i), meanPhase, sigmaPhase, rmsImagErr);
 		IonicGradient d; d.init(e->iInfo);
-		for(int j=0; j<nModes; j++)
+		for(int j=0; j<data.nModes; j++)
 			d[modes[j].s][modes[j].a] += modes[j].n * dEvecsData[dEvecs.index(j,i)].real();
 		logPrintf("Displacements:\n");
 		for(unsigned s=0; s<d.size(); s++)
@@ -372,11 +606,13 @@ void Vibrations::calculate()
 				logPrintf("disp %s %19.15lf %19.15lf %19.15lf\n", sp.name.c_str(), r[0], r[1], r[2]);
 		}
 	}
-	
+}
+
+void Vibrations::print_free_energy(VibrationsData& data){
 	//Global quantities:
 	double ZPE = 0., Evib = 0., Avib = 0.; //zero-point energy, average energy and free energy
-	for(int i=iRealStart; i<nModes; i++)
-	{	double omega = sqrt(omegaSqEigs[i]);
+	for(int i=data.iRealStart; i<data.nModes; i++)
+	{	double omega = sqrt(data.omegaSqEigs[i]);
 		double expMomegaByT = exp(-omega/T);
 		ZPE += 0.5*omega;
 		Evib += 0.5*omega + omega * expMomegaByT / (1.-expMomegaByT);
@@ -388,17 +624,6 @@ void Vibrations::calculate()
 	logPrintf("\tEvib:  %15.6lf\n", Evib);
 	logPrintf("\tTSvib: %15.6lf\n", TSvib);
 	logPrintf("\tAvib:  %15.6lf\n", Avib);
-	
-	logPrintf("\n");
-	// Dump Hessian if requested
-	if(dumpK)
-	{	string fname = e->dump.getFilename("K");
-		logPrintf("\nWriting force matrix K to '%s' ... \n", fname.c_str()); logFlush();
-		FILE* fp = fopen(fname.c_str(), "wb");
-		if(!fp) die("Error opening file for writing.\n");
-		K.write(fp);
-		fclose(fp);
-	}
 }
 
 vector3<> Vibrations::getSplit() const
