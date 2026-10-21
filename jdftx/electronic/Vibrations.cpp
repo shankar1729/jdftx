@@ -113,19 +113,24 @@ void Vibrations::calculate()
 
 	// Determine which configurations to compute, and whether to only compute or also collect into Hessian/dipole derivative matrices:
 
-	//                      ||      nConfigurations >= 0           ||  nConfigurations == -1  
-	//                      ||                                     ||        (default)
-	// -------------------- || --------------------------------    || -------------------------
-	//                      ||            Run iConfigs             ||
-	// iConfiguration >= 0  ||      iConfiguration through         || Run iConfiguration only     
-	//                      ||  iConfiguration+nConfigurations-1   ||                                 
-	// -------------------- || --------------------------------    || -------------------------
-	// iConfiguration == -1 ||    Run first nConfigurations        || Run all configurations          
-	//      (default)       ||                                     ||        (default)                       
-        
+	//                      ||      nConfigurations > 0            ||  nConfigurations <= 0
+	//                      ||                                     ||  (-1 default, or 0)
+	// -------------------- || ----------------------------------- || -------------------------
+	// iConfiguration >= 0  ||  Run iConfiguration through         ||  Run iConfiguration through
+	//                      ||  iConfiguration+nConfigurations-1   ||  the last configuration
+	// -------------------- || ----------------------------------- || -------------------------
+	// iConfiguration == -1 ||  Run first nConfigurations          ||  Run all configurations
+	//      (default)       ||                                     ||  (default)
+	//
+	// Ranges are truncated at the last configuration, and an out-of-range iConfiguration aborts.
+	// All cases except the default only compute (and write) configurations, without analysis.
+
 	int nConfigs = 1 + data.nPrimary * (centralDiff ? 2 : 1);
+	if(iConfiguration >= nConfigs) //iConfiguration < -1 is already rejected by the vibrations command
+		die("vibrations iConfiguration = %d is out of range: must be at most %d for %d configurations.\n",
+			iConfiguration, nConfigs-1, nConfigs);
 	bool startSet = (iConfiguration>=0);
-	bool lenSet = (nConfigurations>=0);
+	bool lenSet = (nConfigurations>0); //nConfigurations = 0 is treated the same as the default (-1): proceed to the last configuration
 	data.iConfigStart = startSet ? iConfiguration : 0;
 	data.iConfigStop = lenSet ? std::min(data.iConfigStart + nConfigurations, nConfigs) : nConfigs;
 	data.computeOnly = startSet or lenSet; //If either of these are set, do not bother in anything besides computing and writing grad and Pel

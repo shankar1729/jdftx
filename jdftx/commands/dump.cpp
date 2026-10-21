@@ -656,10 +656,19 @@ struct CommandVibrations : public Command
 			"   in modes (default: 1e-4). Does not affect free energies and all modes are still printed.\n"
 			"+ dumpK yes|no: dump the Hessian matrix at the end of vibrational analysis. (default no).\n"
 			"   Includes subspace projections performed according to translationSym and rotationSym.\n"
-			"+ iConfiguration <iConfiguration>: Configuration index to inititate evaluation at (default -1). \n"
-			"   Changing from default value disables analysis.\n"
-			"+ nConfigurations <nConfigurations>: Number of configurations to evaluate (default -1). \n"
-			"   Changing from default value disables analysis.\n"
+			"+ iConfiguration <iConfiguration>: index of the first configuration to evaluate (default -1,\n"
+			"   which starts at 0). Evaluation proceeds through the last configuration unless nConfigurations\n"
+			"   is also specified. Indices run from 0 (unperturbed) to nConfigs-1, where nConfigs = 1 + nIndep\n"
+			"   (1 + 2 nIndep with centralDiff) for nIndep symmetry-independent modes, as reported in the\n"
+			"   output (\"Computing configurations ... (of nConfigs total)\"). Out-of-range values abort.\n"
+			"+ nConfigurations <nConfigurations>: number of configurations to evaluate, starting from\n"
+			"   iConfiguration (default -1). Truncated at the last configuration; 0 and -1 both evaluate\n"
+			"   through the last configuration.\n"
+			"   Setting iConfiguration >= 0 or nConfigurations > 0 only computes the requested configurations\n"
+			"   (and the unperturbed configuration 0 if its results are not already saved), writing results\n"
+			"   to files grad<i> and Pel<i> (named according to dump-name), and skips the analysis.\n"
+			"   Configurations whose files already exist are not recomputed. Run again without these options\n"
+			"   to compute any remaining configurations, collect all saved results and perform the analysis.\n"
 			"\n"
 			"Note that for a periodic system with k-points, wave functions may be incompatible\n"
 			"with and without the vibrations command due to symmetry-breaking by the perturbations.\n"
@@ -685,7 +694,10 @@ struct CommandVibrations : public Command
 				case VM_T: pl.get(e.vibrations->T, 298., "T", true); e.vibrations->T *= Kelvin; break;
 				case VM_omegaResolution: pl.get(e.vibrations->omegaResolution, 1e-4, "omegaResolution", true); break;
 				case VM_dumpK: pl.get(e.vibrations->dumpK, false, boolMap, "dumpK", true); break;
-				case VM_iConfiguration: pl.get(e.vibrations->iConfiguration, -1, "iConfiguration", true); break;
+				case VM_iConfiguration:
+					pl.get(e.vibrations->iConfiguration, -1, "iConfiguration", true);
+					if(e.vibrations->iConfiguration < -1) throw string("Must have iConfiguration >= 0 (or -1 for the default)");
+					break;
 				case VM_nConfigurations: pl.get(e.vibrations->nConfigurations, -1, "nConfigurations", true); break;
 				case VM_Delim: return; //end of input
 			}
