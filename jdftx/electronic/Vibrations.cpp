@@ -52,9 +52,10 @@ struct VibrationsData
 	std::set<int> iFreqChange; //!< index of modes whose energy differs (more than resolution) from previous one
 	int iConfigStart, iConfigStop; //!< range of configurations to evaluate
 	bool computeOnly; //!< whether to only compute the configurations, or also collect them into the Hessian and dipole derivative matrices
+	bool unperturbedConverged; //!< whether the electronic state has been converged at the unperturbed geometry in this run
 	VectorField Ptest; //!< vector field that measures dipole moment in lattice coordinates
 
-	VibrationsData() : iConfigStart(0), iConfigStop(0), computeOnly(false) {}
+	VibrationsData() : iConfigStart(0), iConfigStop(0), computeOnly(false), unperturbedConverged(false) {}
 
 	void construct_modes(Everything* e); //construct vibrational modes and Hessian/dipole derivative matrices
 	void construct_maps(Everything* e); //construct mapping from modes to configurations and the corresponding ionic gradients
@@ -374,13 +375,23 @@ bool missing_files(const Everything& e, const int iConfig)
 // second: If they do not exist, compute them with compute_iConfig and then write them to disk,
 // third: If they do exist, read them from disk into grad and Pel.
 // (Pel is stored as a single line of text "[ Px Py Pz ]" in cartesian coordinates, so that it can be inspected easily.)
+// Configuration 0 is only written if it is in the requested range; otherwise the electronic state is still converged at
+// the unperturbed geometry (without writing) before the first perturbed configuration computed in this run.
 void VibrationsData::compute_or_collect_iConfig(Everything* e, IonicMinimizer& imin, IonicGradient& grad, vector3<>& Pel, int iConfig)
 {	//Compute forces and dipole derivatives for this configuration
 	string grad_fname = get_arb_fname(*e, "grad", iConfig);
 	string Pel_fname = get_arb_fname(*e, "Pel", iConfig);
 	bool perform_compute = missing_files(*e, iConfig);
+	if(iConfig == 0 && computeOnly && iConfigStart > 0) perform_compute = false; //outside requested range: never written by this run
 	// Compute and write the files if they are missing
 	if(perform_compute){
+		if(iConfig > 0 && !unperturbedConverged)
+		{	//Start perturbed configurations from wavefunctions converged at the unperturbed (input) geometry:
+			logPrintf("Converging electronic state at the unperturbed configuration (not written) before configuration %d.\n", iConfig);
+			IonicGradient gradUnperturbed;
+			imin.compute(&gradUnperturbed, 0);
+		}
+		unperturbedConverged = true; //either above, or by computing configuration 0 itself below
 		IonicGradient& d = ds[iConfig];
 		compute_iConfig(e, imin, d, grad, Pel);
 		logPrintf("Completed %d of %d configurations.\n", iConfig+1, nConfigs);
