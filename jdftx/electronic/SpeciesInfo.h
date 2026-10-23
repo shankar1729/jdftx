@@ -52,7 +52,7 @@ public:
 	void sync_atpos(); //!< update changes in atpos; call whenever atpos is changed (this will update atposManaged and invalidate cached projectors, if any)
 	
 	double dE_dnG; //!< Derivative of [total energy per atom] w.r.t [nPlanewaves per unit volume] (for Pulay corrections)
-	double mass; //!< ionic mass (currently unused)	
+	double mass; //!< ionic mass (used for ionic dynamics and vibrational/phonon analysis)	
 	double coreRadius; //!< maximum pseudopotential core radius (used for core overlap checks during ionic/lattice relaxation)
 	double ZfullCore; //!< number of electrons in full-core correction (atomicNumber - Z - integral(nCore))
 	
