@@ -45,7 +45,6 @@ public:
 	void loadState(const char* filename); //!< Load state from file
 	void saveState(const char* filename) const; //!< Save state to file
 	void dumpDensities(const char* filenamePattern) const;
-	void printDebug(FILE * fp) const;
 	void minimizeFluid(); //!< Converge using nonlinear conjugate gradients
 
 	// Interface for Minimizable:
@@ -65,14 +64,6 @@ private:
 	NonlinearPCMeval::Dielectric* dielectricEval; //!< Internal helper class for Dielectric from PCM_internal
 	RadialFunctionG dielEnergyLookup, ionEnergyLookup; //!< lookup tables for energy during nonlinear Poisson-Boltzmann solve
 	std::shared_ptr<RealKernel> preconditioner;
-	
-	//Extra quantities for CANON alone:
-	bool isNonlocal; //!< whether nonlocal extensions to NonlinearPCM (CANON) are active
-	ScalarFieldTilde nCavityNetTilde; //!< input nCavity + full core before convolution
-	ScalarFieldTilde rhoLiquidTilde0; //!< built-in charge density in liquid
-	RadialFunctionG Nw0, w1; //!< Solvent l=0 and l=1 weight functions (Nw0 includes Nbulk)
-	double Res, Zcenter; //!< Parameters for which nonlocal kernels have been initialized
-	void updateNonlocal(); //!< Update the nonlocal kernels
 };
 
 //! @}

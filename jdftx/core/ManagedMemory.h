@@ -109,7 +109,16 @@ public:
 	inline T* dataPref() { return data(); }
 	inline const T* dataPref() const { return data(); }
 	#endif
-
+	
+	//Which data to use for MPI operations:
+	#if defined(GPU_ENABLED) && defined(CUDA_AWARE_MPI)
+	inline T* dataMPI() { if(gpuSyncMPI) cudaDeviceSynchronize(); return dataGpu(); }
+	inline const T* dataMPI() const { if(gpuSyncMPI) cudaDeviceSynchronize(); return dataGpu(); }
+	#else
+	inline T* dataMPI() { return data(); }
+	inline const T* dataMPI() const { return data(); }
+	#endif
+	
 	void read(const char *fname); //!< binary read from a file
 	void read(FILE *filep); //!< binary read from a stream
 	void write(const char *fname) const; //!< binary-write to a file
@@ -264,12 +273,6 @@ template<typename T> void ManagedMemory<T>::zero()
 {	callPref(eblas_zero)(nData(), dataPref());
 }
 
-//Which data to use for MPI operations:
-#if defined(GPU_ENABLED) && defined(CUDA_AWARE_MPI)
-#define dataMPI dataGpu
-#else
-#define dataMPI data
-#endif
 template<typename T> void MPIUtil::sendData(const ManagedMemory<T>& v, int dest, int tag, Request* request) const
 {	send(v.dataMPI(), v.nData(), dest, tag, request);
 }

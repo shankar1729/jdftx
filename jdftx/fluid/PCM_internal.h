@@ -56,6 +56,13 @@ namespace ShapeFunctionCANDLE
 		ScalarField& E_n, ScalarFieldTilde& E_phi, double& E_pCavity, double nc, double sigma, double pCavity, matrix3<>* E_RRT=0);
 }
 
+//! Shape function in CANON \cite CANON
+namespace ShapeFunctionCANON
+{
+	//! Compute activation function for sharpening dielectric cavity
+	ScalarField activation(ScalarField&& s, ScalarField& prime, double inv_s_cut);
+}
+
 //! Shape function for \cite CavityWDA
 namespace ShapeFunctionSGA13
 {
@@ -139,6 +146,15 @@ namespace ShapeFunctionCANDLE
 			accumVector((A_x*x_eDotE*(-1.)) * e, A_Dphi,i);
 			A_pCavity[i] += A_x*(-copysign(1.,pCavity))*eDotE;
 		}
+	}
+}
+
+namespace ShapeFunctionCANON
+{
+	__hostanddev__ void activation_calc(int i, double* s, double* prime, double inv_s_cut)
+	{	double x = s[i] * inv_s_cut;
+		s[i] = erf(x); //store activation in-place
+		prime[i] = M_2_SQRTPI * exp(-x*x) * inv_s_cut;
 	}
 }
 
