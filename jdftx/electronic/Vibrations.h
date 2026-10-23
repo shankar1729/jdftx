@@ -53,6 +53,7 @@ private:
 	struct IonicGradient getCMcoords() const; //get cartesian coordinates of all atoms relative to molecule center of mass
 	VectorField Ptest; //vector field that measures dipole moment in lattice coordinates
 	vector3<> getPel() const; //get electronic dipole moment at current state in cartesian coordinates
+	friend struct VibrationsData; //helper for calculate(), defined in Vibrations.cpp
 };
 
 //! @}

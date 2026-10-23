@@ -92,6 +92,20 @@ namespace ShapeFunctionCANDLE
 	}
 }
 
+namespace ShapeFunctionCANON
+{
+	void activation(int N, double* s, double* prime, double inv_s_cut)
+	{	threadedLoop(activation_calc, N, s, prime, inv_s_cut);
+	}
+	#ifdef GPU_ENABLED
+	void activation_gpu(int N, double* s, double* prime, double inv_s_cut);
+	#endif
+	ScalarField activation(ScalarField&& s, ScalarField& prime, double inv_s_cut)
+	{	callPref(activation)(s->gInfo.nr, s->dataPref(), prime->dataPref(), inv_s_cut);
+		return s;
+	}
+}
+
 namespace ShapeFunctionSGA13
 {
 	void expandDensityHelper(int N, double alpha, const double* nBar, const double* DnBarSq, double* nEx, double* nEx_nBar, double* nEx_DnBarSq)

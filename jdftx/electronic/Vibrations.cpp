@@ -53,7 +53,6 @@ struct VibrationsData
 	int iConfigStart, iConfigStop; //!< range of configurations to evaluate
 	bool computeOnly; //!< whether to only compute the configurations, or also collect them into the Hessian and dipole derivative matrices
 	bool unperturbedConverged; //!< whether the electronic state has been converged at the unperturbed geometry in this run
-	VectorField Ptest; //!< vector field that measures dipole moment in lattice coordinates
 
 	VibrationsData() : iConfigStart(0), iConfigStop(0), computeOnly(false), unperturbedConverged(false) {}
 
@@ -66,7 +65,7 @@ struct VibrationsData
 	void collect_cur_contributions(Everything* e, const IonicGradient& Kcur, const vector3<>& dPcur, int iMode);
 	void account_for_multiplicity(); //account for multiplicity of each mode in the Hessian and dipole derivative matrices
 	void fill_in_trans_sym_modes(); //fill in the translation and rotation modes in the Hessian and dipole derivative matrices
-	void apply_projections(Everything* e, const IonicGradient& r); //project out translation and rotation modes from the Hessian (r = atom coordinates relative to center of mass, used only if rotationSym)
+	void apply_projections(Everything* e); //project out translation and rotation modes from the Hessian
 	void solve_modes(Everything* e); //solve the eigenvalue problem for the Hessian and dipole derivative matrices
 	void process_solved_modes(Everything* e); //process the solved modes to identify zero and real modes, and their degeneracies
 	void print_modes(Everything* e); //print the vibrational modes and their frequencies to the output file
@@ -157,7 +156,6 @@ void Vibrations::calculate()
 	//Initialize dipole measuring vector field
 	nullToZero(Ptest, e->gInfo);
 	threadLaunch(setPtest, e->gInfo.nr, e->gInfo.S, Ptest.data(), getSplit());
-	data.Ptest = Ptest;
 
 	//Construct maps for mapping iConfig to perturbation d (ds), and iMode to configuration indices (iModeToConfigs):
 	data.construct_maps(e);
@@ -192,7 +190,7 @@ void Vibrations::calculate()
 	data.K = dagger_symmetrize(data.K);
 	
 	//Project out translation / rotation modes:
-	data.apply_projections(e, rotationSym ? getCMcoords() : IonicGradient());
+	data.apply_projections(e);
 	//Construct mass-weighted frequency-squared matrix and solve for eigenvalues and eigenvectors:
 	data.solve_modes(e);
 	//Enumerate imaginary, zero, and real modes:
@@ -334,21 +332,13 @@ void VibrationsData::construct_maps(Everything* e)
 	}
 }
 
-//Get electronic dipole moment at current state in cartesian coordinates, using dipole measuring vector field Ptest
-inline vector3<> getPel(const Everything& e, const VectorField& Ptest)
-{	vector3<> Pel;
-	for(int k=0; k<3; k++)
-		Pel[k] = e.gInfo.dV * dot(Ptest[k], e.eVars.get_nTot());
-	return e.gInfo.R * Pel; //convert to Cartesian coordinates
-}
-
 // Helper function to step the perturbation, compute the forces and dipole moment, and then unstep the perturbation.
 void VibrationsData::compute_iConfig(Everything* e, IonicMinimizer& imin, IonicGradient& d, IonicGradient& grad, vector3<>& Pel)
 {	const double dr = e->vibrations->dr;
 	//Compute forces and dipole derivatives for this configuration
 	imin.step(d, dr);
 	imin.compute(&grad, 0);
-	Pel = getPel(*e, Ptest);
+	Pel = e->vibrations->getPel();
 	imin.step(d, -dr); //restore to unperturbed configuration
 }
 
@@ -514,7 +504,7 @@ void VibrationsData::fill_in_trans_sym_modes()
 	}
 }
 
-void VibrationsData::apply_projections(Everything* e, const IonicGradient& r)
+void VibrationsData::apply_projections(Everything* e)
 {	const bool translationSym = e->vibrations->translationSym, rotationSym = e->vibrations->rotationSym;
 	//Project out translation / rotation modes:
 	matrix projector(nModes, 6); int nProjectors=0;
@@ -528,7 +518,8 @@ void VibrationsData::apply_projections(Everything* e, const IonicGradient& r)
 		}
 	}
 	if(rotationSym)
-	{	//Compute inertia tensor:
+	{	IonicGradient r = e->vibrations->getCMcoords();
+		//Compute inertia tensor:
 		matrix3<> I;
 		for(unsigned s=0; s<e->iInfo.species.size(); s++)
 		{	const SpeciesInfo& sp = *(e->iInfo.species[s]);

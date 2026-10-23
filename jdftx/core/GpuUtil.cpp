@@ -35,6 +35,7 @@ cublasHandle_t cublasHandle;
 #ifdef CUSOLVER_ENABLED
 cusolverDnHandle_t cusolverHandle;
 #endif
+bool gpuSyncMPI = false;
 
 pthread_key_t gpuOwnerKey; //thread-local storage to identify thread that owns gpu
 //NOTE: At the time of writing, c++0x threads implemented in g++, but not thread-local storage
@@ -89,7 +90,6 @@ bool gpuInit(FILE* fpLog, const MPIUtil* mpiHostGpu, double* nGPUs)
 	prefetchSupported = (err == cudaSuccess) and (concurrentManagedAccess != 0);
 	memLocDevice = selectedDevice;
 	memLocHost = cudaCpuDeviceId;
-	
 	//Print selected devices:
 	fprintf(fpLog, "gpuInit: Selected device %d\n", selectedDevice);
 	cudaSetDevice(selectedDevice);
@@ -97,6 +97,13 @@ bool gpuInit(FILE* fpLog, const MPIUtil* mpiHostGpu, double* nGPUs)
 	cublasCreate(&cublasHandle);
 	#ifdef CUSOLVER_ENABLED
 	cusolverDnCreate(&cusolverHandle);
+	#endif
+
+	#ifdef CUDA_AWARE_MPI
+	//Decide whether to sync GPU before MPI:
+	const char* envGpuSyncMPI = getenv("JDFTX_GPU_SYNC_MPI");
+	if(envGpuSyncMPI) gpuSyncMPI = true;
+	fprintf(fpLog, "gpuInit: sync before MPI is %s\n", gpuSyncMPI ? "on" : "off");
 	#endif
 	return true;
 }

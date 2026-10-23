@@ -152,6 +152,7 @@ enum class AtomicSymbol : int
 extern EnumStringMap<AtomicSymbol> atomicSymbolMap; //!< Relate chemical symbols and atomic numbers
 
 double atomicMass(AtomicSymbol); //!< retrieve atomic mass for each element
+int getGroupNumber(int Z); //!< get periodic table group number from atomic number
 
 //! @}
 #endif // JDFTX_ELECTRONIC_SYMBOLS_H
