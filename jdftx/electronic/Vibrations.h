@@ -40,6 +40,8 @@ public:
 	double T; //!< ionic temperature used for entropy and free energy estimation
 	double omegaResolution; //!< frequency resolution used for identifying and reporting degeneracies
 	bool dumpK; //!< whether to dump the Hessian
+	int iConfiguration; //!< index of configuration being evaluated (for checkpointing)
+	int nConfigurations; //!< total number of configurations to evaluate (for checkpointing)
 	
 	Vibrations();
 	void setup(Everything* e);
@@ -51,6 +53,7 @@ private:
 	struct IonicGradient getCMcoords() const; //get cartesian coordinates of all atoms relative to molecule center of mass
 	VectorField Ptest; //vector field that measures dipole moment in lattice coordinates
 	vector3<> getPel() const; //get electronic dipole moment at current state in cartesian coordinates
+	friend struct VibrationsData; //helper for calculate(), defined in Vibrations.cpp
 };
 
 //! @}
