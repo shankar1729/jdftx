@@ -64,6 +64,7 @@ public:
 	bool vdWenable; //!< whether vdW pair-potential corrections are enabled
 	VDWstyle vdWstyle; //!< style of vdW correction for ions in electronic system (not used for fluid coupling)
 	double vdWscale; //!< If non-zero, override the default scale parameter
+	bool vdWlegacy; //!< D3 only: reproduce the legacy (transposed) C6 reference pairing for unlike atom types
 	double ljOverride; //!< If non-zero, replace electronic DFT with LJ pair potential with rCut=ljOverride (for testing geometry optimization and dynamics algorithms only)
 	std::vector<IonicGaussianPotential> ionicGaussianPotentials; //!< External Gaussian potentials and forces on atoms
 	std::shared_ptr<MetadynamicsBond> metadynamicsBond; //!< Optional metadynamics on a bond degree of freedom

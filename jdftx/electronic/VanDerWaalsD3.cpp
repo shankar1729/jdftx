@@ -68,22 +68,25 @@ namespace D3
 		return L * invLsum;
 	}
 	
-	PairParams getPairParams(const AtomParams& ap1, const AtomParams& ap2)
+	PairParams getPairParams(const AtomParams& ap1, const AtomParams& ap2, bool legacy)
 	{	PairParams pp;
 		//Radius:
 		int iZmin = std::min(ap1.Z, ap2.Z) - 1; //index into arrays by lower of two atomic numbers
 		int iZmax = std::max(ap1.Z, ap2.Z) - 1;
 		int iZ12 = (iZmax*(iZmax+1))/2 + iZmin; //index into unique Z pairs
 		pp.R0 = D3::R0_Angstrom[iZ12] * Angstrom;
-		//C6 coefficients:
+		//C6 coefficients: element (i1, i2) pairs reference CN i1 of atom 1 with reference CN i2 of atom 2.
+		//matrix is column-major (index(i,j) = nRows*j + i). Legacy mode fills C6data row-major instead, as
+		//earlier versions did, which pairs the wrong reference CN's for unlike atom types that both have more
+		//than one reference CN (e.g. Ni-O C6 = 39.4 or 66.7 for the two atom orders, instead of 43.6).
 		pp.C6.init(ap1.CN.size(), ap2.CN.size());
 		complex* C6data = pp.C6.data();
-		for(int iCN1: ap1.iCN)
-			for(int iCN2: ap2.iCN)
-			{	int iCNmin = std::min(iCN1, iCN2);
-				int iCNmax = std::max(iCN1, iCN2);
+		for(size_t i1=0; i1<ap1.iCN.size(); i1++)
+			for(size_t i2=0; i2<ap2.iCN.size(); i2++)
+			{	int iCNmin = std::min(ap1.iCN[i1], ap2.iCN[i2]);
+				int iCNmax = std::max(ap1.iCN[i1], ap2.iCN[i2]);
 				int iCN12 = (iCNmax*(iCNmax+1))/2 + iCNmin; //index into unique iCN pairs
-				*(C6data++) = D3::C6::coeff[iCN12];
+				C6data[legacy ? i1*ap2.iCN.size()+i2 : pp.C6.index(i1, i2)] = D3::C6::coeff[iCN12];
 			}
 		return pp;
 	}
@@ -127,7 +130,7 @@ VanDerWaalsD3::VanDerWaalsD3(const Everything& e)
 	for(size_t iSp1=0; iSp1<atomParams.size(); iSp1++)
 	{	pairParams[iSp1].resize(atomParams.size());
 		for(size_t iSp2=0; iSp2<atomParams.size(); iSp2++)
-			pairParams[iSp1][iSp2] = D3::getPairParams(atomParams[iSp1], atomParams[iSp2]);
+			pairParams[iSp1][iSp2] = D3::getPairParams(atomParams[iSp1], atomParams[iSp2], e.iInfo.vdWlegacy);
 	}
 
 	Citations::add(
