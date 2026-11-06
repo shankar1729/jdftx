@@ -75,7 +75,7 @@ namespace D3
 		int iZmax = std::max(ap1.Z, ap2.Z) - 1;
 		int iZ12 = (iZmax*(iZmax+1))/2 + iZmin; //index into unique Z pairs
 		pp.R0 = D3::R0_Angstrom[iZ12] * Angstrom;
-		//C6 coefficients (matrix is column-major, so loop over reference CN's of atom 2 outermost):
+		//C6 coefficients:
 		pp.C6.init(ap1.CN.size(), ap2.CN.size());
 		complex* C6data = pp.C6.data();
 		for(int iCN2: ap2.iCN)
