@@ -144,14 +144,21 @@ double VanDerWaalsD3::getScaleFactor(string exCorrName, double scaleOverride) co
 }
 
 
+//! Return x^m (m >= 1), much faster than std::pow in the pair potentials below
+template<int m> double intPow(double x)
+{	double result = x;
+	for(int i=1; i<m; i++) result *= x;
+	return result;
+}
+
 //! Return r^-n pair-potential energy and set its derivative E_r.
 //! The potential is damped at length scale R0 and exponent alpha_n.
 template<int n, int alpha_n> double vdWpotential(double invr, double R0, double& E_r)
 {	//Main r^-n potential (and r derivative):
-	double pot = std::pow(invr, n); 
+	double pot = intPow<n>(invr);
 	double pot_r = (-n) * pot * invr;
 	//Exponent in denominator of damping factor (and r derivative):
-	double damp_term = 6 * std::pow(R0 * invr, alpha_n);
+	double damp_term = 6 * intPow<alpha_n>(R0 * invr);
 	double damp_term_r = (-alpha_n) * damp_term * invr;
 	//Overall damping factor (and r derivative):
 	double damp = 1./(1. + damp_term);
@@ -165,13 +172,27 @@ template<int n, int alpha_n> double vdWpotential(double invr, double R0, double&
 template<int n> double vdWpotentialBJ(double r, double R0, double a1, double a2, double& E_r)
 {	//Main r^-n potential (and r derivative):
 	double subcdamp = a1*R0 + a2; // eqn 6 of Grimme 2011
-	double cdamp = pow(subcdamp, n); // raised to n (constant wrt r)
-	double rn = pow(r, n);
+	double cdamp = intPow<n>(subcdamp); // raised to n (constant wrt r)
+	double rn = intPow<n>(r);
 	double E = 1 / (rn + cdamp);
-	E_r = -n * pow(r, n-1) * E * E;
+	E_r = -n * intPow<n-1>(r) * E * E;
 	return E;
 }
 
+//! Return trace(transpose(L1) * C6 * L2), with C6 the real parts of a matrix in its column-major storage order.
+//! This replaces 3 such traces of matrix products per pair of atoms, the dominant cost: on CPU without threaded BLAS,
+//! every product launches threads (eblas_zgemm), and on GPU every product is a cuBLAS call with memory transfers.
+inline double contractC6(const std::vector<double>& C6, const std::vector<double>& L1, const std::vector<double>& L2)
+{	const double* C6col = C6.data();
+	double result = 0.;
+	for(double L2j: L2)
+	{	double L1C6 = 0.;
+		for(double L1i: L1)
+			L1C6 += L1i * *(C6col++);
+		result += L1C6 * L2j;
+	}
+	return result;
+}
 
 
 double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr) const
@@ -192,18 +213,37 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 	std::vector<vector3<>> forces(atoms.size()); //VDW forces per atom
 	matrix3<> E_RRT; //Stress * volume (updated only if E_RRTptr is non-null)
 	std::vector<double> diagC6(atoms.size()); //diagonal C6 for reporting
-	for(int c1=0; c1<int(atoms.size()); c1++)
+	//C6 interpolation weights per atom and reference C6 per pair of species, as plain arrays for contractC6:
+	std::vector<std::vector<double>> Lall(atoms.size()), LprimeAll(atoms.size());
+	std::vector<std::vector<std::vector<double>>> C6all(pairParams.size());
+	for(size_t c=0; c<atoms.size(); c++)
+	{	matrix Lprime, L = atomParams[atoms[c].sp].getL(CN[c], Lprime);
+		for(int i=0; i<L.nRows(); i++)
+		{	Lall[c].push_back(L.data()[i].real());
+			LprimeAll[c].push_back(Lprime.data()[i].real());
+		}
+	}
+	for(size_t iSp1=0; iSp1<pairParams.size(); iSp1++)
+		for(const D3::PairParams& pp: pairParams[iSp1])
+		{	C6all[iSp1].push_back(std::vector<double>());
+			for(size_t i=0; i<pp.C6.nData(); i++)
+				C6all[iSp1].back().push_back(pp.C6.data()[i].real());
+		}
+	std::mutex lock;
+	auto pairsOfAtom1 = [&, &E6tot=E6, &E8tot=E8, &E_CNtot=E_CN, &forcesTot=forces, &E_RRTtot=E_RRT](int c1) //run threaded over c1 below
 	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
-		matrix L1prime, L1 = ap1.getL(CN[c1], L1prime); //C6 interpolation weights for atom 1
+		const std::vector<double>& L1 = Lall[c1], &L1prime = LprimeAll[c1]; //C6 interpolation weights for atom 1
+		double E6 = 0., E8 = 0.; std::vector<double> E_CN(atoms.size()); //contributions of the pairs of atom c1,
+		std::vector<vector3<>> forces(atoms.size()); matrix3<> E_RRT;      //added to the totals (E6tot etc.) at the end
 
 		for(int c2=0; c2<int(atoms.size()); c2++)
 		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
-			matrix L2prime, L2 = ap2.getL(CN[c2], L2prime); //C6 interpolation weights for atom 2
+			const std::vector<double>& L2 = Lall[c2], &L2prime = LprimeAll[c2]; //C6 interpolation weights for atom 2
 
 			//Compute C6 and C8 for this pair:
 			const D3::PairParams& pp = pairParams[atoms[c1].sp][atoms[c2].sp];
 			double ratio8by6 = 3. * ap1.sqrtQ * ap2.sqrtQ;
-			double C6 = trace(transpose(L1) * pp.C6 * L2).real();
+			double C6 = contractC6(C6all[atoms[c1].sp][atoms[c2].sp], L1, L2);
 			double C8 = C6 * ratio8by6;
 			double R0 = dampBJ ? sqrt(C8/C6) : pp.R0; //BJ damping uses C8/C6 to get R0
 			if(c1 == c2) diagC6[c1] = C6; //only for reporting
@@ -245,10 +285,17 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 			
 			//Propagate gradients to CN:
 			double E12_C6_tot = E12_C6 + E12_C8 * ratio8by6; //total derivative w.r.t C6
-			E_CN[c1] += E12_C6_tot * trace(transpose(L1prime) * pp.C6 * L2).real();
-			E_CN[c2] += E12_C6_tot * trace(transpose(L1) * pp.C6 * L2prime).real();
+			E_CN[c1] += E12_C6_tot * contractC6(C6all[atoms[c1].sp][atoms[c2].sp], L1prime, L2);
+			E_CN[c2] += E12_C6_tot * contractC6(C6all[atoms[c1].sp][atoms[c2].sp], L1, L2prime);
 		}
-	}
+		std::lock_guard<std::mutex> guard(lock);
+		E6tot += E6; E8tot += E8; E_RRTtot += E_RRT;
+		for(size_t c=0; c<atoms.size(); c++)
+		{	E_CNtot[c] += E_CN[c];
+			forcesTot[c] += forces[c];
+		}
+	};
+	if(atoms.size()) threadedLoop(&pairsOfAtom1, atoms.size());
 	report(diagC6, "diagonal-C6", atoms, " %.2f");
 	mpiWorld->allReduce(E6, MPIUtil::ReduceSum);
 	mpiWorld->allReduce(E8, MPIUtil::ReduceSum);
@@ -278,8 +325,10 @@ void VanDerWaalsD3::computeCN(const std::vector<Atom>& atoms, std::vector<double
 	vector3<int> S; size_t iStart, iStop; //Number of unit cells in supercell to reach rCut and MPI division
 	setNeighborSampling(rCut, S, iStart, iStop);
 	CN.assign(atoms.size(), 0.);
-	for(int c1=0; c1<int(atoms.size()); c1++)
+	std::mutex lock;
+	auto pairsOfAtom1 = [&, &CNtot=CN](int c1) //run threaded over c1 below
 	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
+		std::vector<double> CN(atoms.size()); //contributions of the pairs of atom c1, added to CNtot at the end
 		for(int c2=0; c2<int(atoms.size()); c2++)
 		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
 			double k2RcovSum = ap1.k2Rcov + ap2.k2Rcov;
@@ -296,7 +345,11 @@ void VanDerWaalsD3::computeCN(const std::vector<Atom>& atoms, std::vector<double
 				}
 			)
 		}
-	}
+		std::lock_guard<std::mutex> guard(lock);
+		for(size_t c=0; c<atoms.size(); c++)
+			CNtot[c] += CN[c];
+	};
+	if(atoms.size()) threadedLoop(&pairsOfAtom1, atoms.size());
 	mpiWorld->allReduceData(CN, MPIUtil::ReduceSum);
 	report(CN, "coordination-number", atoms);
 }
@@ -310,8 +363,11 @@ void VanDerWaalsD3::propagateCNgradient(const std::vector<Atom>& atoms, const st
 	vector3<int> S; size_t iStart, iStop;
 	setNeighborSampling(rCut, S, iStart, iStop);
 	//Propagate gradients corresponding to computeCN()
-	for(int c1=0; c1<int(atoms.size()); c1++)
+	std::mutex lock;
+	auto pairsOfAtom1 = [&, &forcesTot=forces, E_RRTtot=E_RRT](int c1) //run threaded over c1 below
 	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
+		std::vector<vector3<>> forces(atoms.size()); matrix3<> E_RRTsum; //contributions of the pairs of atom c1,
+		matrix3<>* E_RRT = E_RRTtot ? &E_RRTsum : NULL;                  //added to the totals (forcesTot, E_RRTtot) at the end
 		for(int c2=0; c2<int(atoms.size()); c2++)
 		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
 			double k2RcovSum = ap1.k2Rcov + ap2.k2Rcov;
@@ -338,7 +394,12 @@ void VanDerWaalsD3::propagateCNgradient(const std::vector<Atom>& atoms, const st
 				}
 			)
 		}
-	}
+		std::lock_guard<std::mutex> guard(lock);
+		for(size_t c=0; c<atoms.size(); c++)
+			forcesTot[c] += forces[c];
+		if(E_RRTtot) *E_RRTtot += E_RRTsum;
+	};
+	if(atoms.size()) threadedLoop(&pairsOfAtom1, atoms.size());
 }
 
 
