@@ -78,8 +78,8 @@ namespace D3
 		//C6 coefficients:
 		pp.C6.init(ap1.CN.size(), ap2.CN.size());
 		complex* C6data = pp.C6.data();
-		for(int iCN1: ap1.iCN)
-			for(int iCN2: ap2.iCN)
+		for(int iCN2: ap2.iCN)
+			for(int iCN1: ap1.iCN)
 			{	int iCNmin = std::min(iCN1, iCN2);
 				int iCNmax = std::max(iCN1, iCN2);
 				int iCN12 = (iCNmax*(iCNmax+1))/2 + iCNmin; //index into unique iCN pairs
