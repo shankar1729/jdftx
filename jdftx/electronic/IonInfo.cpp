@@ -37,7 +37,6 @@ IonInfo::IonInfo()
 	vdWenable = false;
 	vdWscale = 0.;
 	vdWstyle = VDW_D2;
-	vdWlegacy = true;
 	ljOverride = false;
 	computeStress = false;
 }

@@ -278,7 +278,7 @@ struct CommandVanDerWaals : public Command
 {
 	CommandVanDerWaals() : Command("van-der-waals", "jdftx/Electronic/Functional")
 	{
-		format = "[<scaleOverride>=0] | D3 [<legacy>=yes] | D3BJ [<legacy>=yes]";
+		format = "[<scaleOverride>=0] | D3 | D3BJ";
 		comments =
 			"Pair-potential corrections for the long range Van der Waals\n"
 			"interaction using either the DFT-D2 or DFT-D3 schemes.\n"
@@ -295,12 +295,7 @@ struct CommandVanDerWaals : public Command
 			"\n"
 			"If specified with argument 'D3BJ', use DFT-D3 pair-potential corrections DFT-D3 with Beck-Johnson damping\n"
 			"[S. Grimme, S. Ehrlich, L. Goerigk, J. Comput. Chem. 32, 1456 (2011)]\n"
-			"instead. Note that this form also does not scale the C6 parameters.\n"
-			"\n"
-			"For D3 and D3BJ, <legacy> = yes (default) reproduces the C6 coefficients of\n"
-			"earlier versions, which paired the reference coordination numbers of unlike\n"
-			"atom types in transposed order whenever both have more than one reference.\n"
-			"Set <legacy> = no to use the correct reference C6 values of DFT-D3.\n";
+			"instead. Note that this form also does not scale the C6 parameters.\n";
 	}
 
 	void process(ParamList& pl, Everything& e)
@@ -311,12 +306,10 @@ struct CommandVanDerWaals : public Command
 		if(key == "D3")
 		{	e.iInfo.vdWstyle = VDW_D3;
 			e.iInfo.vdWscale = 0.; //not used for D3
-			pl.get(e.iInfo.vdWlegacy, true, boolMap, "legacy");
 		}
 		else if(key == "D3BJ")
 		{	e.iInfo.vdWstyle = VDW_D3BJ;
 			e.iInfo.vdWscale = 0.; //not used for D3BJ
-			pl.get(e.iInfo.vdWlegacy, true, boolMap, "legacy");
 		}
 		else
 		{	e.iInfo.vdWstyle = VDW_D2;
@@ -327,9 +320,9 @@ struct CommandVanDerWaals : public Command
 
 	void printStatus(Everything& e, int iRep)
 	{	if(e.iInfo.vdWstyle == VDW_D3)
-			logPrintf("D3%s", e.iInfo.vdWlegacy ? "" : " no"); //legacy flag printed only if non-default
+			logPrintf("D3");
 		else if(e.iInfo.vdWstyle == VDW_D3BJ)
-			logPrintf("D3BJ%s", e.iInfo.vdWlegacy ? "" : " no");
+			logPrintf("D3BJ");
 		else if(e.iInfo.vdWscale)
 			logPrintf("%lg", e.iInfo.vdWscale);
 	}
