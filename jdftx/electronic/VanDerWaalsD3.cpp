@@ -197,8 +197,6 @@ inline double contractC6(const std::vector<double>& C6, const std::vector<double
 
 double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr) const
 {	static StopWatch watch("VanDerWaalsD3::energyAndGrad"); watch.start();
-	// Grimme's DFT-D3 code uses about only 95 Bohr for rCut, so if we are interested in more efficiency we can test
-	// the accuracy of a smaller cutoff.
 	const double rCut = e.iInfo.ljOverride ? e.iInfo.ljOverride : 200.; //Truncate summation at 1/r^6 ~ 10^-16
 	const double rCutSq = rCut*rCut;
 	vector3<int> S; size_t iStart, iStop; //Number of unit cells in supercell to reach rCut and MPI division
@@ -361,8 +359,6 @@ void VanDerWaalsD3::computeCN(const std::vector<Atom>& atoms, std::vector<double
 void VanDerWaalsD3::propagateCNgradient(const std::vector<Atom>& atoms, const std::vector<double>& E_CN,
 	std::vector<vector3<>>& forces, matrix3<>* E_RRT) const
 {	//Set up same neighbor cells as used in computeCN()
-	//Grimme's DFT-D3 code only uses about 40 Bohr to rCut here, so we also might be able to shave off
-	//some more time here if we are interested. 
 	const double rCut = 50., rCutSq=rCut*rCut;
 	vector3<int> S; size_t iStart, iStop;
 	setNeighborSampling(rCut, S, iStart, iStop);
