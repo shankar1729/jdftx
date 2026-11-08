@@ -21,6 +21,13 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaalsD3_data.h>
 #include <electronic/Everything.h>
 
+//! Return x^m (m >= 1), much faster than std::pow, which usually stays a library call
+template<int m> double intPow(double x)
+{	double result = x;
+	for(int i=1; i<m; i++) result *= x;
+	return result;
+}
+
 namespace D3
 {
 	AtomParams getAtomParams(int Z)
@@ -45,7 +52,7 @@ namespace D3
 		complex* LprimeData = Lprime.data();
 		double Lsum = 0., LprimeSum = 0.;
 		for(double CNi: CN)
-		{	double Li = exp(-D3::k3 * std::pow(observedCN - CNi, 2));
+		{	double Li = exp(-D3::k3 * intPow<2>(observedCN - CNi));
 			double LiPrime = (-2. * D3::k3) * (observedCN - CNi) * Li;
 			Lsum += Li;
 			LprimeSum += LiPrime;
@@ -143,13 +150,6 @@ double VanDerWaalsD3::getScaleFactor(string exCorrName, double scaleOverride) co
 {	return 0.;  //global scale factor not used in D3
 }
 
-
-//! Return x^m (m >= 1), much faster than std::pow in the pair potentials below
-template<int m> double intPow(double x)
-{	double result = x;
-	for(int i=1; i<m; i++) result *= x;
-	return result;
-}
 
 //! Return r^-n pair-potential energy and set its derivative E_r.
 //! The potential is damped at length scale R0 and exponent alpha_n.
@@ -382,7 +382,7 @@ void VanDerWaalsD3::propagateCNgradient(const std::vector<Atom>& atoms, const st
 					double E_CNterm = E_CN[c1] + E_CN[c2];
 					double expTerm = exp(-D3::k1*(k2RcovSum*invr - 1.));
 					double expTerm_r = expTerm * D3::k1 * (k2RcovSum * invr * invr);
-					double E_r_by_r = (-invr * E_CNterm * cellWeight * expTerm_r) / std::pow(1+expTerm, 2);
+					double E_r_by_r = (-invr * E_CNterm * cellWeight * expTerm_r) / intPow<2>(1+expTerm);
 					//Colect forces and/or stresses:
 					vector3<> E_x = E_r_by_r * (e.gInfo.RTR * x); 
 					forces[c1] -= E_x;
