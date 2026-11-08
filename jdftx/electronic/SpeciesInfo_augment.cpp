@@ -37,6 +37,18 @@ void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matr
 	watch.stop();
 }
 
+void SpeciesInfo::augmentOverlap(const matrix& VdagY1, const matrix& VdagY2, matrix& Y1dagOY2) const
+{	if(!atpos.size()) return; //unused species
+	if(!Qint.size()) return; //no overlap augmentation
+	Y1dagOY2 += dagger(VdagY1) * (tiledBlockMatrix(QintAll,atpos.size()) * VdagY2);
+}
+
+void SpeciesInfo::augmentOverlapGrad(const matrix& VdagCq, const matrix& M, matrix& HVdagCq) const
+{	if(!atpos.size()) return; //unused species
+	if(!Qint.size()) return; //no overlap augmentation
+	HVdagCq += tiledBlockMatrix(QintAll,atpos.size()) * (VdagCq * M);
+}
+
 void SpeciesInfo::augmentOverlapDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV) const
 {	static StopWatch watch("augmentOverlapDeriv"); watch.start();
 	if(!atpos.size()) return; //unused species

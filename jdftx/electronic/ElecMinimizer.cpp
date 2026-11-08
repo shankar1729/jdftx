@@ -34,12 +34,14 @@ void ElecGradient::init(const Everything& e)
 {	eInfo = &e.eInfo;
 	C.resize(eInfo->nStates);
 	Haux.resize(eInfo->nStates);
+	VdagC.assign(eInfo->nStates, std::vector<matrix>());
 }
 
 ElecGradient& ElecGradient::operator*=(double alpha)
 {	for(int q=eInfo->qStart; q<eInfo->qStop; q++)
 	{	if(C[q]) C[q] *= alpha;
 		if(Haux[q]) Haux[q] *= alpha;
+		if(VdagC.size()) for(matrix& VdagCq_sp: VdagC[q]) if(VdagCq_sp) VdagCq_sp *= alpha;
 	}
 	return *this;
 }
@@ -47,7 +49,27 @@ ElecGradient& ElecGradient::operator*=(double alpha)
 void axpy(double alpha, const ElecGradient& x, ElecGradient& y)
 {	assert(x.eInfo == y.eInfo);
 	for(int q=x.eInfo->qStart; q<x.eInfo->qStop; q++)
-	{	if(x.C[q]) { if(y.C[q]) axpy(alpha, x.C[q], y.C[q]); else y.C[q] = alpha*x.C[q]; }
+	{	if(x.C[q])
+		{	//Projections remain available only if available for both x and y (or y is zero):
+			bool xProj = x.VdagC.size() and x.VdagC[q].size();
+			bool yProj = y.VdagC.size() and y.VdagC[q].size();
+			if(y.VdagC.size() != x.C.size()) y.VdagC.resize(x.C.size());
+			if(y.C[q])
+			{	axpy(alpha, x.C[q], y.C[q]);
+				if(xProj and yProj)
+				{	for(unsigned sp=0; sp<x.VdagC[q].size(); sp++)
+						if(x.VdagC[q][sp]) axpy(alpha, x.VdagC[q][sp], y.VdagC[q][sp]);
+				}
+				else y.VdagC[q].clear();
+			}
+			else
+			{	y.C[q] = alpha*x.C[q];
+				y.VdagC[q].clear();
+				if(xProj)
+					for(const matrix& VdagCq_sp: x.VdagC[q])
+						y.VdagC[q].push_back(VdagCq_sp ? matrix(alpha*VdagCq_sp) : matrix());
+			}
+		}
 		if(x.Haux[q]) { if(y.Haux[q]) axpy(alpha, x.Haux[q], y.Haux[q]); else y.Haux[q] = alpha*x.Haux[q]; }
 	}
 }
@@ -70,6 +92,7 @@ ElecGradient clone(const ElecGradient& x)
 
 void randomize(ElecGradient& x)
 {	randomize(x.C, *x.eInfo);
+	x.VdagC.clear(); //projections no longer valid
 	for(int q=x.eInfo->qStart; q<x.eInfo->qStop; q++)
 		if(x.Haux[q])
 		{	randomize(x.Haux[q]);
@@ -161,9 +184,17 @@ void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 {	assert(dir.eInfo == &eInfo);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	axpy(alpha, rotExists ? dir.C[q]*rotPrevC[q] : dir.C[q], eVars.C[q]);
+		//Update projections linearly if available for dir (avoids recomputing them in orthonormalize):
+		bool projected = dir.VdagC.size() and dir.VdagC[q].size();
+		if(projected)
+		{	assert(eVars.VdagC[q].size() == dir.VdagC[q].size());
+			for(unsigned sp=0; sp<dir.VdagC[q].size(); sp++)
+				if(dir.VdagC[q][sp])
+					axpy(alpha, rotExists ? dir.VdagC[q][sp]*rotPrevC[q] : dir.VdagC[q][sp], eVars.VdagC[q][sp]);
+		}
 		if(eInfo.fillingsUpdate==ElecInfo::FillingsConst && eInfo.scalarFillings)
 		{	//Constant scalar fillings: no rotations required
-			eVars.orthonormalize(q);
+			eVars.orthonormalize(q, 0, projected);
 		}
 		else
 		{	//Haux or non-scalar fillings: rotations required
@@ -181,7 +212,7 @@ void ElecMinimizer::step(const ElecGradient& dir, double alpha)
 				rot = cis(alpha * dir.Haux[q]); //auxiliary matrix directly generates rotations
 			}
 			matrix rotC = rot;
-			eVars.orthonormalize(q, &rotC);
+			eVars.orthonormalize(q, &rotC, projected);
 			rotPrev[q] = rotPrev[q] * rot;
 			rotPrevC[q] = rotPrevC[q] * rotC;
 			rotPrevCinv[q] = inv(rotC) * rotPrevCinv[q];
@@ -262,8 +293,17 @@ bool ElecMinimizer::report(int iter)
 void ElecMinimizer::constrain(ElecGradient& dir)
 {	assert(dir.eInfo == &eInfo);
 	//Project component of search direction along current wavefunctions:
+	//(also cache the projections of the search direction for use in step)
+	dir.VdagC.resize(eInfo.nStates);
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		dir.C[q] -= eVars.C[q] * (eVars.C[q]^O(dir.C[q]));
+	{	std::vector<matrix>& VdagDir = dir.VdagC[q];
+		VdagDir.clear();
+		e.iInfo.project(dir.C[q], VdagDir);
+		matrix CdagOdir = dagO(eVars.C[q], eVars.VdagC[q], dir.C[q], VdagDir);
+		dir.C[q] -= eVars.C[q] * CdagOdir;
+		for(unsigned sp=0; sp<VdagDir.size(); sp++)
+			if(VdagDir[sp]) VdagDir[sp] -= eVars.VdagC[q][sp] * CdagOdir;
+	}
 }
 
 double ElecMinimizer::sync(double x) const

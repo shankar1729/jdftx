@@ -342,6 +342,13 @@ ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY)
 	return OY;
 }
 
+matrix dagO(const ColumnBundle &Y1, const std::vector<matrix>& VdagY1, const ColumnBundle &Y2, const std::vector<matrix>& VdagY2)
+{	matrix Y1dagOY2 = Y1 ^ Y2;
+	Y1dagOY2 *= Y1.basis->gInfo->detR; //basic planewave overlap
+	Y1.basis->iInfo->augmentOverlap(VdagY1, VdagY2, Y1dagOY2); //pseudopotential augmentation
+	return Y1dagOY2;
+}
+
 //Compute cartesian gradient of column bundle in direction #iDir
 #ifdef GPU_ENABLED
 void reducedD_gpu(int nbasis, int ncols, const complex* Ydata, complex* DYdata,

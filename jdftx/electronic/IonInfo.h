@@ -101,6 +101,12 @@ public:
 	//! Accumulate pseudopotential dependent contribution to the overlap in OCq
 	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, std::vector<matrix>* VdagCq=0) const;
 	
+	//! Accumulate pseudopotential dependent contribution to the overlap matrix Y1^O(Y2), given projections VdagY1 and VdagY2
+	void augmentOverlap(const std::vector<matrix>& VdagY1, const std::vector<matrix>& VdagY2, matrix& Y1dagOY2) const;
+	
+	//! Accumulate the projector-space coefficients of the pseudopotential contribution to O(Cq)*M (given projections VdagCq) in HVdagCq, for use with projectGrad
+	void augmentOverlapGrad(const std::vector<matrix>& VdagCq, const matrix& M, std::vector<matrix>& HVdagCq) const;
+	
 	//Multi-stage density augmentation and gradient propagation (see corresponding functions in SpeciesInfo)
 	void augmentDensityInit() const; //!< initialize density augmentation
 	void augmentDensitySpherical(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, const std::vector<matrix>* dVdagCqL = 0, const std::vector<matrix>* dVdagCqR = 0) const; //!< calculate density augmentation in spherical functions. Parameters dVdagCqL and/or dVdagCqR are needed for perturbation theory.
