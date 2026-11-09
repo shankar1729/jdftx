@@ -195,6 +195,81 @@ inline double contractC6(const std::vector<double>& C6, const std::vector<double
 }
 
 
+//! Add the contributions of all pairs (c1, c2), summed over periodic images within rCut (neighbor cells iStart to iStop
+//! of S), to the r^-6 and r^-8 energies E6tot and E8tot, the CN gradient E_CNtot, the forces forcesTot and, if E_RRTtot
+//! is non-null, the stress E_RRTtot. Called threaded over c1 by energyAndGrad; lock guards the totals.
+void energyAndGrad_sub(int c1, int nAtoms, const Atom* atoms, const D3::AtomParams* atomParams,
+	const std::vector<D3::PairParams>* pairParams, const std::vector<double>* Lall, const std::vector<double>* LprimeAll,
+	const std::vector<std::vector<double>>* C6all, bool dampBJ, double s6, double s8, double sr6, double sr8,
+	const GridInfo* gInfo, double rCutSq, vector3<int> S, size_t iStart, size_t iStop, double* diagC6,
+	double* E6tot, double* E8tot, double* E_CNtot, vector3<>* forcesTot, matrix3<>* E_RRTtot, std::mutex* lock)
+{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
+	const std::vector<double>& L1 = Lall[c1], &L1prime = LprimeAll[c1]; //C6 interpolation weights for atom 1
+	double E6 = 0., E8 = 0.; std::vector<double> E_CN(nAtoms); //contributions of the pairs of atom c1,
+	std::vector<vector3<>> forces(nAtoms); matrix3<> E_RRT;      //added to the totals (E6tot etc.) at the end
+
+	for(int c2=0; c2<nAtoms; c2++)
+	{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
+		const std::vector<double>& L2 = Lall[c2], &L2prime = LprimeAll[c2]; //C6 interpolation weights for atom 2
+
+		//Compute C6 and C8 for this pair:
+		const D3::PairParams& pp = pairParams[atoms[c1].sp][atoms[c2].sp];
+		double ratio8by6 = 3. * ap1.sqrtQ * ap2.sqrtQ;
+		double C6 = contractC6(C6all[atoms[c1].sp][atoms[c2].sp], L1, L2);
+		double C8 = C6 * ratio8by6;
+		double R0 = dampBJ ? sqrt(C8/C6) : pp.R0; //BJ damping uses C8/C6 to get R0
+		if(c1 == c2) diagC6[c1] = C6; //only for reporting
+		
+		//Sum energy, force and stress contributions over periodic images:
+		double E12_C6 = 0., E12_C8 = 0.; //energy contributions upto C6 and C8 prefactors
+		THREAD_halfGspaceLoop(
+			const vector3<int>& iR = iG;
+			vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
+			double rSq = gInfo->RTR.metric_length_squared(x);
+			if(rSq and rSq<=rCutSq)
+			{	double r = sqrt(rSq);
+				double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
+				double invr = 1./r;
+				double term6_r; double term6; double term8_r; double term8;
+				if(dampBJ) 
+				{	term6 = (vdWpotentialBJ<6>(r, R0, sr6, sr8, term6_r));
+					term8 = (vdWpotentialBJ<8>(r, R0, sr6, sr8, term8_r));
+				} 
+				else
+				{	term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r));
+					term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r));
+				}
+				E12_C6 -= cellWeight * s6 * term6;
+				E12_C8 -= cellWeight * s8 * term8;
+				//Colect forces and/or stresses:
+				double E_r_by_r = (-invr * cellWeight) * (C6*s6*term6_r + C8*s8*term8_r);
+				vector3<> E_x = E_r_by_r * (gInfo->RTR * x); 
+				forces[c1] -= E_x;
+				forces[c2] += E_x;
+				if(E_RRTtot)
+				{	const vector3<> rVec = gInfo->R * x;
+					E_RRT += E_r_by_r * outer(rVec, rVec);
+				}
+			}
+		)
+		E6 += E12_C6 * C6;
+		E8 += E12_C8 * C8;
+		
+		//Propagate gradients to CN:
+		double E12_C6_tot = E12_C6 + E12_C8 * ratio8by6; //total derivative w.r.t C6
+		E_CN[c1] += E12_C6_tot * contractC6(C6all[atoms[c1].sp][atoms[c2].sp], L1prime, L2);
+		E_CN[c2] += E12_C6_tot * contractC6(C6all[atoms[c1].sp][atoms[c2].sp], L1, L2prime);
+	}
+	std::lock_guard<std::mutex> guard(*lock);
+	*E6tot += E6; *E8tot += E8;
+	if(E_RRTtot) *E_RRTtot += E_RRT;
+	for(int c=0; c<nAtoms; c++)
+	{	E_CNtot[c] += E_CN[c];
+		forcesTot[c] += forces[c];
+	}
+}
+
+
 double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scaleFac, matrix3<>* E_RRTptr) const
 {	static StopWatch watch("VanDerWaalsD3::energyAndGrad"); watch.start();
 	const double rCut = e.iInfo.ljOverride ? e.iInfo.ljOverride : 200.; //Truncate summation at 1/r^6 ~ 10^-16
@@ -230,72 +305,9 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 				C6all[iSp1].back().push_back(pp.C6.data()[i].real());
 		}
 	std::mutex lock;
-	auto pairsOfAtom1 = [&, &E6tot=E6, &E8tot=E8, &E_CNtot=E_CN, &forcesTot=forces, &E_RRTtot=E_RRT](int c1) //run threaded over c1 below
-	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
-		const std::vector<double>& L1 = Lall[c1], &L1prime = LprimeAll[c1]; //C6 interpolation weights for atom 1
-		double E6 = 0., E8 = 0.; std::vector<double> E_CN(atoms.size()); //contributions of the pairs of atom c1,
-		std::vector<vector3<>> forces(atoms.size()); matrix3<> E_RRT;      //added to the totals (E6tot etc.) at the end
-
-		for(int c2=0; c2<int(atoms.size()); c2++)
-		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
-			const std::vector<double>& L2 = Lall[c2], &L2prime = LprimeAll[c2]; //C6 interpolation weights for atom 2
-
-			//Compute C6 and C8 for this pair:
-			const D3::PairParams& pp = pairParams[atoms[c1].sp][atoms[c2].sp];
-			double ratio8by6 = 3. * ap1.sqrtQ * ap2.sqrtQ;
-			double C6 = contractC6(C6all[atoms[c1].sp][atoms[c2].sp], L1, L2);
-			double C8 = C6 * ratio8by6;
-			double R0 = dampBJ ? sqrt(C8/C6) : pp.R0; //BJ damping uses C8/C6 to get R0
-			if(c1 == c2) diagC6[c1] = C6; //only for reporting
-			
-			//Sum energy, force and stress contributions over periodic images:
-			double E12_C6 = 0., E12_C8 = 0.; //energy contributions upto C6 and C8 prefactors
-			THREAD_halfGspaceLoop(
-				const vector3<int>& iR = iG;
-				vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
-				double rSq = e.gInfo.RTR.metric_length_squared(x);
-				if(rSq and rSq<=rCutSq)
-				{	double r = sqrt(rSq);
-					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
-					double invr = 1./r;
-					double term6_r; double term6; double term8_r; double term8;
-					if(dampBJ) 
-					{	term6 = (vdWpotentialBJ<6>(r, R0, sr6, sr8, term6_r));
-						term8 = (vdWpotentialBJ<8>(r, R0, sr6, sr8, term8_r));
-					} 
-					else
-					{	term6 = (vdWpotential<6, D3::alpha6>(invr, sr6 * R0, term6_r));
-						term8 = (vdWpotential<8, D3::alpha8>(invr, sr8 * R0, term8_r));
-					}
-					E12_C6 -= cellWeight * s6 * term6;
-					E12_C8 -= cellWeight * s8 * term8;
-					//Colect forces and/or stresses:
-					double E_r_by_r = (-invr * cellWeight) * (C6*s6*term6_r + C8*s8*term8_r);
-					vector3<> E_x = E_r_by_r * (e.gInfo.RTR * x); 
-					forces[c1] -= E_x;
-					forces[c2] += E_x;
-					if(E_RRTptr)
-					{	const vector3<> rVec = e.gInfo.R * x;
-						E_RRT += E_r_by_r * outer(rVec, rVec);
-					}
-				}
-			)
-			E6 += E12_C6 * C6;
-			E8 += E12_C8 * C8;
-			
-			//Propagate gradients to CN:
-			double E12_C6_tot = E12_C6 + E12_C8 * ratio8by6; //total derivative w.r.t C6
-			E_CN[c1] += E12_C6_tot * contractC6(C6all[atoms[c1].sp][atoms[c2].sp], L1prime, L2);
-			E_CN[c2] += E12_C6_tot * contractC6(C6all[atoms[c1].sp][atoms[c2].sp], L1, L2prime);
-		}
-		std::lock_guard<std::mutex> guard(lock);
-		E6tot += E6; E8tot += E8; E_RRTtot += E_RRT;
-		for(size_t c=0; c<atoms.size(); c++)
-		{	E_CNtot[c] += E_CN[c];
-			forcesTot[c] += forces[c];
-		}
-	};
-	if(atoms.size()) threadedLoop(&pairsOfAtom1, atoms.size());
+	if(atoms.size()) threadedLoop(energyAndGrad_sub, atoms.size(), int(atoms.size()), atoms.data(), atomParams.data(),
+		pairParams.data(), Lall.data(), LprimeAll.data(), C6all.data(), dampBJ, s6, s8, sr6, sr8, &e.gInfo, rCutSq, S,
+		iStart, iStop, diagC6.data(), &E6, &E8, E_CN.data(), forces.data(), E_RRTptr ? &E_RRT : NULL, &lock);
 	report(diagC6, "diagonal-C6", atoms, " %.2f");
 	mpiWorld->allReduce(E6, MPIUtil::ReduceSum);
 	mpiWorld->allReduce(E8, MPIUtil::ReduceSum);
@@ -319,6 +331,34 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 }
 
 
+//! Add the contributions of all pairs (c1, c2), summed over periodic images within rCut (neighbor cells iStart to iStop
+//! of S), to the coordination numbers CNtot. Called threaded over c1 by computeCN; lock guards CNtot.
+void computeCN_sub(int c1, int nAtoms, const Atom* atoms, const D3::AtomParams* atomParams,
+	const GridInfo* gInfo, double rCutSq, vector3<int> S, size_t iStart, size_t iStop, double* CNtot, std::mutex* lock)
+{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
+	std::vector<double> CN(nAtoms); //contributions of the pairs of atom c1, added to CNtot at the end
+	for(int c2=0; c2<nAtoms; c2++)
+	{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
+		double k2RcovSum = ap1.k2Rcov + ap2.k2Rcov;
+		THREAD_halfGspaceLoop(
+			const vector3<int>& iR = iG;
+			vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
+			double rSq = gInfo->RTR.metric_length_squared(x);
+			if(rSq and rSq<=rCutSq)
+			{	double r = sqrt(rSq);
+				double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
+				double CNterm = cellWeight/(1. + exp(-D3::k1*(k2RcovSum/r - 1.)));
+				CN[c1] += CNterm;
+				CN[c2] += CNterm;
+			}
+		)
+	}
+	std::lock_guard<std::mutex> guard(*lock);
+	for(int c=0; c<nAtoms; c++)
+		CNtot[c] += CN[c];
+}
+
+
 //Compute local coordination number
 void VanDerWaalsD3::computeCN(const std::vector<Atom>& atoms, std::vector<double>& CN) const
 {	const double rCut = 50., rCutSq=rCut*rCut; //Damping factor in CN calculation drops off more quickly than dispersion term
@@ -326,32 +366,52 @@ void VanDerWaalsD3::computeCN(const std::vector<Atom>& atoms, std::vector<double
 	setNeighborSampling(rCut, S, iStart, iStop);
 	CN.assign(atoms.size(), 0.);
 	std::mutex lock;
-	auto pairsOfAtom1 = [&, &CNtot=CN](int c1) //run threaded over c1 below
-	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
-		std::vector<double> CN(atoms.size()); //contributions of the pairs of atom c1, added to CNtot at the end
-		for(int c2=0; c2<int(atoms.size()); c2++)
-		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
-			double k2RcovSum = ap1.k2Rcov + ap2.k2Rcov;
-			THREAD_halfGspaceLoop(
-				const vector3<int>& iR = iG;
-				vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
-				double rSq = e.gInfo.RTR.metric_length_squared(x);
-				if(rSq and rSq<=rCutSq)
-				{	double r = sqrt(rSq);
-					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
-					double CNterm = cellWeight/(1. + exp(-D3::k1*(k2RcovSum/r - 1.)));
-					CN[c1] += CNterm;
-					CN[c2] += CNterm;
-				}
-			)
-		}
-		std::lock_guard<std::mutex> guard(lock);
-		for(size_t c=0; c<atoms.size(); c++)
-			CNtot[c] += CN[c];
-	};
-	if(atoms.size()) threadedLoop(&pairsOfAtom1, atoms.size());
+	if(atoms.size()) threadedLoop(computeCN_sub, atoms.size(), int(atoms.size()), atoms.data(), atomParams.data(),
+		&e.gInfo, rCutSq, S, iStart, iStop, CN.data(), &lock);
 	mpiWorld->allReduceData(CN, MPIUtil::ReduceSum);
 	report(CN, "coordination-number", atoms);
+}
+
+
+//! Add the force and, if E_RRTtot is non-null, stress contributions of the CN gradient E_CN from all pairs (c1, c2), over
+//! the same periodic images as computeCN_sub, to forcesTot and E_RRTtot. Called threaded over c1 by propagateCNgradient;
+//! lock guards the totals.
+void propagateCNgradient_sub(int c1, int nAtoms, const Atom* atoms, const D3::AtomParams* atomParams, const double* E_CN,
+	const GridInfo* gInfo, double rCutSq, vector3<int> S, size_t iStart, size_t iStop,
+	vector3<>* forcesTot, matrix3<>* E_RRTtot, std::mutex* lock)
+{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
+	std::vector<vector3<>> forces(nAtoms); matrix3<> E_RRTsum; //contributions of the pairs of atom c1,
+	matrix3<>* E_RRT = E_RRTtot ? &E_RRTsum : NULL;            //added to the totals (forcesTot, E_RRTtot) at the end
+	for(int c2=0; c2<nAtoms; c2++)
+	{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
+		double k2RcovSum = ap1.k2Rcov + ap2.k2Rcov;
+		THREAD_halfGspaceLoop(
+			const vector3<int>& iR = iG;
+			vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
+			double rSq = gInfo->RTR.metric_length_squared(x);
+			if(rSq and rSq<=rCutSq)
+			{	double r = sqrt(rSq);
+				double invr = 1./r;
+				double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
+				double E_CNterm = E_CN[c1] + E_CN[c2];
+				double expTerm = exp(-D3::k1*(k2RcovSum*invr - 1.));
+				double expTerm_r = expTerm * D3::k1 * (k2RcovSum * invr * invr);
+				double E_r_by_r = (-invr * E_CNterm * cellWeight * expTerm_r) / intPow<2>(1+expTerm);
+				//Colect forces and/or stresses:
+				vector3<> E_x = E_r_by_r * (gInfo->RTR * x); 
+				forces[c1] -= E_x;
+				forces[c2] += E_x;
+				if(E_RRT)
+				{	const vector3<> rVec = gInfo->R * x;
+					*E_RRT += E_r_by_r * outer(rVec, rVec);
+				}
+			}
+		)
+	}
+	std::lock_guard<std::mutex> guard(*lock);
+	for(int c=0; c<nAtoms; c++)
+		forcesTot[c] += forces[c];
+	if(E_RRTtot) *E_RRTtot += E_RRTsum;
 }
 
 
@@ -364,42 +424,8 @@ void VanDerWaalsD3::propagateCNgradient(const std::vector<Atom>& atoms, const st
 	setNeighborSampling(rCut, S, iStart, iStop);
 	//Propagate gradients corresponding to computeCN()
 	std::mutex lock;
-	auto pairsOfAtom1 = [&, &forcesTot=forces, E_RRTtot=E_RRT](int c1) //run threaded over c1 below
-	{	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
-		std::vector<vector3<>> forces(atoms.size()); matrix3<> E_RRTsum; //contributions of the pairs of atom c1,
-		matrix3<>* E_RRT = E_RRTtot ? &E_RRTsum : NULL;                  //added to the totals (forcesTot, E_RRTtot) at the end
-		for(int c2=0; c2<int(atoms.size()); c2++)
-		{	const D3::AtomParams& ap2 = atomParams[atoms[c2].sp];
-			double k2RcovSum = ap1.k2Rcov + ap2.k2Rcov;
-			THREAD_halfGspaceLoop(
-				const vector3<int>& iR = iG;
-				vector3<> x = iR + (atoms[c1].pos - atoms[c2].pos);
-				double rSq = e.gInfo.RTR.metric_length_squared(x);
-				if(rSq and rSq<=rCutSq)
-				{	double r = sqrt(rSq);
-					double invr = 1./r;
-					double cellWeight = (iR[2] ? 1. : 0.5); //account for double-counting in half-space cut plane
-					double E_CNterm = E_CN[c1] + E_CN[c2];
-					double expTerm = exp(-D3::k1*(k2RcovSum*invr - 1.));
-					double expTerm_r = expTerm * D3::k1 * (k2RcovSum * invr * invr);
-					double E_r_by_r = (-invr * E_CNterm * cellWeight * expTerm_r) / intPow<2>(1+expTerm);
-					//Colect forces and/or stresses:
-					vector3<> E_x = E_r_by_r * (e.gInfo.RTR * x); 
-					forces[c1] -= E_x;
-					forces[c2] += E_x;
-					if(E_RRT)
-					{	const vector3<> rVec = e.gInfo.R * x;
-						*E_RRT += E_r_by_r * outer(rVec, rVec);
-					}
-				}
-			)
-		}
-		std::lock_guard<std::mutex> guard(lock);
-		for(size_t c=0; c<atoms.size(); c++)
-			forcesTot[c] += forces[c];
-		if(E_RRTtot) *E_RRTtot += E_RRTsum;
-	};
-	if(atoms.size()) threadedLoop(&pairsOfAtom1, atoms.size());
+	if(atoms.size()) threadedLoop(propagateCNgradient_sub, atoms.size(), int(atoms.size()), atoms.data(), atomParams.data(),
+		E_CN.data(), &e.gInfo, rCutSq, S, iStart, iStop, forces.data(), E_RRT, &lock);
 }
 
 
