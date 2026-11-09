@@ -21,10 +21,14 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaalsD3_data.h>
 #include <electronic/Everything.h>
 
-//! Return x^m (m >= 1), much faster than std::pow, which usually stays a library call
+//! Return x^m by repeated squaring, O(log |m|) multiplications (std::pow usually stays a much slower library call)
 template<int m> double intPow(double x)
-{	double result = x;
-	for(int i=1; i<m; i++) result *= x;
+{	if(m < 0) return intPow<-m>(1./x);
+	double result = 1., xPow = x; //xPow = x^(2^k) for bit k of m
+	for(int k=m; k>0; k/=2)
+	{	if(k % 2) result *= xPow;
+		xPow *= xPow;
+	}
 	return result;
 }
 
