@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
-Copyright 2021 Ravishankar Sundararaman.
+Copyright 2026 Ravishankar Sundararaman, Ben Rich.
 
 This file is part of JDFTx.
 
@@ -21,7 +21,7 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 #include <electronic/VanDerWaalsD3_data.h>
 #include <electronic/Everything.h>
 
-//! Return x^m by repeated squaring, O(log |m|) multiplications (std::pow usually stays a much slower library call)
+//! Fast integer powers, bypassing slower std::pow
 template<int m> double intPow(double x)
 {	if(m < 0) return intPow<-m>(1./x);
 	double result = 1., xPow = x; //xPow = x^(2^k) for bit k of m
@@ -184,8 +184,6 @@ template<int n> double vdWpotentialBJ(double r, double R0, double a1, double a2,
 }
 
 //! Return trace(transpose(L1) * C6 * L2), with C6 the real parts of a matrix in its column-major storage order.
-//! This replaces 3 such traces of matrix products per pair of atoms, the dominant cost: on CPU without threaded BLAS,
-//! every product launches threads (eblas_zgemm), and on GPU every product is a cuBLAS call with memory transfers.
 inline double contractC6(const std::vector<double>& C6, const std::vector<double>& L1, const std::vector<double>& L2)
 {	const double* C6col = C6.data();
 	double result = 0.;
@@ -199,9 +197,7 @@ inline double contractC6(const std::vector<double>& C6, const std::vector<double
 }
 
 
-//! Add the contributions of all pairs (c1, c2), summed over periodic images within rCut (neighbor cells iStart to iStop
-//! of S), to the r^-6 and r^-8 energies E6tot and E8tot, the CN gradient E_CNtot, the forces forcesTot and, if E_RRTtot
-//! is non-null, the stress E_RRTtot. Called threaded over c1 by energyAndGrad; lock guards the totals.
+//! Thread-parallelize energy calculations over first atom
 void energyAndGrad_sub(int c1, int nAtoms, const Atom* atoms, const D3::AtomParams* atomParams,
 	const std::vector<D3::PairParams>* pairParams, const std::vector<double>* Lall, const std::vector<double>* LprimeAll,
 	const std::vector<std::vector<double>>* C6all, bool dampBJ, double s6, double s8, double sr6, double sr8,
@@ -335,8 +331,7 @@ double VanDerWaalsD3::energyAndGrad(std::vector<Atom>& atoms, const double scale
 }
 
 
-//! Add the contributions of all pairs (c1, c2), summed over periodic images within rCut (neighbor cells iStart to iStop
-//! of S), to the coordination numbers CNtot. Called threaded over c1 by computeCN; lock guards CNtot.
+//! Thread-parallelize coordination number calculations over first atom
 void computeCN_sub(int c1, int nAtoms, const Atom* atoms, const D3::AtomParams* atomParams,
 	const GridInfo* gInfo, double rCutSq, vector3<int> S, size_t iStart, size_t iStop, double* CNtot, std::mutex* lock)
 {	const D3::AtomParams& ap1 = atomParams[atoms[c1].sp];
@@ -377,9 +372,7 @@ void VanDerWaalsD3::computeCN(const std::vector<Atom>& atoms, std::vector<double
 }
 
 
-//! Add the force and, if E_RRTtot is non-null, stress contributions of the CN gradient E_CN from all pairs (c1, c2), over
-//! the same periodic images as computeCN_sub, to forcesTot and E_RRTtot. Called threaded over c1 by propagateCNgradient;
-//! lock guards the totals.
+//! Thread-parallelize coordination number gradient propagation with respect to first atom
 void propagateCNgradient_sub(int c1, int nAtoms, const Atom* atoms, const D3::AtomParams* atomParams, const double* E_CN,
 	const GridInfo* gInfo, double rCutSq, vector3<int> S, size_t iStart, size_t iStop,
 	vector3<>* forcesTot, matrix3<>* E_RRTtot, std::mutex* lock)
@@ -401,7 +394,7 @@ void propagateCNgradient_sub(int c1, int nAtoms, const Atom* atoms, const D3::At
 				double expTerm = exp(-D3::k1*(k2RcovSum*invr - 1.));
 				double expTerm_r = expTerm * D3::k1 * (k2RcovSum * invr * invr);
 				double E_r_by_r = (-invr * E_CNterm * cellWeight * expTerm_r) / intPow<2>(1+expTerm);
-				//Colect forces and/or stresses:
+				//Collect forces and/or stresses:
 				vector3<> E_x = E_r_by_r * (gInfo->RTR * x); 
 				forces[c1] -= E_x;
 				forces[c2] += E_x;
