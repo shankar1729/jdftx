@@ -418,10 +418,8 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 		double KEq = applyHamiltonian(q, F[q], HC[q], ener, need_Hsub, true, orthoGrad);
 		if(grad) //Calculate wavefunction gradients:
 		{	const QuantumNumber& qnum = eInfo.qnums[q];
-			if(saveHC)
-			{	HCsave[q] = HC[q]; //stash HC[q] before modifying it below
-				HC[q] -= O(C[q]) * Hsub[q]; //Include orthonormality contribution
-			}
+			if(saveHC) HCsave[q] = HC[q]; //stash HC[q] before modifying it below
+			if(not orthoGrad) HC[q] -= O(C[q]) * Hsub[q]; //Include orthonormality contribution (unless already included by applyHamiltonian)
 			grad->C[q] = HC[q] * (F[q]*qnum.weight);
 			if(Kgrad)
 			{	double Nq = qnum.weight*trace(F[q]);
