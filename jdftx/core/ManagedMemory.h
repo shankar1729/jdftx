@@ -282,7 +282,8 @@ template<typename T> void MPIUtil::recvData(ManagedMemory<T>& v, int dest, int t
 {	recv(v.dataMPI(), v.nData(), dest, tag, request);
 }
 template<typename T> void MPIUtil::bcastData(ManagedMemory<T>& v, int root, Request* request) const
-{	bcast(v.dataMPI(), v.nData(), root, request);
+{	T* data = (root==iProcess()) ? (T*)((const ManagedMemory<T>&)v).dataMPI() : v.dataMPI(); //data is only read at root: don't flag it as modified
+	bcast(data, v.nData(), root, request);
 }
 template<typename T> void MPIUtil::allReduceData(ManagedMemory<T>& v, MPIUtil::ReduceOp op, bool safeMode, Request* request) const
 {	allReduce(v.dataMPI(), v.nData(), op, safeMode, request);

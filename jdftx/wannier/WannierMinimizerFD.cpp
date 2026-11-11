@@ -246,11 +246,10 @@ void WannierMinimizerFD::initialize(int iSpin)
 		VdagCother.clear(); VdagCother.resize(e.eInfo.nStates);
 		if(jProcess == mpiWorld->iProcess()) //send
 		{	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
-			{	const std::vector<matrix>& VdagCq = e.eVars.C[q].projections();
-				mpiWorld->bcastData((ColumnBundle&)e.eVars.C[q], jProcess);
+			{	mpiWorld->bcastData((ColumnBundle&)e.eVars.C[q], jProcess);
 				for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
 					if(e.iInfo.species[iSp]->isUltrasoft())
-						mpiWorld->bcastData((matrix&)VdagCq[iSp], jProcess);
+						mpiWorld->bcastData((matrix&)e.eVars.C[q].projections()[iSp], jProcess);
 			}
 		}
 		else //recv
