@@ -95,13 +95,14 @@ public:
 	std::shared_ptr<ColumnBundle> getV(const ColumnBundle& Cq, const vector3<>* derivDir=0, const int stressDir=-1) const;
 	ColumnBundle getVatom(const ColumnBundle& Cq, int atom) const; //!< Single atom version
 	int nProjectors() const { return MnlAll.nRows() * atpos.size(); } //!< total number of projectors for all atoms in this species (number of columns in result of getV)
+	int projectorVersion; //!< incremented whenever the projectors change (used to invalidate projections cached in ColumnBundle)
 	
 	//! Return non-local energy for this species and quantum number q and optionally accumulate
 	//! projected electronic gradient in HVdagCq (if non-null)
 	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const matrix& VdagCq, matrix& HVdagCq, int atom = -1) const;
 	
-	//! Accumulate pseudopotential contribution to the overlap in OCq
-	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matrix* VdagCq=0) const;
+	//! Accumulate pseudopotential contribution to the overlap in OCq, given projections VdagCq
+	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, const matrix& VdagCq) const;
 	
 	//! Accumulate pseudopotential contribution to the overlap matrix Y1^O(Y2), given projections VdagY1 and VdagY2
 	void augmentOverlap(const matrix& VdagY1, const matrix& VdagY2, matrix& Y1dagOY2) const;

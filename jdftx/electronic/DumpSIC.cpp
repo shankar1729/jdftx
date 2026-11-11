@@ -62,7 +62,7 @@ double DumpSelfInteractionCorrection::calcSelfInteractionError(int q, int n)
 		diagMatrix Fqn = eye(1);
 		ColumnBundle Cqn = e.eVars.C[q].getSub(n,n+1);
 		std::vector<matrix> VdagCqn;
-		for(const matrix& m: e.eVars.VdagC[q])
+		for(const matrix& m: e.eVars.C[q].projections())
 			VdagCqn.push_back(m ? matrix(m(0, m.nRows(), n, n+1)) : m);
 		orbitalDensity[0] = diagouterI(Fqn, Cqn, 1, &e.gInfo)[0];
 		e.iInfo.augmentDensityInit();

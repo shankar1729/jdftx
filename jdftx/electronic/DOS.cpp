@@ -358,7 +358,7 @@ void DOS::dump()
 				e->iInfo.augmentDensityGridGrad(weightFuncs[iWeight]);
 				//Propagate from spherical functions to bands:
 				for(int iState=eInfo.qStart; iState<eInfo.qStop; iState++)
-				{	const std::vector<matrix>& VdagCq = e->eVars.VdagC[iState];
+				{	const std::vector<matrix>& VdagCq = e->eVars.C[iState].projections();
 					std::vector<matrix> wVdagCq(e->iInfo.species.size());
 					const QuantumNumber& qnum = e->eInfo.qnums[iState];
 					e->iInfo.augmentDensitySphericalGrad(qnum, VdagCq, wVdagCq);

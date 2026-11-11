@@ -98,8 +98,8 @@ public:
 	//! Optionally accumulate the corresponding electronic gradient in HCq and ionic gradient in forces
 	double EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, const std::vector<matrix>& VdagCq, std::vector<matrix>& HVdagCq) const;
 	
-	//! Accumulate pseudopotential dependent contribution to the overlap in OCq
-	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, std::vector<matrix>* VdagCq=0) const;
+	//! Accumulate pseudopotential dependent contribution to the overlap in OCq (using the cached projections of Cq)
+	void augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) const;
 	
 	//! Accumulate pseudopotential dependent contribution to the overlap matrix Y1^O(Y2), given projections VdagY1 and VdagY2
 	void augmentOverlap(const std::vector<matrix>& VdagY1, const std::vector<matrix>& VdagY2, matrix& Y1dagOY2) const;
@@ -118,6 +118,7 @@ public:
 	const std::vector<matrix> getE_nAug();
 	
 	void project(const ColumnBundle& Cq, std::vector<matrix>& VdagCq, matrix* rotExisting=0) const; //Update pseudopotential projections (optionally retain non-zero ones with specified rotation)
+	int projectorVersion() const; //!< Net version of the projectors of all species, which changes whenever they change (used to invalidate projections cached in ColumnBundle)
 	void projectGrad(const std::vector<matrix>& HVdagCq, const ColumnBundle& Cq, ColumnBundle& HCq) const; //Propagate projected gradient (HVdagCq) to full gradient (HCq)
 	
 	//! Compute U corrections (DFT+U in the simplified rotationally-invariant scheme [Dudarev et al, Phys. Rev. B 57, 1505])

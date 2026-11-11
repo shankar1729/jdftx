@@ -26,13 +26,11 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //------- additional SpeciesInfo functions for ultrasoft pseudopotentials (density and overlap augmentation) -------
 
 
-void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matrix* VdagCqPtr) const
+void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, const matrix& VdagCq) const
 {	static StopWatch watch("augmentOverlap"); watch.start();
 	if(!atpos.size()) return; //unused species
 	if(!Qint.size()) return; //no overlap augmentation
 	std::shared_ptr<ColumnBundle> V = getV(Cq);
-	matrix VdagCq = (*V) ^ Cq;
-	if(VdagCqPtr) *VdagCqPtr = VdagCq; //cache for later usage
 	OCq += (*V) * (tiledBlockMatrix(QintAll,atpos.size()) * VdagCq);
 	watch.stop();
 }

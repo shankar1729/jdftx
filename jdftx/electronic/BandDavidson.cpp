@@ -28,7 +28,6 @@ BandDavidson::BandDavidson(Everything& e, int q): e(e), eVars(e.eVars), eInfo(e.
 void BandDavidson::minimize(bool isInner)
 {	//Use the same working set as the CG minimizer:
 	ColumnBundle& C = eVars.C[q];
-	std::vector<matrix>& VdagC = eVars.VdagC[q];
 	matrix& Hsub = eVars.Hsub[q];
 	matrix& Hsub_evecs = eVars.Hsub_evecs[q];
 	diagMatrix& Hsub_eigs = eVars.Hsub_eigs[q];
@@ -56,7 +55,6 @@ void BandDavidson::minimize(bool isInner)
 	//--- switch C to subspace eigenbasis:
 	C = C * Hsub_evecs;
 	HC = HC * Hsub_evecs;
-	e.iInfo.project(C, VdagC, &Hsub_evecs);
 	double Eband = qnum.weight * trace(Hsub_eigs);
 	logPrintf("BandDavidson: Iter: %3d  Eband: %+.15lf\n", 0, Eband); fflush(globalLog);
 	
@@ -94,10 +92,7 @@ void BandDavidson::minimize(bool isInner)
 		int nBandsBig = nBands + nBandsNew;
 		//Expansion subspace overlaps:
 		matrix bigOsub(nBandsBig, nBandsBig);
-		std::vector<matrix> VdagCexp;
-		{	ColumnBundle OCexp = O(Cexp, &VdagCexp);
-			matrix rotExisting = eye(Cexp.nCols());
-			e.iInfo.project(Cexp, VdagCexp, &rotExisting);
+		{	ColumnBundle OCexp = O(Cexp);
 			matrix CdagOCexp = C ^ OCexp;
 			bigOsub.set(0,nBands, 0,nBands, eye(nBands)); //since C's are already orthonormal
 			bigOsub.set(nBands,nBandsBig, nBands,nBandsBig, Cexp ^ OCexp);
@@ -110,7 +105,6 @@ void BandDavidson::minimize(bool isInner)
 		{	matrix HsubExp; diagMatrix HsubExp_eigs;
 			#define SWAP_C_Cexp \
 				std::swap(C, Cexp); \
-				std::swap(VdagC, VdagCexp); \
 				std::swap(Hsub, HsubExp); \
 				std::swap(Hsub_eigs, HsubExp_eigs);
 			SWAP_C_Cexp //Temporarily swap C and Cexp
@@ -136,8 +130,6 @@ void BandDavidson::minimize(bool isInner)
 		HC = HC*Crot + HCexp*CexpRot;
 		diagMatrix Hsub_eigs_prev = Hsub_eigs;
 		Hsub_eigs = bigHsub_eigs(0,nBandsNext);
-		for(size_t sp=0; sp<VdagC.size(); sp++) if(VdagC[sp])
-			VdagC[sp] = VdagC[sp]*Crot + VdagCexp[sp]*CexpRot;
 		//Print and test convergence
 		double EbandPrev = Eband;
 		Eband = qnum.weight * trace(Hsub_eigs(0,nBandsOut));
@@ -165,8 +157,6 @@ void BandDavidson::minimize(bool isInner)
 	if(C.nCols() != nBandsOut)
 	{	//reduce outputs to size:
 		C = C.getSub(0, nBandsOut);
-		for(size_t sp=0; sp<VdagC.size(); sp++) if(VdagC[sp])
-			VdagC[sp] = VdagC[sp](0,VdagC[sp].nRows(), 0,nBandsOut);
 		Hsub_eigs = Hsub_eigs(0,nBandsOut);
 	}
 	Hsub = Hsub_eigs;

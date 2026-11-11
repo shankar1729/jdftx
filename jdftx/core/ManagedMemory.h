@@ -60,11 +60,12 @@ template<typename T> class ManagedMemory : private ManagedMemoryBase
 {
 protected:
 	//Extend expose core functions from base:
-    ManagedMemory() : nElem(0) {} //!< Initialize a valid state, but don't allocate anything
+    ManagedMemory() : dataModified(true), nElem(0) {} //!< Initialize a valid state, but don't allocate anything
     ~ManagedMemory() { memFree(); }
 	void memFree(); //!< Free memory
 	void memInit(string category, size_t nElem, bool onGpu=false); //!< Allocate memory
 	void memMove(ManagedMemory<T>&&); //!< Steal the other object's data (used for move constructors/assignment)
+	mutable bool dataModified; //!< Set whenever non-const access to data is requested: derived classes can reset this to detect when quantities cached from data become invalid
 
 private:
 	size_t nElem;
@@ -75,7 +76,7 @@ public:
 	//! In GPU mode, care must be taken when calling this from multiple cpu threads
 	//! Only the "GPU Owner" thread may call this when the data is actually on the GPU.
 	//! Ideally call once from main thread to get data onto the cpu before launching other cpu threads
-	T* data() { toCpu(); return (T*)c; }
+	T* data() { dataModified = true; toCpu(); return (T*)c; }
 
 	//! @brief Return a const pointer to the actual data
 	//! Return a CPU pointer to the actual data, will move data from GPU to CPU if necessary
@@ -85,7 +86,7 @@ public:
 	const T* data() const  { toCpu(); return (const T*)c; }
 
 	#ifdef GPU_ENABLED
-	T* dataGpu() { toGpu(); return (T*)c; } //!< Get a GPU data pointer (must be called from GPU owner thread)
+	T* dataGpu() { dataModified = true; toGpu(); return (T*)c; } //!< Get a GPU data pointer (must be called from GPU owner thread)
 	const T* dataGpu() const { toGpu(); return (const T*)c; } //!< Get a const GPU data pointer (must be called from GPU owner thread)
 	#endif
 
@@ -187,6 +188,7 @@ template<typename T> void ManagedMemory<T>::memInit(string category, size_t nEle
 template<typename T> void ManagedMemory<T>::memMove(ManagedMemory<T>&& mOther)
 {	ManagedMemoryBase::memMove((ManagedMemoryBase&&)mOther); //first invoke base class version
 	std::swap(nElem, mOther.nElem);
+	std::swap(dataModified, mOther.dataModified);
 }
 
 template<typename T> void ManagedMemory<T>::read(const char *fname)

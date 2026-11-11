@@ -43,8 +43,6 @@ public:
 	std::vector<matrix> Hsub_evecs; //!< eigenvectors of Hsub[q] in columns
 	std::vector<diagMatrix> Hsub_eigs; //!< eigenvalues of Hsub[q]
 	
-	std::vector< std::vector<matrix> > VdagC; //!< cached pseudopotential projections (by state and then species)
-	
 	//Densities and potentials:
 	ScalarFieldArray n; //!< electron density (single ScalarField) or spin density (two ScalarFields [up,dn]) or spin density matrix (four ScalarFields [UpUp, DnDn, Re(UpDn), Im(UpDn)])
 	ScalarFieldArray nAccum; //!< ElecVars::n accumulated over an MD trajectory
@@ -121,7 +119,7 @@ public:
 	//! Orthonormalise wavefunctions, with an optional extra rotation
 	//! If extraRotation is present, it is applied after symmetric orthononormalization,
 	//! and on output extraRotation contains the net transformation applied to the wavefunctions.
-	void orthonormalize(int q, matrix* extraRotation=0, bool projected=false); //!< projected = whether VdagC[q] already contains the projections of (unnormalized) C[q]
+	void orthonormalize(int q, matrix* extraRotation=0);
 	
 	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, and computes Hsub if necessary, for a single quantum number
 	//! If Hsub is computed, diagonalize_Hsub controls whether it is diagonalized (no effect if need_Hsub=false).

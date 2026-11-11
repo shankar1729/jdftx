@@ -33,18 +33,43 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 
 //------------------------ Arithmetic operators --------------------
 
+void axpy(complex alpha, const ColumnBundle& X, ColumnBundle& Y)
+{	bool projKeep = X.projValid() and Y.projValid() and (X.basis == Y.basis) and (X.projK == Y.projK);
+	axpy(alpha, (const ManagedMemory<complex>&)X, (ManagedMemory<complex>&)Y);
+	if(projKeep) //propagate cached projections
+	{	for(size_t sp=0; sp<Y.proj.size(); sp++)
+			if(Y.proj[sp]) axpy(alpha, X.proj[sp], Y.proj[sp]);
+		Y.projSetValid();
+	}
+}
 ColumnBundle& operator+=(ColumnBundle& Y, const scaled<ColumnBundle> &X) { if(Y) axpy(+X.scale, X.data, Y); else Y=X; return Y; }
 ColumnBundle& operator-=(ColumnBundle& Y, const scaled<ColumnBundle> &X) { if(Y) axpy(-X.scale, X.data, Y); else Y=-X; return Y; }
 ColumnBundle operator+(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2) { ColumnBundle Ysum(Y1); Ysum += Y2; return Ysum; }
 ColumnBundle operator-(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2) { ColumnBundle Ydiff(Y1); Ydiff -= Y2; return Ydiff; }
 
-ColumnBundle& operator*=(ColumnBundle& X, double s) { scale(s, X); return X; }
+ColumnBundle& operator*=(ColumnBundle& X, double s)
+{	bool projKeep = X.projValid();
+	scale(s, X);
+	if(projKeep) //propagate cached projections
+	{	for(matrix& m: X.proj) if(m) m *= s;
+		X.projSetValid();
+	}
+	return X;
+}
 ColumnBundle operator*(double s, ColumnBundle&& Y) { scale(s, Y); return Y; }
 ColumnBundle operator*(ColumnBundle&& Y, double s) { scale(s, Y); return Y; }
 scaled<ColumnBundle> operator*(double s, const ColumnBundle &Y) { return scaled<ColumnBundle>(Y, s); }
 scaled<ColumnBundle> operator*(const ColumnBundle &Y, double s) { return scaled<ColumnBundle>(Y, s); }
 scaled<ColumnBundle> operator-(const ColumnBundle &Y) { return scaled<ColumnBundle>(Y, -1); }
-ColumnBundle& operator*=(ColumnBundle& X, complex s) { scale(s, X); return X; }
+ColumnBundle& operator*=(ColumnBundle& X, complex s)
+{	bool projKeep = X.projValid();
+	scale(s, X);
+	if(projKeep) //propagate cached projections
+	{	for(matrix& m: X.proj) if(m) m *= s;
+		X.projSetValid();
+	}
+	return X;
+}
 ColumnBundle operator*(complex s, const ColumnBundle &Y) { ColumnBundle sY(Y); sY *= s; return sY; }
 ColumnBundle operator*(const ColumnBundle &Y, complex s) { ColumnBundle sY(Y); sY *= s; return sY; }
 
@@ -60,6 +85,8 @@ void ColumnBundleMatrixProduct::scaleAccumulate(double alpha, double beta, Colum
 	double scaleFac = alpha * scale * Mst.scale;
 	bool spinorMode = (2*Y.nCols() == Mst.nRows()); //treat each column of non-spinor Y as two identical consecutive spinor ones with opposite spins
 	assert(spinorMode || Y.nCols()==Mst.nRows());
+	bool projKeep = Y.projValid() and (not spinorMode) //cached projections propagate if available for Y (and for YM if accumulating)
+		and ((not beta) or (YM.projValid() and (YM.basis == Y.basis) and (YM.projK == Y.projK)));
 	matrix Mtmp;
 	CBLAS_TRANSPOSE Mop;
 	const complex* Mdata; //pointer to start of M's data
@@ -88,6 +115,15 @@ void ColumnBundleMatrixProduct::scaleAccumulate(double alpha, double beta, Colum
 	callPref(eblas_zgemm)(CblasNoTrans, Mop, Y.colLength(), nColsOut, Y.nCols(),
 		scaleFac, Y.dataPref(), Y.colLength(), Mdata, ldM,
 		beta, YM.dataPref(), Y.colLength());
+	if(projKeep) //propagate cached projections
+	{	YM.proj.resize(Y.proj.size());
+		for(size_t sp=0; sp<Y.proj.size(); sp++) if(Y.proj[sp])
+		{	matrix projM = Y.proj[sp] * (Mst * (alpha * scale));
+			if(beta) { YM.proj[sp] *= beta; YM.proj[sp] += projM; }
+			else YM.proj[sp] = projM;
+		}
+		YM.projSetValid();
+	}
 	watch.stop();
 }
 
@@ -336,16 +372,16 @@ matrix3<> Lstress(const ColumnBundle &Y, const diagMatrix& F)
 }
 
 // Overlap operator (scale by unit cell volume in PW basis)
-ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY)
+ColumnBundle O(const ColumnBundle &Y)
 {	ColumnBundle OY = Y * Y.basis->gInfo->detR; //basic planewave overlap
-	Y.basis->iInfo->augmentOverlap(Y, OY, VdagY); //pseudopotential augmentation
+	Y.basis->iInfo->augmentOverlap(Y, OY); //pseudopotential augmentation
 	return OY;
 }
 
-matrix dagO(const ColumnBundle &Y1, const std::vector<matrix>& VdagY1, const ColumnBundle &Y2, const std::vector<matrix>& VdagY2)
+matrix dagO(const ColumnBundle &Y1, const ColumnBundle &Y2)
 {	matrix Y1dagOY2 = Y1 ^ Y2;
 	Y1dagOY2 *= Y1.basis->gInfo->detR; //basic planewave overlap
-	Y1.basis->iInfo->augmentOverlap(VdagY1, VdagY2, Y1dagOY2); //pseudopotential augmentation
+	Y1.basis->iInfo->augmentOverlap(Y1.projections(), Y2.projections(), Y1dagOY2); //pseudopotential augmentation
 	return Y1dagOY2;
 }
 

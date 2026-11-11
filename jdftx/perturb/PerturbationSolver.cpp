@@ -230,7 +230,7 @@ void PerturbationSolver::hessian(PerturbationGradient& Av, const PerturbationGra
 
 			diagMatrix F = eVars.F[q];
 			applyH(e.eInfo.qnums[q], eVars.F[q], HdCq, pInfo.dC[q]);
-			dHpsi(e.eInfo.qnums[q], dHCq, eVars.C[q], pInfo.dVscloc, &eVars.VdagC[q]);
+			dHpsi(e.eInfo.qnums[q], dHCq, eVars.C[q], pInfo.dVscloc, &eVars.C[q].projections());
 
 			pInfo.CdagdHC[q] = eVars.C[q]^dHCq;
 			pInfo.dHsub[q] = (pInfo.dC[q]^pInfo.HC[q]) + pInfo.CdagdHC[q] + (eVars.C[q]^HdCq);
@@ -497,7 +497,7 @@ void PerturbationSolver::getdn(ScalarFieldArray& dn, const std::vector<ColumnBun
 			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], VdagCq, &VdagdCq);
 		} else {
 			dn += 2.0*e.eInfo.qnums[q].weight * Real(diagouterI(eVars.F[q], eVars.C[q], (*dC)[q], dn.size(), &e.gInfo));
-			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], eVars.VdagC[q], &VdagdCq);
+			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], eVars.C[q].projections(), &VdagdCq);
 		}
 	}
 	e.iInfo.augmentDensityGrid(dn);

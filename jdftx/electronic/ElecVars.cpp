@@ -153,7 +153,6 @@ void ElecVars::setup(const Everything &everything)
 			HauxInitialized = true;
 		}
 	}
-	VdagC.resize(eInfo.nStates, std::vector<matrix>(e->iInfo.species.size()));
 	
 	//Read in electron (spin) density if needed
 	if(e->cntrl.fixed_H)
@@ -230,9 +229,7 @@ void ElecVars::setup(const Everything &everything)
 		
 		//Orthogonalize initial wavefunctions:
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	C[q] = C[q] * orthoMatrix(C[q] ^ O(C[q]));
-			iInfo.project(C[q], VdagC[q]);
-		}
+			C[q] = C[q] * orthoMatrix(C[q] ^ O(C[q]));
 	}
 	
 	//Fluid setup:
@@ -599,8 +596,6 @@ void ElecVars::setEigenvectors()
 	{
 		fixPhase(Hsub_evecs[q], Hsub_eigs[q], C[q]);
 		C[q] = C[q] * Hsub_evecs[q];
-		for(matrix& VdagCq_sp: VdagC[q])
-			if(VdagCq_sp) VdagCq_sp = VdagCq_sp * Hsub_evecs[q];
 		
 		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub && !e->cntrl.scf)
 			Haux_eigs[q] = Hsub_eigs[q];
@@ -637,7 +632,7 @@ ScalarFieldArray ElecVars::calcDensity() const
 	e->iInfo.augmentDensityInit();
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
 	{	density += e->eInfo.qnums[q].weight * diagouterI(F[q], C[q], density.size(), &e->gInfo);
-		e->iInfo.augmentDensitySpherical(e->eInfo.qnums[q], F[q], VdagC[q]); //pseudopotential contribution
+		e->iInfo.augmentDensitySpherical(e->eInfo.qnums[q], F[q], C[q].projections()); //pseudopotential contribution
 	}
 	e->iInfo.augmentDensityGrid(density);
 	for(ScalarField& ns: density)
@@ -648,27 +643,23 @@ ScalarFieldArray ElecVars::calcDensity() const
 	return density;
 }
 
-void ElecVars::orthonormalize(int q, matrix* extraRotation, bool projected)
+void ElecVars::orthonormalize(int q, matrix* extraRotation)
 {	assert(e->eInfo.isMine(q));
-	if(not projected)
-	{	VdagC[q].clear();
-		e->iInfo.project(C[q], VdagC[q]);
-	}
-	matrix rot = orthoMatrix(dagO(C[q], VdagC[q], C[q], VdagC[q])); //Compute matrix that orthonormalizes wavefunctions
+	matrix rot = orthoMatrix(dagO(C[q], C[q])); //Compute matrix that orthonormalizes wavefunctions
 	if(extraRotation) *extraRotation = (rot = rot * (*extraRotation)); //set rot and extraRotation to the net transformation
 	C[q] = C[q] * rot;
-	e->iInfo.project(C[q], VdagC[q], &rot); //update the atomic projections
 }
 
 double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub, bool diagonalize_Hsub, bool orthoGrad)
 {	assert(C[q]); //make sure wavefunction is available for this state
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
+	const std::vector<matrix>& VdagCq = C[q].projections();
 	std::vector<matrix> HVdagCq(e->iInfo.species.size());
 	
 	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
 	if(need_Hsub)
 	{	HCq += Idag_DiagV_I(C[q], Vscloc); //Accumulate Idag Diag(Vscloc) I C
-		e->iInfo.augmentDensitySphericalGrad(qnum, VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
+		e->iInfo.augmentDensitySphericalGrad(qnum, VdagCq, HVdagCq); //Contribution via pseudopotential density augmentation
 		if(e->exCorr.needsKEdensity() && Vtau[qnum.index()]) //Contribution via orbital KE:
 		{	for(int iDir=0; iDir<3; iDir++)
 				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau), iDir);
@@ -694,13 +685,13 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 	}
 	
 	//Nonlocal pseudopotentials:
-	ener.E["Enl"] += qnum.weight * e->iInfo.EnlAndGrad(qnum, Fq, VdagC[q], HVdagCq);
+	ener.E["Enl"] += qnum.weight * e->iInfo.EnlAndGrad(qnum, Fq, VdagCq, HVdagCq);
 	
 	//Compute subspace hamiltonian if needed (using projections for the nonlocal part, before it is added to HCq):
 	if(need_Hsub)
 	{	Hsub[q] = C[q] ^ HCq;
 		for(unsigned sp=0; sp<HVdagCq.size(); sp++)
-			if(HVdagCq[sp]) Hsub[q] += dagger(VdagC[q][sp]) * HVdagCq[sp];
+			if(HVdagCq[sp]) Hsub[q] += dagger(VdagCq[sp]) * HVdagCq[sp];
 		if(diagonalize_Hsub)
 			Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
 	}
@@ -709,7 +700,7 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 	{	if(orthoGrad) //Include orthonormality contribution: HCq -= O(C[q]) * Hsub[q]
 		{	assert(need_Hsub);
 			HCq -= C[q] * (e->gInfo.detR * Hsub[q]);
-			e->iInfo.augmentOverlapGrad(VdagC[q], -Hsub[q], HVdagCq); //propagated to HCq along with nonlocal part below
+			e->iInfo.augmentOverlapGrad(VdagCq, -Hsub[q], HVdagCq); //propagated to HCq along with nonlocal part below
 		}
 		e->iInfo.projectGrad(HVdagCq, C[q], HCq);
 	}
