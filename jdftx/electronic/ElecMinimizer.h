@@ -35,6 +35,7 @@ class matrix;
 struct ElecGradient
 {	std::vector<ColumnBundle> C; //!< wavefunctions
 	std::vector<matrix> Haux; //!< auxiliary Hamiltonian
+	std::vector<std::vector<matrix>> VdagC; //!< pseudopotential projections of C, if available (set by ElecMinimizer::constrain and propagated through linear operations)
 	const ElecInfo* eInfo;
 	
 	void init(const Everything& e); //!< initialize C and Haux with the correct sizes for everything

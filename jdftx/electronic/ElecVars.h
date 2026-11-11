@@ -121,12 +121,12 @@ public:
 	//! Orthonormalise wavefunctions, with an optional extra rotation
 	//! If extraRotation is present, it is applied after symmetric orthononormalization,
 	//! and on output extraRotation contains the net transformation applied to the wavefunctions.
-	void orthonormalize(int q, matrix* extraRotation=0);
+	void orthonormalize(int q, matrix* extraRotation=0, bool projected=false); //!< projected = whether VdagC[q] already contains the projections of (unnormalized) C[q]
 	
 	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, and computes Hsub if necessary, for a single quantum number
 	//! If Hsub is computed, diagonalize_Hsub controls whether it is diagonalized (no effect if need_Hsub=false).
 	//! Returns the Kinetic energy contribution from q, which can be used for the inverse kinetic preconditioner
-	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub = false, bool diagonalize_Hsub=true);
+	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub = false, bool diagonalize_Hsub=true, bool orthoGrad=false);
 	
 private:
 	const Everything* e;
