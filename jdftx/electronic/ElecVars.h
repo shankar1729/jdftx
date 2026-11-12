@@ -123,6 +123,7 @@ public:
 	
 	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, and computes Hsub if necessary, for a single quantum number
 	//! If Hsub is computed, diagonalize_Hsub controls whether it is diagonalized (no effect if need_Hsub=false).
+	//! If orthoGrad, HCq also includes the orthonormality contribution -O(C[q])*Hsub[q] (requires need_Hsub=true).
 	//! Returns the Kinetic energy contribution from q, which can be used for the inverse kinetic preconditioner
 	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub = false, bool diagonalize_Hsub=true, bool orthoGrad=false);
 	
