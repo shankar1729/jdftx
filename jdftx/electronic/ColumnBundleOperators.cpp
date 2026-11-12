@@ -378,7 +378,7 @@ ColumnBundle O(const ColumnBundle &Y)
 	return OY;
 }
 
-matrix dagO(const ColumnBundle &Y1, const ColumnBundle &Y2)
+matrix dotO(const ColumnBundle &Y1, const ColumnBundle &Y2)
 {	matrix Y1dagOY2 = Y1 ^ Y2;
 	Y1dagOY2 *= Y1.basis->gInfo->detR; //basic planewave overlap
 	Y1.basis->iInfo->augmentOverlap(Y1.projections(), Y2.projections(), Y1dagOY2); //pseudopotential augmentation

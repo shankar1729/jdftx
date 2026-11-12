@@ -263,7 +263,7 @@ void ElecMinimizer::constrain(ElecGradient& dir)
 {	assert(dir.eInfo == &eInfo);
 	//Project component of search direction along current wavefunctions:
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		dir.C[q] -= eVars.C[q] * dagO(eVars.C[q], dir.C[q]);
+		dir.C[q] -= eVars.C[q] * dotO(eVars.C[q], dir.C[q]);
 }
 
 double ElecMinimizer::sync(double x) const
