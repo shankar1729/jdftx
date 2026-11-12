@@ -163,11 +163,9 @@ ColumnBundle DumpCprime::getCpert(Everything& e, int q, vector3<> dkVec, const m
 {
 	//Perform a fixed-H calculation at this q with perturbed k:
 	ColumnBundle Cq = e.eVars.C[q]; //backup orginal wavefunction at this q
-	std::vector<matrix> VdagCq = e.eVars.VdagC[q]; //corresponding projections
 	QuantumNumber qnum = e.eInfo.qnums[q];
 	qnum.k += dkVec; //perturbed quantum number
 	std::swap(qnum, e.eInfo.qnums[q]); //change quantum number in e, but keep same basis
-	e.iInfo.project(e.eVars.C[q], e.eVars.VdagC[q]);
 	//--- Simplified from bandMinimize() for a single q and with no EXX loop
 	{	bool fixed_H = true; std::swap(fixed_H, e.cntrl.fixed_H); //remember fixed_H flag and temporarily set it to true
 		matrix Hsub_evecs_q; std::swap(Hsub_evecs_q, e.eVars.Hsub_evecs[q]);
@@ -178,8 +176,6 @@ ColumnBundle DumpCprime::getCpert(Everything& e, int q, vector3<> dkVec, const m
 			{	BandMinimizer(e, q).minimize(e.elecMinParams);
 				//Set eigenvectors:
 				e.eVars.C[q] = e.eVars.C[q] * e.eVars.Hsub_evecs[q];
-				for(matrix& VdagCq_sp: e.eVars.VdagC[q])
-					if(VdagCq_sp) VdagCq_sp = VdagCq_sp * e.eVars.Hsub_evecs[q];
 				e.eVars.Hsub[q] = e.eVars.Hsub_eigs[q]; //now diagonal
 				e.eVars.Hsub_evecs[q] = eye(e.eInfo.nBands);
 				break;
@@ -192,7 +188,6 @@ ColumnBundle DumpCprime::getCpert(Everything& e, int q, vector3<> dkVec, const m
 	}
 	std::swap(qnum, e.eInfo.qnums[q]); //restore quantum number
 	std::swap(Cq, e.eVars.C[q]); //restore wavefunction (Cq is now perturbed version)
-	std::swap(VdagCq, e.eVars.VdagC[q]); //restore corresponding projections
 	
 	//Align phases / unitary rotations:
 	CpertOC = Cq ^ O(e.eVars.C[q]);

@@ -150,8 +150,6 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
 			eVars.C[q] += pInfo.dC[q]*h;
 			if (modeA->isUltrasoft(iInfo))
 				eVars.C[q] += modeA->dCatom[q]*h;
-			eVars.VdagC[q].clear();
-			e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
 		}
 		eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 		
@@ -168,8 +166,6 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
 			eVars.C[q] -= pInfo.dC[q]*h;
 			if (modeA->isUltrasoft(iInfo))
 				eVars.C[q] -= modeA->dCatom[q]*h;
-			eVars.VdagC[q].clear();
-			e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
 		}
 		eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 		
@@ -183,8 +179,6 @@ IonicGradient SpringConstant::getPhononMatrixColumn(std::shared_ptr<AtomPerturba
 		iInfo.update(e.ener);
         for (int q=eInfo.qStart; q<eInfo.qStop; q++) {
 			eVars.C[q] = Ctmp[q];
-			eVars.VdagC[q].clear();
-			e.iInfo.project(eVars.C[q], eVars.VdagC[q]);
 		}
 		eVars.elecEnergyAndGrad(e.ener, 0, 0, true);
 		

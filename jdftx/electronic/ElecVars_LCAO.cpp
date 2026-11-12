@@ -54,8 +54,6 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 			Haux.diagonalize(Haux_evecs, eVars.Haux_eigs[q]);
 			rotPrev[q] = rotPrev[q] * Haux_evecs;
 			eVars.C[q] = eVars.C[q] * Haux_evecs;
-			for(unsigned sp=0; sp<e.iInfo.species.size(); sp++)
-				if(eVars.VdagC[q][sp]) eVars.VdagC[q][sp] = eVars.VdagC[q][sp] * Haux_evecs;
 		}
 	}
 	
@@ -93,7 +91,7 @@ struct LCAOminimizer : Minimizable<ElecGradient> //Uses only the Haux entries of
 			{	ColumnBundle HCq = Idag_DiagV_I(eVars.C[q], eVars.Vscloc); //Accumulate Idag Diag(Vscloc) I C
 				if(eInfo.hasU) e.iInfo.rhoAtom_grad(eVars.C[q], eVars.U_rhoAtom, HCq); //Contribution via atomic density matrices (DFT+U)
 				std::vector<matrix> HVdagCq(e.iInfo.species.size());
-				e.iInfo.augmentDensitySphericalGrad(qnum, eVars.VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
+				e.iInfo.augmentDensitySphericalGrad(qnum, eVars.C[q].projections(), HVdagCq); //Contribution via pseudopotential density augmentation
 				e.iInfo.projectGrad(HVdagCq, eVars.C[q], HCq);
 				eVars.Hsub[q] = HniRot + (eVars.C[q]^HCq);
 				eVars.Hsub[q].diagonalize(eVars.Hsub_evecs[q], eVars.Hsub_eigs[q]);
@@ -192,7 +190,7 @@ int ElecVars::LCAO()
 		//Non-interacting Hamiltonian:
 		ColumnBundle HniCq = -0.5*L(C[q]);
 		std::vector<matrix> HVdagCq(iInfo.species.size());
-		iInfo.EnlAndGrad(eInfo.qnums[q], eye(lcao.nBands), VdagC[q], HVdagCq); //non-local pseudopotentials
+		iInfo.EnlAndGrad(eInfo.qnums[q], eye(lcao.nBands), C[q].projections(), HVdagCq); //non-local pseudopotentials
 		iInfo.projectGrad(HVdagCq, C[q], HniCq);
 		lcao.HniSub[q] = C[q]^HniCq;
 		lcao.rotPrev[q] = eye(lcao.nBands);
@@ -232,15 +230,13 @@ int ElecVars::LCAO()
 			//Calculate subspace Hamiltonian:
 			ColumnBundle HCq = Idag_DiagV_I(C[q], Vscloc); //local self-consistent potential
 			std::vector<matrix> HVdagCq(iInfo.species.size());
-			iInfo.augmentDensitySphericalGrad(eInfo.qnums[q], VdagC[q], HVdagCq); //ultrasoft augmentation
+			iInfo.augmentDensitySphericalGrad(eInfo.qnums[q], C[q].projections(), HVdagCq); //ultrasoft augmentation
 			iInfo.projectGrad(HVdagCq, C[q], HCq);
 			Hsub[q] = dagger(lcao.rotPrev[q]) * lcao.HniSub[q] * lcao.rotPrev[q] + (C[q]^HCq);
 			
 			//Switch to eigenvectors of Hsub:
 			Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
 			C[q] = C[q] * Hsub_evecs[q];
-			for(unsigned sp=0; sp<iInfo.species.size(); sp++)
-				if(VdagC[q][sp]) VdagC[q][sp] = VdagC[q][sp] * Hsub_evecs[q]; 
 			lcao.rotPrev[q] = lcao.rotPrev[q] * Hsub_evecs[q];
 			Hsub[q] = Hsub_eigs[q];
 			Hsub_evecs[q] = eye(lcao.nBands);

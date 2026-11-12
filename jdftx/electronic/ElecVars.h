@@ -43,8 +43,6 @@ public:
 	std::vector<matrix> Hsub_evecs; //!< eigenvectors of Hsub[q] in columns
 	std::vector<diagMatrix> Hsub_eigs; //!< eigenvalues of Hsub[q]
 	
-	std::vector< std::vector<matrix> > VdagC; //!< cached pseudopotential projections (by state and then species)
-	
 	//Densities and potentials:
 	ScalarFieldArray n; //!< electron density (single ScalarField) or spin density (two ScalarFields [up,dn]) or spin density matrix (four ScalarFields [UpUp, DnDn, Re(UpDn), Im(UpDn)])
 	ScalarFieldArray nAccum; //!< ElecVars::n accumulated over an MD trajectory
@@ -125,8 +123,9 @@ public:
 	
 	//! Applies the Kohn-Sham Hamiltonian on the orthonormal wavefunctions C, and computes Hsub if necessary, for a single quantum number
 	//! If Hsub is computed, diagonalize_Hsub controls whether it is diagonalized (no effect if need_Hsub=false).
+	//! If orthoGrad, HCq also includes the orthonormality contribution -O(C[q])*Hsub[q] (requires need_Hsub=true).
 	//! Returns the Kinetic energy contribution from q, which can be used for the inverse kinetic preconditioner
-	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub = false, bool diagonalize_Hsub=true);
+	double applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub = false, bool diagonalize_Hsub=true, bool orthoGrad=false);
 	
 private:
 	const Everything* e;

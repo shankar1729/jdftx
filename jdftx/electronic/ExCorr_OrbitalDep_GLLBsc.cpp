@@ -185,7 +185,7 @@ ScalarFieldArray ExCorr_OrbitalDep_GLLBsc::getPotential(std::vector<double> eHOM
 			Feff[b] = e.eVars.F[q][b] * Kx * deTerm;
 		}
 		V += qnum.weight * diagouterI(Feff, e.eVars.C[q], V.size(), &e.gInfo); //without the 1/n(r) denominator
-		e.iInfo.augmentDensitySpherical(qnum, Feff, e.eVars.VdagC[q]); //ultrasoft contribution
+		e.iInfo.augmentDensitySpherical(qnum, Feff, e.eVars.C[q].projections()); //ultrasoft contribution
 	}
 	e.iInfo.augmentDensityGrid(V);
 	for(int s=0; s<nSpins; s++)
