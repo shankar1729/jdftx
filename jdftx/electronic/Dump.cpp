@@ -301,7 +301,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
-	if(ShouldDump(Lowdin))
+	if(ShouldDump(AO))
 	{	//Overlap and Hamiltonian matrices of the atomic orbitals used in BandProjections:
 		if(e->exCorr.exxFactor())
 			logPrintf("WARNING: aoHamiltonian does not include exact exchange.\n");
