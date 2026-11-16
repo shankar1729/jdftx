@@ -307,6 +307,7 @@ void Dump::operator()(DumpFrequency freq, int iter)
 			logPrintf("WARNING: aoHamiltonian does not include exact exchange.\n");
 		int nOrbitals = iInfo.nAtomicOrbitals();
 		std::vector<matrix> S(eInfo.nStates), H(eInfo.nStates);
+		iInfo.augmentDensityGridGrad(eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's (not current at every dump)
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	ColumnBundle psi = iInfo.getAtomicOrbitals(q, false);
 			S[q] = dotO(psi, psi);
