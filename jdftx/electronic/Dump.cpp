@@ -279,32 +279,39 @@ void Dump::operator()(DumpFrequency freq, int iter)
 		EndDump
 	}
 	
-	if(ShouldDump(AO))
-	{	//Overlap and Hamiltonian matrices of the atomic orbitals used in BandProjections:
+	if(ShouldDump(AtomicOverlap))
+	{	//Overlap matrix of the atomic orbitals used in BandProjections:
+		int nOrbitals = iInfo.nAtomicOrbitals();
+		std::vector<matrix> S(eInfo.nStates);
+		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
+		{	ColumnBundle psi = iInfo.getAtomicOrbitals(q, false);
+			S[q] = dotO(psi, psi);
+		}
+		StartDump("aoOverlap")
+		eInfo.write(S, fname.c_str(), nOrbitals, nOrbitals);
+		EndDump
+	}
+	
+	if(ShouldDump(AtomicHamiltonian))
+	{	//Hamiltonian matrix of the atomic orbitals used in BandProjections:
 		if(e->exCorr.exxFactor())
 			logPrintf("WARNING: aoHamiltonian %s.\n", e->cntrl.fixed_H
 				? "includes exact exchange only within the span of the bands (ACE representation)"
 				: "does not include exact exchange");
 		int nOrbitals = iInfo.nAtomicOrbitals();
-		std::vector<matrix> S(eInfo.nStates), H(eInfo.nStates);
+		std::vector<matrix> H(eInfo.nStates);
 		iInfo.augmentDensityGridGrad(eVars.Vscloc); //update Vscloc atom projections for ultrasoft psp's (not current at every dump)
 		ElecVars& eVarsMod = (ElecVars&)eVars;
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 		{	ColumnBundle psi = iInfo.getAtomicOrbitals(q, false), Hpsi; Energies ener;
-			S[q] = dotO(psi, psi);
 			//Temporarily swap psi into C[q] to get its subspace Hamiltonian from applyHamiltonian (as in BandDavidson):
 			std::swap(eVarsMod.C[q], psi); std::swap(eVarsMod.Hsub[q], H[q]);
 			eVarsMod.applyHamiltonian(q, eye(nOrbitals), Hpsi, ener, true, false);
 			std::swap(eVarsMod.C[q], psi); std::swap(eVarsMod.Hsub[q], H[q]);
 		}
-		{	StartDump("aoOverlap")
-			eInfo.write(S, fname.c_str(), nOrbitals, nOrbitals);
-			EndDump
-		}
-		{	StartDump("aoHamiltonian")
-			eInfo.write(H, fname.c_str(), nOrbitals, nOrbitals);
-			EndDump
-		}
+		StartDump("aoHamiltonian")
+		eInfo.write(H, fname.c_str(), nOrbitals, nOrbitals);
+		EndDump
 	}
 	
 	if(ShouldDump(EigStats))
