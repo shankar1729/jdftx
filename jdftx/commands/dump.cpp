@@ -142,7 +142,9 @@ EnumStringMap<DumpVariable> varMap
 	DumpDn, "Dn",
 	DumpDVext, "DVext",
 	DumpDVscloc, "DVscloc",
-	DumpHC, "HC"
+	DumpHC, "HC",
+	DumpAtomicOverlap, "AtomicOverlap",
+	DumpAtomicHamiltonian, "AtomicHamiltonian"
 );
 EnumStringMap<DumpVariable> varDescMap
 (	DumpNone,           "Dump nothing",
@@ -206,7 +208,9 @@ EnumStringMap<DumpVariable> varDescMap
 	DumpDn, 			"First order change in electronic density",
 	DumpDVext, 			"External perturbation",
 	DumpDVscloc, 		"First order change in local self-consistent potential",
-	DumpHC,				"Hamiltonian applied on wavefunctions for non self-consistent forces"
+	DumpHC,				"Hamiltonian applied on wavefunctions for non self-consistent forces",
+	DumpAtomicOverlap,	"Overlap <phi|O|phi> of the atomic orbitals of BandProjections, in binary file aoOverlap (one column-major nOrbitals x nOrbitals matrix per state)",
+	DumpAtomicHamiltonian,	"Kohn-Sham Hamiltonian <phi|H|phi> (without exact exchange, except in its ACE form in fixed-Hamiltonian calculations) of the atomic orbitals of BandProjections, in binary file aoHamiltonian (same format as aoOverlap)"
 );
 
 struct CommandDump : public Command
