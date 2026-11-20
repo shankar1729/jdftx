@@ -153,7 +153,6 @@ void ElecVars::setup(const Everything &everything)
 			HauxInitialized = true;
 		}
 	}
-	VdagC.resize(eInfo.nStates, std::vector<matrix>(e->iInfo.species.size()));
 	
 	//Read in electron (spin) density if needed
 	if(e->cntrl.fixed_H)
@@ -230,9 +229,7 @@ void ElecVars::setup(const Everything &everything)
 		
 		//Orthogonalize initial wavefunctions:
 		for(int q=eInfo.qStart; q<eInfo.qStop; q++)
-		{	C[q] = C[q] * orthoMatrix(C[q] ^ O(C[q]));
-			iInfo.project(C[q], VdagC[q]);
-		}
+			C[q] = C[q] * orthoMatrix(C[q] ^ O(C[q]));
 	}
 	
 	//Fluid setup:
@@ -414,11 +411,12 @@ double ElecVars::elecEnergyAndGrad(Energies& ener, ElecGradient* grad, ElecGradi
 	bool saveHC = need_Hsub and e->dump.count(std::make_pair(DumpFreq_End, DumpHC));
 	std::vector<ColumnBundle> HCsave(eInfo.nStates); //saved copy for HC output (if needed)
 	for(int q=eInfo.qStart; q<e->eInfo.qStop; q++)
-	{	double KEq = applyHamiltonian(q, F[q], HC[q], ener, need_Hsub);
+	{	bool orthoGrad = grad and (not saveHC); //include orthonormality contribution within applyHamiltonian (unless HC is needed for output)
+		double KEq = applyHamiltonian(q, F[q], HC[q], ener, need_Hsub, true, orthoGrad);
 		if(grad) //Calculate wavefunction gradients:
 		{	const QuantumNumber& qnum = eInfo.qnums[q];
 			if(saveHC) HCsave[q] = HC[q]; //stash HC[q] before modifying it below
-			HC[q] -= O(C[q]) * Hsub[q]; //Include orthonormality contribution
+			if(not orthoGrad) HC[q] -= O(C[q]) * Hsub[q]; //Include orthonormality contribution (unless already included by applyHamiltonian)
 			grad->C[q] = HC[q] * (F[q]*qnum.weight);
 			if(Kgrad)
 			{	double Nq = qnum.weight*trace(F[q]);
@@ -598,8 +596,6 @@ void ElecVars::setEigenvectors()
 	{
 		fixPhase(Hsub_evecs[q], Hsub_eigs[q], C[q]);
 		C[q] = C[q] * Hsub_evecs[q];
-		for(matrix& VdagCq_sp: VdagC[q])
-			if(VdagCq_sp) VdagCq_sp = VdagCq_sp * Hsub_evecs[q];
 		
 		if(eInfo.fillingsUpdate==ElecInfo::FillingsHsub && !e->cntrl.scf)
 			Haux_eigs[q] = Hsub_eigs[q];
@@ -636,7 +632,7 @@ ScalarFieldArray ElecVars::calcDensity() const
 	e->iInfo.augmentDensityInit();
 	for(int q=e->eInfo.qStart; q<e->eInfo.qStop; q++)
 	{	density += e->eInfo.qnums[q].weight * diagouterI(F[q], C[q], density.size(), &e->gInfo);
-		e->iInfo.augmentDensitySpherical(e->eInfo.qnums[q], F[q], VdagC[q]); //pseudopotential contribution
+		e->iInfo.augmentDensitySpherical(e->eInfo.qnums[q], F[q], C[q].projections()); //pseudopotential contribution
 	}
 	e->iInfo.augmentDensityGrid(density);
 	for(ScalarField& ns: density)
@@ -649,22 +645,21 @@ ScalarFieldArray ElecVars::calcDensity() const
 
 void ElecVars::orthonormalize(int q, matrix* extraRotation)
 {	assert(e->eInfo.isMine(q));
-	VdagC[q].clear();
-	matrix rot = orthoMatrix(C[q]^O(C[q], &VdagC[q])); //Compute matrix that orthonormalizes wavefunctions
+	matrix rot = orthoMatrix(dotO(C[q], C[q])); //Compute matrix that orthonormalizes wavefunctions
 	if(extraRotation) *extraRotation = (rot = rot * (*extraRotation)); //set rot and extraRotation to the net transformation
 	C[q] = C[q] * rot;
-	e->iInfo.project(C[q], VdagC[q], &rot); //update the atomic projections
 }
 
-double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub, bool diagonalize_Hsub)
+double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq, Energies& ener, bool need_Hsub, bool diagonalize_Hsub, bool orthoGrad)
 {	assert(C[q]); //make sure wavefunction is available for this state
 	const QuantumNumber& qnum = e->eInfo.qnums[q];
+	const std::vector<matrix>& VdagCq = C[q].projections();
 	std::vector<matrix> HVdagCq(e->iInfo.species.size());
 	
 	//Propagate grad_n (Vscloc) to HCq (which is grad_Cq upto weights and fillings) if required
 	if(need_Hsub)
 	{	HCq += Idag_DiagV_I(C[q], Vscloc); //Accumulate Idag Diag(Vscloc) I C
-		e->iInfo.augmentDensitySphericalGrad(qnum, VdagC[q], HVdagCq); //Contribution via pseudopotential density augmentation
+		e->iInfo.augmentDensitySphericalGrad(qnum, VdagCq, HVdagCq); //Contribution via pseudopotential density augmentation
 		if(e->exCorr.needsKEdensity() && Vtau[qnum.index()]) //Contribution via orbital KE:
 		{	for(int iDir=0; iDir<3; iDir++)
 				HCq -= (0.5*e->gInfo.dV) * D(Idag_DiagV_I(D(C[q],iDir), Vtau), iDir);
@@ -690,14 +685,24 @@ double ElecVars::applyHamiltonian(int q, const diagMatrix& Fq, ColumnBundle& HCq
 	}
 	
 	//Nonlocal pseudopotentials:
-	ener.E["Enl"] += qnum.weight * e->iInfo.EnlAndGrad(qnum, Fq, VdagC[q], HVdagCq);
-	if(HCq) e->iInfo.projectGrad(HVdagCq, C[q], HCq);
+	ener.E["Enl"] += qnum.weight * e->iInfo.EnlAndGrad(qnum, Fq, VdagCq, HVdagCq);
 	
-	//Compute subspace hamiltonian if needed:
+	//Compute subspace hamiltonian if needed (using projections for the nonlocal part, before it is added to HCq):
 	if(need_Hsub)
 	{	Hsub[q] = C[q] ^ HCq;
+		for(unsigned sp=0; sp<HVdagCq.size(); sp++)
+			if(HVdagCq[sp]) Hsub[q] += dagger(VdagCq[sp]) * HVdagCq[sp];
 		if(diagonalize_Hsub)
 			Hsub[q].diagonalize(Hsub_evecs[q], Hsub_eigs[q]);
+	}
+	
+	if(HCq)
+	{	if(orthoGrad) //Include orthonormality contribution: HCq -= O(C[q]) * Hsub[q]
+		{	assert(need_Hsub);
+			HCq -= C[q] * (e->gInfo.detR * Hsub[q]);
+			e->iInfo.augmentOverlapGrad(VdagCq, -Hsub[q], HVdagCq); //propagated to HCq along with nonlocal part below
+		}
+		e->iInfo.projectGrad(HVdagCq, C[q], HCq);
 	}
 	return KEq;
 }

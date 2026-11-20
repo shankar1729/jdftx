@@ -37,6 +37,7 @@ void SpeciesInfo::sync_atpos()
 	atposManaged = ManagedArray<vector3<>>(atpos); //it will get transferred to GPU if/when necessary
 	//Invalidate cached projectors:
 	cachedV.clear();
+	projectorVersion++;
 }
 
 inline bool isParallel(vector3<> x, vector3<> y)
@@ -105,6 +106,7 @@ SpeciesInfo::SpeciesInfo()
 {
 	Z = 0.0;
 	atomicNumber = 0;
+	projectorVersion = 0;
 	Z_chargeball = 0.0; width_chargeball = 0.0;
 	tauCore_rCut = 0.; tauCorePlot = false;
 	dE_dnG = 0.0;
@@ -407,6 +409,7 @@ void SpeciesInfo::updateLatticeDependent()
 		tauCoreRadial.updateGmax(0, nGridLoc);
 		for(auto& Qijl: Qradial) Qijl.second.updateGmax(Qijl.first.l, nGridLoc);
 		cachedV.clear(); //clear any cached projectors
+		projectorVersion++;
 	}
 	
 	//Update Qradial indices, matrix and nagIndex if not previously init'd, or if R has changed:

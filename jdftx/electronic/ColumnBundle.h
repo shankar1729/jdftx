@@ -39,6 +39,18 @@ class ColumnBundle : public ManagedMemory<complex>
 	int ncols;
 	size_t col_length; //typically equal to either basis->nbasis (or 2*basis->nbasis for spinors in noncollinear mode)
 
+	//Cached pseudopotential projections: access using projections(), which calculates and invalidates them when necessary
+	mutable std::vector<matrix> proj; //!< projections (by species)
+	mutable int projVersion; //!< IonInfo::projectorVersion() for which proj was calculated
+	mutable vector3<> projK; //!< k-point for which proj was calculated
+	bool projValid() const; //!< whether proj is valid for the current data, k-point and projectors
+	void projSetValid() const; //!< mark proj as valid for the current data, k-point and projectors
+	//Linear operations that propagate cached projections (all other data modifications invalidate them):
+	friend ColumnBundle& operator*=(ColumnBundle& X, double s);
+	friend ColumnBundle& operator*=(ColumnBundle& X, complex s);
+	friend void axpy(complex alpha, const ColumnBundle& X, ColumnBundle& Y);
+	friend struct ColumnBundleMatrixProduct;
+
 public:
 	int nCols() const { return ncols; } //!< number of columns accessor
 	size_t colLength() const { return col_length; } //!< column length accessor
@@ -52,6 +64,10 @@ public:
 	
 	const QuantumNumber *qnum;
 	const Basis *basis;
+
+	//! Pseudopotential projections V^C for each species of basis->iInfo. These are calculated when needed, cached, propagated
+	//! through linear operations and invalidated automatically when the data, the k-point or the projectors change.
+	const std::vector<matrix>& projections() const;
 
 	void init(int nc, size_t len, const Basis* b, const QuantumNumber* q, bool onGpu=false); //!< constructor helper
 	void free(); //!< Force cleanup
@@ -91,6 +107,7 @@ double dot(const ColumnBundle& x, const ColumnBundle& y); //!< inner product
 
 //----------- Arithmetic operators ------------
 
+void axpy(complex alpha, const ColumnBundle& X, ColumnBundle& Y); //!< Y += alpha*X
 ColumnBundle& operator+=(ColumnBundle& Y, const scaled<ColumnBundle> &X);
 ColumnBundle& operator-=(ColumnBundle& Y, const scaled<ColumnBundle> &X);
 ColumnBundle operator+(const scaled<ColumnBundle> &Y1, const scaled<ColumnBundle> &Y2);
@@ -150,7 +167,8 @@ ColumnBundle Idag_DiagV_I(const ColumnBundle& C, const complexScalarFieldArray& 
 ColumnBundle L(const ColumnBundle &Y); //!< Apply Laplacian
 ColumnBundle Linv(const ColumnBundle &Y); //!< Apply Laplacian inverse
 matrix3<> Lstress(const ColumnBundle &Y, const diagMatrix& F); //!< Compute lattice vector derivative of Tr[Y^LYF] (used for KE stress calculation)
-ColumnBundle O(const ColumnBundle &Y, std::vector<matrix>* VdagY=0); //!< Apply overlap (and optionally retrieve pseudopotential projections for later reuse)
+ColumnBundle O(const ColumnBundle &Y); //!< Apply overlap
+matrix dotO(const ColumnBundle &Y1, const ColumnBundle &Y2); //!< Compute Y1^O(Y2) from the pseudopotential projections of Y1 and Y2 (avoids applying O to Y2)
 ColumnBundle D(const ColumnBundle &Y, int iDir); //!< Compute the cartesian gradient of a column bundle in direction# iDir
 ColumnBundle D(const ColumnBundle& in, const vector3<>& dir); //!< Directional derivative of column bundle along (cartesian direction) dir
 ColumnBundle DD(const ColumnBundle &Y, int iDir, int jDir); //!< Compute second spatial derivative of a column bundle along directions# iDir, jDir

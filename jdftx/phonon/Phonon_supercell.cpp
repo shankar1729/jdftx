@@ -335,7 +335,6 @@ std::vector<diagMatrix> Phonon::setSupState()
 				Haux_eigsSup.set(nBandsPrev,nBandsPrev+nBandsOpt, Haux_eigs(0,nBandsOpt));
 			}
 		}
-		eSup->iInfo.project(Csup, eSup->eVars.VdagC[qSup]); //update wave function projections
 		if(eSup->cntrl.scf) eSup->eVars.orthonormalize(qSup); //SCF assumes orthonormal (not automatically so for ultrasoft)
 	}
 	
@@ -397,14 +396,13 @@ std::vector<matrix> Phonon::getPerturbedHsub(const Perturbation& pert, const std
 				sme.transform->scatterAxpy(scaleFac, C, Csup,0,1);
 				//Apply Hamiltonian:
 				ColumnBundle HCsup; Energies ener;
-				eSup->iInfo.project(Csup, eSup->eVars.VdagC[qSup]); //update wavefunction projections
 				eSup->eVars.applyHamiltonian(qSup, eye(nBands), HCsup, ener, true);
 				int start = nBands * sme.nqPrev;
 				int stop = nBands * (sme.nqPrev+1);
 				//Store projections for augmentation correction (if needed)
 				if(spPert.QintAll)
 				{	V0dagC[s].set(0,pStop-pStart, start,stop, V0[s] ^ Csup);
-					VdagC[s].set(0,pStop-pStart, start,stop, eSup->eVars.VdagC[qSup][pert.sp](pStart,pStop, 0,Csup.nCols()));
+					VdagC[s].set(0,pStop-pStart, start,stop, Csup.projections()[pert.sp](pStart,pStop, 0,Csup.nCols()));
 				}
 				//Second loop over supercell-commensurate unit cell k-points:
 				for(const StateMapEntry& sme2: stateMap) if(sme2.qSup==qSup)

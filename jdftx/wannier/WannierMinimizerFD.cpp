@@ -249,7 +249,7 @@ void WannierMinimizerFD::initialize(int iSpin)
 			{	mpiWorld->bcastData((ColumnBundle&)e.eVars.C[q], jProcess);
 				for(size_t iSp=0; iSp<e.iInfo.species.size(); iSp++)
 					if(e.iInfo.species[iSp]->isUltrasoft())
-						mpiWorld->bcastData((matrix&)e.eVars.VdagC[q][iSp], jProcess);
+						mpiWorld->bcastData((matrix&)e.eVars.C[q].projections()[iSp], jProcess);
 			}
 		}
 		else //recv

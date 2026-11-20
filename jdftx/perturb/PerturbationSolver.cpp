@@ -230,7 +230,7 @@ void PerturbationSolver::hessian(PerturbationGradient& Av, const PerturbationGra
 
 			diagMatrix F = eVars.F[q];
 			applyH(e.eInfo.qnums[q], eVars.F[q], HdCq, pInfo.dC[q]);
-			dHpsi(e.eInfo.qnums[q], dHCq, eVars.C[q], pInfo.dVscloc, &eVars.VdagC[q]);
+			dHpsi(e.eInfo.qnums[q], dHCq, eVars.C[q], pInfo.dVscloc, &eVars.C[q].projections());
 
 			pInfo.CdagdHC[q] = eVars.C[q]^dHCq;
 			pInfo.dHsub[q] = (pInfo.dC[q]^pInfo.HC[q]) + pInfo.CdagdHC[q] + (eVars.C[q]^HdCq);
@@ -485,19 +485,17 @@ void PerturbationSolver::getdn(ScalarFieldArray& dn, const std::vector<ColumnBun
 	for(int q=e.eInfo.qStart; q<e.eInfo.qStop; q++)
 	{
 		if (pInfo.densityAugRequired(e)) {
-			VdagdCq.resize(e.iInfo.species.size());
-			e.iInfo.project((*dC)[q], VdagdCq);
+			VdagdCq = (*dC)[q].projections();
 		}
 		
 		if (C) {
-			std::vector<matrix> VdagCq(e.iInfo.species.size());
-			e.iInfo.project((*C)[q], VdagCq); //update the atomic projections
+			const std::vector<matrix>& VdagCq = (*C)[q].projections();
 			
 			dn += 2.0*e.eInfo.qnums[q].weight * Real(diagouterI(eVars.F[q], (*C)[q], (*dC)[q], dn.size(), &e.gInfo));
 			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], VdagCq, &VdagdCq);
 		} else {
 			dn += 2.0*e.eInfo.qnums[q].weight * Real(diagouterI(eVars.F[q], eVars.C[q], (*dC)[q], dn.size(), &e.gInfo));
-			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], eVars.VdagC[q], &VdagdCq);
+			e.iInfo.augmentDensitySpherical(e.eInfo.qnums[q], eVars.F[q], eVars.C[q].projections(), &VdagdCq);
 		}
 	}
 	e.iInfo.augmentDensityGrid(dn);
@@ -578,7 +576,6 @@ void PerturbationSolver::applyH(const QuantumNumber& qnum, const diagMatrix& Fq,
 	assert(Cq); //make sure wavefunction is available for this state
 	
 	std::vector<matrix> HVdagCq(e.iInfo.species.size());
-	std::vector<matrix> VdagCq(e.iInfo.species.size());
 	
 	HCq.zero();
 	
@@ -586,7 +583,7 @@ void PerturbationSolver::applyH(const QuantumNumber& qnum, const diagMatrix& Fq,
 
 	HCq += Idag_DiagV_I(Cq, eVars.Vscloc);
 
-	e.iInfo.project(Cq, VdagCq); //update the atomic projections
+	const std::vector<matrix>& VdagCq = Cq.projections();
 	e.iInfo.augmentDensitySphericalGrad(qnum, VdagCq, HVdagCq);
 
 	HCq += (-0.5) * L(Cq);
@@ -612,9 +609,7 @@ void PerturbationSolver::dH_Vscloc(const QuantumNumber& qnum, ColumnBundle& HCq,
 	if (VdagCq) {
 		e.iInfo.augmentDensitySphericalGrad(qnum, *VdagCq, HVdagCq);
 	} else {
-		std::vector<matrix> VdagCq_fresh(e.iInfo.species.size());
-		e.iInfo.project(Cq, VdagCq_fresh); //update the atomic projections
-		e.iInfo.augmentDensitySphericalGrad(qnum, VdagCq_fresh, HVdagCq);
+		e.iInfo.augmentDensitySphericalGrad(qnum, Cq.projections(), HVdagCq);
 	}
 	e.iInfo.projectGrad(HVdagCq, HCq, HCq);
 	

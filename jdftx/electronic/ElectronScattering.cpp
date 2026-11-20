@@ -116,7 +116,6 @@ void ElectronScattering::dump(const Everything& everything)
 	{	std::swap(C, e.eVars.C);
 		std::swap(E, e.eVars.Hsub_eigs);
 		std::swap(F, e.eVars.F);
-		std::swap(VdagC, e.eVars.VdagC);
 		dumpSlabResponse(e, omegaGrid);
 		return;
 	}
@@ -132,7 +131,7 @@ void ElectronScattering::dump(const Everything& everything)
 		{	std::swap(C[q], e.eVars.C[q]);
 			std::swap(E[q], e.eVars.Hsub_eigs[q]);
 			std::swap(F[q], e.eVars.F[q]);
-			std::swap(VdagC[q], e.eVars.VdagC[q]);
+			VdagC[q] = C[q].projections();
 		}
 		else
 		{	C[q].init(nBands, e.basis[q].nbasis * nSpinor, &e.basis[q], &e.eInfo.qnums[q]);

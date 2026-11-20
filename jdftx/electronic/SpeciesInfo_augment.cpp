@@ -26,15 +26,25 @@ along with JDFTx.  If not, see <http://www.gnu.org/licenses/>.
 //------- additional SpeciesInfo functions for ultrasoft pseudopotentials (density and overlap augmentation) -------
 
 
-void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, matrix* VdagCqPtr) const
+void SpeciesInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, const matrix& VdagCq) const
 {	static StopWatch watch("augmentOverlap"); watch.start();
 	if(!atpos.size()) return; //unused species
 	if(!Qint.size()) return; //no overlap augmentation
 	std::shared_ptr<ColumnBundle> V = getV(Cq);
-	matrix VdagCq = (*V) ^ Cq;
-	if(VdagCqPtr) *VdagCqPtr = VdagCq; //cache for later usage
 	OCq += (*V) * (tiledBlockMatrix(QintAll,atpos.size()) * VdagCq);
 	watch.stop();
+}
+
+void SpeciesInfo::augmentOverlap(const matrix& VdagY1, const matrix& VdagY2, matrix& Y1dagOY2) const
+{	if(!atpos.size()) return; //unused species
+	if(!Qint.size()) return; //no overlap augmentation
+	Y1dagOY2 += dagger(VdagY1) * (tiledBlockMatrix(QintAll,atpos.size()) * VdagY2);
+}
+
+void SpeciesInfo::augmentOverlapGrad(const matrix& VdagCq, const matrix& M, matrix& HVdagCq) const
+{	if(!atpos.size()) return; //unused species
+	if(!Qint.size()) return; //no overlap augmentation
+	HVdagCq += tiledBlockMatrix(QintAll,atpos.size()) * (VdagCq * M);
 }
 
 void SpeciesInfo::augmentOverlapDeriv(const ColumnBundle& Cq, ColumnBundle& OCq, ColumnBundle& V, ColumnBundle& dV) const

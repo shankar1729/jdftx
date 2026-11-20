@@ -296,13 +296,14 @@ double IonInfo::ionicEnergyAndGrad()
 	for(int q=eInfo.qStart; q<eInfo.qStop; q++)
 	{	const QuantumNumber& qnum = e->eInfo.qnums[q];
 		//Collect gradients with respect to VdagCq (not including fillings and state weight):
+		const std::vector<matrix>& VdagCq = eVars.C[q].projections();
 		std::vector<matrix> HVdagCq(species.size()); 
-		EnlAndGrad(qnum, eVars.F[q], eVars.VdagC[q], HVdagCq);
-		augmentDensitySphericalGrad(qnum, eVars.VdagC[q], HVdagCq);
+		EnlAndGrad(qnum, eVars.F[q], VdagCq, HVdagCq);
+		augmentDensitySphericalGrad(qnum, VdagCq, HVdagCq);
 		//Propagate to atomic positions:
 		for(unsigned sp=0; sp<species.size(); sp++) if(HVdagCq[sp])
 		{	matrix grad_CdagOCq = -(eVars.Hsub_eigs[q] * eVars.F[q]); //gradient of energy w.r.t overlap matrix
-			species[sp]->accumNonlocalForces(eVars.C[q], eVars.VdagC[q][sp], HVdagCq[sp]*eVars.F[q], grad_CdagOCq, forcesNL[sp], Enl_RRTptr);
+			species[sp]->accumNonlocalForces(eVars.C[q], VdagCq[sp], HVdagCq[sp]*eVars.F[q], grad_CdagOCq, forcesNL[sp], Enl_RRTptr);
 		}
 	}
 	for(auto& force: forcesNL) //Accumulate contributions over processes
@@ -334,10 +335,20 @@ double IonInfo::EnlAndGrad(const QuantumNumber& qnum, const diagMatrix& Fq, cons
 
 
 
-void IonInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq, std::vector<matrix>* VdagCq) const
-{	if(VdagCq) VdagCq->resize(species.size());
-	for(unsigned sp=0; sp<species.size(); sp++)
-		species[sp]->augmentOverlap(Cq, OCq, VdagCq ? &VdagCq->at(sp) : 0);
+void IonInfo::augmentOverlap(const ColumnBundle& Cq, ColumnBundle& OCq) const
+{	for(unsigned sp=0; sp<species.size(); sp++)
+		if(species[sp]->isUltrasoft()) //projections only needed in this case
+			species[sp]->augmentOverlap(Cq, OCq, Cq.projections()[sp]);
+}
+
+void IonInfo::augmentOverlap(const std::vector<matrix>& VdagY1, const std::vector<matrix>& VdagY2, matrix& Y1dagOY2) const
+{	for(unsigned sp=0; sp<species.size(); sp++)
+		species[sp]->augmentOverlap(VdagY1[sp], VdagY2[sp], Y1dagOY2);
+}
+
+void IonInfo::augmentOverlapGrad(const std::vector<matrix>& VdagCq, const matrix& M, std::vector<matrix>& HVdagCq) const
+{	for(unsigned sp=0; sp<species.size(); sp++)
+		species[sp]->augmentOverlapGrad(VdagCq[sp], M, HVdagCq[sp]);
 }
 
 void IonInfo::augmentDensityInit() const
@@ -390,6 +401,12 @@ void IonInfo::project(const ColumnBundle& Cq, std::vector<matrix>& VdagCq, matri
 void IonInfo::projectGrad(const std::vector<matrix>& HVdagCq, const ColumnBundle& Cq, ColumnBundle& HCq) const
 {	for(unsigned sp=0; sp<species.size(); sp++)
 		if(HVdagCq[sp]) HCq += *(species[sp]->getV(Cq)) * HVdagCq[sp];
+}
+
+int IonInfo::projectorVersion() const
+{	int version = 0;
+	for(const auto& sp: species) version += sp->projectorVersion;
+	return version;
 }
 
 //----- DFT+U functions --------

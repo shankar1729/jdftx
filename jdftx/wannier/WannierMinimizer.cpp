@@ -226,7 +226,7 @@ ColumnBundle WannierMinimizer::getWfns(const WannierMinimizer::Kpoint& kpoint, i
 void WannierMinimizer::axpyWfns(double alpha, const matrix& A, const WannierMinimizer::Kpoint& kpoint, int iSpin, ColumnBundle& result, std::vector<matrix>* VdagResult) const
 {	static StopWatch watch("WannierMinimizer::axpyWfns"); watch.start();
 	axpyWfns_COMMON(result)
-	const std::vector<matrix>* VdagC = VdagResult ? (e.eInfo.isMine(q) ? &e.eVars.VdagC[q] : &VdagCother[q]) : 0;
+	const std::vector<matrix>* VdagC = VdagResult ? (e.eInfo.isMine(q) ? &e.eVars.C[q].projections() : &VdagCother[q]) : 0;
 	//Apply transformation if provided:
 	ColumnBundle Cout; std::vector<matrix> VdagCout;
 	if(A)

@@ -33,6 +33,7 @@ void ColumnBundle::init(int nc, size_t len, const Basis *b, const QuantumNumber*
 	col_length = len;
 	basis = b;
 	qnum = q;
+	proj.clear();
 
 	if(nCols() == 0) { memFree(); return; } //must be default constructor or assignment to empty ColumnBundle
 	assert(colLength() != 0);
@@ -44,6 +45,7 @@ void ColumnBundle::free()
 	col_length = 0;
 	basis = 0;
 	qnum = 0;
+	proj.clear();
 	memFree();
 }
 
@@ -55,6 +57,7 @@ ColumnBundle::ColumnBundle(int nc, size_t len, const Basis *b, const QuantumNumb
 ColumnBundle::ColumnBundle(const ColumnBundle &Y)
 {	init(Y.nCols(), Y.colLength(), Y.basis, Y.qnum, Y.isOnGpu()); //initialize size and storage
 	if(nData()) memcpy((ManagedMemory&)*this, (const ManagedMemory&)Y); //copy data
+	if(Y.projValid()) { proj = Y.proj; projSetValid(); } //copy cached projections
 }
 // Move constructor
 ColumnBundle::ColumnBundle(ColumnBundle&& Y)
@@ -63,6 +66,7 @@ ColumnBundle::ColumnBundle(ColumnBundle&& Y)
 	std::swap(qnum, Y.qnum);
 	std::swap(basis, Y.basis);
 	memMove((ManagedMemory&&)Y); //cannibalize Y's data
+	std::swap(proj, Y.proj); std::swap(projVersion, Y.projVersion); std::swap(projK, Y.projK); //along with its cached projections
 }
 // Create a similar object, without copying data
 ColumnBundle ColumnBundle::similar(int ncOverride) const
@@ -74,6 +78,7 @@ ColumnBundle ColumnBundle::similar(int ncOverride) const
 ColumnBundle& ColumnBundle::operator=(const ColumnBundle &Y)
 {	init(Y.nCols(), Y.colLength(), Y.basis, Y.qnum, Y.isOnGpu()); //initialize size and storage
 	if(nData()) memcpy((ManagedMemory&)*this, (const ManagedMemory&)Y); //copy data
+	if(Y.projValid()) { proj = Y.proj; projSetValid(); } //copy cached projections
 	return *this;
 }
 // Move-assignment
@@ -83,10 +88,31 @@ ColumnBundle& ColumnBundle::operator=(ColumnBundle&& Y)
 	std::swap(qnum, Y.qnum);
 	std::swap(basis, Y.basis);
 	memMove((ManagedMemory&&)Y); //cannibalize Y's data
+	std::swap(proj, Y.proj); std::swap(projVersion, Y.projVersion); std::swap(projK, Y.projK); //along with its cached projections
 	return *this;
 }
 ColumnBundle clone(const ColumnBundle& Y)
 {	return Y;
+}
+
+bool ColumnBundle::projValid() const
+{	return proj.size() and (not dataModified) and qnum and (projK == qnum->k)
+		and (projVersion == basis->iInfo->projectorVersion());
+}
+
+void ColumnBundle::projSetValid() const
+{	projVersion = basis->iInfo->projectorVersion();
+	projK = qnum->k;
+	dataModified = false;
+}
+
+const std::vector<matrix>& ColumnBundle::projections() const
+{	if(not projValid())
+	{	proj.clear();
+		basis->iInfo->project(*this, proj);
+		projSetValid();
+	}
+	return proj;
 }
 
 void randomize(ColumnBundle& x)
@@ -105,6 +131,11 @@ ColumnBundle ColumnBundle::getSub(int colStart, int colStop) const
 	assert(nColsSub>0);
 	ColumnBundle ret = this->similar(nColsSub);
 	callPref(eblas_copy)(ret.dataPref(), dataPref()+colStart*colLength(), nColsSub*colLength());
+	if(projValid()) //propagate cached projections
+	{	for(const matrix& m: proj)
+			ret.proj.push_back(m ? matrix(m(0,m.nRows(), colStart,colStop)) : m);
+		ret.projSetValid();
+	}
 	return ret;
 }
 

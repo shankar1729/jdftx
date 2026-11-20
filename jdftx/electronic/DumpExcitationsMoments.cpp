@@ -351,7 +351,7 @@ void dumpFCI(const Everything& e, const char* filename)
 		ColumnBundle H0Cq = Idag_DiagV_I(Cq, Vloc) - 0.5*L(Cq); //local PS and KE
 		{	//Add nonlocal PS contribution:
 			std::vector<matrix> HVdagCq(e.iInfo.species.size());
-			e.iInfo.EnlAndGrad(e.eInfo.qnums[q], e.eVars.F[q], e.eVars.VdagC[q], HVdagCq);
+			e.iInfo.EnlAndGrad(e.eInfo.qnums[q], e.eVars.F[q], e.eVars.C[q].projections(), HVdagCq);
 			e.iInfo.projectGrad(HVdagCq, Cq, H0Cq); //HCq += (nonlocalPS projectors) * Cq
 		}
 		H0[q] = Cq ^ H0Cq; //matrix elements of KE + net pseudopotential
